@@ -1,6 +1,6 @@
 const CACHE_NAME = 'my-dashboard-v1';
 const ASSETS = [
-  '/My_Dashboard_V32.html',
+  '/My_Dashboard_V33.html',
   '/manifest.json'
 ];
 
