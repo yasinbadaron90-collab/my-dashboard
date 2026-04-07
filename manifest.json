@@ -2,7 +2,7 @@
   "name": "My Dashboard",
   "short_name": "Dashboard",
   "description": "Personal savings, carpool & car tracker",
-  "start_url": "/my-dashboard/My_Dashboard_V33.html",
+  "start_url": "/my-dashboard/My_Dashboard_V34.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
