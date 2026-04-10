@@ -7579,28 +7579,22 @@ var _instShowCleared = false;
 function loadInst(){ try{ return JSON.parse(lsGet(INST_KEY)||'[]'); }catch(e){ return []; } }
 function saveInst(d){ lsSet(INST_KEY, JSON.stringify(d)); }
 
-// ── Seed MTN contract if no plans exist yet ──
+// ── Seed MTN contract if no MTN plan exists yet ──
 function seedMTNContract(){
   var plans = loadInst();
   var alreadyHasMTN = plans.some(function(p){ return p.provider === 'MTN'; });
   if(alreadyHasMTN) return;
-  // Build 24-month schedule debiting on the 20th each month starting 2026-04-20
-  var dates = [];
-  var start = new Date('2026-04-20T00:00:00');
-  for(var i = 0; i < 24; i++){
-    var d = new Date(start.getFullYear(), start.getMonth() + i, 20);
-    dates.push(d.toISOString().slice(0,10));
-  }
   plans.push({
     id: 'mtn_contract_seed',
     provider: 'MTN',
-    desc: 'MTN Contract (Debit Order)',
-    total: 209 * 24,
-    num: 24,
+    desc: 'MTN Contract (Month to Month)',
+    total: null,
+    num: null,
     amt: 209,
     freq: 'monthly',
     debitDay: 20,
-    dates: dates,
+    monthToMonth: true,
+    dates: [],
     paid: []
   });
   saveInst(plans);
@@ -7829,9 +7823,14 @@ function confirmInstPay(){
   var plan   = plans.find(function(p){ return p.id === planId; });
   if(!plan) return;
   if(!plan.paid) plan.paid = [];
-  // Remove any existing entry for this index then add new
-  plan.paid = plan.paid.filter(function(x){ return x.index !== idx; });
-  plan.paid.push({ index: idx, date: date, note: note });
+  if(idx === -1){
+    // Month-to-month: push new payment with auto-incremented index
+    var nextIdx = plan.paid.length > 0 ? Math.max.apply(null, plan.paid.map(function(x){ return x.index; })) + 1 : 0;
+    plan.paid.push({ index: nextIdx, date: date, note: note });
+  } else {
+    plan.paid = plan.paid.filter(function(x){ return x.index !== idx; });
+    plan.paid.push({ index: idx, date: date, note: note });
+  }
   saveInst(plans);
   closeModal('instPayModal');
   renderInst();
@@ -7846,10 +7845,10 @@ function unmarkInstPay(planId, idx){
   renderInst();
 }
 
-// ── Snowball: which plan to attack first (smallest remaining balance) ──
+// ── Snowball: skip M2M plans, focus on fixed-term ones ──
 function getSnowballOrder(plans){
   var active = plans.filter(function(p){
-    return (p.paid||[]).length < p.num;
+    return !p.monthToMonth && p.num && (p.paid||[]).length < p.num;
   });
   return active.slice().sort(function(a, b){
     var remA = (a.num - (a.paid||[]).length) * a.amt;
@@ -7869,7 +7868,7 @@ function renderInst(){
 
   plans.forEach(function(p){
     var paidIdxs = (p.paid||[]).map(function(x){ return x.index; });
-    var done = paidIdxs.length >= p.num;
+    var done = !p.monthToMonth && p.num && paidIdxs.length >= p.num;
     if(done) cleared.push(p);
     else     active.push(p);
   });
@@ -7941,82 +7940,118 @@ function buildInstCard(plan, isTarget, isCleared){
   var c = INST_PROV_COLORS[plan.provider] || INST_PROV_COLORS.TFG;
   var paidIdxs = (plan.paid||[]).map(function(x){ return x.index; });
   var paidCount = paidIdxs.length;
-  var pct = Math.round((paidCount / plan.num) * 100);
-  var remAmt = (plan.num - paidCount) * plan.amt;
+  var isM2M = !!plan.monthToMonth;
+  var pct = isM2M ? 0 : Math.round((paidCount / plan.num) * 100);
+  var remAmt = isM2M ? null : (plan.num - paidCount) * plan.amt;
+  var totalPaid = paidCount * plan.amt;
 
   var card = document.createElement('div');
   card.style.cssText = 'background:var(--surface);border:1px solid '+(isCleared?'#2a2a2a':c.border)+';border-radius:10px;overflow:hidden;margin-bottom:14px;'+(isTarget?'box-shadow:0 0 0 2px #c8f23044;':'');
 
   // Header
+  var subLabel = isM2M
+    ? 'Month to Month · R' + plan.amt + '/month · Debit day ' + (plan.debitDay || '—')
+    : plan.freq.charAt(0).toUpperCase() + plan.freq.slice(1) + ' · ' + plan.num + ' instalments';
+
   var headerHtml =
     '<div style="background:'+c.bg+';padding:14px 16px;border-bottom:1px solid '+c.border+';display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">'
       +'<div>'
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
           +'<span style="font-size:9px;padding:2px 9px;border-radius:100px;background:'+c.border+';color:'+c.text+';letter-spacing:1.5px;text-transform:uppercase;">'+INST_PROV_ICON[plan.provider]+' '+plan.provider+'</span>'
-          +(isTarget ? '<span style="font-size:9px;padding:2px 9px;border-radius:100px;background:#0d1a00;color:#c8f230;border:1px solid #3a5a00;letter-spacing:1.5px;">❄️ ATTACK FIRST</span>' : '')
+          +(isM2M ? '<span style="font-size:9px;padding:2px 9px;border-radius:100px;background:#1a1000;color:#f2c830;border:1px solid #6a4a00;letter-spacing:1.5px;">∞ ONGOING</span>' : '')
+          +(isTarget && !isM2M ? '<span style="font-size:9px;padding:2px 9px;border-radius:100px;background:#0d1a00;color:#c8f230;border:1px solid #3a5a00;letter-spacing:1.5px;">❄️ ATTACK FIRST</span>' : '')
           +(isCleared ? '<span style="font-size:9px;padding:2px 9px;border-radius:100px;background:#0d1a00;color:#c8f230;border:1px solid #3a5a00;letter-spacing:1.5px;">✓ CLEARED</span>' : '')
         +'</div>'
         +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:17px;color:#efefef;">'+plan.desc+'</div>'
-        +'<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">'+plan.freq.charAt(0).toUpperCase()+plan.freq.slice(1)+' · '+plan.num+' instalments</div>'
+        +'<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">'+subLabel+'</div>'
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0;">'
-        +'<div style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">'+(isCleared?'Paid off':'Remaining')+'</div>'
-        +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:22px;color:'+(isCleared?'#c8f230':'#f2a830')+';">'+(isCleared?fmtR(plan.total):fmtR(remAmt))+'</div>'
+        +'<div style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">'+(isM2M ? 'Total Paid' : isCleared ? 'Paid off' : 'Remaining')+'</div>'
+        +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:22px;color:'+(isM2M?'#f2c830':isCleared?'#c8f230':'#f2a830')+';">'+(isM2M ? fmtR(totalPaid) : isCleared ? fmtR(plan.total) : fmtR(remAmt))+'</div>'
       +'</div>'
     +'</div>';
 
-  // Progress bar
-  var progHtml =
-    '<div style="padding:12px 16px;border-bottom:1px solid var(--border);">'
-      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:#555;margin-bottom:6px;letter-spacing:1px;">'
-        +'<span>'+paidCount+' of '+plan.num+' paid</span>'
-        +'<span>'+pct+'%</span>'
-        +'<span>'+fmtR(plan.amt)+'/payment</span>'
+  // Progress bar — skip for month-to-month
+  var progHtml = isM2M
+    ? '<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;font-size:10px;color:#555;letter-spacing:1px;">'
+        +'<span>'+paidCount+' payment'+(paidCount!==1?'s':'')+' logged</span>'
+        +'<span>R'+plan.amt+' debited on the '+( plan.debitDay || '?')+'th each month</span>'
       +'</div>'
-      +'<div style="height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;">'
+    : '<div style="padding:12px 16px;border-bottom:1px solid var(--border);">'
+        +'<div style="display:flex;justify-content:space-between;font-size:10px;color:#555;margin-bottom:6px;letter-spacing:1px;">'
+          +'<span>'+paidCount+' of '+plan.num+' paid</span>'
+          +'<span>'+pct+'%</span>'
+          +'<span>'+fmtR(plan.amt)+'/payment</span>'
+        +'</div>'
+        +'<div style="height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;">'
         +'<div style="height:100%;width:'+pct+'%;background:'+(isCleared?'#c8f230':c.badge)+';border-radius:3px;transition:width .5s cubic-bezier(.16,1,.3,1);box-shadow:0 0 8px '+(isCleared?'#c8f23044':c.badge+'44')+';"></div>'
       +'</div>'
     +'</div>';
 
   // Payment rows
   var rowsHtml = '<div style="padding:8px 16px 4px;">';
-  var now = new Date(); now.setHours(0,0,0,0);
-  plan.dates.forEach(function(ds, i){
-    var isPaid = paidIdxs.indexOf(i) > -1;
-    var paidEntry = isPaid ? plan.paid.find(function(x){ return x.index === i; }) : null;
-    var dDate = new Date(ds+'T00:00:00');
-    var isOverdue = !isPaid && dDate < now;
-    var isToday   = !isPaid && dDate.getTime() === now.getTime();
-    var isFuture  = !isPaid && dDate > now;
+  var now2 = new Date(); now2.setHours(0,0,0,0);
 
-    var statusDot = isPaid
-      ? '<span style="width:10px;height:10px;border-radius:50%;background:#c8f230;display:inline-block;flex-shrink:0;"></span>'
-      : (isOverdue
-          ? '<span style="width:10px;height:10px;border-radius:50%;background:#f23060;display:inline-block;flex-shrink:0;"></span>'
-          : (isToday
-              ? '<span style="width:10px;height:10px;border-radius:50%;background:#f2a830;display:inline-block;flex-shrink:0;"></span>'
-              : '<span style="width:10px;height:10px;border-radius:50%;border:2px solid #333;display:inline-block;flex-shrink:0;"></span>'));
+  if(isM2M){
+    // Month-to-month: show paid history + next due
+    var nextDue = new Date(now2.getFullYear(), now2.getMonth(), plan.debitDay || 20);
+    if(nextDue < now2) nextDue = new Date(now2.getFullYear(), now2.getMonth()+1, plan.debitDay || 20);
+    var isToday2 = nextDue.getTime() === now2.getTime();
+    rowsHtml += '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#444;margin-bottom:8px;padding-top:4px;">Next debit</div>';
+    rowsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #161616;font-size:12px;">'
+      +'<span style="width:10px;height:10px;border-radius:50%;background:'+(isToday2?'#f2a830':'#333')+';display:inline-block;flex-shrink:0;"></span>'
+      +'<div style="flex:1;"><span style="color:#888;font-size:11px;">'+(isToday2?'Today!':nextDue.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}))+'</span></div>'
+      +'<span style="color:#f2c830;font-weight:700;">'+fmtR(plan.amt)+'</span>'
+      +'<button onclick="openInstM2MPay(\''+plan.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 10px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">Mark Paid</button>'
+    +'</div>';
+    if(plan.paid && plan.paid.length > 0){
+      rowsHtml += '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#444;margin:10px 0 6px;">Payment history</div>';
+      var sortedPaid = plan.paid.slice().sort(function(a,b){ return b.date > a.date ? 1 : -1; });
+      sortedPaid.slice(0,6).forEach(function(p){
+        rowsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #161616;font-size:12px;">'
+          +'<span style="width:10px;height:10px;border-radius:50%;background:#c8f230;display:inline-block;flex-shrink:0;"></span>'
+          +'<div style="flex:1;"><span style="color:#555;font-size:10px;">'+p.date+'</span>'+(p.note?'<span style="color:#444;font-size:10px;"> · '+p.note+'</span>':'')+'</div>'
+          +'<span style="color:#c8f230;font-weight:700;">'+fmtR(plan.amt)+'</span>'
+        +'</div>';
+      });
+    }
+  } else {
+    plan.dates.forEach(function(ds, i){
+      var isPaid = paidIdxs.indexOf(i) > -1;
+      var paidEntry = isPaid ? plan.paid.find(function(x){ return x.index === i; }) : null;
+      var dDate = new Date(ds+'T00:00:00');
+      var isOverdue = !isPaid && dDate < now2;
+      var isToday   = !isPaid && dDate.getTime() === now2.getTime();
 
-    var label = isPaid
-      ? '<span style="color:#c8f230;">✓ Paid</span>'+(paidEntry&&paidEntry.date?' <span style="color:#555;font-size:10px;">'+paidEntry.date+'</span>':'')+(paidEntry&&paidEntry.note?' · <span style="color:#555;font-size:10px;">'+paidEntry.note+'</span>':'')
-      : (isOverdue ? '<span style="color:#f23060;">Overdue</span>' : (isToday ? '<span style="color:#f2a830;">Due today!</span>' : '<span style="color:#555;">'+formatDisplayDate(ds)+'</span>'));
+      var statusDot = isPaid
+        ? '<span style="width:10px;height:10px;border-radius:50%;background:#c8f230;display:inline-block;flex-shrink:0;"></span>'
+        : (isOverdue
+            ? '<span style="width:10px;height:10px;border-radius:50%;background:#f23060;display:inline-block;flex-shrink:0;"></span>'
+            : (isToday
+                ? '<span style="width:10px;height:10px;border-radius:50%;background:#f2a830;display:inline-block;flex-shrink:0;"></span>'
+                : '<span style="width:10px;height:10px;border-radius:50%;border:2px solid #333;display:inline-block;flex-shrink:0;"></span>'));
 
-    var actionBtn = isPaid
-      ? '<button onclick="unmarkInstPay(\''+plan.id+'\','+i+')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:#444;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor=\'#555\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#444\'">Undo</button>'
-      : '<button onclick="openInstPayModal(\''+plan.id+'\','+i+')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 10px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">Mark Paid</button>';
+      var label = isPaid
+        ? '<span style="color:#c8f230;">✓ Paid</span>'+(paidEntry&&paidEntry.date?' <span style="color:#555;font-size:10px;">'+paidEntry.date+'</span>':'')+(paidEntry&&paidEntry.note?' · <span style="color:#555;font-size:10px;">'+paidEntry.note+'</span>':'')
+        : (isOverdue ? '<span style="color:#f23060;">Overdue</span>' : (isToday ? '<span style="color:#f2a830;">Due today!</span>' : '<span style="color:#555;">'+formatDisplayDate(ds)+'</span>'));
 
-    rowsHtml +=
-      '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #161616;font-size:12px;">'
-        +statusDot
-        +'<span style="color:#555;min-width:24px;font-size:10px;">'+(i+1)+'</span>'
-        +'<div style="flex:1;">'
-          +'<span style="color:#888;font-size:10px;letter-spacing:0.5px;">'+formatDisplayDate(ds)+'</span>'
-          +'<div style="margin-top:1px;">'+label+'</div>'
-        +'</div>'
-        +'<span style="color:#efefef;font-weight:700;font-size:13px;white-space:nowrap;">'+fmtR(plan.amt)+'</span>'
-        +(!isCleared ? actionBtn : '')
-      +'</div>';
-  });
+      var actionBtn = isPaid
+        ? '<button onclick="unmarkInstPay(\''+plan.id+'\','+i+')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:#444;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor=\'#555\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#444\'">Undo</button>'
+        : '<button onclick="openInstPayModal(\''+plan.id+'\','+i+')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 10px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">Mark Paid</button>';
+
+      rowsHtml +=
+        '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #161616;font-size:12px;">'
+          +statusDot
+          +'<span style="color:#555;min-width:24px;font-size:10px;">'+(i+1)+'</span>'
+          +'<div style="flex:1;">'
+            +'<span style="color:#888;font-size:10px;letter-spacing:0.5px;">'+formatDisplayDate(ds)+'</span>'
+            +'<div style="margin-top:1px;">'+label+'</div>'
+          +'</div>'
+          +'<span style="color:#efefef;font-weight:700;font-size:13px;white-space:nowrap;">'+fmtR(plan.amt)+'</span>'
+          +(!isCleared ? actionBtn : '')
+        +'</div>';
+    });
+  }
   rowsHtml += '</div>';
 
   // Action buttons
@@ -8036,6 +8071,15 @@ function buildInstCard(plan, isTarget, isCleared){
 function toggleInstCleared(){
   _instShowCleared = !_instShowCleared;
   renderInst();
+}
+
+function openInstM2MPay(planId){
+  document.getElementById('instPayPlanId').value = planId;
+  document.getElementById('instPayIndex').value = -1; // -1 = M2M
+  document.getElementById('instPayDate').value = localDateStr(new Date());
+  document.getElementById('instPayNote').value = '';
+  document.getElementById('instPayInfo').innerHTML = 'Log this month\'s MTN debit of <strong style="color:#f2c830;">R209</strong>.';
+  document.getElementById('instPayModal').classList.add('active');
 }
 
 // ── Wire into switchTab ──
