@@ -1848,6 +1848,27 @@ function loadBorrowReport() {
         <canvas id="cpIncomeChart"></canvas>
       </div>
       <div id="cpChartEmpty" style="display:none;text-align:center;padding:40px 0;color:#444;font-size:12px;letter-spacing:1px;">No carpool data yet — add trips to see the chart.</div>
+      <!-- Drill-down hint -->
+      <div style="text-align:center;font-size:9px;color:#333;letter-spacing:1px;margin-top:8px;" id="chartDrillHint">Tap a bar to drill down into that month</div>
+    </div>
+
+    <!-- CHART DRILL-DOWN PANEL -->
+    <div id="chartDrillPanel" style="display:none;background:#0d1a00;border:1px solid #3a5a00;border-radius:8px;padding:0;margin-bottom:24px;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #2a4a00;">
+        <div>
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:2px;">Drill-down</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;" id="drillLabel">—</div>
+        </div>
+        <button onclick="closeDrillDown()" style="background:none;border:1px solid #2a4a00;border-radius:4px;padding:4px 10px;color:#5a8800;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">✕ Close</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 16px;border-bottom:1px solid #1a3000;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#3a6000;" id="drillHeader">
+        <span>Date</span><span id="drillCol1">—</span><span id="drillCol2">—</span><span>Total</span>
+      </div>
+      <div id="drillRows" style="max-height:260px;overflow-y:auto;"></div>
+      <div style="padding:10px 16px;border-top:1px solid #1a3000;display:flex;justify-content:space-between;font-size:10px;color:#5a8800;letter-spacing:1px;">
+        <span id="drillSummary">—</span>
+        <span id="drillTotal" style="color:#c8f230;font-weight:700;">—</span>
+      </div>
     </div>
 
     
@@ -2097,6 +2118,15 @@ function loadBorrowReport() {
         <button onclick="exportReport('carpool')" class="rpt-export-btn" style="background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;">🚗 Carpool</button>
         <button onclick="exportReport('car')" class="rpt-export-btn" style="background:#2e1a00;color:#f2a830;border:1px solid #5a3a00;">🔧 Car Expenses</button>
         <button onclick="exportReport('all')" class="rpt-export-btn" style="background:#c8f230;color:#000;border:none;grid-column:span 1;">⬇ All (Excel)</button>
+      </div>
+      <!-- BI Star Schema Export -->
+      <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#7090f0;margin-bottom:6px;">🧊 BI / Power BI Export</div>
+        <div style="font-size:10px;color:#444;letter-spacing:0.5px;margin-bottom:10px;">Exports clean fact tables — drop straight into Power BI, Tableau, or Excel.</div>
+        <button onclick="exportBIStarSchema()" class="rpt-export-btn" style="width:100%;background:#0d1228;color:#7090f0;border:1px solid #2a3a6a;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <span>🧊</span> Export Star Schema (3 CSVs)
+        </button>
+        <div style="font-size:9px;color:#333;margin-top:6px;letter-spacing:0.5px;">fact_trips.csv · fact_deposits.csv · fact_contributions.csv</div>
       </div>
     </div>
 
@@ -3948,6 +3978,8 @@ function renderCarpoolChart() {
 
   // Destroy old chart
   if (_cpChart) { _cpChart.destroy(); _cpChart = null; }
+  // Reset drill-down
+  closeDrillDown();
 
   var isLine = _cpChartMode === 'line';
   var isDark = !document.documentElement.classList.contains('light');
@@ -3978,6 +4010,16 @@ function renderCarpoolChart() {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
+      onHover: function(event, elements) {
+        canvas.style.cursor = elements.length ? 'pointer' : 'default';
+      },
+      onClick: function(event, elements) {
+        if (!elements.length) return;
+        var idx = elements[0].index;
+        var mk = monthKeys[idx];
+        var lbl = labels[idx];
+        drillDownToMonth(mk, lbl);
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -4156,6 +4198,206 @@ function renderMaintReport(months, label) {
       + '<span style="color:' + pctColor + '">' + r.pct + '%</span>'
       + '</div>';
   }).join('') || '<div style="padding:14px;color:#555;font-size:12px">No maintenance funds yet.</div>';
+}
+
+// ── CHART DRILL-DOWN ──
+var _drillMonthKey = null;
+
+function closeDrillDown(){
+  document.getElementById('chartDrillPanel').style.display = 'none';
+  document.getElementById('chartDrillHint').style.display = 'block';
+  _drillMonthKey = null;
+}
+
+function drillDownToMonth(monthKey, label) {
+  _drillMonthKey = monthKey;
+  const panel = document.getElementById('chartDrillPanel');
+  const drillLabel = document.getElementById('drillLabel');
+  const drillRows = document.getElementById('drillRows');
+  const drillSummary = document.getElementById('drillSummary');
+  const drillTotal = document.getElementById('drillTotal');
+
+  drillLabel.textContent = label;
+  document.getElementById('chartDrillHint').style.display = 'none';
+
+  const monthData = cpData[monthKey] || {};
+  const dates = Object.keys(monthData).filter(function(ds){
+    return typeof monthData[ds] === 'object' && ds !== 'notes';
+  }).sort();
+
+  // Update column headers dynamically
+  const pNames = PASSENGER_DATA.map(function(p){ return p.name; });
+  const col1 = document.getElementById('drillCol1');
+  const col2 = document.getElementById('drillCol2');
+  // Show first 2 passengers in columns, rest in total
+  if(col1) col1.textContent = pNames[0] || '—';
+  if(col2) col2.textContent = pNames[1] || '—';
+
+  let grandTotal = 0;
+  let tripCount = 0;
+
+  const rows = dates.map(function(ds){
+    const dd = monthData[ds];
+    if(typeof dd !== 'object') return '';
+    const dayAmt = PASSENGERS.reduce(function(s,p){
+      return s + (dd[p] && typeof dd[p]==='object' ? dd[p].amt||0 : 0);
+    }, 0);
+    if(dayAmt === 0) return '';
+    grandTotal += dayAmt;
+    tripCount++;
+
+    const p0 = pNames[0] ? (dd[pNames[0]]&&typeof dd[pNames[0]]==='object' ? dd[pNames[0]] : {amt:0,paid:false}) : {amt:0,paid:false};
+    const p1 = pNames[1] ? (dd[pNames[1]]&&typeof dd[pNames[1]]==='object' ? dd[pNames[1]] : {amt:0,paid:false}) : {amt:0,paid:false};
+
+    const fmt = function(v){ return v.amt > 0 ? '<span style="color:'+(v.paid?'#c8f230':'#f2a830')+'">R'+v.amt+(v.paid?' ✓':'')+' </span>' : '<span style="color:#333">—</span>'; };
+    const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(ds+'T00:00:00').getDay()];
+
+    return '<div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 16px;border-bottom:1px solid #0d1a00;font-size:11px;align-items:center;">'
+      +'<span style="color:#888;">'+dow+' '+ds.slice(8)+'</span>'
+      +fmt(p0)
+      +fmt(p1)
+      +'<span style="color:#efefef;font-weight:700;">'+fmtR(dayAmt)+'</span>'
+      +'</div>';
+  }).join('');
+
+  drillRows.innerHTML = rows || '<div style="padding:16px;color:#444;font-size:12px;">No trips this month.</div>';
+  drillSummary.textContent = tripCount + ' trip day' + (tripCount!==1?'s':'');
+  drillTotal.textContent = fmtR(grandTotal);
+  panel.style.display = 'block';
+  // Scroll to panel
+  setTimeout(function(){ panel.scrollIntoView({ behavior:'smooth', block:'nearest' }); }, 100);
+}
+
+function exportBIStarSchema(){
+  const btn = event.target.closest('button');
+  if(btn){ btn.textContent = '⏳ Building…'; btn.disabled = true; }
+
+  setTimeout(function(){
+    try {
+      const now = new Date();
+      const exportDate = localDateStr(now);
+
+      // ── FACT TABLE 1: fact_trips ──
+      // One row per passenger per day (trip-level grain)
+      let factTrips = 'trip_id,date,year,month,month_name,week_of_year,day_of_week,passenger,amount,paid,paid_flag\n';
+      const MONTH_NAMES_BI = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+      Object.keys(cpData).sort().forEach(function(mk){
+        const yr = mk.slice(0,4);
+        const mo = parseInt(mk.slice(5,7));
+        Object.keys(cpData[mk]).sort().forEach(function(ds){
+          const dd = cpData[mk][ds];
+          if(typeof dd !== 'object') return;
+          const dObj = new Date(ds+'T00:00:00');
+          const dow = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dObj.getDay()];
+          // Week of year
+          const startOfYear = new Date(dObj.getFullYear(), 0, 1);
+          const woy = Math.ceil(((dObj - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+
+          PASSENGERS.forEach(function(p){
+            const v = dd[p] && typeof dd[p]==='object' ? dd[p] : null;
+            if(!v || v.amt === 0) return;
+            const tripId = ds.replace(/-/g,'') + '_' + p.replace(/\s/g,'');
+            factTrips += [
+              tripId, ds, yr, mo, MONTH_NAMES_BI[mo-1], woy, dow,
+              p, v.amt, v.paid ? 'TRUE' : 'FALSE', v.paid ? 1 : 0
+            ].join(',') + '\n';
+          });
+        });
+      });
+
+      // ── FACT TABLE 2: fact_deposits ──
+      // One row per savings deposit
+      let factDeposits = 'deposit_id,date,year,month,month_name,fund_id,fund_name,fund_emoji,amount,direction,note,goal,goal_progress_pct\n';
+      funds.forEach(function(f){
+        const fundId = f.id.slice(0,8);
+        (f.deposits||[]).forEach(function(d){
+          if(!d.date) return;
+          const mo = parseInt(d.date.slice(5,7));
+          const yr = d.date.slice(0,4);
+          const dir = d.txnType === 'out' ? 'OUT' : 'IN';
+          const currentTotal = fundTotal(f);
+          const goalPct = f.goal > 0 ? (currentTotal/f.goal*100).toFixed(1) : '';
+          factDeposits += [
+            d.id ? d.id.slice(0,8) : fundId+'_'+d.date,
+            d.date, yr, mo, MONTH_NAMES_BI[mo-1],
+            fundId,
+            '"'+f.name.replace(/"/g,"'")+'"',
+            f.emoji,
+            d.amount, dir,
+            '"'+(d.note||'').replace(/"/g,"'")+'"',
+            f.goal||'',
+            goalPct
+          ].join(',') + '\n';
+        });
+      });
+
+      // ── FACT TABLE 3: fact_contributions ──
+      // One row per maintenance contribution (original + custom cards)
+      let factContribs = 'contrib_id,date,year,month,month_name,card_id,card_name,card_type,contributor,amount,note,monthly_target\n';
+
+      // Original maintenance card
+      getMaintData().forEach(function(e){
+        if(!e.date) return;
+        const mo = parseInt(e.date.slice(5,7));
+        const yr = e.date.slice(0,4);
+        factContribs += [
+          e.id ? e.id.slice(0,8) : 'maint_'+e.date,
+          e.date, yr, mo, MONTH_NAMES_BI[mo-1],
+          'maint_original', '"Maintenance Fund"', 'original',
+          e.person||'', e.amount||0,
+          '"'+(e.note||'').replace(/"/g,"'")+'"',
+          1500
+        ].join(',') + '\n';
+      });
+
+      // Custom maintenance cards
+      loadCustomMaintCards().forEach(function(card){
+        const cardId = card.id.slice(0,8);
+        (card.entries||[]).forEach(function(e){
+          if(!e.date) return;
+          const mo = parseInt(e.date.slice(5,7));
+          const yr = e.date.slice(0,4);
+          // Resolve contributor name from ID if available
+          const contrib = (card.contributors||[]).find(function(c){
+            return (typeof c==='object' ? c.id : c) === (e.personId || e.person);
+          });
+          const contribName = contrib ? (typeof contrib==='object' ? contrib.name : contrib) : (e.person||'');
+          factContribs += [
+            e.id ? e.id.slice(0,8) : cardId+'_'+e.date,
+            e.date, yr, mo, MONTH_NAMES_BI[mo-1],
+            cardId, '"'+card.name.replace(/"/g,"'")+'"', 'custom',
+            contribName, e.amount||0,
+            '"'+(e.note||'').replace(/"/g,"'")+'"',
+            card.target||0
+          ].join(',') + '\n';
+        });
+      });
+
+      // ── Download all 3 CSVs ──
+      function downloadCSV(content, filename){
+        const blob = new Blob([content], {type:'text/csv;charset=utf-8;'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
+      }
+
+      downloadCSV(factTrips,   'fact_trips_'+exportDate+'.csv');
+      setTimeout(function(){ downloadCSV(factDeposits, 'fact_deposits_'+exportDate+'.csv'); }, 400);
+      setTimeout(function(){ downloadCSV(factContribs, 'fact_contributions_'+exportDate+'.csv'); }, 800);
+
+      if(btn){ setTimeout(function(){ btn.innerHTML = '<span>🧊</span> Export Star Schema (3 CSVs)'; btn.disabled = false; }, 1200); }
+
+    } catch(err){
+      console.error('BI export error:', err);
+      if(btn){ btn.innerHTML = '<span>🧊</span> Export Star Schema (3 CSVs)'; btn.disabled = false; }
+      alert('Export failed: ' + err.message);
+    }
+  }, 50);
 }
 
 function exportReport(type){
