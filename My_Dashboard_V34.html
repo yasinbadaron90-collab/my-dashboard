@@ -5600,6 +5600,19 @@ function exportCFRangeReport(){
   }
 }
 
+
+// Strip emoji and non-latin chars for jsPDF (helvetica only handles latin)
+function cfPdfStrip(str){
+  return (str||'')
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+    .replace(/[\u{2600}-\u{27FF}]/gu, '')
+    .replace(/[\u{1F900}-\u{1F9FF}]/gu, '')
+    .replace(/[\u{FE00}-\u{FEFF}]/gu, '')
+    .replace(/[^\x00-\xFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function buildCFPDF(months, titleLabel){
   var toast = document.createElement('div');
   toast.id = 'cfPdfToast';
@@ -5690,13 +5703,23 @@ function buildCFPDF(months, titleLabel){
         doc.text('INCOME', margin, y); y+=5;
         m.data.income.forEach(function(e){
           if(y>H-14) newPage();
-          doc.setFillColor(10,20,0); doc.rect(margin,y-3.5,W-(margin*2),6,'F');
+          var rowH = (e.date || e.account || e.category) ? 8 : 6;
+          doc.setFillColor(10,20,0); doc.rect(margin,y-3.5,W-(margin*2),rowH,'F');
           doc.setTextColor(180,180,180); doc.setFontSize(8); doc.setFont('helvetica','normal');
-          doc.text((e.label||'Income').substring(0,40), margin+2, y);
+          var cleanLabel = cfPdfStrip(e.label||'Income').substring(0,42);
+          doc.text(cleanLabel, margin+2, y);
           doc.setTextColor(200,242,48); doc.setFont('helvetica','bold');
-          doc.text('+ R'+e.amount.toFixed(2), W-margin, y, {align:'right'});
-          if(e.account||e.category){ doc.setTextColor(58,90,0); doc.setFontSize(6); doc.setFont('helvetica','normal'); doc.text((e.account||e.category||'').substring(0,35), margin+2, y+3); }
-          y+=7;
+          doc.text('+ R'+Number(e.amount||0).toFixed(2), W-margin, y, {align:'right'});
+          // Date + category sub-line
+          var subParts = [];
+          if(e.date) subParts.push(e.date);
+          var cat = cfPdfStrip(e.account||e.category||'');
+          if(cat) subParts.push(cat);
+          if(subParts.length){
+            doc.setTextColor(58,90,0); doc.setFontSize(6); doc.setFont('helvetica','normal');
+            doc.text(subParts.join('  ·  ').substring(0,50), margin+2, y+3.5);
+          }
+          y += rowH;
         });
         doc.setTextColor(90,136,0); doc.setFontSize(7); doc.setFont('helvetica','normal');
         doc.text('Total Income: R'+m.data.totalIncome.toFixed(2), W-margin, y, {align:'right'}); y+=8;
@@ -5708,13 +5731,23 @@ function buildCFPDF(months, titleLabel){
         doc.text('EXPENSES', margin, y); y+=5;
         m.data.expenses.forEach(function(e){
           if(y>H-14) newPage();
-          doc.setFillColor(20,5,5); doc.rect(margin,y-3.5,W-(margin*2),6,'F');
+          var rowH = (e.date || e.account || e.category) ? 8 : 6;
+          doc.setFillColor(20,5,5); doc.rect(margin,y-3.5,W-(margin*2),rowH,'F');
           doc.setTextColor(180,180,180); doc.setFontSize(8); doc.setFont('helvetica','normal');
-          doc.text((e.label||'Expense').substring(0,40), margin+2, y);
+          var cleanLabel = cfPdfStrip(e.label||'Expense').substring(0,42);
+          doc.text(cleanLabel, margin+2, y);
           doc.setTextColor(242,48,96); doc.setFont('helvetica','bold');
-          doc.text('- R'+e.amount.toFixed(2), W-margin, y, {align:'right'});
-          if(e.account||e.category){ doc.setTextColor(90,26,26); doc.setFontSize(6); doc.setFont('helvetica','normal'); doc.text((e.account||e.category||'').substring(0,35), margin+2, y+3); }
-          y+=7;
+          doc.text('- R'+Number(e.amount||0).toFixed(2), W-margin, y, {align:'right'});
+          // Date + category sub-line
+          var subParts = [];
+          if(e.date) subParts.push(e.date);
+          var cat = cfPdfStrip(e.account||e.category||'');
+          if(cat) subParts.push(cat);
+          if(subParts.length){
+            doc.setTextColor(90,26,26); doc.setFontSize(6); doc.setFont('helvetica','normal');
+            doc.text(subParts.join('  ·  ').substring(0,50), margin+2, y+3.5);
+          }
+          y += rowH;
         });
         doc.setTextColor(90,26,26); doc.setFontSize(7); doc.setFont('helvetica','normal');
         doc.text('Total Expenses: R'+m.data.totalExpenses.toFixed(2), W-margin, y, {align:'right'}); y+=10;
