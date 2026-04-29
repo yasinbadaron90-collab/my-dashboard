@@ -3,7 +3,7 @@
 <head>
 <script>
 // Smart service worker — only clears cache when app version changes
-var APP_VERSION = 'yb-2026-04-28b';
+var APP_VERSION = 'yb-2026-04-28';
 if('serviceWorker' in navigator){
   if(localStorage.getItem('app_version') !== APP_VERSION){
     navigator.serviceWorker.getRegistrations().then(function(regs){
@@ -2309,6 +2309,7 @@ if('serviceWorker' in navigator){
 </div>
   <!-- App modules — load order matters -->
   <script src="core.js"></script>
+  <script src="db.js"></script>
   <script src="passengers.js"></script>
   <script src="money.js"></script>
   <script src="odin.js"></script>
