@@ -1,0 +1,2424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+// Smart service worker — only clears cache when app version changes
+var APP_VERSION = 'yb-2026-04-28';
+if('serviceWorker' in navigator){
+  if(localStorage.getItem('app_version') !== APP_VERSION){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(reg){ reg.unregister(); });
+    });
+    localStorage.setItem('app_version', APP_VERSION);
+  }
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+CiAgPGRlZnM+CiAgICA8Y2xpcFBhdGggaWQ9ImNpcmNsZS1jbGlwIj4KICAgICAgPGNpcmNsZSBjeD0iMTAwIiBjeT0iMTAwIiByPSI5NSIvPgogICAgPC9jbGlwUGF0aD4KICA8L2RlZnM+CgogIDwhLS0gT3V0ZXIgcmluZyAtLT4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9Ijk4IiBmaWxsPSJub25lIiBzdHJva2U9IiNjOGYyMzAiIHN0cm9rZS13aWR0aD0iMS41Ii8+CgogIDwhLS0gTWFpbiBkYXJrIGNpcmNsZSAtLT4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9Ijk1IiBmaWxsPSIjMGEwYTBhIi8+CgogIDwhLS0gU3VidGxlIGlubmVyIHJpbmcgLS0+CiAgPGNpcmNsZSBjeD0iMTAwIiBjeT0iMTAwIiByPSI4MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWUxZTFlIiBzdHJva2Utd2lkdGg9IjEiLz4KCiAgPCEtLSBZIGxldHRlciAtLT4KICA8IS0tIExlZnQgYXJtIG9mIFkgLS0+CiAgPGxpbmUgeDE9IjYyIiB5MT0iNTIiIHgyPSIxMDAiIHkyPSI5NSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPCEtLSBSaWdodCBhcm0gb2YgWSAtLT4KICA8bGluZSB4MT0iMTM4IiB5MT0iNTIiIHgyPSIxMDAiIHkyPSI5NSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPCEtLSBTdGVtIG9mIFkgLS0+CiAgPGxpbmUgeDE9IjEwMCIgeTE9Ijk1IiB4Mj0iMTAwIiB5Mj0iMTQ4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjExIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KCiAgPCEtLSBCIGxldHRlciDigJQgb3ZlcmxhcHBpbmcsIG9mZnNldCByaWdodCAtLT4KICA8IS0tIFZlcnRpY2FsIHNwaW5lIG9mIEIgLS0+CiAgPGxpbmUgeDE9Ijg4IiB5MT0iNTYiIHgyPSI4OCIgeTI9IjE0OCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CgogIDwhLS0gVG9wIGJ1bXAgb2YgQiAtLT4KICA8cGF0aCBkPSJNODggNTYgUTEyOCA1NiAxMjggNzggUTEyOCAxMDAgODggMTAwIiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjEwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KCiAgPCEtLSBCb3R0b20gYnVtcCBvZiBCIC0tPgogIDxwYXRoIGQ9Ik04OCAxMDAgUTEzMiAxMDAgMTMyIDEyNCBRMTMyIDE0OCA4OCAxNDgiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgoKICA8IS0tIEFjY2VudCBkb3QgYm90dG9tIC0tPgogIDxjaXJjbGUgY3g9IjEwMCIgY3k9IjE3MCIgcj0iNCIgZmlsbD0iI2M4ZjIzMCIvPgo8L3N2Zz4="/>
+<title>My Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c8f230">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dashboard">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" style="position:fixed;inset:0;background:#0a0a0a;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;transition:opacity 0.4s;">
+  <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+CiAgPGRlZnM+CiAgICA8Y2xpcFBhdGggaWQ9ImNpcmNsZS1jbGlwIj4KICAgICAgPGNpcmNsZSBjeD0iMTAwIiBjeT0iMTAwIiByPSI5NSIvPgogICAgPC9jbGlwUGF0aD4KICA8L2RlZnM+CgogIDwhLS0gT3V0ZXIgcmluZyAtLT4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9Ijk4IiBmaWxsPSJub25lIiBzdHJva2U9IiNjOGYyMzAiIHN0cm9rZS13aWR0aD0iMS41Ii8+CgogIDwhLS0gTWFpbiBkYXJrIGNpcmNsZSAtLT4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9Ijk1IiBmaWxsPSIjMGEwYTBhIi8+CgogIDwhLS0gU3VidGxlIGlubmVyIHJpbmcgLS0+CiAgPGNpcmNsZSBjeD0iMTAwIiBjeT0iMTAwIiByPSI4MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWUxZTFlIiBzdHJva2Utd2lkdGg9IjEiLz4KCiAgPCEtLSBZIGxldHRlciAtLT4KICA8IS0tIExlZnQgYXJtIG9mIFkgLS0+CiAgPGxpbmUgeDE9IjYyIiB5MT0iNTIiIHgyPSIxMDAiIHkyPSI5NSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPCEtLSBSaWdodCBhcm0gb2YgWSAtLT4KICA8bGluZSB4MT0iMTM4IiB5MT0iNTIiIHgyPSIxMDAiIHkyPSI5NSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPCEtLSBTdGVtIG9mIFkgLS0+CiAgPGxpbmUgeDE9IjEwMCIgeTE9Ijk1IiB4Mj0iMTAwIiB5Mj0iMTQ4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjExIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KCiAgPCEtLSBCIGxldHRlciDigJQgb3ZlcmxhcHBpbmcsIG9mZnNldCByaWdodCAtLT4KICA8IS0tIFZlcnRpY2FsIHNwaW5lIG9mIEIgLS0+CiAgPGxpbmUgeDE9Ijg4IiB5MT0iNTYiIHgyPSI4OCIgeTI9IjE0OCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CgogIDwhLS0gVG9wIGJ1bXAgb2YgQiAtLT4KICA8cGF0aCBkPSJNODggNTYgUTEyOCA1NiAxMjggNzggUTEyOCAxMDAgODggMTAwIiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjEwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KCiAgPCEtLSBCb3R0b20gYnVtcCBvZiBCIC0tPgogIDxwYXRoIGQ9Ik04OCAxMDAgUTEzMiAxMDAgMTMyIDEyNCBRMTMyIDE0OCA4OCAxNDgiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgoKICA8IS0tIEFjY2VudCBkb3QgYm90dG9tIC0tPgogIDxjaXJjbGUgY3g9IjEwMCIgY3k9IjE3MCIgcj0iNCIgZmlsbD0iI2M4ZjIzMCIvPgo8L3N2Zz4=" style="width:100px;height:100px;margin-bottom:20px;" alt="YB"/>
+  <div style="font-family:Syne,sans-serif;font-weight:800;font-size:28px;color:#efefef;letter-spacing:-1px;margin-bottom:4px;">My Dashboard</div>
+  <div style="font-size:11px;color:#444;letter-spacing:3px;text-transform:uppercase;margin-bottom:40px;" id="loginSubtitle">Enter PIN to continue</div>
+
+  <!-- Fingerprint button (shown when registered) -->
+  <div id="biometricSection" style="display:none;margin-bottom:28px;text-align:center;">
+    <button onclick="biometricLogin()" id="biometricBtn" style="width:80px;height:80px;border-radius:50%;border:2px solid #c8f230;background:#0d1a00;cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;transition:all .2s;" onmouseover="this.style.background='#1a2e00'" onmouseout="this.style.background='#0d1a00'">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#c8f230" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 10a2 2 0 0 0-2 2v4"/>
+        <path d="M10 10a4 4 0 0 1 4 0"/>
+        <path d="M7 10a5 5 0 0 1 10 0v4"/>
+        <path d="M5 10a7 7 0 0 1 14 0v2"/>
+        <path d="M12 16v2"/>
+      </svg>
+    </button>
+    <div id="biometricStatus" style="font-size:11px;color:#5a8800;letter-spacing:1px;">Touch to unlock</div>
+    <button onclick="showPinFallback()" style="margin-top:12px;background:none;border:none;color:#333;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;text-decoration:underline;">Use PIN instead</button>
+  </div>
+
+  <!-- PIN entry (shown when no biometric or fallback) -->
+  <div id="pinSection">
+    <div style="display:flex;gap:16px;margin-bottom:16px;" id="pinDots">
+      <div style="width:16px;height:16px;border-radius:50%;border:2px solid #333;transition:all .15s;" id="dot0"></div>
+      <div style="width:16px;height:16px;border-radius:50%;border:2px solid #333;transition:all .15s;" id="dot1"></div>
+      <div style="width:16px;height:16px;border-radius:50%;border:2px solid #333;transition:all .15s;" id="dot2"></div>
+      <div style="width:16px;height:16px;border-radius:50%;border:2px solid #333;transition:all .15s;" id="dot3"></div>
+    </div>
+    <div id="pinError" style="font-size:12px;color:#f23060;letter-spacing:1px;margin-bottom:20px;min-height:18px;text-align:center;"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:280px;">
+      <button onclick="pinPress(1)" class="pin-btn">1</button>
+      <button onclick="pinPress(2)" class="pin-btn">2</button>
+      <button onclick="pinPress(3)" class="pin-btn">3</button>
+      <button onclick="pinPress(4)" class="pin-btn">4</button>
+      <button onclick="pinPress(5)" class="pin-btn">5</button>
+      <button onclick="pinPress(6)" class="pin-btn">6</button>
+      <button onclick="pinPress(7)" class="pin-btn">7</button>
+      <button onclick="pinPress(8)" class="pin-btn">8</button>
+      <button onclick="pinPress(9)" class="pin-btn">9</button>
+      <div></div>
+      <button onclick="pinPress(0)" class="pin-btn">0</button>
+      <button onclick="pinDel()" class="pin-btn" style="font-size:20px;">&#9003;</button>
+    </div>
+  </div>
+
+  <!-- FIRST-RUN SETUP (shown only when no PINs are saved yet) -->
+  <div id="firstRunSection" style="display:none;width:100%;max-width:320px;">
+    <div style="font-size:12px;color:#888;letter-spacing:1px;line-height:1.7;margin-bottom:18px;text-align:center;">
+      👋 Welcome! Pick a name and a 4-digit PIN. You'll be the first admin — you can add more users later from Settings.
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:9px;color:#666;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Your name</div>
+      <input type="text" id="frName" placeholder="e.g. Alex" maxlength="30" style="width:100%;background:#111;border:1px solid #2a2a2a;border-radius:6px;color:#efefef;padding:11px 12px;font-family:'DM Mono',monospace;font-size:13px;outline:none;box-sizing:border-box;"/>
+    </div>
+    <div style="font-size:9px;color:#666;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Choose a 4-digit PIN</div>
+    <div style="display:flex;gap:14px;margin-bottom:14px;justify-content:center;">
+      <div style="width:14px;height:14px;border-radius:50%;border:2px solid #333;transition:all .15s;" id="frDot0"></div>
+      <div style="width:14px;height:14px;border-radius:50%;border:2px solid #333;transition:all .15s;" id="frDot1"></div>
+      <div style="width:14px;height:14px;border-radius:50%;border:2px solid #333;transition:all .15s;" id="frDot2"></div>
+      <div style="width:14px;height:14px;border-radius:50%;border:2px solid #333;transition:all .15s;" id="frDot3"></div>
+    </div>
+    <div id="frError" style="font-size:11px;color:#f23060;letter-spacing:1px;min-height:16px;margin-bottom:8px;text-align:center;"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-bottom:16px;">
+      <button onclick="setupPinPress(1)" class="pin-btn">1</button>
+      <button onclick="setupPinPress(2)" class="pin-btn">2</button>
+      <button onclick="setupPinPress(3)" class="pin-btn">3</button>
+      <button onclick="setupPinPress(4)" class="pin-btn">4</button>
+      <button onclick="setupPinPress(5)" class="pin-btn">5</button>
+      <button onclick="setupPinPress(6)" class="pin-btn">6</button>
+      <button onclick="setupPinPress(7)" class="pin-btn">7</button>
+      <button onclick="setupPinPress(8)" class="pin-btn">8</button>
+      <button onclick="setupPinPress(9)" class="pin-btn">9</button>
+      <div></div>
+      <button onclick="setupPinPress(0)" class="pin-btn">0</button>
+      <button onclick="setupPinDel()" class="pin-btn" style="font-size:20px;">&#9003;</button>
+    </div>
+    <button onclick="submitFirstRunSetup()" style="width:100%;padding:13px;background:#c8f230;border:none;border-radius:6px;color:#000;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">Create Account</button>
+  </div>
+
+  <div style="margin-top:32px;font-size:10px;color:#2a2a2a;letter-spacing:1px;">YB Dashboard</div>
+</div>
+
+<nav class="nav">
+  <button class="hbg-btn" onclick="openDrawer()" title="Menu" id="hbgBtn">
+    <span></span><span></span><span></span>
+  </button>
+  <button class="nav-tab" id="navSavings" onclick="switchTab('savings',this)">💰 Savings</button>
+  <button class="nav-tab active" id="navCarpool" onclick="switchTab('carpool',this)">🚗 Carpool</button>
+  <button class="nav-tab admin-only" id="navOdin" onclick="switchTab('odin',this)">🧠 Odin</button>
+  <button class="nav-tab admin-only" id="navCashflow" onclick="switchTab('cashflow',this)">💵 Cash Flow</button>
+  <button class="nav-tab admin-only" id="navCars" onclick="switchTab('cars',this)">🔧 Cars</button>
+  <button class="nav-tab admin-only" id="navInstalments" style="display:none;" onclick="switchTab('instalments',this)">💳 Instalments</button>
+  <button class="nav-tab admin-only" id="navSchool" style="display:none;" onclick="switchTab('school',this)">🎓 School</button>
+  <button class="nav-tab admin-only" id="navRoutine" style="display:none;" onclick="switchTab('routine',this)">🔁 Routine</button>
+</nav>
+
+<!-- ── HAMBURGER DRAWER ── -->
+<div class="hbg-overlay" id="hbgOverlay" onclick="closeDrawer()"></div>
+<div class="hbg-drawer" id="hbgDrawer">
+  <div class="hbg-header">
+    <div class="hbg-logo">YB <span>Dashboard</span></div>
+    <button class="hbg-close" onclick="closeDrawer()">✕</button>
+  </div>
+
+  <!-- Scrollable content area -->
+  <div class="hbg-drawer-scroll">
+
+    <div class="hbg-section admin-only carservice-show">
+      <div class="hbg-section-label">Data</div>
+      <button class="hbg-item" onclick="closeDrawer();backupData();">
+        <span class="hbg-icon">💾</span> Save Backup
+      </button>
+      <button class="hbg-item" onclick="closeDrawer();driveExport();">
+        <span class="hbg-icon">☁️</span> Export to Drive
+      </button>
+      <button class="hbg-item" onclick="closeDrawer();driveImport();">
+        <span class="hbg-icon">📂</span> Import from Drive
+      </button>
+    </div>
+
+    <div class="hbg-divider carservice-show"></div>
+
+    <div class="hbg-section admin-only">
+      <div class="hbg-section-label">Navigate</div>
+      <button class="hbg-item" onclick="closeDrawer();goToTab('money');">
+        <span class="hbg-icon">💰</span> Money Owed to Me
+      </button>
+      <button class="hbg-item" onclick="closeDrawer();goToTab('cashflow');">
+        <span class="hbg-icon">💵</span> Cash Flow
+      </button>
+      <button class="hbg-item" onclick="closeDrawer();goToTab('reports');">
+        <span class="hbg-icon">📊</span> Reports
+      </button>
+      <button class="hbg-item" onclick="closeDrawer();goToTab('prayer');">
+        <span class="hbg-icon">🕌</span> Prayer Tracker
+      </button>
+      <button class="hbg-item admin-only" onclick="closeDrawer();switchTab('cars',document.getElementById('navCars'));">
+        <span class="hbg-icon">🔧</span> Car Service Tracker
+      </button>
+      <button class="hbg-item admin-only" onclick="closeDrawer();switchTab('instalments',document.getElementById('navInstalments'));">
+        <span class="hbg-icon">💳</span> Instalments
+      </button>
+      <button class="hbg-item admin-only" onclick="closeDrawer();goToTab('school');">
+        <span class="hbg-icon">🎓</span> School
+      </button>
+      <button class="hbg-item admin-only" onclick="closeDrawer();goToTab('routine');">
+        <span class="hbg-icon">🔁</span> Routine
+      </button>
+      <button class="hbg-item" onclick="closeDrawer();openAIAssistant();" style="position:relative;">
+        <span class="hbg-icon">🧠</span> Odin Chat
+        <span style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:8px;letter-spacing:1.5px;background:#c8f230;color:#000;padding:2px 6px;border-radius:20px;font-weight:700;">NEW</span>
+      </button>
+    </div>
+
+    <div class="hbg-divider admin-only"></div>
+
+    <div class="hbg-section admin-only">
+      <div class="hbg-section-label">Settings</div>
+      <button class="hbg-item admin-only" onclick="closeDrawer();openPriorityEditor();">
+        <span class="hbg-icon">⚡</span>
+        Priority Rules
+      </button>
+      <button class="hbg-item" onclick="closeDrawer();openSettings();">
+        <span class="hbg-icon">⚙️</span> Settings & PINs
+      </button>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <div class="theme-toggle-track"><div class="theme-toggle-thumb"></div></div>
+        <span id="themeLabel">Light Mode</span>
+      </button>
+    </div>
+
+    <div class="hbg-divider"></div>
+
+    <div class="hbg-section">
+      <div class="hbg-section-label">Session</div>
+      <button class="hbg-item danger" id="drawerLogoutBtn" onclick="closeDrawer();logout();" style="display:none;">
+        <span class="hbg-icon">⏻</span> Logout
+      </button>
+      <button class="hbg-item" id="drawerLockBtn" onclick="closeDrawer();logout();">
+        <span class="hbg-icon">🔒</span> Lock Screen
+      </button>
+    </div>
+
+  </div><!-- end hbg-drawer-scroll -->
+
+  <div class="hbg-footer" id="hbgVersion">YB Dashboard</div>
+</div>
+
+<!-- SAVINGS -->
+<div class="page" id="page-savings">
+  <!-- Odin Bar -->
+  <div class="odin-bar admin-only" onclick="toggleOdinPanel('savings')" id="odinBar-savings">
+    <div class="odin-bar-left">
+      <span style="font-size:18px;">🧠</span>
+      <div>
+        <div class="odin-bar-label">Odin</div>
+        <div class="odin-bar-sub" id="odinSub-savings">Tap to open</div>
+      </div>
+    </div>
+    <span class="odin-bar-chev" id="odinChev-savings">&#8964;</span>
+  </div>
+  <div class="odin-panel admin-only" id="odinPanel-savings">
+    <div class="odin-insights" id="odinInsights-savings"></div>
+    <button class="odin-act-btn" onclick="openAllocateModalFor('savings')">🧠 Log Income &amp; Allocate</button>
+  </div>
+  <div class="topbar">
+    <h1>MY <span>FUNDS</span></h1>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;min-width:200px;max-width:240px;">
+      <!-- Header row with collapse toggle -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="toggleBankPanel()" id="bankPanelHdr">
+        <span style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#555;">Balances</span>
+        <button id="bankCollapseBtn" style="background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:0;line-height:1;display:flex;align-items:center;" title="Collapse">
+          <span id="bankChev" style="display:inline-block;transition:transform .3s cubic-bezier(.16,1,.3,1);">&#8964;</span>
+        </button>
+      </div>
+      <!-- Collapsible body — each fund row rendered dynamically -->
+      <div id="bankPanelBody" style="overflow:hidden;transition:max-height .45s cubic-bezier(.16,1,.3,1),opacity .3s ease;max-height:600px;opacity:1;">
+        <div id="bankStrip"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:720px;margin:0 auto 16px;">
+    <button class="admin-only" onclick="openAllocateModal()" style="width:100%;padding:14px;background:#0d1a00;border:2px solid #c8f230;border-radius:10px;color:#c8f230;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;" onmouseover="this.style.background='#1a2e00'" onmouseout="this.style.background='#0d1a00'">
+      <span style="font-size:22px;">&#129504;</span>
+      <div style="text-align:left;">
+        <div>MoneyMoveZ</div>
+        <div style="font-size:10px;color:#5a8800;font-family:'DM Mono',monospace;font-weight:400;letter-spacing:1px;margin-top:2px;">Tap when cash arrives - I decide where it goes</div>
+      </div>
+    </button>
+  </div>
+  <div class="fund-grid" id="fundGrid"></div>
+  <button class="add-global-btn admin-only" onclick="openNewFund()">+ New Savings Fund</button>
+
+  <!-- MAINTENANCE FUND CARD -->
+  <div style="max-width:720px;margin:14px auto 60px;padding:0 0px;" id="maintCardWrap">
+    <div class="fund-card" style="border-color:#2a3a00;">
+      <div class="fund-top" style="border-bottom-color:#2a3a00;">
+        <div>
+          <span class="fund-emoji">🔧</span>
+          <div class="fund-name" id="maintFundName">Maintenance Fund</div>
+          <div class="fund-weekly" id="maintTargetLabel" style="color:#8ab820;">R1500/month target · carpool contributions</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="collapse-btn" id="maintCollapseBtn" onclick="toggleMaintCard(this)" title="Collapse"><span class="chev">&#8964;</span></button>
+          <div class="fund-actions admin-only" style="display:flex;gap:6px">
+            <button class="icon-btn" onclick="openMaintSettings()" title="Edit name and target">✎</button>
+            <button class="icon-btn" onclick="openMaintHistory()" title="History">☰</button>
+            <button class="icon-btn" onclick="openMaintContrib()" style="border-color:#3a5a00;color:#c8f230;" title="Add contribution">＋</button>
+            <button class="icon-btn admin-only" onclick="openUseFunds('maint',null)" style="border-color:#5a3a00;color:#f2a830;" title="Use funds / log spend">💸</button>
+          </div>
+        </div>
+      </div>
+      <div class="fund-body-wrap expanded" id="maintBodyWrap" style="max-height:2000px;opacity:1;">
+      <div class="fund-body">
+        <!-- 3 stat boxes -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border);margin:-16px -18px 0;padding:0">
+          <div style="padding:12px 14px;border-right:1px solid var(--border)">
+            <div style="font-size:9px;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">This Month</div>
+            <div id="maintMonthAmt" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#c8f230;">R0</div>
+          </div>
+          <div style="padding:12px 10px;border-right:1px solid var(--border)">
+            <div style="font-size:9px;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Total Saved</div>
+            <div id="maintTotalAmt" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#c8f230;">R0</div>
+          </div>
+          <div style="padding:12px 10px">
+            <div style="font-size:9px;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Status</div>
+            <div id="maintStatus" style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#f2a830;">—</div>
+          </div>
+        </div>
+        <!-- Progress bar -->
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="height:5px;background:#2a2a2a;border-radius:3px;overflow:hidden">
+            <div id="maintProgBar" style="width:0%;height:100%;background:#c8f230;border-radius:3px;transition:width .5s ease;box-shadow:0 0 8px #c8f23055;"></div>
+          </div>
+          <div id="maintProgLabel" style="font-size:10px;color:#444;margin-top:5px;letter-spacing:1px;">Loading...</div>
+        </div>
+        <!-- Per-person breakdown — rendered dynamically -->
+        <div style="display:flex;border-bottom:1px solid var(--border);margin:0 -18px;" id="maintPersonBreakdown"></div>
+        <!-- Recent entries -->
+        <div id="maintRecentRows" style="padding-top:8px;"></div>
+      </div>
+      </div><!-- end fund-body-wrap -->
+    </div>
+  </div>
+  <div id="customMaintCardsWrap" style="max-width:720px;margin:0 auto;"></div>
+</div>
+
+<!-- CARPOOL -->
+<div class="page active" id="page-carpool">
+  <div class="cp-layout">
+    <!-- LEFT PANE -->
+    <div class="cp-left collapsed" id="cpLeftPane">
+      <div class="pane-hdr">
+        <div>
+          <div class="pane-title">Mini Statement</div>
+          <div class="pane-sub">Generate &amp; share</div>
+        </div>
+        <button class="pane-toggle" id="paneToggle" onclick="togglePane()">&#8249;</button>
+      </div>
+      <div class="pane-body">
+        <div class="field"><label>From</label><input type="date" id="stmtFrom"/></div>
+        <div class="field"><label>To</label><input type="date" id="stmtTo"/></div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Passengers</label>
+          <div id="stmtPassOpts">
+            </div>
+        </div>
+        <button class="gen-btn" onclick="generateStatements()">Generate Statements</button>
+        <div id="stmtArea" style="display:none;margin-top:14px">
+          <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Statements</div>
+          <div id="stmtCards"></div>
+        </div>
+      </div>
+    </div>
+    <!-- RIGHT PANE -->
+    <div class="cp-right">
+  <!-- Odin Bar -->
+  <div class="odin-bar admin-only" onclick="toggleOdinPanel('carpool')" id="odinBar-carpool">
+    <div class="odin-bar-left">
+      <span style="font-size:18px;">🧠</span>
+      <div>
+        <div class="odin-bar-label">Odin</div>
+        <div class="odin-bar-sub" id="odinSub-carpool">Tap to open</div>
+      </div>
+    </div>
+    <span class="odin-bar-chev" id="odinChev-carpool">&#8964;</span>
+  </div>
+  <div class="odin-panel admin-only" id="odinPanel-carpool">
+    <div class="odin-insights" id="odinInsights-carpool"></div>
+    <button class="odin-act-btn" onclick="openAllocateModalFor('carpool')">🧠 Log Income &amp; Allocate</button>
+  </div>
+      <div class="cp-topbar">
+        <button id="reopenPane" onclick="togglePane()" style="display:inline-flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:4px;width:22px;height:36px;cursor:pointer;color:var(--muted);font-size:13px;margin-right:8px;">&#8250;</button>
+        <h1>CAR<span>POOL</span></h1>
+        <div class="cp-pills">
+          <div class="cp-pill admin-only">Unpaid: <strong id="cpUnpaid">R0</strong></div>
+          <div class="cp-pill">This month: <strong id="cpMonthTotal">R0</strong></div>
+          <div class="cp-pill hi admin-only">All time: <strong id="cpGrandTotal">R0</strong></div>
+        </div>
+      </div>
+      <div class="month-nav" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="mnav-btn" onclick="cpChangeMonth(-1)">&#8592;</button>
+          <h2 id="cpMonthLabel"></h2>
+          <button class="mnav-btn" onclick="cpChangeMonth(1)">&#8594;</button>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="openQuickEntry()" class="admin-only" style="background:#c8f230;border:none;border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#000;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Quick Entry</button>
+          <button onclick="openBorrowModal()" class="admin-only" style="background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#a78bfa;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">💸 Borrow</button>
+          <button onclick="openRepayModal()" class="admin-only" style="background:#0e1a2e;border:1px solid #7090f0;border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#7090f0;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">↩ Repay</button>
+        </div>
+      </div>
+      <div class="cp-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#c8f230"></div>Paid ✓</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f2a830"></div>Unpaid ⏳</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#2a2a2a"></div>Absent / R0</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#a78bfa"></div>Borrowed 💸</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#1a3a00;border:1px solid #4a8800;"></div>🇿🇦 SA Public Holiday</div>
+        <div class="leg-item" style="color:var(--muted)">Use dropdown to select ride type per passenger</div>
+      </div>
+      <div id="cpWeeks"></div>
+      <div class="grand-bar"><span id="cpGrandBarLabel">Grand Total — all time</span><strong id="cpGrandTotalBar">R0</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- CASH FLOW PAGE -->
+<div class="page admin-only" id="page-cashflow" style="padding:0 0 80px;">
+  <!-- Odin Bar -->
+  <div class="odin-bar admin-only" onclick="toggleOdinPanel('cashflow')" id="odinBar-cashflow">
+    <div class="odin-bar-left">
+      <span style="font-size:18px;">🧠</span>
+      <div>
+        <div class="odin-bar-label">Odin</div>
+        <div class="odin-bar-sub" id="odinSub-cashflow">Tap to open</div>
+      </div>
+    </div>
+    <span class="odin-bar-chev" id="odinChev-cashflow">&#8964;</span>
+  </div>
+  <div class="odin-panel admin-only" id="odinPanel-cashflow">
+    <div class="odin-insights" id="odinInsights-cashflow"></div>
+    <button class="odin-act-btn" onclick="openAllocateModalFor('cashflow')">🧠 Log Income &amp; Allocate</button>
+  </div>
+  <div style="max-width:720px;margin:0 auto;padding:28px 16px 0;">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">💵 <span style="color:var(--muted)">CASH FLOW</span></h1>
+      </div>
+      <!-- Month nav + export -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button onclick="cfChangeMonth(-1)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:14px;">◀</button>
+        <span id="cfMonthLabel" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;min-width:120px;text-align:center;"></span>
+        <button onclick="cfChangeMonth(1)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:14px;">▶</button>
+        <button onclick="exportCFMonthReport()" style="padding:6px 12px;background:#1a1a00;border:1px solid #5a5a00;border-radius:6px;color:#f2c830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;white-space:nowrap;" title="Export this month as PDF">📄 PDF</button>
+      </div>
+    </div>
+
+    <!-- Net Position Banner -->
+    <div id="cfNetBanner" style="border-radius:10px;padding:18px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;" id="cfNetLabel">NET CASH FLOW</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;line-height:1;" id="cfNetAmt">R0</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:10px;color:#888;letter-spacing:1px;margin-bottom:4px;">Income − Expenses</div>
+        <div style="font-size:12px;" id="cfNetBreakdown">R0 − R0</div>
+      </div>
+    </div>
+
+    <!-- INCOME SECTION -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#c8f230;">↑ Income</div>
+      <button onclick="openCfEntryModal('income')" class="admin-only" style="padding:6px 14px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">+ Add</button>
+    </div>
+    <div style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:6px;">
+      <div id="cfIncomeRows"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border-radius:8px;margin-bottom:24px;border:1px solid #2a4a00;">
+      <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;">Total Income</span>
+      <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#c8f230;" id="cfTotalIncome">R0</span>
+    </div>
+
+    <!-- EXPENSES SECTION -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#f23060;">↓ Expenses</div>
+      <button onclick="openCfEntryModal('expense')" class="admin-only" style="padding:6px 14px;background:#2e0a0a;border:1px solid #5a1a1a;border-radius:6px;color:#f23060;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">+ Add</button>
+    </div>
+    <div style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:6px;">
+      <div id="cfExpenseRows"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border-radius:8px;margin-bottom:16px;border:1px solid #3a1a1a;">
+      <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#6a2020;">Total Real Expenses</span>
+      <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#f23060;" id="cfTotalExpenses">R0</span>
+    </div>
+
+    <!-- SAVINGS ALLOCATIONS SECTION -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div>
+        <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#c8f230;">💰 Savings Allocations</span>
+        <div style="font-size:9px;color:#555;letter-spacing:1px;margin-top:2px;">Money moved to savings — still yours</div>
+      </div>
+    </div>
+    <div style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:6px;">
+      <div id="cfSavingsAllocRows"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#0d1a00;border-radius:8px;margin-bottom:24px;border:1px solid #1a3a00;">
+      <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#3a6a20;">Total Saved This Month</span>
+      <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#c8f230;" id="cfSavingsTotalRow">R0</span>
+    </div>
+
+    <!-- NET SUMMARY -->
+    <div id="cfNetSummaryCard" style="border-radius:10px;padding:18px 20px;text-align:center;">
+      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;color:#888;">Net Cash Flow</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:28px;line-height:1.1;word-break:break-all;" id="cfNetSummaryAmt">R0</div>
+      <div style="font-size:11px;margin-top:6px;letter-spacing:0.5px;" id="cfNetSummaryMsg"></div>
+    </div>
+
+    <!-- ══ RECONCILE PANEL ══ -->
+    <div style="margin-top:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#efefef;">🏦 Account Balances</div>
+          <div style="font-size:9px;color:#555;letter-spacing:1px;margin-top:2px;">Enter your real bank balances</div>
+        </div>
+        <button onclick="saveReconBalances()" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:6px;padding:6px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">Save</button>
+      </div>
+
+      <!-- Two account inputs -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div style="background:#0a0f1a;border:1px solid #1a2a4a;border-radius:10px;padding:14px 12px;">
+          <div style="font-size:9px;color:#4a7aaa;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">🏛 FNB</div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span style="font-size:12px;color:#888;">R</span>
+            <input type="number" id="reconFNB" placeholder="0" oninput="updateReconTotal()"
+              style="background:none;border:none;outline:none;color:#4a9aff;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;width:100%;"/>
+          </div>
+        </div>
+        <div style="background:#1a0f00;border:1px solid #4a3a00;border-radius:10px;padding:14px 12px;">
+          <div style="font-size:9px;color:#aa8a00;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">🏦 TymeBank</div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span style="font-size:12px;color:#888;">R</span>
+            <input type="number" id="reconTyme" placeholder="0" oninput="updateReconTotal()"
+              style="background:none;border:none;outline:none;color:#f2a830;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;width:100%;"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total available cash -->
+      <div style="background:#111;border:1px solid #2a2a2a;border-radius:10px;padding:16px;text-align:center;margin-bottom:16px;">
+        <div style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;">Total Available Cash</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:32px;color:#c8f230;" id="reconTotal">R0</div>
+        <div style="font-size:10px;color:#444;margin-top:4px;" id="reconLastUpdated"></div>
+      </div>
+
+      <!-- Savings Balances -->
+      <div style="background:#0d1a00;border:1px solid #1a3a00;border-radius:10px;padding:16px;">
+        <div style="font-size:9px;color:#5a8800;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">💰 Savings Balances</div>
+        <div id="reconSavingsRows"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid #1a3a00;margin-top:8px;">
+          <span style="font-size:10px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;">Total Saved</span>
+          <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#c8f230;" id="reconSavingsTotal">R0</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CASH FLOW ENTRY MODAL -->
+<div class="overlay" id="cfEntryModal">
+  <div class="modal" style="max-width:380px;">
+    <h2 id="cfEntryModalTitle" style="color:#c8f230;">+ Add Income</h2>
+    <div class="field"><label>Label</label><input type="text" id="cfEntryLabel" placeholder="e.g. Salary, Stipend, Transfer to Wife"/></div>
+    <div class="field"><label>Amount (R)</label><input type="number" id="cfEntryAmount" placeholder="e.g. 18500" min="0"/></div>
+    <div class="field" id="cfEntryDateField">
+      <label id="cfEntryDateLabel">Date</label>
+      <input type="date" id="cfEntryDate" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;color-scheme:dark;"/>
+    </div>
+    <div class="field">
+      <label>Icon</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;" id="cfIconGrid"></div>
+    </div>
+    <div class="field">
+      <label>Bank Account</label>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button type="button" id="cfBankFNB" onclick="setCfBank('FNB',this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid #4a7aaa;background:#0a0f1a;color:#4a9aff;">🏛 FNB</button>
+        <button type="button" id="cfBankTyme" onclick="setCfBank('TymeBank',this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">🏦 TymeBank</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Recurring?</label>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button type="button" id="cfRecurYes" onclick="setCfRecur(true,this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid #c8f230;background:#1a2e00;color:#c8f230;">Monthly</button>
+        <button type="button" id="cfRecurNo" onclick="setCfRecur(false,this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">This month only</button>
+      </div>
+    </div>
+    <input type="hidden" id="cfEntryBank" value="FNB"/>
+    <input type="hidden" id="cfEntryType" value="income"/>
+    <input type="hidden" id="cfEntryId"/>
+    <input type="hidden" id="cfEntryRecur" value="true"/>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('cfEntryModal')">Cancel</button>
+      <button class="btn primary" onclick="saveCfEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORTS PAGE -->
+<div class="page" id="page-reports">
+  <div style="max-width:720px;margin:0 auto;padding:20px 0 60px;">
+
+    <!-- Header -->
+    <div style="margin-bottom:16px;">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">📊 <span style="color:var(--muted)">REPORTS</span></div>
+    </div>
+
+    <!-- SMART INSIGHTS -->
+    <div id="smartEnginePanel" style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);">⚡ Smart Insights</div>
+        <div style="font-size:9px;color:#333;letter-spacing:1px;" id="insightTimestamp"></div>
+      </div>
+      <div id="insightCards" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
+    <!-- Section nav bar -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;" id="rptNavBar">
+      <button onclick="rptScrollTo('rpt-sec-savings')"   style="padding:5px 12px;border-radius:100px;border:1px solid #2a5a00;background:#0d1a00;color:#c8f230;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">💰 Savings</button>
+      <button onclick="rptScrollTo('rpt-sec-carpool')"  style="padding:5px 12px;border-radius:100px;border:1px solid #333;background:none;color:#888;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">🚗 Carpool</button>
+      <button onclick="rptScrollTo('rpt-sec-fuel')"     style="padding:5px 12px;border-radius:100px;border:1px solid #333;background:none;color:#888;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">⛽ Fuel</button>
+      <button onclick="rptScrollTo('rpt-sec-maint')"    style="padding:5px 12px;border-radius:100px;border:1px solid #333;background:none;color:#888;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">🔧 Maint</button>
+      <button onclick="rptScrollTo('rpt-sec-borrow')"   style="padding:5px 12px;border-radius:100px;border:1px solid #333;background:none;color:#888;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">💸 Borrow</button>
+      <button onclick="rptScrollTo('rpt-sec-car')"      style="padding:5px 12px;border-radius:100px;border:1px solid #333;background:none;color:#888;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">🚙 Cars</button>
+      <button onclick="rptScrollTo('rpt-sec-export')"   style="padding:5px 12px;border-radius:100px;border:1px solid #333;background:none;color:#888;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">📥 Export</button>
+    </div>
+
+    <!-- Period filter -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;">Period</div>
+      <button id="compareToggleBtn" onclick="toggleCompareMode()" style="display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:100px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;cursor:pointer;transition:all .2s;">
+        <span id="compareToggleIcon" style="font-size:11px;">⇄</span>
+        <span id="compareToggleLabel">COMPARE</span>
+      </button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;" id="reportFilters"></div>
+
+    <!-- Compare banner -->
+    <div id="compareBanner" style="display:none;background:#0d1a00;border:1px solid #3a5a00;border-radius:8px;padding:12px 16px;margin-bottom:20px;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:8px;">Comparing</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span id="cmpLabelA" style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;">—</span>
+        <span style="color:#3a5a00;font-size:18px;">vs</span>
+        <span id="cmpLabelB" style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#888;">—</span>
+        <span style="font-size:9px;color:#444;letter-spacing:1px;margin-left:4px;">(previous period auto-selected)</span>
+      </div>
+    </div>
+
+    <!-- ══ SECTION: SAVINGS ══ -->
+    <div id="rpt-sec-savings" style="margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">💰 Savings</div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;" id="rptSavingsPeriod">—</div>
+      </div>
+      <div id="savNormalCards" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div style="background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Saved</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#c8f230;" id="rptTotalSaved">R0</div>
+        </div>
+        <div style="background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Active Funds</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#efefef;" id="rptFundCount">0</div>
+        </div>
+      </div>
+      <div id="savCompareCards" style="display:none;margin-bottom:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div style="background:var(--surface);border-radius:8px;padding:10px;">
+            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:4px;" id="savCmpCardLabelA">Period A</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:#c8f230;" id="savCmpTotalA">R0</div>
+          </div>
+          <div style="background:var(--surface);border-radius:8px;padding:10px;">
+            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;" id="savCmpCardLabelB">Period B</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:#888;" id="savCmpTotalB">R0</div>
+          </div>
+          <div style="background:var(--surface);border-radius:8px;padding:10px;border:1px solid #2a2a2a;">
+            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Change</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;" id="savCmpDelta">—</div>
+            <div style="font-size:9px;margin-top:2px;" id="savCmpDeltaPct">—</div>
+          </div>
+        </div>
+      </div>
+      <div id="savNormalTable" style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:0;">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+          <span>Fund</span><span>Saved</span><span>Progress</span>
+        </div>
+        <div id="rptSavingsRows"></div>
+      </div>
+      <div id="savCompareTable" style="display:none;background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:0;">
+        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+          <span>Fund</span><span id="savCmpColA">Period A</span><span id="savCmpColB">Period B</span><span>Change</span>
+        </div>
+        <div id="rptSavingsCompareRows"></div>
+      </div>
+    </div>
+
+    <!-- ══ SECTION: CARPOOL ══ -->
+    <div id="rpt-sec-carpool" style="margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">🚗 Carpool Income</div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;" id="rptCarpoolPeriod">—</div>
+      </div>
+
+      <!-- Chart first -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px 10px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Visual Breakdown</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;letter-spacing:-.3px;">Monthly Carpool Income</div>
+          </div>
+          <div style="display:flex;gap:6px;" id="chartTypeToggle">
+            <button onclick="setCpChartMode('bar',this)" id="chartBtn-bar" style="padding:4px 10px;border-radius:100px;border:1px solid var(--accent);background:#1a2e00;color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;cursor:pointer;">BAR</button>
+            <button onclick="setCpChartMode('line',this)" id="chartBtn-line" style="padding:4px 10px;border-radius:100px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;cursor:pointer;">LINE</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;margin-bottom:8px;flex-wrap:wrap;" id="cpChartLegend"></div>
+        <div style="position:relative;height:180px;">
+          <canvas id="cpIncomeChart"></canvas>
+        </div>
+        <div id="cpChartEmpty" style="display:none;text-align:center;padding:32px 0;color:#444;font-size:12px;letter-spacing:1px;">No carpool data yet.</div>
+        <div style="text-align:center;font-size:9px;color:#333;letter-spacing:1px;margin-top:6px;" id="chartDrillHint">Tap a bar to drill down</div>
+      </div>
+
+      <!-- Drill-down panel -->
+      <div id="chartDrillPanel" style="display:none;background:#0d1a00;border:1px solid #3a5a00;border-radius:8px;padding:0;margin-bottom:12px;overflow:hidden;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #2a4a00;">
+          <div>
+            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:2px;">Drill-down</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#c8f230;" id="drillLabel">—</div>
+          </div>
+          <button onclick="closeDrillDown()" style="background:none;border:1px solid #2a4a00;border-radius:4px;padding:3px 8px;color:#5a8800;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:6px 14px;border-bottom:1px solid #1a3000;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#3a6000;" id="drillHeader">
+          <span>Date</span><span id="drillCol1">—</span><span id="drillCol2">—</span><span>Total</span>
+        </div>
+        <div id="drillRows" style="max-height:240px;overflow-y:auto;"></div>
+        <div style="padding:8px 14px;border-top:1px solid #1a3000;display:flex;justify-content:space-between;font-size:10px;color:#5a8800;letter-spacing:1px;">
+          <span id="drillSummary">—</span>
+          <span id="drillTotal" style="color:#c8f230;font-weight:700;">—</span>
+        </div>
+      </div>
+
+      <!-- Summary stats -->
+      <div id="cpNormalCards" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div style="background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Earned</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#c8f230;" id="rptCarpoolTotal">R0</div>
+        </div>
+        <div style="background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Outstanding</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#f2a830;" id="rptCarpoolOwing">R0</div>
+        </div>
+      </div>
+      <div id="cpCompareCards" style="display:none;margin-bottom:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div style="background:var(--surface);border-radius:8px;padding:10px;">
+            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:4px;" id="cmpCardLabelA">Period A</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:#c8f230;" id="cmpTotalA">R0</div>
+          </div>
+          <div style="background:var(--surface);border-radius:8px;padding:10px;">
+            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;" id="cmpCardLabelB">Period B</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:#888;" id="cmpTotalB">R0</div>
+          </div>
+          <div style="background:var(--surface);border-radius:8px;padding:10px;border:1px solid #2a2a2a;">
+            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Change</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;" id="cmpDelta">—</div>
+            <div style="font-size:9px;margin-top:2px;" id="cmpDeltaPct">—</div>
+          </div>
+        </div>
+      </div>
+      <div id="cpNormalTable" style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:0;">
+        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+          <span>Passenger</span><span>Total</span><span>Paid</span><span>Owing</span>
+        </div>
+        <div id="rptCarpoolRows"></div>
+      </div>
+      <div id="cpCompareTable" style="display:none;background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:0;">
+        <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+          <span>Passenger</span><span id="cmpColA">Period A</span><span id="cmpColB">Period B</span><span>Change</span>
+        </div>
+        <div id="rptCarpoolCompareRows"></div>
+      </div>
+    </div>
+
+    <!-- ══ SECTION: FUEL & PRICING ══ -->
+    <div id="rpt-sec-fuel" style="margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">⛽ Fuel & Pricing</div>
+      </div>
+
+      <!-- Fuel savings hero -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">My daily fuel cost</div>
+        <div style="display:flex;align-items:center;background:#111;border:1px solid #333;border-radius:6px;overflow:hidden;">
+          <span style="padding:5px 8px;font-size:12px;color:#555;">R</span>
+          <input type="number" id="dailyFuelCost" value="100" oninput="saveDailyFuel();loadFuelReport();"
+            style="width:65px;padding:5px 6px 5px 0;background:none;border:none;color:#c8f230;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;outline:none;"/>
+          <span style="padding:5px 8px;font-size:9px;color:#555;letter-spacing:1px;">/day</span>
+        </div>
+      </div>
+      <div id="plCycleLabel" style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:10px;">Pay cycle: calculating...</div>
+      <div id="plBigCard" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:10px;padding:16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:4px;">Passengers saved you</div>
+            <div id="plNet" style="font-family:'Syne',sans-serif;font-weight:800;font-size:36px;color:#c8f230;line-height:1;">R0</div>
+            <div id="plVerdict" style="font-size:10px;letter-spacing:1px;margin-top:4px;color:#5a8800;">in fuel this cycle 🎉</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;text-align:right;">
+            <div>
+              <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Collected</div>
+              <div id="plIncome" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#c8f230;">R0</div>
+            </div>
+            <div>
+              <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Fuel Spent</div>
+              <div id="plFuel" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#f23060;">R0</div>
+            </div>
+          </div>
+        </div>
+        <div id="plBreakdown" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+      <div id="plDailyGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:10px;"></div>
+      <div id="plPassCards" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div>
+
+      <!-- Smart Pricing calculator -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;">
+        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">💡 Smart Trip Pricing</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div>
+            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">⛽ Tank Cost (R)</div>
+            <input type="number" id="tankCost" placeholder="e.g. 1400" oninput="recalcPricing()"
+              style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid #3a2000;background:#1a0e00;color:#f2a830;font-family:'DM Mono',monospace;font-size:14px;outline:none;box-sizing:border-box;"/>
+          </div>
+          <div>
+            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">🏠 Private Use (R)</div>
+            <input type="number" id="privateUseAmt" placeholder="e.g. 480" oninput="recalcPricing()"
+              style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid #3a2000;background:#1a0e00;color:#f2a830;font-family:'DM Mono',monospace;font-size:14px;outline:none;box-sizing:border-box;"/>
+          </div>
+        </div>
+        <div id="splitSummary" style="display:none;background:#0a0a0a;border:1px solid #222;border-radius:6px;padding:8px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+          <div style="font-size:11px;color:#555;">🏠 Private <strong id="splitPrivate" style="color:#f2a830;">R0</strong></div>
+          <div style="font-size:11px;color:#333;">+</div>
+          <div style="font-size:11px;color:#555;">🚗 Carpool <strong id="splitCarpool" style="color:#c8f230;">R0</strong></div>
+          <div style="font-size:11px;color:#333;">=</div>
+          <div style="font-size:11px;color:#555;">Tank <strong id="splitTank" style="color:#efefef;">R0</strong></div>
+          <div id="splitWarning" style="font-size:10px;color:#f23060;display:none;">⚠ Private use exceeds tank cost</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">📅 Carpool Trips per Tank</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="flex:1;background:#111;border:1px solid #222;border-radius:6px;padding:8px 10px;">
+              <div style="font-size:9px;color:#555;margin-bottom:2px;">Auto (from carpool data)</div>
+              <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:#efefef;" id="autoTripsPerTank">—</div>
+            </div>
+            <div style="color:#444;font-size:12px;">or</div>
+            <input type="number" id="manualTripsPerTank" placeholder="Manual" oninput="recalcPricing()"
+              style="flex:1;padding:8px 10px;border-radius:6px;border:1px solid #333;background:#111;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;outline:none;"/>
+          </div>
+        </div>
+        <div id="pricingResult" style="border-radius:8px;padding:14px;background:#0d1a00;border:1px solid #2a4a00;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:10px;">💡 Result</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+            <div style="text-align:center;">
+              <div style="font-size:9px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Your Share</div>
+              <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#f2a830;" id="resYourCost">—</div>
+              <div style="font-size:9px;color:#444;margin-top:2px;">of tank</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:9px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Break-even</div>
+              <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#efefef;" id="resBreakEven">—</div>
+              <div style="font-size:9px;color:#444;margin-top:2px;">per trip</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:9px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Recommended</div>
+              <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:#c8f230;" id="resRecommended">—</div>
+              <div style="font-size:9px;color:#444;margin-top:2px;">per trip +10%</div>
+            </div>
+          </div>
+          <div id="resStatus" style="font-size:11px;color:#5a8800;padding:6px 10px;background:#0a1200;border-radius:6px;text-align:center;letter-spacing:0.5px;"></div>
+          <div id="resExplain" style="font-size:10px;color:#444;margin-top:8px;letter-spacing:1px;line-height:1.7;"></div>
+        </div>
+      </div>
+      <div id="rptSuggestedPricing" style="display:none;"></div>
+
+      <!-- Fuel log (collapsible) -->
+      <details style="background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+        <summary style="padding:12px 14px;cursor:pointer;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);list-style:none;display:flex;justify-content:space-between;align-items:center;">
+          <span>⛽ Fuel Log</span><span style="font-size:11px;">▸</span>
+        </summary>
+        <div style="padding:14px;border-top:1px solid var(--border);">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+            <input id="fuelDate" type="date" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
+            <input id="fuelPrice" type="number" placeholder="R/litre" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
+            <input id="fuelAmount" type="number" placeholder="Total cost" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
+          </div>
+          <button onclick="addFuelEntry()" class="admin-only" style="padding:8px 14px;border:none;border-radius:6px;background:#a78bfa;color:#000;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;margin-bottom:12px;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">+ Add Entry</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div style="background:#111;border:1px solid var(--border);padding:10px;border-radius:6px;">
+              <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Spent</div>
+              <div id="fuelTotal" style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:#a78bfa;">R0</div>
+            </div>
+            <div style="background:#111;border:1px solid var(--border);padding:10px;border-radius:6px;">
+              <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Entries</div>
+              <div id="fuelCount" style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--text);">0</div>
+            </div>
+            <div style="background:#111;border:1px solid var(--border);padding:10px;border-radius:6px;">
+              <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Suggested ↑/pass</div>
+              <div id="fuelSuggest" style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:#f2a830;">R0</div>
+            </div>
+          </div>
+          <div style="background:var(--surface);border-radius:6px;overflow:hidden;">
+            <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 28px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+              <span>Date</span><span>R/Litre</span><span>Total</span><span></span>
+            </div>
+            <div id="fuelRows"></div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- ══ SECTION: MAINTENANCE ══ -->
+    <div id="rpt-sec-maint" style="margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">🔧 Maintenance Funds</div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;" id="rptMaintPeriod">All cards combined</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div style="background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">This Month</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#f2a830;" id="rptMaintMonth">R0</div>
+        </div>
+        <div style="background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Saved</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#c8f230;" id="rptMaintTotal">R0</div>
+        </div>
+        <div style="background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Cards</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#efefef;" id="rptMaintCount">0</div>
+        </div>
+      </div>
+      <div style="background:var(--surface);border-radius:8px;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+          <span>Card</span><span>This Month</span><span>Total</span><span>vs Target</span>
+        </div>
+        <div id="rptMaintRows"></div>
+      </div>
+    </div>
+
+    <!-- ══ SECTION: BORROW ══ -->
+    <div id="rpt-sec-borrow" style="margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">💸 Borrowed Money</div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;">All activity</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div style="background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Borrowed</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#a78bfa;" id="rptBorrowTotal">R0</div>
+        </div>
+        <div style="background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Repaid</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#c8f230;" id="rptBorrowRepaid">R0</div>
+        </div>
+        <div style="background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Outstanding</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#f2a830;" id="rptBorrowOwing">R0</div>
+        </div>
+      </div>
+      <div style="background:var(--surface);border-radius:8px;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+          <span>Passenger</span><span>Borrowed</span><span>Repaid</span><span>Owing</span>
+        </div>
+        <div id="rptBorrowRows"></div>
+      </div>
+    </div>
+
+    <!-- ══ SECTION: CAR EXPENSES ══ -->
+    <div id="rpt-sec-car" style="margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">🚙 Car Expenses</div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;">Full history</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div style="background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Spent</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#f23060;" id="rptCarSpent">R0</div>
+        </div>
+        <div style="background:var(--surface);border-radius:8px;padding:12px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Available</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#f2a830;" id="rptCarAvail">R0</div>
+        </div>
+      </div>
+      <div style="background:var(--surface);border-radius:8px;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+          <span>Item</span><span>Date</span><span>Amount</span>
+        </div>
+        <div id="rptCarRows"></div>
+      </div>
+    </div>
+
+    <!-- ══ SECTION: EXPORT TOOLS ══ -->
+    <div id="rpt-sec-export" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
+      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">📥 Export Tools</div>
+
+      <!-- Quick exports -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <button onclick="exportReport('savings')" class="rpt-export-btn" style="background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;">📊 Savings</button>
+        <button onclick="exportReport('carpool')" class="rpt-export-btn" style="background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;">🚗 Carpool</button>
+        <button onclick="exportReport('car')" class="rpt-export-btn" style="background:#2e1a00;color:#f2a830;border:1px solid #5a3a00;">🔧 Car Expenses</button>
+        <button onclick="exportReport('all')" class="rpt-export-btn" style="background:#c8f230;color:#000;border:none;">⬇ All (Excel)</button>
+      </div>
+
+      <!-- Cash Flow PDF -->
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#f2c830;margin-bottom:6px;">💵 Cash Flow PDF</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+          <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:110px;">
+            <label style="font-size:9px;color:#555;letter-spacing:1px;">FROM</label>
+            <input type="month" id="cfRptFrom" style="background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:11px;padding:6px 8px;border-radius:4px;outline:none;color-scheme:dark;width:100%;"/>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:110px;">
+            <label style="font-size:9px;color:#555;letter-spacing:1px;">TO</label>
+            <input type="month" id="cfRptTo" style="background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:11px;padding:6px 8px;border-radius:4px;outline:none;color-scheme:dark;width:100%;"/>
+          </div>
+        </div>
+        <button onclick="exportCFRangeReport()" class="rpt-export-btn" style="width:100%;background:#1a1a00;border:1px solid #5a5a00;color:#f2c830;display:flex;align-items:center;justify-content:center;gap:8px;">📄 Export Cash Flow PDF</button>
+      </div>
+
+      <!-- BI Export -->
+      <div style="border-top:1px solid var(--border);padding-top:12px;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#7090f0;margin-bottom:6px;">🧊 BI / Power BI Export</div>
+        <div style="font-size:10px;color:#444;letter-spacing:0.5px;margin-bottom:8px;">Drop straight into Power BI, Tableau, or Excel.</div>
+        <button onclick="exportBIStarSchema()" class="rpt-export-btn" style="width:100%;background:#0d1228;color:#7090f0;border:1px solid #2a3a6a;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <span>🧊</span> Export Star Schema (3 CSVs)
+        </button>
+        <div style="font-size:9px;color:#333;margin-top:6px;letter-spacing:0.5px;">fact_trips.csv · fact_deposits.csv · fact_contributions.csv</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PAY DESTINATION MODAL -->
+<div class="overlay" id="payDestModal">
+  <div class="modal" style="max-width:400px;">
+    <h2 style="color:#c8f230;">💳 Payment Received</h2>
+    <div id="payDestSummary" style="background:#0d1a00;border:1px solid #2a4a00;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:1.8;color:#8ab820;"></div>
+    <div class="field" style="margin-bottom:12px;">
+      <label style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Bank Account Received Into</label>
+      <select id="payDestBank" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+        <option value="Tymebank">🏦 Tymebank</option>
+        <option value="FNB">🏦 FNB</option>
+      </select>
+    </div>
+    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Where do you want to put this money?</div>
+    <div id="payDestOptions" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding-right:4px;"></div>
+    <input type="hidden" id="payDestPassenger"/>
+    <input type="hidden" id="payDestTripOwing"/>
+    <input type="hidden" id="payDestBorrowOwing"/>
+    <input type="hidden" id="payDestTotal"/>
+    <input type="hidden" id="payDestChoice" value=""/>
+    <div class="modal-btns" style="margin-top:16px;">
+      <button class="btn ghost" onclick="closeModal('payDestModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmPayDest()">Confirm ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- CARD TYPE PICKER -->
+<div class="overlay" id="cardTypePicker">
+  <div class="modal" style="max-width:360px;">
+    <h2 style="margin-bottom:6px;">New Card</h2>
+    <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:20px;">What type of card do you want to create?</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button onclick="closeModal('cardTypePicker');openNewFundDirect();" style="display:flex;align-items:center;gap:14px;padding:16px;background:#0d1a00;border:1px solid #3a5a00;border-radius:10px;cursor:pointer;text-align:left;transition:all .18s;font-family:'DM Mono',monospace;" onmouseover="this.style.borderColor='#c8f230'" onmouseout="this.style.borderColor='#3a5a00'">
+        <span style="font-size:28px;">💰</span>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#c8f230;margin-bottom:3px;">Savings Card</div>
+          <div style="font-size:10px;color:#5a8800;letter-spacing:1px;">Goal, deposits & progress tracking</div>
+        </div>
+      </button>
+      <button onclick="closeModal('cardTypePicker');openNewMaintCard();" style="display:flex;align-items:center;gap:14px;padding:16px;background:#1a1000;border:1px solid #6a4a00;border-radius:10px;cursor:pointer;text-align:left;transition:all .18s;font-family:'DM Mono',monospace;" onmouseover="this.style.borderColor='#f2a830'" onmouseout="this.style.borderColor='#6a4a00'">
+        <span style="font-size:28px;">🔧</span>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#f2a830;margin-bottom:3px;">Maintenance Card</div>
+          <div style="font-size:10px;color:#6a4a00;letter-spacing:1px;">Monthly target, contributions & history</div>
+        </div>
+      </button>
+    </div>
+    <div class="modal-btns" style="margin-top:16px;">
+      <button class="btn ghost" onclick="closeModal('cardTypePicker')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM MAINTENANCE CARD MODAL -->
+<div class="overlay" id="customMaintModal">
+  <div class="modal">
+    <h2 id="customMaintTitle" style="color:#f2a830;">🔧 New Maintenance Card</h2>
+    <div class="field"><label>Card Name</label><input type="text" id="cmName" placeholder="e.g. Home Repairs, Tyres Fund"/></div>
+    <div class="field"><label>Icon</label><div class="emoji-grid" id="cmEmojiGrid"></div></div>
+    <div class="field"><label>Monthly Target (R)</label><input type="number" id="cmTarget" placeholder="e.g. 1500" min="1"/></div>
+    <div class="field">
+      <label>Contributors</label>
+      <div id="cmContributorList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+      <button type="button" onclick="addCmContributor()" style="padding:6px 14px;border:1px dashed var(--border);border-radius:6px;background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">+ Add Person</button>
+    </div>
+    <input type="hidden" id="cmEditId"/>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('customMaintModal')">Cancel</button>
+      <button class="btn primary" onclick="saveCustomMaintCard()">Save Card</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM MAINTENANCE CONTRIBUTION MODAL -->
+<div class="overlay" id="customMaintContribModal">
+  <div class="modal">
+    <h2 style="color:#c8f230;">＋ Add Contribution</h2>
+    <div class="field"><label>Person</label>
+      <select id="cmContribPerson" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;"></select>
+    </div>
+    <div class="field"><label>Amount (R)</label><input type="number" id="cmContribAmt" placeholder="e.g. 500"/></div>
+    <div class="field"><label>Date</label><input type="date" id="cmContribDate"/></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="cmContribNote" placeholder="e.g. Monthly contribution"/></div>
+    <input type="hidden" id="cmContribCardId"/>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('customMaintContribModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmCustomMaintContrib()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVINGS MODALS -->
+<div class="overlay" id="fundModal">
+  <div class="modal">
+    <h2 id="modalTitle">New Fund</h2>
+    <div class="field"><label>Fund Name</label><input type="text" id="fName" placeholder="e.g. Emergency Fund"/></div>
+    <div class="field"><label>Icon</label><div class="emoji-grid" id="emojiGrid"></div></div>
+    <div class="field"><label>Colour</label><div class="color-grid" id="colorGrid"></div></div>
+    <div class="field"><label>Goal Amount (R)</label><input type="number" id="fGoal"/></div>
+    <div class="field">
+      <label>Target Type</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button type="button" id="btnWeekly" onclick="setTargetType('weekly')" style="flex:1;padding:9px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:1px solid #c8f230;background:#1a2e00;color:#c8f230;transition:all .15s">Weekly</button>
+        <button type="button" id="btnMonthly" onclick="setTargetType('monthly')" style="flex:1;padding:9px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);transition:all .15s">Monthly</button>
+      </div>
+      <input type="number" id="fWeekly" placeholder="e.g. 200" oninput="updateTargetHint()"/>
+      <div id="fTargetHint" style="font-size:10px;color:var(--muted);margin-top:6px;letter-spacing:1px;min-height:16px"></div>
+    </div>
+    <div class="field"><label>Start Date</label><input type="date" id="fStart"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('fundModal')">Cancel</button>
+      <button class="btn primary" onclick="saveFund()">Save Fund</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="depModal">
+  <div class="modal">
+    <h2>Log Deposit</h2>
+    <div class="dep-fund-name" id="depFundName"></div>
+    <div class="field"><label>Amount (R)</label><input type="number" id="depAmount"/></div>
+    <div class="field"><label>Date</label><input type="date" id="depDate"/></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="depNote" placeholder="e.g. weekly drop"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('depModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmDeposit()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- USE FUNDS MODAL (Savings / Maintenance spend → Cash Flow) -->
+<div class="overlay" id="useFundsModal">
+  <div class="modal">
+    <h2 id="useFundsTitle" style="color:#f2a830;">💸 Use Funds</h2>
+    <div id="useFundsCardName" style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#888;margin-bottom:16px;letter-spacing:0.5px;"></div>
+
+    <div class="field">
+      <label>What did you spend on?</label>
+      <input type="text" id="useFundsDesc" placeholder="e.g. Brake pads, Tyres, Grocery run"/>
+    </div>
+    <div class="field">
+      <label>Amount (R)</label>
+      <input type="number" id="useFundsAmt" placeholder="0.00" min="0"/>
+    </div>
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="useFundsDate"/>
+    </div>
+
+    <!-- Car linking — shown only when card type supports it -->
+    <div class="field" id="useFundsCarField" style="display:none;">
+      <label>Link to Car <span style="color:#555;font-size:9px;">— optional, logs expense to that car too</span></label>
+      <select id="useFundsCarSel" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+        <option value="">— No car link —</option>
+      </select>
+    </div>
+
+    <!-- Cash Flow toggle -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border);margin-top:4px;">
+      <div>
+        <div style="font-size:11px;color:#efefef;letter-spacing:0.5px;">Add to Cash Flow as expense</div>
+        <div style="font-size:9px;color:#555;letter-spacing:0.5px;margin-top:2px;">Posts this spend to the current month's cash flow</div>
+      </div>
+      <button type="button" id="useFundsCFToggle" onclick="toggleUseFundsCF()" style="width:44px;height:24px;border-radius:100px;border:none;cursor:pointer;transition:background .2s;position:relative;background:#c8f230;">
+        <span id="useFundsCFThumb" style="position:absolute;top:3px;left:22px;width:18px;height:18px;border-radius:50%;background:#000;transition:left .2s;display:block;"></span>
+      </button>
+    </div>
+    <div id="useFundsCFNote" style="font-size:9px;color:#3a5a00;letter-spacing:0.5px;margin-bottom:8px;">✓ Will appear in Cash Flow → Expenses this month</div>
+
+    <input type="hidden" id="useFundsFundId"/>
+    <input type="hidden" id="useFundsCardType"/><!-- savings | maint | custommaint -->
+    <input type="hidden" id="useFundsCardId"/>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('useFundsModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmUseFunds()" style="background:#f2a830;color:#000;">💸 Confirm Spend</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="histModal">
+  <div class="modal">
+    <h2 id="histTitle">History</h2>
+    <div id="histContent" style="margin-top:4px"></div>
+    <div class="modal-btns" style="margin-top:20px">
+      <button class="btn ghost" onclick="closeModal('histModal')">Close</button>
+    </div>
+  </div>
+</div>
+<!-- ── PRAYER PAGE ── -->
+<div class="page" id="page-prayer" style="padding:0 0 80px;">
+  <div style="max-width:720px;margin:0 auto;padding:20px 16px 60px;">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,34px);letter-spacing:-1px;line-height:1;">🕌 <span style="color:var(--muted)">SALAH</span></div>
+        <div style="font-size:10px;letter-spacing:3px;color:var(--muted);margin-top:4px;text-transform:uppercase;">Lifetime Tracker</div>
+      </div>
+      <div id="prayerTodayDate" style="font-size:10px;letter-spacing:2px;color:var(--muted);text-align:right;"></div>
+    </div>
+
+    <!-- Today log -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div>
+          <div id="pDayLabel" style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);">Today's Salah</div>
+          <div id="pDaySubLabel" style="font-size:10px;color:#555;letter-spacing:1px;margin-top:2px;display:none;"></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button onclick="pDayNav(-1)" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;" title="Previous day">◀</button>
+          <button onclick="pDayNav(1)" id="pDayNextBtn" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;" title="Next day">▶</button>
+        </div>
+      </div>
+      <div id="prayerTodayGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;"></div>
+    </div>
+
+    <!-- Streak + lifetime stats -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Current Streak</div>
+        <div id="pStreak" style="font-family:'Syne',sans-serif;font-weight:800;font-size:32px;color:var(--accent);line-height:1;">0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;">days all 5 fard ✓</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Best Streak</div>
+        <div id="pBestStreak" style="font-family:'Syne',sans-serif;font-weight:800;font-size:32px;color:#f2a830;line-height:1;">0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;">days all 5 fard ✓</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Total Prayed</div>
+        <div id="pTotal" style="font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:var(--text);line-height:1;">0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;">fard prayers since Jan 2025</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Completion</div>
+        <div id="pRate" style="font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:var(--text);line-height:1;">0%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;">of all fard prayers</div>
+      </div>
+    </div>
+
+    <!-- Monthly heatmap -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);">Monthly Heatmap</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="prayerHeatmapPrev()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:12px;">◀</button>
+          <span id="pHeatmapLabel" style="font-size:11px;letter-spacing:1px;color:var(--text);min-width:90px;text-align:center;"></span>
+          <button onclick="prayerHeatmapNext()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:12px;">▶</button>
+        </div>
+      </div>
+      <!-- Day-of-week labels -->
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;">
+        <div style="text-align:center;font-size:8px;color:#555;letter-spacing:1px;">S</div>
+        <div style="text-align:center;font-size:8px;color:#555;letter-spacing:1px;">M</div>
+        <div style="text-align:center;font-size:8px;color:#555;letter-spacing:1px;">T</div>
+        <div style="text-align:center;font-size:8px;color:#555;letter-spacing:1px;">W</div>
+        <div style="text-align:center;font-size:8px;color:#555;letter-spacing:1px;">T</div>
+        <div style="text-align:center;font-size:8px;color:#555;letter-spacing:1px;">F</div>
+        <div style="text-align:center;font-size:8px;color:#555;letter-spacing:1px;">S</div>
+      </div>
+      <div id="pHeatmapGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
+      <!-- Legend -->
+      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;">
+        <span style="font-size:9px;color:#555;letter-spacing:1px;">0</span>
+        <div style="width:14px;height:14px;border-radius:3px;background:#1a1a1a;border:1px solid #2a2a2a;"></div>
+        <div style="width:14px;height:14px;border-radius:3px;background:#1a3300;"></div>
+        <div style="width:14px;height:14px;border-radius:3px;background:#2d5c00;"></div>
+        <div style="width:14px;height:14px;border-radius:3px;background:#5a9900;"></div>
+        <div style="width:14px;height:14px;border-radius:3px;background:#c8f230;"></div>
+        <span style="font-size:9px;color:#555;letter-spacing:1px;">5 fard</span>
+        <span style="font-size:9px;color:#9b59b6;margin-left:8px;">+ tahajjud</span>
+      </div>
+    </div>
+
+    <!-- Per-prayer breakdown -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:20px;">
+      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">Prayer Breakdown</div>
+      <div id="pBreakdown" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+
+    <!-- Tahajjud stats -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;">
+      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#9b59b6;margin-bottom:8px;">Tahajjud (Nafl)</div>
+      <div style="display:flex;gap:20px;align-items:flex-end;">
+        <div>
+          <div id="pTahajjudCount" style="font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:#9b59b6;line-height:1;">0</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;">times prayed</div>
+        </div>
+        <div>
+          <div id="pTahajjudPct" style="font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:#9b59b6;line-height:1;">0%</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;">of tracked days</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+
+<!-- Car Fund Transaction Modal -->
+<div class="overlay" id="carTxnModal">
+  <div class="modal">
+    <h2 id="carTxnTitle">Add Funds</h2>
+    <div class="dep-fund-name" id="carTxnSubtitle"></div>
+    <div class="field"><label>Amount (R)</label><input type="number" id="carTxnAmt" placeholder="e.g. 4200"/></div>
+    <div class="field"><label>Date</label><input type="date" id="carTxnDate"/></div>
+    <div class="field"><label>Note</label><input type="text" id="carTxnNote" placeholder="e.g. Respray deposit"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('carTxnModal')">Cancel</button>
+      <button class="btn primary" id="carTxnConfirm" onclick="confirmCarTxn()">Add</button>
+    </div>
+  </div>
+</div>
+<!-- QUICK ENTRY MODAL -->
+<div class="qe-overlay" id="qeOverlay">
+  <div class="qe-wrap">
+    <div class="qe-hdr">
+      <div class="qe-title">Quick Entry</div>
+      <button class="qe-close" onclick="closeQuickEntry()">✕</button>
+    </div>
+    <div class="qe-date-nav">
+      <button class="mnav-btn" onclick="qeChangeDay(-1)">&#8592;</button>
+      <div>
+        <h3 id="qeDateLabel">—</h3>
+        <div class="qe-week" id="qeWeekLabel">—</div>
+      </div>
+      <button class="mnav-btn" onclick="qeChangeDay(1)">&#8594;</button>
+    </div>
+    <div id="qePassengers"></div>
+    <div class="qe-total">
+      <span>Day Total</span>
+      <span id="qeDayTotal">R0</span>
+    </div>
+    <button class="qe-save" onclick="saveQuickEntry()">Save Day ✓</button>
+  </div>
+</div>
+<!-- SETTINGS MODAL -->
+<div class="overlay" id="settingsModal">
+  <div class="modal" style="max-width:440px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+      <h2 style="margin-bottom:0;display:flex;align-items:center;gap:10px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted)"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </h2>
+      <button onclick="closeModal('settingsModal')" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+
+    <!-- DRIVE SYNC -->
+    <div style="background:#080e1a;border:1px solid #1a3060;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
+        <span style="font-size:22px;line-height:1;">🔄</span>
+        <div style="flex:1;">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#5090f0;margin-bottom:3px;">Google Drive Sync</div>
+          <div style="font-size:10px;color:#2a4080;line-height:1.6;">Phone: <b style="color:#4070c0">Share → Drive</b> to export. <b style="color:#4070c0">Browse Drive</b> to import.<br>Laptop: Download then move file to Drive folder.</div>
+        </div>
+      </div>
+      <div style="display:flex;font-size:9px;color:#2a4080;letter-spacing:1px;margin-bottom:12px;flex-direction:column;gap:3px;">
+        <span id="syncLastExport">↑ Never exported</span>
+        <span id="syncLastImport">↓ Never imported</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button onclick="driveExport()" style="padding:10px;background:#0d1830;border:1px solid #1a3060;border-radius:6px;color:#5090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">📤 Export</button>
+        <button onclick="driveImport()" style="padding:10px;background:#0d1830;border:1px solid #1a3060;border-radius:6px;color:#5090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">📥 Import</button>
+      </div>
+      <div style="font-size:9px;color:#1a2a50;margin-top:10px;letter-spacing:1px;line-height:1.5;">File: <code style="color:#2a4080;background:#0a1020;padding:1px 4px;border-radius:2px;">YBDashboard_Latest.json</code> — always overwrite same file in Drive.</div>
+    </div>
+
+    <!-- BACKUP -->
+    <div style="background:#0d1a00;border:1px solid #2a4a00;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
+        <span style="font-size:22px;line-height:1;">💾</span>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;margin-bottom:3px;">Backup All Data</div>
+          <div style="font-size:10px;color:#5a8800;line-height:1.6;">Creates a dated <code style="background:#1a2e00;padding:1px 4px;border-radius:3px;color:#8ab820">.json</code> snapshot — useful for versioned backups.</div>
+        </div>
+      </div>
+      <button onclick="backupData()" style="width:100%;padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">⬇ Download Backup</button>
+    </div>
+
+    <!-- RESTORE -->
+    <div style="background:#111400;border:1px solid #2e2a00;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
+        <span style="font-size:22px;line-height:1;">📤</span>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#f2a830;margin-bottom:3px;">Restore Data</div>
+          <div style="font-size:10px;color:#7a6800;line-height:1.6;">Load a previously saved backup file to restore all dashboard data. <span style="color:#f2a830;">This will overwrite current data.</span></div>
+        </div>
+      </div>
+      <label style="display:block;width:100%;padding:10px;background:#1a1800;border:1px solid #3a3000;border-radius:6px;color:#f2a830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;text-align:center;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+        📁 Select Backup File
+        <input type="file" accept=".json" onchange="restoreData(this)" style="display:none;"/>
+      </label>
+      <div id="restoreStatus" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:14px;letter-spacing:1px;"></div>
+    </div>
+
+    <!-- BIOMETRIC -->
+    <div style="background:#0a1a0e;border:1px solid #1a4028;border-radius:8px;padding:16px 18px;margin-bottom:12px;" id="biometricSettingsSection">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
+        <span style="font-size:22px;line-height:1;">👆</span>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;margin-bottom:3px;">Fingerprint Login</div>
+          <div id="biometricSettingsStatus" style="font-size:10px;color:#3a6040;line-height:1.6;">Loading…</div>
+        </div>
+      </div>
+      <div id="biometricSettingsBtn"></div>
+    </div>
+
+    <!-- CHANGE PIN -->
+    <div style="background:#0a0e1a;border:1px solid #1a2040;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
+        <span style="font-size:22px;line-height:1;">🔑</span>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#7090f0;margin-bottom:3px;">Change PIN</div>
+          <div style="font-size:10px;color:#3a4a80;line-height:1.6;">Update your dashboard access PIN. Current PIN is required.</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <input type="password" id="pinNew" maxlength="4" placeholder="New PIN (4 digits)" style="background:#0d1228;border:1px solid #1a2040;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;border-radius:4px;outline:none;"/>
+        <input type="password" id="pinConfirm" maxlength="4" placeholder="Confirm PIN" style="background:#0d1228;border:1px solid #1a2040;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;border-radius:4px;outline:none;"/>
+      </div>
+      <button onclick="changePin()" style="width:100%;padding:10px;background:#0d1228;border:1px solid #1a2040;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🔑 Update PIN</button>
+      <div id="pinChangeStatus" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:14px;letter-spacing:1px;"></div>
+    </div>
+
+    <!-- MANAGE PASSENGERS -->
+    <div style="background:#0a1a0e;border:1px solid #1a4028;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <span style="font-size:22px;line-height:1;">🚗</span>
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;margin-bottom:3px;">Carpool Passengers</div>
+            <div style="font-size:10px;color:#3a6040;line-height:1.6;">People who ride — tracked in carpool, maintenance & reports.</div>
+          </div>
+        </div>
+        <button onclick="addPassenger()" style="flex-shrink:0;padding:6px 12px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;white-space:nowrap;">+ Add</button>
+      </div>
+      <div id="passengerRows" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
+    <!-- MANAGE LOGIN USERS -->
+    <div style="background:#0a0e1a;border:1px solid #1a2040;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <span style="font-size:22px;line-height:1;">🔐</span>
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#7090f0;margin-bottom:3px;">Login Users</div>
+            <div style="font-size:10px;color:#3a4a80;line-height:1.6;">People who can log in — PIN, name & role. Separate from passengers.</div>
+          </div>
+        </div>
+        <button onclick="addLoginUser()" style="flex-shrink:0;padding:6px 12px;background:#0d1228;border:1px solid #2a3a6a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;white-space:nowrap;">+ Add</button>
+      </div>
+      <div id="loginUserRows" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
+    <!-- CLEAR DATA -->
+    <div style="background:#1a0a0a;border:1px solid #3a1010;border-radius:8px;padding:16px 18px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
+        <span style="font-size:22px;line-height:1;">🗑</span>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#f23060;margin-bottom:3px;">Clear All Data</div>
+          <div style="font-size:10px;color:#6a2020;line-height:1.6;"><span style="color:#f23060;">Irreversible.</span> Resets all savings, carpool, and borrow data to factory state. Download a backup first.</div>
+        </div>
+      </div>
+      <button onclick="clearAllData()" style="width:100%;padding:10px;background:#1a0a0a;border:1px solid #5a1010;border-radius:6px;color:#f23060;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">⚠ Clear Everything</button>
+    </div>
+
+  </div>
+</div>
+<!-- PASSENGER EDIT MODAL -->
+<div class="overlay" id="passengerModal">
+  <div class="modal" style="max-width:360px;">
+    <h2 id="passengerModalTitle" style="color:#c8f230;">🚗 Add Passenger</h2>
+    <div class="field"><label>Name</label><input type="text" id="pmName" placeholder="e.g. Reza"/></div>
+    <div class="field">
+      <label>Default Trip Amount (R)</label>
+      <input type="number" id="pmAmt" placeholder="e.g. 44" min="0"/>
+    </div>
+    <div class="field">
+      <label>Colour</label>
+      <div id="pmColorGrid" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;"></div>
+    </div>
+    <input type="hidden" id="pmEditId"/>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('passengerModal')">Cancel</button>
+      <button class="btn primary" onclick="savePassenger()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN USER EDIT MODAL -->
+<div class="overlay" id="loginUserModal">
+  <div class="modal" style="max-width:360px;">
+    <h2 id="loginUserModalTitle" style="color:#7090f0;">🔐 Add Login User</h2>
+    <div class="field"><label>Name</label><input type="text" id="lumName" placeholder="e.g. Reza"/></div>
+    <div class="field"><label>PIN (4 digits)</label><input type="password" id="lumPin" maxlength="4" placeholder="e.g. 5678"/></div>
+    <div class="field">
+      <label>Role</label>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button type="button" id="lumRoleUser" onclick="setLumRole('user',this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border:1px solid #c8f230;background:#1a2e00;color:#c8f230;">Passenger</button>
+        <button type="button" id="lumRoleAdmin" onclick="setLumRole('admin',this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">Admin</button>
+        <button type="button" id="lumRoleCarservice" onclick="setLumRole('carservice',this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">Service</button>
+      </div>
+    </div>
+    <input type="hidden" id="lumRole" value="user"/>
+    <input type="hidden" id="lumOldPin"/>
+    <div id="lumStatus" style="font-size:10px;min-height:14px;margin-top:4px;letter-spacing:1px;"></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('loginUserModal')">Cancel</button>
+      <button class="btn primary" onclick="saveLoginUser()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAINTENANCE CONTRIB MODAL -->
+<div class="overlay" id="maintModal">
+  <div class="modal">
+    <h2 style="color:#c8f230;">🔧 Log Contribution</h2>
+    <div class="field"><label>From</label>
+      <select id="maintPerson" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+      </select>
+    </div>
+    <div class="field"><label>Amount (R)</label><input type="number" id="maintAmt" placeholder="e.g. 200" inputmode="decimal"/></div>
+    <div class="field"><label>Date</label><input type="date" id="maintDate"/></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="maintNote" placeholder="e.g. Weekly contribution"/></div>
+    <div id="maintModalStatus" style="font-size:11px;min-height:16px;margin-top:8px;letter-spacing:1px;"></div>
+    <div class="modal-btns">
+      <button type="button" class="btn ghost" style="flex:1;" onclick="closeModal('maintModal')">Cancel</button>
+      <button type="button" class="btn" style="background:#c8f230;color:#000;flex:1;padding:11px;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;" onclick="confirmMaintContrib()">Save</button>
+    </div>
+  </div>
+</div>
+<!-- MAINTENANCE HISTORY MODAL -->
+<div class="overlay" id="maintHistModal">
+  <div class="modal" style="max-width:480px;">
+    <h2 style="color:#c8f230;">🔧 Maintenance History</h2>
+    <div id="maintHistContent" style="max-height:60vh;overflow-y:auto;margin-bottom:16px;"></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('maintHistModal')" style="width:100%;">Close</button>
+    </div>
+  </div>
+</div>
+<!-- MAINTENANCE FUND SETTINGS MODAL -->
+<div class="overlay" id="maintEditModal">
+  <div class="modal">
+    <h2 style="color:#c8f230;">✎ Edit Maintenance Fund</h2>
+    <div class="field"><label>Fund name</label><input type="text" id="maintEditName" placeholder="e.g. Maintenance Fund" maxlength="40"/></div>
+    <div class="field"><label>Monthly target (R)</label><input type="number" id="maintEditTarget" placeholder="e.g. 10000" inputmode="decimal" min="0" step="50"/></div>
+    <div id="maintEditStatus" style="font-size:11px;min-height:16px;margin-top:8px;letter-spacing:1px;"></div>
+    <div class="modal-btns">
+      <button type="button" class="btn ghost" style="flex:1;" onclick="closeMaintSettings()">Cancel</button>
+      <button type="button" class="btn" style="background:#c8f230;color:#000;flex:1;padding:11px;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;" onclick="saveMaintSettings()">Save</button>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="borrowModal">
+  <div class="modal">
+    <h2 style="color:#a78bfa;">💸 Log Borrowed Money</h2>
+    <div id="lendingGuardrail" style="display:none;border-radius:8px;padding:12px 14px;margin-bottom:14px;border:1px solid #2a2a2a;background:#111;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:6px;">Smart Lending Check</div>
+      <div id="guardrailVerdict" style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:5px;"></div>
+      <div id="guardrailDetail" style="font-size:10px;color:#888;line-height:1.6;"></div>
+      <div id="guardrailMax" style="margin-top:6px;font-size:11px;font-weight:700;"></div>
+    </div>
+    <div class="field"><label>Passenger</label>
+      <select id="borrowPassenger" onchange="updateLendingGuardrail()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+        <option value="David">David</option>
+        <option value="Lezaun">Lezaun</option>
+        <option value="Shireen">Shireen</option>
+      </select>
+    </div>
+    <div class="field"><label>Amount (R)</label><input type="number" id="borrowAmt" placeholder="e.g. 100" oninput="updateLendingGuardrail()"/></div>
+    <div class="field"><label>Date</label><input type="date" id="borrowDate"/></div>
+    <div class="field"><label>Account (Source of Money)</label>
+      <select id="borrowAccount" style="width:100%;background:#1a1a1a;border:1px solid #a78bfa;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+        <option value="FNB">🏦 FNB Account</option>
+        <option value="TymeBank">🏦 TymeBank Account</option>
+      </select>
+    </div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="borrowNote" placeholder="e.g. Lunch money"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('borrowModal')">Cancel</button>
+      <button class="btn" onclick="confirmBorrow()" style="background:#a78bfa;color:#000;flex:1;padding:11px;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Log Borrow</button>
+    </div>
+  </div>
+</div>
+<!-- ── MONEY OWED PAGE ── -->
+<div class="page" id="page-money" style="padding:0 0 80px;">
+  <!-- Odin Bar -->
+  <div class="odin-bar admin-only" onclick="toggleOdinPanel('money')" id="odinBar-money">
+    <div class="odin-bar-left">
+      <span style="font-size:18px;">🧠</span>
+      <div>
+        <div class="odin-bar-label">Odin</div>
+        <div class="odin-bar-sub" id="odinSub-money">Tap to open</div>
+      </div>
+    </div>
+    <span class="odin-bar-chev" id="odinChev-money">&#8964;</span>
+  </div>
+  <div class="odin-panel admin-only" id="odinPanel-money">
+    <div class="odin-insights" id="odinInsights-money"></div>
+    <button class="odin-act-btn" onclick="openAllocateModalFor('money')">🧠 Log Repayment Received</button>
+  </div>
+  <div style="max-width:720px;margin:0 auto;padding:20px 16px 60px;">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🤝 <span style="color:var(--muted)">MONEY OWED</span></div>
+        <div style="font-size:10px;letter-spacing:3px;color:var(--muted);margin-top:4px;text-transform:uppercase;">Everyone who owes you</div>
+      </div>
+      <button onclick="openExternalBorrowModal()" class="admin-only" style="background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#a78bfa;font-weight:700;">+ Add Person</button>
+    </div>
+
+    <!-- Summary pills -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Total Lent</div>
+        <div id="moTotalLent" style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:#a78bfa;">R0</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Repaid</div>
+        <div id="moTotalRepaid" style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:#c8f230;">R0</div>
+      </div>
+      <div style="background:#1a1000;border:1px solid #5a3a00;border-radius:8px;padding:14px;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#f2a830;margin-bottom:6px;">Still Owed</div>
+        <div id="moTotalOwing" style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:#f2a830;">R0</div>
+      </div>
+    </div>
+
+    <!-- People list -->
+    <div id="moneyOwedList" style="display:flex;flex-direction:column;gap:12px;">
+      <div style="color:#555;font-size:13px;text-align:center;padding:40px 0;">Loading...</div>
+    </div>
+
+    <!-- Show Archived toggle -->
+    <div style="padding:8px 0 16px;text-align:center;">
+      <button id="moToggleArchived" onclick="toggleArchivedMoney()" style="background:none;border:1px solid #2a2a2a;border-radius:8px;padding:8px 20px;color:#444;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.color='#888';this.style.borderColor='#444'" onmouseout="this.style.color='#444';this.style.borderColor='#2a2a2a'">📦 Show Archived</button>
+    </div>
+    <div id="moArchivedSection" style="display:none;padding:0 0 16px;">
+      <div style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Archived People</div>
+      <div id="moArchivedList"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- EXTERNAL BORROW MODAL -->
+<div class="overlay" id="externalBorrowModal">
+  <div class="modal">
+    <h2 style="color:#a78bfa;">🤝 Log Money Lent</h2>
+    <div id="extLendingGuardrail" style="border-radius:8px;padding:12px 14px;margin-bottom:14px;border:1px solid #2a2a2a;background:#111;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:6px;">Smart Lending Check</div>
+      <div id="extGuardrailVerdict" style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:5px;"></div>
+      <div id="extGuardrailDetail" style="font-size:10px;color:#888;line-height:1.6;"></div>
+      <div id="extGuardrailMax" style="margin-top:6px;font-size:11px;font-weight:700;"></div>
+    </div>
+    <div class="field"><label>Person's Name</label>
+      <input type="text" id="extBorrowName" placeholder="e.g. Aunty Fatima" oninput="updateExtLendingGuardrail()"/>
+    </div>
+    <div class="field"><label>Amount (R)</label><input type="number" id="extBorrowAmt" placeholder="e.g. 500" oninput="updateExtLendingGuardrail()"/></div>
+    <div class="field"><label>Date</label><input type="date" id="extBorrowDate"/></div>
+    <div class="field"><label>Account (Source of Money)</label>
+      <select id="extBorrowAccount" style="width:100%;background:#1a1a1a;border:1px solid #a78bfa;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+        <option value="FNB">🏦 FNB Account</option>
+        <option value="TymeBank">🏦 TymeBank Account</option>
+      </select>
+    </div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="extBorrowNote" placeholder="e.g. For groceries"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('externalBorrowModal')">Cancel</button>
+      <button class="btn" onclick="confirmExternalBorrow()" style="background:#a78bfa;color:#000;flex:1;padding:11px;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MORE BORROW MODAL (top-up for existing person) -->
+<div class="overlay" id="addMoreBorrowModal">
+  <div class="modal">
+    <h2 style="color:#a78bfa;">💸 Add More Borrowed</h2>
+    <div style="margin-bottom:14px;padding:10px 14px;background:#1a0e2e;border:1px solid #3a2060;border-radius:6px;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:4px;">Adding to</div>
+      <div id="addMoreBorrowPersonName" style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:#a78bfa;"></div>
+      <div style="font-size:9px;color:#555;margin-top:2px;letter-spacing:1px;">Current total: <span id="addMoreBorrowCurrentTotal" style="color:#f2a830;"></span></div>
+    </div>
+    <input type="hidden" id="addMoreBorrowKey"/>
+    <input type="hidden" id="addMoreBorrowTag"/>
+    <div class="field"><label>New Amount to Add (R)</label><input type="number" id="addMoreBorrowAmt" placeholder="e.g. 200"/></div>
+    <div class="field"><label>Date</label><input type="date" id="addMoreBorrowDate"/></div>
+    <div class="field"><label>Account (Source of Money)</label>
+      <select id="addMoreBorrowAccount" style="width:100%;background:#1a1a1a;border:1px solid #a78bfa;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+        <option value="FNB">🏦 FNB Account</option>
+        <option value="TymeBank">🏦 TymeBank Account</option>
+      </select>
+    </div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="addMoreBorrowNote" placeholder="e.g. Extra for transport"/></div>
+    <div style="padding:10px 14px;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;margin-bottom:14px;font-size:10px;color:#555;letter-spacing:0.5px;">
+      ⓘ This amount will be <strong style="color:#efefef;">added to their existing total</strong> with today's date as a new entry. Previous entries remain unchanged.
+    </div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('addMoreBorrowModal')">Cancel</button>
+      <button class="btn" onclick="confirmAddMoreBorrow()" style="background:#a78bfa;color:#000;flex:1;padding:11px;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Add to Total</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AI ASSISTANT OVERLAY ══ -->
+
+<div id="aiOverlay">
+  <!-- Top bar -->
+  <div class="ai-topbar">
+    <div class="ai-title">
+      <div class="ai-title-icon">🧠</div>
+      <div>
+        <div style="color:#c8f230;line-height:1;font-family:'Syne',sans-serif;font-weight:800;">Odin</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a8800;letter-spacing:2px;font-weight:400;margin-top:2px;">YOUR FINANCIAL BRAIN</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button onclick="clearAIChat()" style="background:none;border:1px solid #1a1a1a;color:#333;border-radius:6px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#333';this.style.color='#666';" onmouseout="this.style.borderColor='#1a1a1a';this.style.color='#333';">CLEAR</button>
+      <button class="ai-close-btn" onclick="closeAIAssistant()">✕</button>
+    </div>
+  </div>
+
+  <!-- Quick prompts -->
+  <div class="ai-chips">
+    <button class="ai-chip" onclick="odinChat('savings summary')">💰 Savings</button>
+    <button class="ai-chip" onclick="odinChat('carpool')">🚗 Carpool</button>
+    <button class="ai-chip" onclick="odinChat('who owes me')">🤝 Debts</button>
+    <button class="ai-chip" onclick="odinChat('cash flow')">💵 Cash Flow</button>
+    <button class="ai-chip" onclick="odinChat('can I afford')">🛒 Afford?</button>
+    <button class="ai-chip" onclick="odinChat('cars')">🔧 Cars</button>
+    <button class="ai-chip" onclick="odinChat('summary')">📊 Summary</button>
+    <button class="ai-chip" onclick="odinChat('whatsapp')">📲 WhatsApp</button>
+  </div>
+
+  <!-- Messages area -->
+  <div class="ai-messages" id="aiMessages">
+    <div class="ai-empty" id="aiEmptyState">
+      <div class="ai-empty-icon">🧠</div>
+      <div class="ai-empty-title">Ask Odin anything</div>
+      <div class="ai-empty-sub">Try: "Can I buy sneakers for R800?"<br>or "What does Lezaun owe me?"<br>or "How's my cash flow this month?"</div>
+    </div>
+  </div>
+
+  <!-- Input bar -->
+  <div class="ai-input-bar">
+    <textarea id="aiInput" placeholder="Ask Odin anything…" rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();odinChat(document.getElementById('aiInput').value);}"
+      oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px';"></textarea>
+    <button id="aiSendBtn" onclick="odinChat(document.getElementById('aiInput').value)" style="background:#c8f230;color:#0a0a0a;border:none;border-radius:8px;width:36px;height:36px;font-size:16px;cursor:pointer;">➤</button>
+  </div>
+</div>
+
+
+<!-- EXTERNAL REPAY MODAL -->
+<div class="overlay" id="externalRepayModal">
+  <div class="modal">
+    <h2 style="color:#7090f0;">↩ Log Repayment</h2>
+    <div id="extRepayNameDisplay" style="font-family:'Syne',sans-serif;font-size:16px;color:#efefef;margin-bottom:16px;"></div>
+    <div id="extRepayOwingSummary" style="background:#0d0a1a;border:1px solid #2a1a4a;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#a78bfa;letter-spacing:1px;"></div>
+    <div class="field"><label>Repayment Amount (R)</label><input type="number" id="extRepayAmt" placeholder="e.g. 200"/></div>
+    <div class="field"><label>Date</label><input type="date" id="extRepayDate"/></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="extRepayNote" placeholder="e.g. Cash"/></div>
+    <div class="field">
+      <label>Add to Savings Fund (optional)</label>
+      <select id="extRepayFundSelect" style="width:100%;background:#0d1a2e;border:1px solid #2a3a5a;color:#7090f0;font-family:'DM Mono',monospace;font-size:12px;padding:10px 12px;border-radius:4px;outline:none;">
+        <option value="">— Don't add to savings —</option>
+      </select>
+      <div style="font-size:10px;color:#555;margin-top:5px;letter-spacing:0.5px;">If selected, the repaid amount will also be deposited into that fund.</div>
+    </div>
+    <input type="hidden" id="extRepayPersonKey"/>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('externalRepayModal')">Cancel</button>
+      <button class="btn" onclick="confirmExternalRepay()" style="background:#7090f0;color:#000;flex:1;padding:11px;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Log Repayment</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT BORROW MODAL -->
+<div class="overlay" id="editBorrowModal">
+  <div class="modal">
+    <h2 style="color:#f2a830;">✏️ Edit Entry</h2>
+    <div id="editBorrowTypeLabel" style="font-size:11px;color:var(--muted);margin-bottom:16px;letter-spacing:1px;"></div>
+    <input type="hidden" id="editBorrowPassenger"/>
+    <input type="hidden" id="editBorrowId"/>
+    <div class="field"><label>Amount (R)</label><input type="number" id="editBorrowAmt" placeholder="e.g. 42"/></div>
+    <div class="field"><label>Date</label><input type="date" id="editBorrowDate"/></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="editBorrowNote" placeholder="e.g. Lunch money"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('editBorrowModal')">Cancel</button>
+      <button class="btn" onclick="confirmEditBorrowUnified()" style="background:#f2a830;color:#000;flex:1;padding:11px;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LAUNCH MENU OVERLAY ── -->
+<div id="launchMenuOverlay" style="display:none;position:fixed;inset:0;background:#0a0a0a;z-index:500;align-items:flex-start;justify-content:center;padding:0;flex-direction:column;">
+  <div style="width:100%;flex:1;overflow-y:auto;padding:24px 16px 16px;">
+    <div style="max-width:420px;margin:0 auto;">
+
+      <!-- Odin Header -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+        <span style="font-size:28px;line-height:1;">🧠</span>
+        <div>
+          <div id="launchGreeting" style="font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:#efefef;line-height:1.2;"></div>
+          <div style="font-size:9px;color:#5a8800;letter-spacing:3px;text-transform:uppercase;margin-top:2px;">Odin · Your Financial Brain</div>
+        </div>
+      </div>
+
+      <!-- Odin Alerts Section -->
+      <div id="odinLaunchAlerts" style="margin-bottom:20px;"></div>
+
+      <!-- Divider -->
+      <div style="font-size:9px;color:#333;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">Where would you like to go?</div>
+
+      <!-- Menu items -->
+      <div id="launchMenuList"></div>
+
+      <!-- Footer skip -->
+      <button onclick="closeLaunchMenu();goToTab('carpool');" style="width:100%;margin-top:4px;padding:12px;background:none;border:1px solid #1a1a1a;border-radius:8px;color:#333;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#444';this.style.color='#666';" onmouseout="this.style.borderColor='#1a1a1a';this.style.color='#333';">Skip — go to Carpool</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── REPAYMENT MODAL ── -->
+<div class="overlay" id="repayModal">
+  <div class="modal">
+    <h2 style="color:#a78bfa;">💸 Log Repayment</h2>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:16px;letter-spacing:0.5px;">Record a partial or full repayment. This will reduce the amount owed.</p>
+    <div class="field"><label>Passenger</label>
+      <select id="repayPassenger" onchange="updateRepayOwingSummary()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+      </select>
+    </div>
+    <div id="repayOwingSummary" style="background:#0d0a1a;border:1px solid #2a1a4a;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#a78bfa;letter-spacing:1px;min-height:32px;"></div>
+    <div class="field"><label>Repayment Amount (R)</label><input type="number" id="repayAmt" placeholder="e.g. 20"/></div>
+    <div class="field"><label>Date</label><input type="date" id="repayDate"/></div>
+    <div class="field">
+      <label>Bank Account Received Into</label>
+      <select id="repayBank" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+        <option value="Tymebank">🏦 Tymebank</option>
+        <option value="FNB">🏦 FNB</option>
+      </select>
+    </div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="repayNote" placeholder="e.g. Paid via EFT"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('repayModal')">Cancel</button>
+      <button class="btn" onclick="confirmRepay()" style="background:#a78bfa;color:#000;flex:1;padding:11px;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Log Repayment</button>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════════
+     CAR SERVICE TRACKER PAGE
+══════════════════════════════════════════════════════════ -->
+<div class="page admin-only" id="page-cars" style="padding:0 0 80px;">
+  <!-- Odin Bar -->
+  <div class="odin-bar admin-only" onclick="toggleOdinPanel('cars')" id="odinBar-cars">
+    <div class="odin-bar-left">
+      <span style="font-size:18px;">🧠</span>
+      <div>
+        <div class="odin-bar-label">Odin</div>
+        <div class="odin-bar-sub" id="odinSub-cars">Tap to open</div>
+      </div>
+    </div>
+    <span class="odin-bar-chev" id="odinChev-cars">&#8964;</span>
+  </div>
+  <div class="odin-panel admin-only" id="odinPanel-cars">
+    <div class="odin-insights" id="odinInsights-cars"></div>
+    <button class="odin-act-btn" onclick="openAllocateModalFor('cars')">🧠 Log Income &amp; Allocate</button>
+  </div>
+  <div style="max-width:720px;margin:0 auto;padding:28px 16px 0;">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(22px,5vw,38px);letter-spacing:-1px;line-height:1;">🔧 <span style="color:var(--muted)">CAR SERVICE</span></div>
+        <div style="font-size:10px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-top:4px;">Maintenance logs &amp; expense history</div>
+      </div>
+      <button onclick="openAddCarModal()" style="background:#f2a830;border:none;border-radius:6px;padding:10px 18px;color:#000;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Add Car</button>
+    </div>
+
+    <!-- Cars list -->
+    <div id="carsContainer">
+      <div style="padding:48px 16px;text-align:center;color:#333;font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">
+        No cars added yet — tap <strong style="color:#f2a830;">+ Add Car</strong> to get started
+      </div>
+    </div>
+
+    <!-- Driver Licences section -->
+    <div style="margin-top:28px;">
+      <div id="driverLicenceSection" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+        <div style="padding:20px 16px;text-align:center;color:#333;font-size:12px;">Loading...</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- DRIVER LICENCE MODAL -->
+<div class="overlay" id="driverModal">
+  <div class="modal">
+    <h2 id="driverModalTitle" style="color:#c8f230;">🪪 Add Driver Licence</h2>
+    <input type="hidden" id="driverEditId"/>
+    <div class="field"><label>Person's Name</label><input type="text" id="driverName" placeholder="e.g. Cashiefa"/></div>
+    <div class="field"><label>ID Number (optional)</label><input type="text" id="driverIdNum" placeholder="e.g. 9001010001089"/></div>
+    <div class="field"><label>Licence Expiry Date</label><input type="date" id="driverExpiry"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('driverModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmDriver()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CAR MODAL -->
+<div class="overlay" id="addCarModal">
+  <div class="modal">
+    <h2 id="addCarModalTitle" style="color:#f2a830;">🚙 Add Car</h2>
+    <input type="hidden" id="editCarId"/>
+    <div class="field"><label>Car Name</label><input type="text" id="carName" placeholder="e.g. Hyundai Getz · Mom-in-law"/></div>
+    <div class="field"><label>Year (optional)</label><input type="number" id="carYear" placeholder="e.g. 2008"/></div>
+    <div class="field"><label>Colour / Note (optional)</label><input type="text" id="carNote" placeholder="e.g. White, 1.4i"/></div>
+    <div style="height:1px;background:var(--border);margin:10px 0 14px;"></div>
+    <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#555;margin-bottom:12px;">Vehicle Details</div>
+    <div class="field"><label>VIN Number (optional)</label><input type="text" id="carVin" placeholder="e.g. KMHBT51DR6US30591" style="text-transform:uppercase;"/></div>
+    <div class="field"><label>Engine Number (optional)</label><input type="text" id="carEngineNo" placeholder="e.g. G4EE6396585" style="text-transform:uppercase;"/></div>
+    <div class="field"><label>License Plate (optional)</label><input type="text" id="carPlate" placeholder="e.g. JLB 464 W" style="text-transform:uppercase;"/></div>
+    <div class="field"><label>Licence Disc Expiry (optional)</label><input type="date" id="carLicenceExpiry"/></div>
+    <div class="field"><label>Current Kilometres (optional)</label><input type="number" id="carKm" placeholder="e.g. 191810"/></div>
+    <div class="field"><label>Next Service KM (optional)</label><input type="number" id="carNextServiceKm" placeholder="e.g. 206000"/></div>
+    <div class="field"><label>Service Cost Target R <span style="font-size:9px;color:#555;">(how much to save for next service)</span></label><input type="number" id="carServiceTargetCost" placeholder="e.g. 5000"/></div>
+    <div class="field"><label>Linked Maintenance Fund <span style="font-size:9px;color:#555;">(Odin tracks savings progress here)</span></label><select id="carMaintenanceFundId" style="width:100%;background:#111;border:1px solid var(--border);border-radius:6px;color:#efefef;padding:8px 10px;font-family:'DM Mono',monospace;font-size:12px;"><option value="">— None —</option></select></div>
+    <div style="height:1px;background:var(--border);margin:10px 0 14px;"></div>
+    <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#555;margin-bottom:12px;">Service Intelligence</div>
+    <div class="field"><label>Last Service Date</label><input type="date" id="carLastServiceDate"/></div>
+    <div class="field"><label>Last Service KM</label><input type="number" id="carLastServiceKm" placeholder="e.g. 191000"/></div>
+    <div class="field"><label>Last Service Type</label><select id="carLastServiceType" style="width:100%;background:#111;border:1px solid var(--border);border-radius:6px;color:#efefef;padding:8px 10px;font-family:'DM Mono',monospace;font-size:12px;"><option value="Minor">Minor Service</option><option value="Major">Major Service</option></select></div>
+    <div class="field"><label style="display:flex;align-items:center;gap:10px;cursor:pointer;"><input type="checkbox" id="carCarpoolUsage" style="accent-color:#c8f230;width:16px;height:16px;"> <span>Carpool / Severe Usage <span style="font-size:9px;color:#555;">(5,000km intervals instead of 10,000km)</span></span></label></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('addCarModal')">Cancel</button>
+      <button class="btn primary" id="addCarSaveBtn" onclick="confirmAddCar()">Add Car</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD EXPENSE MODAL -->
+<!-- RESCHEDULE SERVICE MODAL -->
+<div class="overlay" id="rescheduleServiceModal">
+  <div class="modal">
+    <h2 style="color:#888;">📅 Reschedule Service</h2>
+    <div id="rescheduleCarLabel" style="font-family:'Syne',sans-serif;font-size:14px;color:#888;margin-bottom:16px;"></div>
+    <input type="hidden" id="rescheduleCarId"/>
+    <div style="background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:#555;letter-spacing:1px;">
+      Mechanic unavailable? Pick a new service date and the countdown will reset.
+    </div>
+    <div class="field"><label>New Service Date</label><input type="date" id="rescheduleNewDate"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('rescheduleServiceModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmRescheduleService()">📅 Reschedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG SERVICE TODAY MODAL -->
+<div class="overlay" id="logServiceTodayModal">
+  <div class="modal">
+    <h2 style="color:#f23060;">✅ Log Service Today</h2>
+    <div id="logServiceCarLabel" style="font-family:'Syne',sans-serif;font-size:14px;color:#888;margin-bottom:16px;"></div>
+    <input type="hidden" id="logServiceCarId"/>
+    <div style="background:#1a0000;border:1px solid #f23060;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:#f23060;letter-spacing:1px;">
+      This will set <strong>Last Service → Today</strong> and clear the overdue warning.
+    </div>
+    <div class="field"><label>Next Service Due Date</label><input type="date" id="logServiceNext"/></div>
+    <div class="field"><label>Kilometres at Service (optional)</label><input type="number" id="logServiceKm" placeholder="e.g. 84500"/></div>
+    <div style="background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px;margin-bottom:16px;">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:10px;">Also log a service expense? (optional)</div>
+      <div class="field" style="margin-bottom:8px;"><label>Description</label><input type="text" id="logServiceDesc" placeholder="e.g. Full service at Tiger Wheel"/></div>
+      <div class="field" style="margin-bottom:0;"><label>Amount (R)</label><input type="number" id="logServiceAmt" placeholder="Leave blank to skip"/></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('logServiceTodayModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmLogServiceToday()" style="background:#f23060;color:#fff;">✅ Confirm Service</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="addExpenseModal">
+  <div class="modal">
+    <h2 style="color:#f2a830;">🔧 Log Expense</h2>
+    <div id="addExpenseCarLabel" style="font-family:'Syne',sans-serif;font-size:14px;color:#888;margin-bottom:16px;"></div>
+    <input type="hidden" id="addExpenseCarId"/>
+    <input type="hidden" id="addExpenseEditId"/>
+    <div class="field">
+      <label>Category <span style="font-size:10px;color:#888;letter-spacing:1px;">(select all that apply)</span></label>
+      <div id="expenseCategoryBox" style="background:#1a1a1a;border:1px solid #333;border-radius:4px;padding:6px 0;">
+        <label class="cat-check-row"><input type="checkbox" value="🔧 Service"><span>🔧 Service</span></label>
+        <label class="cat-check-row"><input type="checkbox" value="🛞 Tyres"><span>🛞 Tyres</span></label>
+        <label class="cat-check-row"><input type="checkbox" value="🔋 Battery"><span>🔋 Battery</span></label>
+        <label class="cat-check-row"><input type="checkbox" value="⛽ Fuel"><span>⛽ Fuel</span></label>
+        <label class="cat-check-row"><input type="checkbox" value="🛠 Repairs"><span>🛠 Repairs</span></label>
+        <label class="cat-check-row"><input type="checkbox" value="🪟 Body / Glass"><span>🪟 Body / Glass</span></label>
+        <label class="cat-check-row"><input type="checkbox" value="📋 Licence / Admin"><span>📋 Licence / Admin</span></label>
+        <label class="cat-check-row"><input type="checkbox" value="🧰 Parts"><span>🧰 Parts</span></label>
+        <label class="cat-check-row"><input type="checkbox" value="💡 Other"><span>💡 Other</span></label>
+      </div>
+    </div>
+    <div class="field"><label>Description</label><input type="text" id="expenseDesc" placeholder="e.g. Full service at Tiger Wheel"/></div>
+    <div class="field"><label>Amount (R)</label><input type="number" id="expenseAmt" placeholder="e.g. 1800"/></div>
+    <div class="field"><label>Date</label><input type="date" id="expenseDate"/></div>
+    <div class="field"><label>Kilometres at Service (optional)</label><input type="number" id="expenseKm" placeholder="e.g. 84500"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('addExpenseModal')">Cancel</button>
+      <button class="btn primary" id="expenseModalSaveBtn" onclick="confirmAddExpense()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICE DATE MODAL -->
+<div class="overlay" id="serviceModal">
+  <div class="modal">
+    <h2 style="color:#c8f230;">📅 Service & Licence Dates</h2>
+    <div id="serviceModalCarLabel" style="font-family:'Syne',sans-serif;font-size:14px;color:#888;margin-bottom:16px;"></div>
+    <input type="hidden" id="serviceCarId"/>
+    <div class="field"><label>Last Service Date</label><input type="date" id="lastServiceDate" oninput="autoCalcNextService()"/></div>
+    <div class="field"><label>Kilometres at Last Service</label><input type="number" id="serviceKm" placeholder="e.g. 84500" oninput="autoCalcNextService()"/></div>
+    <div style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:12px 14px;margin-bottom:12px;">
+      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#5a8800;margin-bottom:8px;">Next Service Due (auto-calculated)</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <div style="flex:1;min-width:120px;">
+          <div style="font-size:9px;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">Date (+ 1 year)</div>
+          <div id="nextSvcDateDisplay" style="font-family:'DM Mono',monospace;font-size:14px;color:#c8f230;">—</div>
+          <input type="hidden" id="nextServiceDate"/>
+        </div>
+        <div style="color:#555;font-size:16px;">or</div>
+        <div style="flex:1;min-width:120px;">
+          <div style="font-size:9px;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">Kilometres (+ 15 000 km)</div>
+          <div id="nextSvcKmDisplay" style="font-family:'DM Mono',monospace;font-size:14px;color:#c8f230;">—</div>
+          <input type="hidden" id="nextServiceKm"/>
+        </div>
+      </div>
+      <div style="font-size:10px;color:#5a8800;margin-top:8px;">⚡ Whichever comes first</div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:10px 0 14px;"></div>
+    <div class="field"><label>Licence Disc Expiry</label><input type="date" id="serviceLicenceExpiry"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('serviceModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmServiceDates()">Save</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ══════════════════════════════════════════════════════════
+     INSTALMENTS PAGE
+══════════════════════════════════════════════════════════ -->
+<div class="page admin-only" id="page-instalments" style="padding:28px 16px 80px;">
+  <div style="max-width:720px;margin:0 auto;">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(22px,5vw,38px);letter-spacing:-1px;line-height:1;">💳 <span style="color:var(--muted)">INSTALMENTS</span></div>
+        <div style="font-size:10px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-top:4px;">TFG · PayFlex · PayJustNow</div>
+      </div>
+      <button onclick="openInstModal()" style="background:#c8f230;border:none;border-radius:6px;padding:10px 18px;color:#000;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Add Plan</button>
+    </div>
+
+    <!-- Summary strip -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;" id="instSummaryStrip">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Active Plans</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:#efefef;" id="instActiveCnt">0</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Due This Month</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:#f2a830;" id="instDueMonth">R0</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Total Remaining</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:#c8f230;" id="instTotalRem">R0</div>
+      </div>
+    </div>
+
+    <!-- Snowball tip banner — shown when 2+ active -->
+    <div id="instSnowballBanner" style="display:none;background:#0d1a00;border:1px solid #3a5a00;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:11px;color:#8ab820;letter-spacing:0.5px;line-height:1.6;">
+      ❄️ <strong style="color:#c8f230;">Snowball tip:</strong> <span id="instSnowballMsg"></span>
+    </div>
+
+    <!-- Cards -->
+    <div id="instCards">
+      <div style="padding:48px 16px;text-align:center;color:#333;font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">
+        No instalment plans yet — tap <strong style="color:#c8f230;">+ Add Plan</strong> to get started
+      </div>
+    </div>
+
+    <!-- Cleared plans toggle -->
+    <div id="instClearedWrap" style="margin-top:24px;display:none;">
+      <button onclick="toggleInstCleared()" style="width:100%;background:none;border:1px dashed #2a2a2a;border-radius:6px;padding:10px;color:#444;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;" id="instClearedBtn">Show Cleared Plans</button>
+      <div id="instClearedList" style="display:none;margin-top:12px;"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── SCHOOL TAB ── -->
+<div class="page admin-only" id="page-school" style="padding:20px 16px 80px;">
+  <div style="max-width:720px;margin:0 auto;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🎓 School<span style="color:var(--muted);">.</span></h1>
+        <div style="font-size:10px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-top:4px;">2026 Semester</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div id="schoolSummaryPills" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+        <button onclick="openAddSchoolEvent()" style="background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:6px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;white-space:nowrap;">+ Add Event</button>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;" id="schoolFilterBar">
+      <button class="school-filter active" data-filter="all" onclick="setSchoolFilter('all',this)">All</button>
+      <button class="school-filter" data-filter="upcoming" onclick="setSchoolFilter('upcoming',this)">⏳ Upcoming</button>
+      <button class="school-filter" data-filter="webinar" onclick="setSchoolFilter('webinar',this)">📡 Webinars</button>
+      <button class="school-filter" data-filter="assignment" onclick="setSchoolFilter('assignment',this)">📝 Assignments</button>
+      <button class="school-filter" data-filter="quiz" onclick="setSchoolFilter('quiz',this)">🧪 Quizzes</button>
+      <button class="school-filter" data-filter="exam" onclick="setSchoolFilter('exam',this)">📋 Exams</button>
+      <button class="school-filter" data-filter="results" onclick="setSchoolFilter('results',this)">📊 Results</button>
+    </div>
+
+    <div id="schoolList"></div>
+    <div id="schoolResults" style="display:none;"></div>
+  </div>
+</div>
+
+
+
+
+<div class="overlay" id="instModal">
+  <div class="modal">
+    <h2 id="instModalTitle" style="color:#c8f230;">+ New Instalment Plan</h2>
+
+    <div class="field">
+      <label>Provider</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;" id="instProviderGrid">
+        <div class="inst-prov-opt" data-val="TFG" onclick="selectInstProvider(this)" style="padding:10px 6px;border:1px solid var(--border);border-radius:6px;cursor:pointer;text-align:center;font-size:11px;letter-spacing:1px;color:var(--muted);transition:all .15s;">🛍 TFG</div>
+        <div class="inst-prov-opt" data-val="PayFlex" onclick="selectInstProvider(this)" style="padding:10px 6px;border:1px solid var(--border);border-radius:6px;cursor:pointer;text-align:center;font-size:11px;letter-spacing:1px;color:var(--muted);transition:all .15s;">⚡ PayFlex</div>
+        <div class="inst-prov-opt" data-val="PayJustNow" onclick="selectInstProvider(this)" style="padding:10px 6px;border:1px solid var(--border);border-radius:6px;cursor:pointer;text-align:center;font-size:11px;letter-spacing:1px;color:var(--muted);transition:all .15s;">🕐 PJN</div>
+        <div class="inst-prov-opt" data-val="MTN" onclick="selectInstProvider(this)" style="padding:10px 6px;border:1px solid var(--border);border-radius:6px;cursor:pointer;text-align:center;font-size:11px;letter-spacing:1px;color:var(--muted);transition:all .15s;">📱 MTN</div>
+        <div class="inst-prov-opt" data-val="Other" onclick="selectInstProvider(this)" style="padding:10px 6px;border:1px solid var(--border);border-radius:6px;cursor:pointer;text-align:center;font-size:11px;letter-spacing:1px;color:var(--muted);transition:all .15s;">📄 Other</div>
+      </div>
+      <input type="hidden" id="instProvider"/>
+    </div>
+
+    <div class="field"><label>Description (what did you buy?)</label><input type="text" id="instDesc" placeholder="e.g. Winter jacket + jeans"/></div>
+    <div class="field"><label>Total Amount (R)</label><input type="number" id="instTotal" placeholder="e.g. 1200" oninput="instAutoCalc()"/></div>
+
+    <div class="field">
+      <label>Number of Instalments</label>
+      <div style="display:flex;gap:8px;" id="instNumGrid"></div>
+      <input type="hidden" id="instNum"/>
+    </div>
+
+    <div class="field">
+      <label>Instalment Amount (R) <span style="color:#555;font-size:9px;">— auto-calculated</span></label>
+      <input type="number" id="instAmt" placeholder="e.g. 200" style="color:#c8f230;font-weight:700;"/>
+    </div>
+
+    <div class="field">
+      <label>Frequency</label>
+      <select id="instFreq" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+        <option value="monthly">Monthly</option>
+        <option value="fortnightly">Fortnightly (every 2 weeks)</option>
+      </select>
+    </div>
+
+    <div class="field"><label>First Payment Date</label><input type="date" id="instStartDate"/></div>
+    <div class="field" id="debitDayField" style="display:none;">
+      <label>Monthly Debit Day <span style="color:#555;font-size:9px;">— day of month account is debited</span></label>
+      <input type="number" id="instDebitDay" placeholder="e.g. 20" min="1" max="31" style="color:#f2c830;font-weight:700;"/>
+    </div>
+    <input type="hidden" id="instEditId"/>
+
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('instModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmInstalment()" id="instSaveBtn">Save Plan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MARK PAYMENT MODAL -->
+<div class="overlay" id="instPayModal">
+  <div class="modal">
+    <h2 style="color:#c8f230;">✓ Mark Payment</h2>
+    <div id="instPayInfo" style="background:#0d1a00;border:1px solid #2a4a00;border-radius:6px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#8ab820;line-height:1.7;"></div>
+    <div class="field"><label>Payment Date</label><input type="date" id="instPayDate"/></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="instPayNote" placeholder="e.g. Paid via app"/></div>
+    <input type="hidden" id="instPayPlanId"/>
+    <input type="hidden" id="instPayIndex"/>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('instPayModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmInstPay()">Mark as Paid ✓</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── ROUTINE TAB ── -->
+<div class="page admin-only" id="page-routine" style="padding:20px 16px 80px;">
+  <div style="max-width:720px;margin:0 auto;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🔁 Routine<span style="color:var(--muted);">.</span></h1>
+        <div style="font-size:10px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-top:4px;">Recurring Tasks</div>
+      </div>
+      <div id="routineSummaryPills" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+    <div id="routineList"></div>
+    <button onclick="openAddRoutineTask()" style="display:block;width:100%;max-width:720px;background:none;border:1px dashed var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:14px;border-radius:8px;cursor:pointer;transition:all .2s;margin-top:4px;" onmouseover="this.style.borderColor='#444';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">+ Add Task</button>
+  </div>
+</div>
+
+
+
+
+<!-- SMART ALLOCATION MODAL -->
+<div class="overlay" id="allocateModal" style="z-index:800;">
+  <div class="modal" style="max-width:440px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <h2 style="color:#c8f230;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;margin:0;">&#129504; MoneyMoveZ</h2>
+        <button onclick="openPriorityEditor()" title="Edit Priority Rules" style="background:none;border:1px solid #2a2a2a;border-radius:6px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;letter-spacing:1px;" onmouseover="this.style.borderColor='#c8f230';this.style.color='#c8f230'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#888'">⚡ Priority</button>
+      <button onclick="closeAllocateAndReturn()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:32px;height:32px;color:#555;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;" onmouseover="this.style.borderColor='#f23060';this.style.color='#f23060'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#555'">✕</button>
+    </div>
+    <div style="font-size:10px;color:#555;letter-spacing:1px;margin-bottom:16px;">Tell me what arrived — I'll show the plan before logging anything</div>
+
+    <!-- Source -->
+    <div class="field">
+      <label>Income source</label>
+      <select id="allocSource" onchange="recalcAllocation()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+        <!-- Options are populated dynamically by _saRefreshSourceDropdown() in routine.js.
+             The fallback below ensures the dropdown isn't empty if JS hasn't run yet. -->
+        <option value="salary">My Salary (Usabco)</option>
+        <option value="other">Other / Mixed</option>
+      </select>
+    </div>
+
+    <!-- Amount -->
+    <div class="field">
+      <label>Amount received (R)</label>
+      <input type="number" id="allocAmount" placeholder="e.g. 10179" oninput="recalcAllocation()" style="font-size:18px;font-family:'Syne',sans-serif;font-weight:700;color:#c8f230;"/>
+    </div>
+
+    <!-- Date -->
+    <div class="field">
+      <label>Date received</label>
+      <input type="date" id="allocDate"/>
+    </div>
+
+    <!-- Obligation inputs (rendered dynamically per source) -->
+    <div id="allocOblSection"></div>
+
+    <!-- Debtor picker — shown only when source = "repayment" -->
+    <div id="allocDebtorPicker" style="display:none;margin-bottom:12px;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:8px;padding-top:10px;border-top:1px solid var(--border);">Who paid you?</div>
+      <select id="allocDebtorSelect" onchange="recalcAllocation()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+        <option value="">— Select person —</option>
+      </select>
+    </div>
+
+    <!-- Plan section -->
+    <div id="allocPlanWrap" style="display:none;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:10px;padding-top:10px;border-top:1px solid var(--border);">Allocation Plan</div>
+
+      <!-- Alert -->
+      <div id="allocPriorityAlert" style="display:none;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:11px;line-height:1.6;border:1px solid;"></div>
+
+      <!-- Obligation summary row -->
+      <div id="allocOblSummary" style="display:none;background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:11px 14px;margin-bottom:6px;align-items:center;justify-content:space-between;gap:10px;"></div>
+
+      <!-- Routeable badge -->
+      <div id="allocRouteableBadge" style="display:none;font-size:9px;color:#555;letter-spacing:1px;text-align:center;margin-bottom:10px;padding:4px 0;border-bottom:1px solid #1a1a1a;"></div>
+
+      <!-- Plan rows -->
+      <div id="allocRows" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+
+      <!-- Leftover -->
+      <div id="allocLeftoverBar" style="display:none;background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div><div style="font-size:10px;color:#555;letter-spacing:1px;">Leftover</div><div id="allocLeftoverAmt" style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:#888;"></div></div>
+          <div style="font-size:10px;color:#444;text-align:right;">Keep in wallet<br>or carry forward</div>
+        </div>
+      </div>
+
+      <!-- Total -->
+      <div style="background:#0d1a00;border:1px solid #2a4a00;border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:10px;color:#5a8800;letter-spacing:1px;">TOTAL LOGGED</div>
+        <div id="allocTotalAmt" style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#c8f230;"></div>
+      </div>
+
+      <div class="modal-btns">
+        <button class="btn ghost" onclick="closeModal('allocateModal')">Cancel</button>
+        <button class="btn primary" onclick="confirmAllocation()" style="background:#c8f230;color:#000;">&#10003; Approve &amp; Log All</button>
+      </div>
+    </div>
+
+    <div id="allocEmptyState" style="text-align:center;padding:24px 0;color:#333;font-size:12px;">Enter amount above to see the plan</div>
+  </div>
+</div>
+
+
+<!-- ══ PRIORITY EDITOR MODAL ══ -->
+<div class="overlay" id="priorityEditorModal" style="z-index:850;">
+  <div class="modal" style="max-width:480px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <h2 style="color:#c8f230;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin:0;">⚡ Priority Rules</h2>
+      <button onclick="closeModal('priorityEditorModal')" style="background:none;border:none;color:#555;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <p style="font-size:10px;color:#555;letter-spacing:0.5px;margin:0 0 16px;">
+      Drag to reorder. Odin &amp; MoneyMoveZ both follow this order. Toggle off to skip a category.
+    </p>
+    <div id="priorityRulesList" style="max-height:55vh;overflow-y:auto;"></div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn ghost" onclick="prResetDefaults()" style="font-size:10px;">Reset Defaults</button>
+      <button class="btn primary" onclick="closeModal('priorityEditorModal')">Done</button>
+    </div>
+  </div>
+</div>
+  <!-- App modules — load order matters -->
+  <script src="core.js"></script>
+  <script src="db.js"></script>
+  <script src="passengers.js"></script>
+  <script src="money.js"></script>
+  <script src="odin.js"></script>
+  <script src="savings.js"></script>
+  <script src="carpool.js"></script>
+  <script src="cashflow.js"></script>
+  <script src="settings.js"></script>
+  <script src="borrow.js"></script>
+  <script src="sync.js"></script>
+  <script src="prayer.js"></script>
+  <script src="maint.js"></script>
+  <script src="odin_chat.js"></script>
+  <script src="cars.js"></script>
+  <script src="school.js"></script>
+  <script src="instalments.js"></script>
+  <script src="routine.js"></script>
+
+<!-- ══ ODIN COMMAND CENTRE PAGE ══ -->
+<div class="page admin-only" id="page-odin" style="padding:0 0 80px;">
+
+  <!-- Header -->
+  <div style="background:linear-gradient(180deg,#0d1a00 0%,#0a0a0a 100%);padding:24px 16px 16px;border-bottom:1px solid #1a2a00;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
+      <span style="font-size:28px;">🧠</span>
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#c8f230;">Odin</div>
+        <div style="font-size:9px;color:#5a8800;letter-spacing:3px;text-transform:uppercase;">Command Centre</div>
+      </div>
+    </div>
+    <div id="odinTabGreeting" style="font-size:11px;color:#555;margin-top:6px;letter-spacing:0.5px;"></div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div style="padding:16px 16px 0;">
+    <div style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Quick Actions</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="openAllocateModal('odin')" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:8px;padding:8px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">💰 Log Income</button>
+      <button onclick="goToTab('cashflow')" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:8px;padding:8px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">💵 Cash Flow</button>
+      <button onclick="goToTab('cars')" style="background:#1a1000;border:1px solid #3a2a00;border-radius:8px;padding:8px 14px;color:#f2a830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">🔧 Cars</button>
+      <button onclick="goToTab('savings')" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:8px;padding:8px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">💰 Savings</button>
+    </div>
+  </div>
+
+  <!-- Alerts Panel -->
+  <div style="padding:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;">Alerts & Insights</div>
+      <button onclick="renderOdinTab()" style="background:none;border:none;color:#5a8800;font-size:10px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:1px;">↻ Refresh</button>
+    </div>
+    <div id="odinTabAlerts"></div>
+  </div>
+
+  <!-- Financial Snapshot -->
+  <div style="padding:0 16px 16px;">
+    <div style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Financial Snapshot</div>
+    <div id="odinTabSnapshot" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div style="padding:0 16px;">
+    <div style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Recent Activity</div>
+    <div id="odinTabActivity"></div>
+  </div>
+
+</div>
+
+</body>
+</html>
