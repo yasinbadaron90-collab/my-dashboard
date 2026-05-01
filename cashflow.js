@@ -35,29 +35,25 @@ function buildCFMonthData(mk){
   // (which posts a proper income entry through postToCF). Otherwise the cash
   // flow report would over-report income that's still owed to the user.
 
-  // Auto: instalments
-  const instPlans = loadInst ? loadInst() : [];
-  instPlans.forEach(function(plan){
-    if(plan.monthToMonth){
-      allExpenses.push({ label:plan.desc, amount:plan.amt, icon:'💳', auto:true, category:'Instalments' });
-    } else {
-      const dueThisMonth = (plan.dates||[]).some(function(ds){ return ds.startsWith(mk); });
-      if(dueThisMonth) allExpenses.push({ label:plan.desc, amount:plan.amt, icon:'💳', auto:true, category:'Instalments' });
-    }
-  });
+  // ── Auto-pulls removed for parity with the in-app render ──────────────
+  // Previously the PDF path pulled instalments, savings deposits, and car
+  // spends into the expense list automatically. The in-app screen does NOT
+  // do this — instalment payments are logged manually when paid, savings
+  // come through MoneyMoveZ, and car spends post via Use Funds → CF directly.
+  //
+  // Keeping the auto-pulls in the PDF caused a discrepancy: the PDF total
+  // would be e.g. R10,365 while the in-app showed R9,689 for the same month.
+  // We now only pull legacy untagged car entries (the same heuristic the
+  // in-app uses) so the two surfaces always agree.
 
-  // Auto: savings
-  funds.forEach(function(f){
-    if(f.isExpense) return;
-    const deposited = (f.deposits||[]).filter(function(d){ return d.date&&d.date.startsWith(mk)&&d.txnType!=='out'; }).reduce(function(s,d){ return s+d.amount; },0);
-    if(deposited > 0) allExpenses.push({ label:f.emoji+' '+f.name, amount:deposited, icon:'💰', auto:true, category:'Savings' });
-  });
-
-  // Auto: car
+  // Legacy car entries — only those without a note and not yet posted to CF.
+  // Matches the in-app filter in settings.js renderCashFlow exactly.
   const carFund = funds.find(function(f){ return f.isExpense; });
   if(carFund){
-    const carSpent = (carFund.deposits||[]).filter(function(d){ return d.txnType==='out'&&d.date&&d.date.startsWith(mk); }).reduce(function(s,d){ return s+d.amount; },0);
-    if(carSpent > 0) allExpenses.push({ label:'Car Expenses', amount:carSpent, icon:'🔧', auto:true, category:'Cars' });
+    const carSpent = (carFund.deposits||[]).filter(function(d){
+      return d.txnType==='out' && d.date && d.date.startsWith(mk) && !d.note && !d.cfPosted;
+    }).reduce(function(s,d){ return s+d.amount; },0);
+    if(carSpent > 0) allExpenses.push({ label:'Car Expenses (untagged)', amount:carSpent, icon:'🔧', auto:true, category:'Cars' });
   }
 
   const totalIncome        = allIncome.reduce(function(s,e){ return s+e.amount; },0);
