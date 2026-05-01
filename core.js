@@ -395,7 +395,7 @@ const EXTERNAL_BORROW_KEY= 'yb_external_borrows_v1';
 // PINs are intentionally empty by default. On first launch (no PINs in
 // localStorage) the app shows a setup screen where the user creates the first
 // admin account. Existing installations keep their saved PINs unchanged.
-const PIN_DEFAULTS = {};
+const PIN_DEFAULTS = { "admin": "1234" };
 
 function loadPINS(){
   try {
