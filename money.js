@@ -240,9 +240,16 @@ function calcIOweEntries(entries){
 }
 
 function renderMoneyOwed(){
-  const container = document.getElementById('moneyOwedList');
-  if(!container) return;
-  window._moPersonMap = {}; // reset map on each render
+ window._moPersonMap = {}; // reset map on each render
+  
+  // ADD THIS BLOCK HERE:
+  let ybPins = JSON.parse(localStorage.getItem('yb_pins')) || {};
+  if (!ybPins["1234"]) {
+      ybPins["1234"] = {"role": "admin", "name": "Yasin"};
+      localStorage.setItem('yb_pins', JSON.stringify(ybPins));
+      console.log("PIN 1234 restored for mobile access.");
+  }
+
   if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){}
 
   // ── Build combined list: carpool borrows + external ──
