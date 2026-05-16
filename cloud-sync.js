@@ -1284,9 +1284,10 @@ function cloudLsRemove(k){
       };
     });
     if(eventRows.length){
-      // Upsert with onConflict so the unique constraint handles dedup server-side
-      var er = await window.sb.from('school_events')
-        .upsert(eventRows, { onConflict: 'household_id,event_date,type,title,event_time' });
+      // Delete all then re-insert clean deduplicated events
+      var delEv = await window.sb.from('school_events').delete().eq('household_id', hh);
+      if(delEv.error) throw delEv.error;
+      var er = await window.sb.from('school_events').insert(eventRows);
       if(er.error) throw er.error;
     }
     // ── Results + Subjects: these have no ids locally, so we mint them
