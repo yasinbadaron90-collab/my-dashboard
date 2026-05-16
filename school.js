@@ -10,7 +10,25 @@ var _schoolFilter = 'all';
 var SCHOOL_DATA_DEFAULT = [];
 
 function loadSchoolEvents(){
-  try{ var d=JSON.parse(lsGet(SCHOOL_EVENTS_KEY)||'null'); if(d) return d; }catch(e){}
+  try{
+    var d=JSON.parse(lsGet(SCHOOL_EVENTS_KEY)||'null');
+    if(d && Array.isArray(d)){
+      // Self-healing dedup: remove duplicate events by date+type+title+time
+      var seen={};
+      var deduped=d.filter(function(e){
+        var key=(e.date||'')+'|'+(e.type||'')+'|'+(e.title||'')+'|'+(e.time||'');
+        if(seen[key]) return false;
+        seen[key]=true;
+        return true;
+      });
+      if(deduped.length !== d.length){
+        console.log('[school] Self-healed duplicates: '+d.length+' -> '+deduped.length);
+        lsSet(SCHOOL_EVENTS_KEY, JSON.stringify(deduped));
+        return deduped;
+      }
+      return d;
+    }
+  }catch(e){}
   // First run — seed from default and persist
   lsSet(SCHOOL_EVENTS_KEY, JSON.stringify(SCHOOL_DATA_DEFAULT));
   return SCHOOL_DATA_DEFAULT.slice();
