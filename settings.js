@@ -1057,3 +1057,22 @@ function refreshDriveStatus(){
 window.driveExport = driveExport;
 window.driveImport = driveImport;
 window.refreshDriveStatus = refreshDriveStatus;
+
+// Hard reset service worker and all caches — forces fresh JS files to load
+async function hardResetServiceWorker(){
+  try {
+    // Unregister all service workers
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for(const reg of regs) await reg.unregister();
+    }
+    // Delete all caches
+    const keys = await caches.keys();
+    for(const key of keys) await caches.delete(key);
+    alert('Cache cleared! App will now reload with fresh files.');
+    window.location.reload(true);
+  } catch(e){
+    alert('Error: '+e.message);
+  }
+}
+window.hardResetServiceWorker = hardResetServiceWorker;
