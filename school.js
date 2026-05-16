@@ -642,3 +642,24 @@ function isSchoolEmpty(){
 }
 
 // ══ INSTALMENT TRACKER ══
+
+// ── Fix School Cache — clears duplicate events from localStorage ──
+function fixSchoolCache(){
+  try {
+    var raw = lsGet(SCHOOL_EVENTS_KEY);
+    var events = raw ? JSON.parse(raw) : [];
+    var before = events.length;
+    var seen = {};
+    var deduped = events.filter(function(e){
+      var key = (e.date||'')+'|'+(e.type||'')+'|'+(e.title||'')+'|'+(e.time||'');
+      if(seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
+    lsSet(SCHOOL_EVENTS_KEY, JSON.stringify(deduped));
+    alert('School cache fixed!\nBefore: '+before+' events\nAfter: '+deduped.length+' events\n\nNow tap Upload to Cloud.');
+  } catch(e) {
+    alert('Error: '+e.message);
+  }
+}
+window.fixSchoolCache = fixSchoolCache;
