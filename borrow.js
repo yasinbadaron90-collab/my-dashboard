@@ -138,6 +138,9 @@ function confirmEditBorrow(){
   entries[idx].date   = date;
   entries[idx].note   = note;
   saveBorrows();
+  // Keep the linked Cash Flow expense in sync (amount/date) + adjust the
+  // bank tile by the difference. No-op if this entry has no cfId.
+  try { updateLinkedCFEntry(entries[idx].cfId, amount, date, passenger); } catch(e){}
   // Phase D: sync to cloud
   try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(passenger, entries[idx]); } catch(e){}
   closeModal('editBorrowModal');
@@ -228,6 +231,8 @@ function confirmEditBorrowUnified(){
     saveExternalBorrows(data);
     // Sync linked savings deposit
     updateSavingsDepositByBorrowId(personKey + ':' + entryId, amount, date, note);
+    // Sync linked Cash Flow expense + adjust bank tile by the difference.
+    try { updateLinkedCFEntry(data[personKey].entries[idx].cfId, amount, date, personKey); } catch(e){}
   } else {
     const entries = borrowData[passengerVal] || [];
     const idx = entries.findIndex(function(e){ return e.id === entryId; });
@@ -236,6 +241,7 @@ function confirmEditBorrowUnified(){
     entries[idx].date   = date;
     entries[idx].note   = note;
     saveBorrows();
+    try { updateLinkedCFEntry(entries[idx].cfId, amount, date, passengerVal); } catch(e){}
   }
   closeModal('editBorrowModal');
   renderCarpool();

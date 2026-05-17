@@ -1218,3 +1218,61 @@ if(typeof window !== 'undefined'){
   window.openRepaymentsManager = openRepaymentsManager;
   window.deleteRepayFromManager = deleteRepayFromManager;
 }
+
+// ════════════════════════════════════════════════════════════════════
+// LINK BORROW EDIT → CASH FLOW (May 2026 — closes the last gap)
+// A loan creates a linked CF expense (logBorrowToCashflow stamps cfId
+// onto the borrow entry). Deleting the loan already removes that CF
+// record. But EDITING the loan amount left the CF entry stale — the
+// bug behind the Lezaun R110/R100 confusion. This finds the linked CF
+// entry by cfId, updates its amount/date/label, and adjusts the bank
+// baseline by the difference (so the bank tile stays correct — same
+// reverse-old/apply-new pattern used in cashflow.js saveCfEntry).
+// Safe no-op if the entry has no cfId (older entries / repayments).
+// ════════════════════════════════════════════════════════════════════
+function updateLinkedCFEntry(cfId, newAmount, newDate, personName){
+  if(!cfId) return;                       // not linked — nothing to do
+  if(typeof loadCFData !== 'function') return;
+  try{
+    var cfData = loadCFData();
+    var found  = null, foundMk = null, foundSec = null;
+    Object.keys(cfData).forEach(function(mk){
+      ['income','expenses'].forEach(function(sec){
+        if(found) return;
+        var arr = cfData[mk] && cfData[mk][sec];
+        if(!arr) return;
+        var hit = arr.find(function(e){ return e.id === cfId; });
+        if(hit){ found = hit; foundMk = mk; foundSec = sec; }
+      });
+    });
+    if(!found) return;                    // linked CF entry not present
+
+    var oldAmount = Number(found.amount) || 0;
+    var newAmt    = Number(newAmount)    || 0;
+    if(oldAmount === newAmt && (!newDate || newDate === found.date)) return; // no change
+
+    // Adjust the bank baseline by the delta. A loan CF entry is an EXPENSE
+    // (money left your account), so increasing the loan removes more, etc.
+    // direction: expense => negative effect. delta in effect = -(new-old).
+    if(typeof window._adjustBaselineForBank === 'function'){
+      var bank = found.destBank
+        || (['FNB','TymeBank','Cash'].indexOf(found.account) > -1 ? found.account : null);
+      if(bank){
+        var effectOld = -oldAmount;       // expense reduced the bank by oldAmount
+        var effectNew = -newAmt;          // expense should reduce by newAmt
+        window._adjustBaselineForBank(bank, (effectNew - effectOld));
+      }
+    }
+
+    found.amount = newAmt;
+    if(newDate) found.date = newDate;
+    // Keep the label's amount-free wording; logBorrowToCashflow builds it
+    // without the number, so no relabel needed. Leave label as-is.
+    cfData[foundMk][foundSec] = cfData[foundMk][foundSec].map(function(e){
+      return e.id === cfId ? found : e;
+    });
+    saveCFData(cfData);
+    if(typeof renderCashFlow === 'function'){ try{ renderCashFlow(); }catch(e){} }
+  }catch(e){ console.warn('updateLinkedCFEntry failed:', e); }
+}
+if(typeof window !== 'undefined') window.updateLinkedCFEntry = updateLinkedCFEntry;
