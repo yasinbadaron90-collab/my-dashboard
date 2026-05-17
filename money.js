@@ -1137,7 +1137,7 @@ function openRepaymentsManager(personKey, tag){
   var name = personKey;
   if(tag === 'carpool'){
     if(typeof loadBorrows === 'function') loadBorrows();
-    entries = (window.borrowData && window.borrowData[personKey] || [])
+    entries = (borrowData[personKey] || [])
       .filter(function(e){ return !e._deleted && e.type === 'repay'; });
     name = personKey;
   } else {
