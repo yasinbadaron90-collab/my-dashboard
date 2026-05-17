@@ -827,6 +827,23 @@ async function cloudUploadAll(){
   var msg = document.getElementById('cloudSyncMsg');
   if(!window.cloudSync){ if(msg) msg.textContent = 'Cloud sync not loaded.'; return; }
   if(!confirm('Upload all current data to the cloud? This overwrites whatever is in the cloud right now.')) return;
+  // Self-heal school events before uploading
+  try {
+    var SCHOOL_KEY = 'yasin_school_events_v1';
+    var evRaw = localStorage.getItem(SCHOOL_KEY);
+    if(evRaw){
+      var evArr = JSON.parse(evRaw);
+      var evSeen = {};
+      var evClean = evArr.filter(function(e){
+        var k=(e.date||'')+'|'+(e.type||'')+'|'+(e.title||'')+'|'+(e.time||'');
+        if(evSeen[k]) return false; evSeen[k]=true; return true;
+      });
+      if(evClean.length !== evArr.length){
+        localStorage.setItem(SCHOOL_KEY, JSON.stringify(evClean));
+        console.log('[upload] School dedup: '+evArr.length+' -> '+evClean.length);
+      }
+    }
+  } catch(ex){ console.warn('school dedup error', ex); }
   if(msg) msg.textContent = 'Uploading…';
   try {
     var res = await window.cloudSync.uploadAllLocal();
