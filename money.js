@@ -409,6 +409,14 @@ function renderMoneyOwed(){
       // Actions
       +'<div style="padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
         +(repayBtn ? repayBtn : '')
+        +(function(){
+          // Count repayment-type entries (hidden from the rows above). If any
+          // exist, surface a manager so they can be viewed/deleted — without
+          // this, a stale repayment silently distorts the running total.
+          var _rc = (p.entries||[]).filter(function(e){ return !e._deleted && e.type==='repay'; }).length;
+          if(_rc === 0) return '';
+          return '<button onclick="openRepaymentsManager(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#0e2e1a;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">↩ Repayments ('+_rc+')</button>';
+        })()
         +'<button onclick="openAddMoreBorrowModal(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;color:#a78bfa;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">➕ More Borrowed</button>'
         +'<button onclick="exportPersonPDF(this)" style="padding:7px 14px;background:#1a1a00;border:1px solid #5a4a00;border-radius:6px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity=\'.75\'" onmouseout="this.style.opacity=\'1\'">⬇ PDF</button>'
         +(settled && p.key ? '<button onclick="archiveExternalPerson(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#1a1a1a;border:1px solid #333;border-radius:6px;color:#555;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.color=\'#888\'" onmouseout="this.style.color=\'#555\'">📦 Archive</button>' : '')
@@ -1113,3 +1121,100 @@ function _findIOweEntry(store, key, entryId){
 // ════════════════════════════════════════════════════════════════════
 // END PAY-BACK FLOW
 // ════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════
+// MANAGE REPAYMENTS (May 2026 — fixes hidden-repayment problem)
+// Repayment-type entries are hidden from the person card (intentional —
+// keeps the mini-statement clean). But that meant a wrongly-logged or
+// stale repayment could silently distort the running total with NO way
+// to view or remove it. This modal exposes every repayment for a person
+// and lets you delete individual ones, reusing the SAME delete functions
+// the card already uses (so cloud soft-delete + linked Cash Flow reversal
+// all happen correctly — no new delete logic, just visibility).
+// ════════════════════════════════════════════════════════════════════
+function openRepaymentsManager(personKey, tag){
+  var entries = [];
+  var name = personKey;
+  if(tag === 'carpool'){
+    if(typeof loadBorrows === 'function') loadBorrows();
+    entries = (window.borrowData && window.borrowData[personKey] || [])
+      .filter(function(e){ return !e._deleted && e.type === 'repay'; });
+    name = personKey;
+  } else {
+    var d = loadExternalBorrows();
+    var person = d[personKey];
+    if(person){
+      name = person.name || personKey;
+      entries = (person.entries || [])
+        .filter(function(e){ return !e._deleted && e.type === 'repay'; });
+    }
+  }
+
+  var modal = document.getElementById('repayMgrModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'repayMgrModal';
+    modal.className = 'overlay';
+    modal.innerHTML =
+      '<div class="modal" style="max-width:420px;">'
+      + '<h2 style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:20px;color:#efefef;margin-bottom:4px;">↩ Repayments</h2>'
+      + '<div id="repayMgrSub" style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;"></div>'
+      + '<div id="repayMgrList"></div>'
+      + '<div class="modal-btns" style="margin-top:18px;">'
+      + '<button class="btn ghost" onclick="closeModal(\'repayMgrModal\')">Close</button>'
+      + '</div>'
+      + '</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function(ev){ if(ev.target === modal) modal.classList.remove('active'); });
+  }
+
+  document.getElementById('repayMgrSub').textContent = name + ' · ' + entries.length + ' repayment' + (entries.length === 1 ? '' : 's');
+
+  var listEl = document.getElementById('repayMgrList');
+  if(!entries.length){
+    listEl.innerHTML = '<div style="color:#555;font-size:12px;padding:20px 0;text-align:center;">No repayments logged for ' + name + '.</div>';
+  } else {
+    listEl.innerHTML = entries
+      .slice()
+      .sort(function(a,b){ return a.date < b.date ? -1 : 1; })
+      .map(function(e){
+        var delFn = tag === 'carpool'
+          ? "deleteRepayFromManager('" + personKey + "','" + e.id + "','carpool')"
+          : "deleteRepayFromManager('" + personKey + "','" + e.id + "','external')";
+        var acct = e.account
+          ? ' <span style="font-size:9px;background:#1a0e2e;border:1px solid #3a2060;border-radius:3px;padding:1px 4px;color:#a78bfa;">' + e.account + '</span>'
+          : '';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #1a1a1a;">'
+          + '<div style="display:flex;flex-direction:column;gap:2px;">'
+          + '<span style="font-size:12px;color:#c8f230;font-weight:500;">+R' + Number(e.amount).toLocaleString('en-ZA') + '</span>'
+          + '<span style="font-size:10px;color:#555;">' + (e.date || '—') + (e.note ? ' · ' + e.note : '') + acct + '</span>'
+          + '</div>'
+          + '<button onclick="' + delFn + '" style="background:#1a0000;border:1px solid #5a1a1a;border-radius:6px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;padding:6px 12px;cursor:pointer;">🗑 Delete</button>'
+          + '</div>';
+      }).join('');
+  }
+
+  modal.classList.add('active');
+}
+
+// Bridges the manager's delete button to the existing, proven delete
+// functions, then refreshes the manager so the list updates in place.
+function deleteRepayFromManager(personKey, entryId, tag){
+  if(tag === 'carpool'){
+    if(typeof deleteBorrowEntry === 'function') deleteBorrowEntry(personKey, entryId);
+  } else {
+    if(typeof deleteBorrowEntryUnified === 'function') deleteBorrowEntryUnified('__ext__' + personKey, entryId);
+  }
+  // Re-render the manager so the deleted repayment drops out of the list.
+  // Small delay lets the underlying save/render settle first.
+  setTimeout(function(){
+    if(document.getElementById('repayMgrModal') && document.getElementById('repayMgrModal').classList.contains('active')){
+      openRepaymentsManager(personKey, tag);
+    }
+  }, 120);
+}
+
+if(typeof window !== 'undefined'){
+  window.openRepaymentsManager = openRepaymentsManager;
+  window.deleteRepayFromManager = deleteRepayFromManager;
+}
