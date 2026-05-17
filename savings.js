@@ -611,9 +611,15 @@ function removeFromCF(cfId){
   if(!cfId) return;
   var cfData=loadCFData();
   var changed=false;
+  // Capture the entry before deleting so we can reverse its bank effect.
+  var _removed=null;
   Object.keys(cfData).forEach(function(mk){
     ['income','expenses'].forEach(function(sec){
       if(cfData[mk]&&cfData[mk][sec]){
+        if(!_removed){
+          _removed = cfData[mk][sec].find(function(e){ return e.id===cfId; }) || null;
+          if(_removed) _removed._sec = sec;
+        }
         var b=cfData[mk][sec].length;
         cfData[mk][sec]=cfData[mk][sec].filter(function(e){return e.id!==cfId;});
         if(cfData[mk][sec].length!==b) changed=true;
@@ -621,6 +627,19 @@ function removeFromCF(cfId){
     });
   });
   if(changed) saveCFData(cfData);
+  // Reverse the removed entry's bank-baseline effect (May 2026 fix). When a
+  // borrow entry is deleted its linked CF record is purged here — the bank
+  // tile must give the money back too. Skip savings-allocation/auto rows.
+  if(_removed && typeof window._adjustBaselineForBank === 'function'
+     && !(typeof cfIsSavingsAlloc==='function' && cfIsSavingsAlloc(_removed))){
+    var _b = _removed.destBank
+      || (['FNB','TymeBank','Cash'].indexOf(_removed.account)>-1 ? _removed.account : null);
+    if(_b){
+      var _t = _removed._cfType || (_removed._sec==='income' ? 'income' : 'expense');
+      var _d = (_t==='income') ? Number(_removed.amount||0) : -Number(_removed.amount||0);
+      window._adjustBaselineForBank(_b, -_d);
+    }
+  }
 }
 
 // ══ USE FUNDS / SPEND FROM CARD ══

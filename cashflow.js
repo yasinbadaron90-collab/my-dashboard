@@ -1087,6 +1087,19 @@ function saveCfEntry(){
   // createdAt is a full ISO timestamp used by the bank-bucket math to decide
   // whether this entry is "after the baseline" (only entries newer than the
   // baseline snapshot adjust the running bank total).
+  // ── Capture the OLD version of this entry BEFORE we overwrite it, so we
+  // can reverse its previous bank-baseline effect. Without this, editing an
+  // entry (e.g. R110→R100, or Tyme→Cash) silently desyncs the bank tiles
+  // because the original delta was never undone. (May 2026 fix)
+  var _oldEntry = null;
+  if(editId){
+    var _od = data[mk];
+    if(_od && _od[section]) _oldEntry = (_od[section]||[]).find(function(e){ return e.id===editId; }) || null;
+    if(!_oldEntry && data.recurring && data.recurring[section]){
+      _oldEntry = (data.recurring[section]||[]).find(function(e){ return e.id===editId; }) || null;
+    }
+  }
+
   const entry = { id: editId || uid(), label, amount, icon: cfSelIcon, auto: false, account: cfBank, destBank: cfBank, createdAt: new Date().toISOString() };
   if(entryDate) entry.date = entryDate;
 
@@ -1112,15 +1125,40 @@ function saveCfEntry(){
   }
 
   saveCFData(data);
-  // ── Adjust live bank-bucket baseline (May 2026 Redesign Round 2) ──
-  // If this is a NEW entry (not an edit of an existing one) and it has a
-  // destBank, push the delta to the bucket so the Available Cash card
-  // reflects it instantly. Income adds, expense subtracts. Edits are NOT
-  // re-applied — we'd have to undo the old value first, which is fragile.
-  if(!editId && cfBank && typeof window._adjustBaselineForBank === 'function'){
-    var delta = (type === 'income') ? amount : -amount;
-    window._adjustBaselineForBank(cfBank, delta);
+  // ── Adjust live bank-bucket baseline (May 2026 Redesign — edit fix) ──
+  // The bank tiles (FNB/Tyme/Cash) are a running baseline that each tagged
+  // transaction nudges. Previously ONLY new entries nudged it; edits were
+  // skipped, so changing an amount or destination silently desynced the
+  // tiles (only a manual Rebuild fixed it). Now we reverse the OLD effect
+  // then apply the NEW one — net-correct for amount changes, bank changes,
+  // and income⇄expense changes. Savings-allocation / auto entries are left
+  // out of bank math (same rule used elsewhere).
+  if(typeof window._adjustBaselineForBank === 'function'){
+    // 1) Reverse the old entry's effect (only on edit, only if it was bank-tagged)
+    if(editId && _oldEntry && !cfIsSavingsAlloc(_oldEntry)){
+      var _oldBank = _oldEntry.destBank
+        || (['FNB','TymeBank','Cash'].indexOf(_oldEntry.account)>-1 ? _oldEntry.account : null);
+      if(_oldBank){
+        // section here is the NEW section; the old entry's direction is
+        // whatever it was. Infer from its presence: if it was income it
+        // added, if expense it subtracted. We stored type via section at
+        // create time, so re-derive from the old entry's own data when
+        // possible, else fall back to current type.
+        var _oldType = _oldEntry._cfType || type; // _cfType set below for future edits
+        var _oldDelta = (_oldType === 'income') ? Number(_oldEntry.amount||0) : -Number(_oldEntry.amount||0);
+        window._adjustBaselineForBank(_oldBank, -_oldDelta); // undo it
+      }
+    }
+    // 2) Apply the new entry's effect
+    if(cfBank && !cfIsSavingsAlloc(entry)){
+      var delta = (type === 'income') ? amount : -amount;
+      window._adjustBaselineForBank(cfBank, delta);
+    }
   }
+  // Tag the saved entry with its direction so a FUTURE edit can reverse it
+  // accurately (income vs expense) even if the section is ambiguous.
+  entry._cfType = type;
+  saveCFData(data);
   closeModal('cfEntryModal');
   renderCashFlow();
 }
@@ -1197,6 +1235,20 @@ function deleteCfEntry(id, type){
   if(cfData[mk]) cfData[mk][section] = (cfData[mk][section]||[]).filter(function(e){ return e.id!==id; });
   if(cfData.recurring) cfData.recurring[section] = (cfData.recurring[section]||[]).filter(function(e){ return e.id!==id; });
   saveCFData(cfData);
+
+  // ── Reverse the deleted entry's bank-baseline effect (May 2026 fix) ──
+  // Deleting an entry must give the money back to (or take it from) the
+  // bank tile, otherwise the tiles drift until a manual Rebuild. Mirrors
+  // the edit-side reversal. Savings-allocation / auto entries excluded.
+  if(entry && typeof window._adjustBaselineForBank === 'function' && !cfIsSavingsAlloc(entry)){
+    var _delBank = entry.destBank
+      || (['FNB','TymeBank','Cash'].indexOf(entry.account)>-1 ? entry.account : null);
+    if(_delBank){
+      var _delType = entry._cfType || type;
+      var _delDelta = (_delType === 'income') ? Number(entry.amount||0) : -Number(entry.amount||0);
+      window._adjustBaselineForBank(_delBank, -_delDelta); // undo the original effect
+    }
+  }
   renderCashFlow();
 }
 
