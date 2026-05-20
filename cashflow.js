@@ -1018,6 +1018,46 @@ function buildCfIconGrid(){
 }
 
 function openCfEntryModal(type, editId){
+  // ── HARD-BLOCK GUARD: editing a Money-In-linked CF entry (2026-05-20) ──
+  // If the user taps ✎ on a CF line that belongs to a Money In record, editing
+  // the amount or bank here without re-splitting the pockets would drift the
+  // model. Redirect them to Money In's own edit flow, which reverses the old
+  // group atomically and applies the new one.
+  if(editId){
+    try{
+      var _peekCF = loadCFData();
+      var _peekMk = cfKey();
+      var _peekSec = type === 'income' ? 'income' : 'expenses';
+      var _peekEntry = null;
+      if(_peekCF[_peekMk] && _peekCF[_peekMk][_peekSec]){
+        _peekEntry = _peekCF[_peekMk][_peekSec].find(function(e){ return e.id===editId; });
+      }
+      if(!_peekEntry && _peekCF.recurring && _peekCF.recurring[_peekSec]){
+        _peekEntry = _peekCF.recurring[_peekSec].find(function(e){ return e.id===editId; });
+      }
+      if(_peekEntry && _peekEntry.moneyInId){
+        var _miList = [];
+        try{ _miList = JSON.parse(lsGet('yb_moneyin_v1')||'[]'); }catch(e){}
+        var _miRec = _miList.find(function(r){ return r.id === _peekEntry.moneyInId; });
+        if(_miRec){
+          var _miLabel = (_miRec.note || 'Money In') + ' · ' + fmtR(_miRec.amount);
+          var _goEdit = confirm(
+            '🔒 Edit from Money In instead\n\n'+
+            'This line is part of:\n  '+_miLabel+'\n\n'+
+            'Editing here would only change this line — the linked income, '+
+            'house and pocket deposits would no longer match.\n\n'+
+            'Tap OK to open Money In and edit the whole entry properly.\n'+
+            'Tap Cancel to leave it alone.'
+          );
+          if(_goEdit && typeof openMoneyIn === 'function'){
+            openMoneyIn(_peekEntry.moneyInId);
+          }
+          return; // Either way, do NOT open the regular CF edit modal.
+        }
+      }
+    }catch(e){ console.warn('[cfEdit] money-in guard error', e); }
+  }
+
   const isIncome = type === 'income';
   cfSelIcon = isIncome ? '💰' : '💸';
   cfRecur = true;
@@ -1164,6 +1204,61 @@ function saveCfEntry(){
 }
 
 function deleteCfEntry(id, type){
+  // ── HARD-BLOCK GUARD: Money In linked entries (2026-05-20) ────────────
+  // If this CF entry is part of a Money In record, deleting from here would
+  // orphan the other half (income, house, pocket splits) and drift the bank.
+  // The locked rule: one record, one HOME tab. Money In is the home for these
+  // entries. Deleting from a mirror is refused; user is redirected to delete
+  // from the Money In side, which cascades correctly.
+  //
+  // Exception: true orphans (the Money In record no longer exists) ARE allowed
+  // to delete silently — only stray data, nothing to protect anymore.
+  try{
+    var _peekCF = loadCFData();
+    var _peekMk = cfKey();
+    var _peekSec = type === 'income' ? 'income' : 'expenses';
+    var _peekEntry = null;
+    if(_peekCF[_peekMk] && _peekCF[_peekMk][_peekSec]){
+      _peekEntry = _peekCF[_peekMk][_peekSec].find(function(e){ return e.id===id; });
+    }
+    if(!_peekEntry && _peekCF.recurring && _peekCF.recurring[_peekSec]){
+      _peekEntry = _peekCF.recurring[_peekSec].find(function(e){ return e.id===id; });
+    }
+    if(_peekEntry && _peekEntry.moneyInId){
+      // Is the Money In record still alive?
+      var _miList = [];
+      try{ _miList = JSON.parse(lsGet('yb_moneyin_v1')||'[]'); }catch(e){}
+      var _miRec = _miList.find(function(r){ return r.id === _peekEntry.moneyInId; });
+      if(_miRec){
+        // Real record exists → HARD BLOCK with redirect
+        var _miLabel = (_miRec.note || 'Money In') + ' · ' + fmtR(_miRec.amount) + ' · ' + _miRec.date;
+        var _goReverse = confirm(
+          '🔒 Can\'t delete it here\n\n'+
+          'This is part of a Money In entry:\n  '+_miLabel+'\n\n'+
+          'Deleting from Cash Flow alone would leave the other half behind '+
+          '(the income line, the pocket deposits, or the house expense) and '+
+          'the bank would drift.\n\n'+
+          'Tap OK to reverse the whole Money In entry now (cleanly, all together).\n'+
+          'Tap Cancel to leave everything as is.'
+        );
+        if(_goReverse && typeof deleteMoneyIn === 'function'){
+          // Reuse the proper cascade delete (which has its own confirm — pass
+          // through silently by calling _moneyInReverse directly).
+          if(typeof _moneyInReverse === 'function'){
+            _moneyInReverse(_peekEntry.moneyInId);
+            if(typeof softDeleteToast === 'function'){
+              softDeleteToast({ message:'Money In reversed · '+fmtR(_miRec.amount), duration:3000 });
+            }
+          } else {
+            deleteMoneyIn(_peekEntry.moneyInId);
+          }
+        }
+        return; // Either way, stop here. Don't run the legacy CF delete.
+      }
+      // No live record → true orphan → fall through to normal delete below
+    }
+  }catch(e){ console.warn('[cfDelete] money-in guard error', e); }
+
   if(!confirm('Remove this entry?')) return;
 
   // ── Find the entry first so we can reverse any linked fund/maintenance deposit ──

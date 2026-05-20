@@ -578,6 +578,39 @@ function openHistory(id){const f=funds.find(x=>x.id===id);document.getElementByI
 function deleteDeposit(fid,did){
   const f=funds.find(x=>x.id===fid);
   const dep=f.deposits.find(function(d){return d.id===did;});
+
+  // ── HARD-BLOCK GUARD: Money In linked deposits (2026-05-20) ────────────
+  // If this deposit is part of a Money In record, deleting just it would
+  // orphan the income line, house expense, and the other pocket splits.
+  // Redirect to delete the whole Money In group together.
+  if(dep && dep.moneyInId){
+    try{
+      var _miList = [];
+      try{ _miList = JSON.parse(lsGet('yb_moneyin_v1')||'[]'); }catch(e){}
+      var _miRec = _miList.find(function(r){ return r.id === dep.moneyInId; });
+      if(_miRec){
+        var _miLabel = (_miRec.note || 'Money In') + ' · ' + fmtR(_miRec.amount) + ' · ' + _miRec.date;
+        var _go = confirm(
+          '🔒 Can\'t delete it here\n\n'+
+          'This deposit is part of:\n  '+_miLabel+'\n\n'+
+          'Deleting from this pocket alone would leave the rest behind '+
+          '(income line, house expense, other pocket splits) and the bank '+
+          'would drift.\n\n'+
+          'Tap OK to reverse the whole Money In entry now (cleanly, all together).\n'+
+          'Tap Cancel to leave everything as is.'
+        );
+        if(_go && typeof _moneyInReverse === 'function'){
+          _moneyInReverse(dep.moneyInId);
+          if(typeof softDeleteToast === 'function'){
+            softDeleteToast({ message:'Money In reversed · '+fmtR(_miRec.amount), duration:3000 });
+          }
+        }
+        return; // do NOT run the regular per-deposit delete below
+      }
+      // Live record gone → true orphan → allow normal delete
+    }catch(e){ console.warn('[deleteDeposit] money-in guard error', e); }
+  }
+
   f.deposits=f.deposits.filter(d=>d.id!==did);
   saveFunds();
   if(dep&&dep.cfId) removeFromCF(dep.cfId);
