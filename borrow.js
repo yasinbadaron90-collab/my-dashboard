@@ -395,15 +395,11 @@ function confirmRepay(){
   const stmtArea = document.getElementById('stmtArea');
   if(stmtArea && stmtArea.style.display !== 'none') generateStatements();
   loadBorrowReport();
-  // ── Open MoneyMoveZ to allocate the repayment ──
-  setTimeout(function(){
-    openAllocateModal('repayment');
-    var amtEl = document.getElementById('allocAmount');
-    if(amtEl){ amtEl.value = amount; }
-    var srcEl = document.getElementById('allocSource');
-    if(srcEl){ srcEl.value = 'repay_carpool_'+passenger; }
-    if(typeof recalcAllocation === 'function') recalcAllocation();
-  }, 300);
+  // NOTE 2026-05-20: MoneyMoveZ removed. The "repayment → pocket" flow is
+  // build-step 4 in the new pocket-first model. Until that's built, the
+  // repayment is logged here (above) but does NOT auto-prompt for which
+  // pocket received the money. User can add it manually via Money In if
+  // needed. Will be rebuilt cleanly in step 4.
 }
 
 function getBorrowTotal(passenger){

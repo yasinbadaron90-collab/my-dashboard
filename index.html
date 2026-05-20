@@ -294,7 +294,6 @@ function _showUpdateToast(worker){
   </div>
   <div class="odin-panel admin-only" id="odinPanel-savings">
     <div class="odin-insights" id="odinInsights-savings"></div>
-    <button class="odin-act-btn" onclick="openAllocateModalFor('savings')">🧠 Log Income &amp; Allocate</button>
   </div>
   <div class="topbar">
     <h1>MY <span>FUNDS</span></h1>
@@ -314,13 +313,6 @@ function _showUpdateToast(worker){
   </div>
 
   <div style="max-width:720px;margin:0 auto 16px;">
-    <button class="admin-only" onclick="openAllocateModal()" style="width:100%;padding:14px;background:#0d1a00;border:2px solid #c8f230;border-radius:10px;color:#c8f230;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;" onmouseover="this.style.background='#1a2e00'" onmouseout="this.style.background='#0d1a00'">
-      <span style="font-size:22px;">&#129504;</span>
-      <div style="text-align:left;">
-        <div>MoneyMoveZ</div>
-        <div style="font-size:10px;color:#5a8800;font-family:'DM Mono',monospace;font-weight:400;letter-spacing:1px;margin-top:2px;">Tap when cash arrives - I decide where it goes</div>
-      </div>
-    </button>
   </div>
   <div class="fund-grid" id="fundGrid"></div>
   <button class="add-global-btn admin-only" onclick="openNewFund()">+ New Savings Fund</button>
@@ -425,7 +417,6 @@ function _showUpdateToast(worker){
   </div>
   <div class="odin-panel admin-only" id="odinPanel-carpool">
     <div class="odin-insights" id="odinInsights-carpool"></div>
-    <button class="odin-act-btn" onclick="openAllocateModalFor('carpool')">🧠 Log Income &amp; Allocate</button>
   </div>
       <div class="cp-topbar">
         <button id="reopenPane" onclick="togglePane()" style="display:inline-flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:4px;width:22px;height:36px;cursor:pointer;color:var(--muted);font-size:13px;margin-right:8px;">&#8250;</button>
@@ -477,7 +468,6 @@ function _showUpdateToast(worker){
   </div>
   <div class="odin-panel admin-only" id="odinPanel-cashflow">
     <div class="odin-insights" id="odinInsights-cashflow"></div>
-    <button class="odin-act-btn" onclick="openAllocateModalFor('cashflow')">🧠 Log Income &amp; Allocate</button>
   </div>
   <div style="max-width:720px;margin:0 auto;padding:28px 16px 0;">
 
@@ -1807,7 +1797,6 @@ function _showUpdateToast(worker){
   </div>
   <div class="odin-panel admin-only" id="odinPanel-money">
     <div class="odin-insights" id="odinInsights-money"></div>
-    <button class="odin-act-btn" onclick="openAllocateModalFor('money')">🧠 Log Repayment Received</button>
   </div>
   <div style="max-width:720px;margin:0 auto;padding:20px 16px 60px;">
 
@@ -2074,7 +2063,6 @@ function _showUpdateToast(worker){
   </div>
   <div class="odin-panel admin-only" id="odinPanel-cars">
     <div class="odin-insights" id="odinInsights-cars"></div>
-    <button class="odin-act-btn" onclick="openAllocateModalFor('cars')">🧠 Log Income &amp; Allocate</button>
   </div>
   <div style="max-width:720px;margin:0 auto;padding:28px 16px 0;">
 
@@ -2469,94 +2457,6 @@ function _showUpdateToast(worker){
 
 
 <!-- SMART ALLOCATION MODAL -->
-<div class="overlay" id="allocateModal" style="z-index:800;">
-  <div class="modal" style="max-width:440px;max-height:90vh;overflow-y:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <h2 style="color:#c8f230;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;margin:0;">&#129504; MoneyMoveZ</h2>
-        <button onclick="openPriorityEditor()" title="Edit Priority Rules" style="background:none;border:1px solid #2a2a2a;border-radius:6px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;letter-spacing:1px;" onmouseover="this.style.borderColor='#c8f230';this.style.color='#c8f230'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#888'">⚡ Priority</button>
-      <button onclick="closeAllocateAndReturn()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:32px;height:32px;color:#555;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;" onmouseover="this.style.borderColor='#f23060';this.style.color='#f23060'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#555'">✕</button>
-    </div>
-    <div style="font-size:10px;color:#555;letter-spacing:1px;margin-bottom:16px;">Tell me what arrived — I'll show the plan before logging anything</div>
-
-    <!-- Source -->
-    <div class="field">
-      <label>Income source</label>
-      <select id="allocSource" onchange="recalcAllocation()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
-        <!-- Options are populated dynamically by _saRefreshSourceDropdown() in routine.js.
-             The fallback below ensures the dropdown isn't empty if JS hasn't run yet. -->
-        <option value="salary">My Salary</option>
-        <option value="other">Other / Mixed</option>
-      </select>
-    </div>
-
-    <!-- Amount -->
-    <div class="field">
-      <label>Amount received (R)</label>
-      <input type="number" id="allocAmount" placeholder="e.g. 10179" oninput="recalcAllocation()" style="font-size:18px;font-family:'Syne',sans-serif;font-weight:700;color:#c8f230;"/>
-    </div>
-
-    <!-- Date -->
-    <div class="field">
-      <label>Date received</label>
-      <input type="date" id="allocDate"/>
-    </div>
-
-    <!-- Obligation inputs (rendered dynamically per source) -->
-    <div id="allocOblSection"></div>
-
-    <!-- Debtor picker — shown only when source = "repayment" -->
-    <div id="allocDebtorPicker" style="display:none;margin-bottom:12px;">
-      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:8px;padding-top:10px;border-top:1px solid var(--border);">Who paid you?</div>
-      <select id="allocDebtorSelect" onchange="recalcAllocation()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
-        <option value="">— Select person —</option>
-      </select>
-    </div>
-
-    <!-- Plan section -->
-    <div id="allocPlanWrap" style="display:none;">
-      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:10px;padding-top:10px;border-top:1px solid var(--border);">Allocation Plan</div>
-
-      <!-- Alert -->
-      <div id="allocPriorityAlert" style="display:none;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:11px;line-height:1.6;border:1px solid;"></div>
-
-      <!-- Obligation summary row -->
-      <div id="allocOblSummary" style="display:none;background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:11px 14px;margin-bottom:6px;align-items:center;justify-content:space-between;gap:10px;"></div>
-
-      <!-- Routeable badge -->
-      <div id="allocRouteableBadge" style="display:none;font-size:9px;color:#555;letter-spacing:1px;text-align:center;margin-bottom:10px;padding:4px 0;border-bottom:1px solid #1a1a1a;"></div>
-
-      <!-- Plan rows -->
-      <div id="allocRows" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
-
-      <!-- Leftover -->
-      <div id="allocLeftoverBar" style="display:none;background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div><div style="font-size:10px;color:#555;letter-spacing:1px;">Leftover</div><div id="allocLeftoverAmt" style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:#888;"></div></div>
-          <div style="font-size:10px;color:#444;text-align:right;">Keep in wallet<br>or carry forward</div>
-        </div>
-      </div>
-
-      <!-- Total -->
-      <div style="background:#0d1a00;border:1px solid #2a4a00;border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-        <div style="font-size:10px;color:#5a8800;letter-spacing:1px;">TOTAL LOGGED</div>
-        <div id="allocTotalAmt" style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#c8f230;"></div>
-      </div>
-    </div>
-
-    <div id="allocEmptyState" style="text-align:center;padding:24px 0;color:#333;font-size:12px;">Enter amount above to see the plan</div>
-
-    <!-- Action buttons — moved OUT of allocPlanWrap so passenger sources
-         (which hide the legacy Allocation Plan container) still see them.
-         Visibility controlled by recalcAllocation: hidden when amount is
-         empty, shown for any valid source + amount combo. -->
-    <div class="modal-btns" id="allocActionBtns" style="display:none;">
-      <button class="btn ghost" onclick="closeModal('allocateModal')">Cancel</button>
-      <button class="btn primary" onclick="confirmAllocation()" style="background:#c8f230;color:#000;">&#10003; Approve &amp; Log All</button>
-    </div>
-  </div>
-</div>
-
-
 <!-- ══ PRIORITY EDITOR MODAL ══ -->
 <div class="overlay" id="priorityEditorModal" style="z-index:850;">
   <div class="modal" style="max-width:480px;">
@@ -2565,7 +2465,7 @@ function _showUpdateToast(worker){
       <button onclick="closeModal('priorityEditorModal')" style="background:none;border:none;color:#555;font-size:20px;cursor:pointer;">✕</button>
     </div>
     <p style="font-size:10px;color:#555;letter-spacing:0.5px;margin:0 0 16px;">
-      Drag to reorder. Odin &amp; MoneyMoveZ both follow this order. Toggle off to skip a category.
+      Drag to reorder. Odin &amp; Money In both follow this order. Toggle off to skip a category.
     </p>
     <div id="priorityRulesList" style="max-height:55vh;overflow-y:auto;"></div>
     <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
@@ -2614,7 +2514,6 @@ function _showUpdateToast(worker){
   <div style="padding:16px 16px 0;">
     <div style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Quick Actions</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button onclick="openAllocateModal('odin')" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:8px;padding:8px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">💰 Log Income</button>
       <button onclick="goToTab('cashflow')" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:8px;padding:8px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">💵 Cash Flow</button>
       <button onclick="goToTab('cars')" style="background:#1a1000;border:1px solid #3a2a00;border-radius:8px;padding:8px 14px;color:#f2a830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">🔧 Cars</button>
       <button onclick="goToTab('savings')" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:8px;padding:8px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">💰 Savings</button>
@@ -2644,5 +2543,93 @@ function _showUpdateToast(worker){
 
 </div>
 
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- MONEY IN — Floating button + Modal (added 2026-05-20)    -->
+<!-- ════════════════════════════════════════════════════════ -->
+<button id="moneyInFAB" onclick="openMoneyIn()" title="Money In" aria-label="Money In"
+        style="position:fixed;right:18px;bottom:24px;z-index:550;background:#c8f230;border:none;color:#000;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;padding:13px 18px;border-radius:100px;box-shadow:0 6px 20px rgba(200,242,48,.25),0 2px 6px rgba(0,0,0,.5);cursor:pointer;display:flex;align-items:center;gap:7px;">
+  <span style="font-size:16px;">↓</span><span>Money In</span>
+</button>
+
+<div class="overlay" id="moneyInModal" style="z-index:850;">
+  <div class="modal" style="max-width:440px;max-height:92vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <h2 id="miModalTitle" style="color:#c8f230;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;margin:0;">↓ Money In</h2>
+      <button onclick="closeMoneyIn()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:32px;height:32px;color:#555;font-size:16px;cursor:pointer;">✕</button>
+    </div>
+    <div style="font-size:10px;color:#555;letter-spacing:1px;margin-bottom:16px;">Money lives in pockets. The bank is just a doorway.</div>
+
+    <!-- Amount -->
+    <div class="field">
+      <label>Amount received (R)</label>
+      <input type="number" id="miAmount" step="0.01" placeholder="e.g. 10736.42" oninput="_miOnHeaderEdit()"
+             style="font-size:20px;font-family:'Syne',sans-serif;font-weight:700;color:#c8f230;"/>
+    </div>
+
+    <!-- Note -->
+    <div class="field">
+      <label>Note</label>
+      <input type="text" id="miNote" placeholder="e.g. StanCom Q1 Salary"/>
+    </div>
+
+    <!-- Date -->
+    <div class="field">
+      <label>Date received</label>
+      <input type="date" id="miDate"/>
+    </div>
+
+    <!-- Source bank (which doorway it came through) -->
+    <div class="field">
+      <label>Came in via</label>
+      <div style="display:flex;gap:6px;">
+        <button type="button" id="miBank_FNB" onclick="_miSetSourceBank('FNB')"
+                style="flex:1;padding:9px;border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;background:#1a2e00;border:1px solid #c8f230;color:#c8f230;cursor:pointer;">FNB</button>
+        <button type="button" id="miBank_TymeBank" onclick="_miSetSourceBank('TymeBank')"
+                style="flex:1;padding:9px;border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;background:#0d0d0d;border:1px solid #2a2a2a;color:#888;cursor:pointer;">TymeBank</button>
+        <button type="button" id="miBank_Cash" onclick="_miSetSourceBank('Cash')"
+                style="flex:1;padding:9px;border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;background:#0d0d0d;border:1px solid #2a2a2a;color:#888;cursor:pointer;">Cash</button>
+      </div>
+    </div>
+
+    <!-- House expenses — off the top -->
+    <div class="field">
+      <label style="color:#f2a830;">⌂ House expenses — off the top</label>
+      <input type="number" id="miHouse" step="0.01" placeholder="Ask wife how much…" oninput="_miOnHeaderEdit()"
+             style="font-style:italic;color:#f2a830;"
+             onfocus="this.style.fontStyle='normal'" onblur="if(!this.value)this.style.fontStyle='italic'"/>
+      <div style="font-size:10px;color:#555;margin-top:4px;letter-spacing:1px;">Typed fresh each month · logged as an immediate expense</div>
+    </div>
+
+    <!-- Pocket split -->
+    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin:18px 0 8px;border-top:1px solid var(--border);padding-top:14px;">
+      ⚡ Split into pockets · <span id="miLeftoverHint" style="color:#888;">R0 to place</span>
+    </div>
+    <div id="miPocketList" style="background:#0a0a0a;border:1px solid #1a1a1a;border-radius:8px;padding:6px 12px 8px;margin-bottom:10px;"></div>
+
+    <!-- Live running total -->
+    <div style="background:#0d0d0d;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+      <div style="height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;margin-bottom:9px;">
+        <div id="miProgBar" style="height:100%;width:0%;background:#c8f230;transition:width .2s,background .2s;border-radius:3px;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:9px;color:#666;letter-spacing:1px;text-transform:uppercase;">Placed</div>
+          <div id="miPlacedTotal" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#efefef;">R0</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:9px;color:#666;letter-spacing:1px;text-transform:uppercase;">Left to place</div>
+          <div id="miLeftToPlace" style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;color:#f2a830;">R0</div>
+        </div>
+      </div>
+    </div>
+
+    <button id="miSaveBtn" onclick="saveMoneyIn()" disabled
+            style="width:100%;padding:14px;background:#c8f230;color:#000;border:none;border-radius:8px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:700;cursor:not-allowed;opacity:.45;">
+      🔒 Enter amount first
+    </button>
+  </div>
+</div>
+
+  <script src="moneyin.js"></script>
 </body>
 </html>

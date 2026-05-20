@@ -31,7 +31,7 @@ function buildCFMonthData(mk){
 
   // Carpool income is intentionally NOT auto-pulled here. Carpool entries on
   // the Carpool tab represent expected/projected earnings, not money received.
-  // Real income only counts when the user actively logs receipt via MoneyMoveZ
+  // Real income only counts when the user actively logs receipt via Money In
   // (which posts a proper income entry through postToCF). Otherwise the cash
   // flow report would over-report income that's still owed to the user.
 
@@ -39,7 +39,7 @@ function buildCFMonthData(mk){
   // Previously the PDF path pulled instalments, savings deposits, and car
   // spends into the expense list automatically. The in-app screen does NOT
   // do this — instalment payments are logged manually when paid, savings
-  // come through MoneyMoveZ, and car spends post via Use Funds → CF directly.
+  // come through Money In, and car spends post via Use Funds → CF directly.
   //
   // Keeping the auto-pulls in the PDF caused a discrepancy: the PDF total
   // would be e.g. R10,365 while the in-app showed R9,689 for the same month.

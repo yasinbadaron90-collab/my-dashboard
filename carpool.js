@@ -7,7 +7,7 @@ let cpMonth = new Date().getMonth();
 
 // ── Cross-module access ─────────────────────────────────────────────────
 // `let` makes these variables block-scoped to this script — other modules
-// like routine.js (MoneyMoveZ allocation logic) need to read them. Mirror
+// like routine.js (Money In allocation logic) need to read them. Mirror
 // onto window so they can. After every loadCP() / month change, refresh
 // the window references too (see syncWindowCp helper below).
 // ════════════════════════════════════════════════════════════════════

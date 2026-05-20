@@ -299,7 +299,7 @@ function renderCashFlow(){
   const instPlans = loadInst ? loadInst() : [];
   const autoExpenses = [];
 
-  // AUTO-PULL savings removed — MoneyMoveZ handles deposits directly, no double-count
+  // AUTO-PULL savings removed — Money In handles deposits directly, no double-count
 
   // ── AUTO-PULL: Car expenses this month ──
   const carFund = funds.find(function(f){ return f.isExpense; });
@@ -429,14 +429,14 @@ function renderCashFlow(){
       savingsHTML += cfRow(e, 'expense', isRecur);
     });
     if(!savingsHTML){
-      // No CTA — savings allocations come automatically from MoneyMoveZ
+      // No CTA — savings allocations come automatically from Money In
       // and Use Funds, not from a direct "Add" action here. Just explain
       // where they come from.
       savingsHTML = (typeof buildEmptyState === 'function')
         ? buildEmptyState({
             icon: '💰',
             title: 'No savings moves this month',
-            subtitle: 'Allocations appear here when you save via MoneyMoveZ or Use Funds in the Savings tab.',
+            subtitle: 'Allocations appear here when you save via Money In or Use Funds in the Savings tab.',
             compact: true
           })
         : '<div style="padding:14px;color:#444;font-size:12px;letter-spacing:1px;">No savings allocations this month.</div>';

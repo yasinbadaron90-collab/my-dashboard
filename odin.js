@@ -282,12 +282,11 @@ function buildOdinLaunchAlerts(){
     var snap = (typeof getLendingSnapshot==='function') ? getLendingSnapshot() : null;
     if(snap && snap.net < 0){
       alerts.push({ level:'red', text:'Cash flow deficit — '+fmtR(Math.abs(snap.net))+' over budget', tab:'cashflow',
-        actions:[{ label:'Allocate', fn: function(){ openAllocateModal('odin'); } },
-                 { label:'View', fn: function(){ goToTab('cashflow'); } }]
+        actions:[{ label:'View', fn: function(){ goToTab('cashflow'); } }]
       });
     } else if(snap && snap.net > 0){
       alerts.push({ level:'green', text:'Cash flow positive — '+fmtR(snap.net)+' surplus this month', tab:'cashflow',
-        actions:[{ label:'Allocate surplus', fn: function(){ openAllocateModal('odin'); } }]
+        actions:[{ label:'View', fn: function(){ goToTab('cashflow'); } }]
       });
     }
   }catch(e){}

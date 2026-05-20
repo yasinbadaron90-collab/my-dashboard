@@ -432,7 +432,7 @@ function renderMoneyOwed(){
 // ════════════════════════════════════════════════════════════════════
 // "YOU OWE THESE PEOPLE" SECTION (refunds owed back from overpayments)
 // ════════════════════════════════════════════════════════════════════
-// Reads borrowData for entries flagged iOwe:true (created by the MoneyMoveZ
+// Reads borrowData for entries flagged iOwe:true (created by the Money In
 // overpayment flow when someone pays you more than they owe). Each row
 // shows the amount + a "Pay back" button that opens the outgoing flow.
 function renderIOweSection(container){
