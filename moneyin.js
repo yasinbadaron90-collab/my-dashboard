@@ -311,7 +311,11 @@ function _miUpdateLiveTotal(){
   if(leftoverEl) leftoverEl.textContent = fmtR(leftover) + ' to place';
 
   if(leftEl){
-    if(Math.abs(left) < 0.005){
+    if(!(_miState.amount > 0)){
+      // No amount entered yet — show a neutral hint, not a fake green tick
+      leftEl.textContent = '—';
+      leftEl.style.color = '#555';
+    } else if(Math.abs(left) < 0.005){
       leftEl.textContent = 'R0 ✓';
       leftEl.style.color = '#c8f230';
     } else if(left > 0){
@@ -334,7 +338,23 @@ function _miUpdateLiveTotal(){
     saveBtn.disabled = !ok;
     saveBtn.style.opacity = ok ? '1' : '.45';
     saveBtn.style.cursor = ok ? 'pointer' : 'not-allowed';
-    saveBtn.textContent = ok ? '✓ Save Money In' : (left > 0 ? '🔒 ' + fmtR(left) + ' still to place' : '🔒 ' + fmtR(Math.abs(left)) + ' over — fix it');
+    // Label resolution — most specific to least specific so the message matches reality:
+    // 1) all good                → "✓ Save Money In"
+    // 2) amount not entered yet  → "🔒 Enter amount to start"  (nothing to compare against)
+    // 3) house exceeds amount    → "🔒 House is more than amount"
+    // 4) more to place           → "🔒 R___ still to place"
+    // 5) over-placed             → "🔒 R___ over — fix it"
+    if(ok){
+      saveBtn.textContent = '✓ Save Money In';
+    } else if(!(_miState.amount > 0)){
+      saveBtn.textContent = '🔒 Enter amount to start';
+    } else if(_miState.house > _miState.amount){
+      saveBtn.textContent = '🔒 House is more than amount';
+    } else if(left > 0){
+      saveBtn.textContent = '🔒 ' + fmtR(left) + ' still to place';
+    } else {
+      saveBtn.textContent = '🔒 ' + fmtR(Math.abs(left)) + ' over — fix it';
+    }
   }
 }
 
@@ -640,6 +660,74 @@ function renderMoneyInHistory(){
     c.appendChild(row);
   });
 }
+
+// ── Custom hard-block dialog (replaces native confirm) ──────────────────
+// Option 1 (locked 2026-05-20): two clearly-labelled buttons — the dangerous
+// action stated in plain English (red), and the safe default (grey).
+// Button text IS the action; no need to read the message to know which to tap.
+//
+// Usage:
+//   mihbConfirm({
+//     title: '🔒 Can\'t delete it here',
+//     body:  'long explanation…',
+//     dangerLabel: '↩ Reverse the whole Money In',
+//     safeLabel:   'Leave it alone'
+//   }, function(userChoseDanger){ if(userChoseDanger){ ... } });
+//
+// The callback fires AFTER the user taps. Either button closes the modal.
+// Tapping the dim background = same as "safe" (cancel).
+function _mihbEnsureModal(){
+  if(document.getElementById('mihbOverlay')) return;
+  var ov = document.createElement('div');
+  ov.id = 'mihbOverlay';
+  ov.setAttribute('role','dialog');
+  ov.setAttribute('aria-modal','true');
+  ov.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9000;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);';
+  ov.innerHTML =
+    '<div id="mihbCard" role="document" style="background:#0d0d0d;border:1px solid #2a2a2a;border-radius:14px;padding:20px;width:100%;max-width:380px;box-shadow:0 18px 50px rgba(0,0,0,.6);">'+
+      '<div id="mihbTitle" style="font-family:Syne,sans-serif;font-weight:800;font-size:17px;color:#efefef;margin-bottom:12px;line-height:1.3;"></div>'+
+      '<div id="mihbBody" style="font-size:12.5px;color:#bbb;line-height:1.7;margin-bottom:18px;white-space:pre-wrap;"></div>'+
+      '<div style="display:flex;flex-direction:column;gap:9px;">'+
+        '<button id="mihbDanger" type="button" style="padding:13px;border-radius:8px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;border:1px solid #5a1a1a;background:#1a0808;color:#f23060;cursor:pointer;text-align:center;"></button>'+
+        '<button id="mihbSafe" type="button" style="padding:13px;border-radius:8px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;border:1px solid #2a2a2a;background:#141414;color:#888;cursor:pointer;text-align:center;"></button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(ov);
+}
+
+function mihbConfirm(opts, callback){
+  _mihbEnsureModal();
+  var ov = document.getElementById('mihbOverlay');
+  var card = document.getElementById('mihbCard');
+  document.getElementById('mihbTitle').textContent = opts.title || 'Confirm';
+  document.getElementById('mihbBody').textContent = opts.body || '';
+  var dBtn = document.getElementById('mihbDanger');
+  var sBtn = document.getElementById('mihbSafe');
+  dBtn.textContent = opts.dangerLabel || 'Yes';
+  sBtn.textContent = opts.safeLabel || 'Cancel';
+
+  // One-shot listeners — clean up after a decision is made.
+  function done(choice){
+    ov.style.display = 'none';
+    dBtn.onclick = null;
+    sBtn.onclick = null;
+    ov.onclick = null;
+    document.removeEventListener('keydown', onKey);
+    if(typeof callback === 'function') callback(choice);
+  }
+  function onKey(e){
+    if(e.key === 'Escape') done(false);
+    if(e.key === 'Enter')  done(false); // Enter = safe default (don't surprise-reverse)
+  }
+  dBtn.onclick = function(){ done(true); };
+  sBtn.onclick = function(){ done(false); };
+  ov.onclick = function(e){ if(e.target === ov) done(false); }; // tap backdrop = safe
+  document.addEventListener('keydown', onKey);
+
+  ov.style.display = 'flex';
+}
+
+if(typeof window !== 'undefined'){ window.mihbConfirm = mihbConfirm; }
 
 // Expose globals so onclick="" handlers in index.html can find them.
 if(typeof window !== 'undefined'){

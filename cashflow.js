@@ -1041,16 +1041,24 @@ function openCfEntryModal(type, editId){
         var _miRec = _miList.find(function(r){ return r.id === _peekEntry.moneyInId; });
         if(_miRec){
           var _miLabel = (_miRec.note || 'Money In') + ' · ' + fmtR(_miRec.amount);
-          var _goEdit = confirm(
-            '🔒 Edit from Money In instead\n\n'+
+          var _bodyMsg =
             'This line is part of:\n  '+_miLabel+'\n\n'+
-            'Editing here would only change this line — the linked income, '+
-            'house and pocket deposits would no longer match.\n\n'+
-            'Tap OK to open Money In and edit the whole entry properly.\n'+
-            'Tap Cancel to leave it alone.'
-          );
-          if(_goEdit && typeof openMoneyIn === 'function'){
-            openMoneyIn(_peekEntry.moneyInId);
+            'Editing here would only change this line — the linked income, house and pocket deposits would no longer match.';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from Money In instead',
+              body:  _bodyMsg,
+              dangerLabel: '✎ Open Money In to edit',
+              safeLabel:   'Leave it alone'
+            }, function(goEdit){
+              if(goEdit && typeof openMoneyIn === 'function'){
+                openMoneyIn(_peekEntry.moneyInId);
+              }
+            });
+          } else {
+            if(confirm('🔒 Edit from Money In instead\n\n'+_bodyMsg+'\n\nTap OK to open Money In.\nTap Cancel to leave it alone.')){
+              if(typeof openMoneyIn === 'function') openMoneyIn(_peekEntry.moneyInId);
+            }
           }
           return; // Either way, do NOT open the regular CF edit modal.
         }
@@ -1230,27 +1238,29 @@ function deleteCfEntry(id, type){
       try{ _miList = JSON.parse(lsGet('yb_moneyin_v1')||'[]'); }catch(e){}
       var _miRec = _miList.find(function(r){ return r.id === _peekEntry.moneyInId; });
       if(_miRec){
-        // Real record exists → HARD BLOCK with redirect
+        // Real record exists → HARD BLOCK with custom redirect dialog
         var _miLabel = (_miRec.note || 'Money In') + ' · ' + fmtR(_miRec.amount) + ' · ' + _miRec.date;
-        var _goReverse = confirm(
-          '🔒 Can\'t delete it here\n\n'+
+        var _bodyMsg =
           'This is part of a Money In entry:\n  '+_miLabel+'\n\n'+
-          'Deleting from Cash Flow alone would leave the other half behind '+
-          '(the income line, the pocket deposits, or the house expense) and '+
-          'the bank would drift.\n\n'+
-          'Tap OK to reverse the whole Money In entry now (cleanly, all together).\n'+
-          'Tap Cancel to leave everything as is.'
-        );
-        if(_goReverse && typeof deleteMoneyIn === 'function'){
-          // Reuse the proper cascade delete (which has its own confirm — pass
-          // through silently by calling _moneyInReverse directly).
-          if(typeof _moneyInReverse === 'function'){
-            _moneyInReverse(_peekEntry.moneyInId);
-            if(typeof softDeleteToast === 'function'){
-              softDeleteToast({ message:'Money In reversed · '+fmtR(_miRec.amount), duration:3000 });
+          'Deleting just this line would leave the rest behind (the income line, the pocket deposits, or the house expense) and the bank would drift.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _bodyMsg,
+            dangerLabel: '↩ Reverse the whole Money In',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse && typeof _moneyInReverse === 'function'){
+              _moneyInReverse(_peekEntry.moneyInId);
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Money In reversed · '+fmtR(_miRec.amount), duration:3000 });
+              }
             }
-          } else {
-            deleteMoneyIn(_peekEntry.moneyInId);
+          });
+        } else {
+          // Fallback to native confirm if helper not loaded yet
+          if(confirm('🔒 Can\'t delete it here\n\n'+_bodyMsg+'\n\nTap OK to reverse the whole Money In entry now.\nTap Cancel to leave it alone.')){
+            if(typeof _moneyInReverse === 'function') _moneyInReverse(_peekEntry.moneyInId);
           }
         }
         return; // Either way, stop here. Don't run the legacy CF delete.

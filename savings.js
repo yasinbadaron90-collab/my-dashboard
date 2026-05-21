@@ -590,19 +590,26 @@ function deleteDeposit(fid,did){
       var _miRec = _miList.find(function(r){ return r.id === dep.moneyInId; });
       if(_miRec){
         var _miLabel = (_miRec.note || 'Money In') + ' · ' + fmtR(_miRec.amount) + ' · ' + _miRec.date;
-        var _go = confirm(
-          '🔒 Can\'t delete it here\n\n'+
+        var _bodyMsg =
           'This deposit is part of:\n  '+_miLabel+'\n\n'+
-          'Deleting from this pocket alone would leave the rest behind '+
-          '(income line, house expense, other pocket splits) and the bank '+
-          'would drift.\n\n'+
-          'Tap OK to reverse the whole Money In entry now (cleanly, all together).\n'+
-          'Tap Cancel to leave everything as is.'
-        );
-        if(_go && typeof _moneyInReverse === 'function'){
-          _moneyInReverse(dep.moneyInId);
-          if(typeof softDeleteToast === 'function'){
-            softDeleteToast({ message:'Money In reversed · '+fmtR(_miRec.amount), duration:3000 });
+          'Deleting from this pocket alone would leave the rest behind (income line, house expense, other pocket splits) and the bank would drift.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _bodyMsg,
+            dangerLabel: '↩ Reverse the whole Money In',
+            safeLabel:   'Leave it alone'
+          }, function(go){
+            if(go && typeof _moneyInReverse === 'function'){
+              _moneyInReverse(dep.moneyInId);
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Money In reversed · '+fmtR(_miRec.amount), duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_bodyMsg+'\n\nTap OK to reverse the whole Money In entry now.\nTap Cancel to leave it alone.')){
+            if(typeof _moneyInReverse === 'function') _moneyInReverse(dep.moneyInId);
           }
         }
         return; // do NOT run the regular per-deposit delete below
