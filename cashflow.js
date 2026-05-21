@@ -1252,6 +1252,9 @@ function deleteCfEntry(id, type){
           }, function(goReverse){
             if(goReverse && typeof _moneyInReverse === 'function'){
               _moneyInReverse(_peekEntry.moneyInId);
+              // Defensive re-render so the deleted line clears immediately.
+              try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
               if(typeof softDeleteToast === 'function'){
                 softDeleteToast({ message:'Money In reversed · '+fmtR(_miRec.amount), duration:3000 });
               }

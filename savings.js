@@ -602,6 +602,11 @@ function deleteDeposit(fid,did){
           }, function(go){
             if(go && typeof _moneyInReverse === 'function'){
               _moneyInReverse(dep.moneyInId);
+              // Close the pocket-history modal so the user sees the result.
+              // Without this, the modal keeps showing the now-deleted deposit
+              // and it looks like nothing happened (UX bug found 2026-05-21).
+              try{ if(typeof closeModal === 'function') closeModal('histModal'); }catch(e){}
+              try{ renderFunds(); }catch(e){}
               if(typeof softDeleteToast === 'function'){
                 softDeleteToast({ message:'Money In reversed · '+fmtR(_miRec.amount), duration:3000 });
               }
