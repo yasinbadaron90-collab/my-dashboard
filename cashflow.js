@@ -1063,6 +1063,36 @@ function openCfEntryModal(type, editId){
           return; // Either way, do NOT open the regular CF edit modal.
         }
       }
+
+      // ── Same guard for Spend records ──
+      if(_peekEntry && _peekEntry.spendId){
+        var _spList = [];
+        try{ _spList = JSON.parse(lsGet('yb_spend_v1')||'[]'); }catch(e){}
+        var _spRec = _spList.find(function(r){ return r.id === _peekEntry.spendId; });
+        if(_spRec){
+          var _spLabel = (_spRec.label || 'Spend') + ' · ' + fmtR(_spRec.amount);
+          var _spBody =
+            'This line is part of:\n  '+_spLabel+'\n\n'+
+            'Editing here would only change the Cash Flow line — the pocket would no longer match. Edit the Spend itself instead.';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from Spend instead',
+              body:  _spBody,
+              dangerLabel: '✎ Open Spend to edit',
+              safeLabel:   'Leave it alone'
+            }, function(goEdit){
+              if(goEdit && typeof openSpend === 'function'){
+                openSpend(_peekEntry.spendId);
+              }
+            });
+          } else {
+            if(confirm('🔒 Edit from Spend instead\n\n'+_spBody+'\n\nTap OK to open Spend.\nTap Cancel to leave it alone.')){
+              if(typeof openSpend === 'function') openSpend(_peekEntry.spendId);
+            }
+          }
+          return;
+        }
+      }
     }catch(e){ console.warn('[cfEdit] money-in guard error', e); }
   }
 
@@ -1269,6 +1299,44 @@ function deleteCfEntry(id, type){
         return; // Either way, stop here. Don't run the legacy CF delete.
       }
       // No live record → true orphan → fall through to normal delete below
+    }
+
+    // ── Same hard-block guard for Spend records (added 2026-05-22, step 2) ──
+    if(_peekEntry && _peekEntry.spendId){
+      var _spList = [];
+      try{ _spList = JSON.parse(lsGet('yb_spend_v1')||'[]'); }catch(e){}
+      var _spRec = _spList.find(function(r){ return r.id === _peekEntry.spendId; });
+      if(_spRec){
+        var _spPocket = (typeof funds !== 'undefined') ? funds.find(function(f){ return f.id === _spRec.pocketId; }) : null;
+        var _spPName = _spPocket ? _spPocket.name : 'the pocket';
+        var _spLabel = (_spRec.label || 'Spend') + ' · ' + fmtR(_spRec.amount) + ' · ' + _spRec.date;
+        var _spBody =
+          'This is part of a Spend entry:\n  '+_spLabel+'\n\n'+
+          'Deleting just this line would leave '+_spPName+' missing '+fmtR(_spRec.amount)+'. Reverse the whole Spend instead — that returns the money to '+_spPName+' cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _spBody,
+            dangerLabel: '↩ Reverse the whole Spend',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse && typeof _spendReverse === 'function'){
+              _spendReverse(_peekEntry.spendId);
+              try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Spend reversed · '+fmtR(_spRec.amount)+' back to '+_spPName, duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_spBody+'\n\nTap OK to reverse the whole Spend now.\nTap Cancel to leave it alone.')){
+            if(typeof _spendReverse === 'function') _spendReverse(_peekEntry.spendId);
+          }
+        }
+        return;
+      }
+      // No live Spend record → orphan → fall through
     }
   }catch(e){ console.warn('[cfDelete] money-in guard error', e); }
 

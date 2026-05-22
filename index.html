@@ -2547,8 +2547,16 @@ function _showUpdateToast(worker){
 <!-- MONEY IN — Floating button + Modal (added 2026-05-20)    -->
 <!-- ════════════════════════════════════════════════════════ -->
 <button id="moneyInFAB" onclick="openMoneyIn()" title="Money In" aria-label="Money In"
-        style="position:fixed;right:18px;bottom:24px;z-index:550;background:#c8f230;border:none;color:#000;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;padding:13px 18px;border-radius:100px;box-shadow:0 6px 20px rgba(200,242,48,.25),0 2px 6px rgba(0,0,0,.5);cursor:pointer;display:flex;align-items:center;gap:7px;">
+        style="position:fixed;right:18px;bottom:78px;z-index:550;background:#c8f230;border:none;color:#000;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;padding:13px 18px;border-radius:100px;box-shadow:0 6px 20px rgba(200,242,48,.25),0 2px 6px rgba(0,0,0,.5);cursor:pointer;display:flex;align-items:center;gap:7px;">
   <span style="font-size:16px;">↓</span><span>Money In</span>
+</button>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- SPEND — Floating button (added 2026-05-22, Step 2)        -->
+<!-- ════════════════════════════════════════════════════════ -->
+<button id="spendFAB" onclick="openSpend()" title="Spend" aria-label="Spend"
+        style="position:fixed;right:18px;bottom:24px;z-index:550;background:#f2a830;border:none;color:#000;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;padding:13px 18px;border-radius:100px;box-shadow:0 6px 20px rgba(242,168,48,.25),0 2px 6px rgba(0,0,0,.5);cursor:pointer;display:flex;align-items:center;gap:7px;">
+  <span style="font-size:16px;">↑</span><span>Spend</span>
 </button>
 
 <div class="overlay" id="moneyInModal" style="z-index:850;">
@@ -2631,5 +2639,66 @@ function _showUpdateToast(worker){
 </div>
 
   <script src="moneyin.js"></script>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- SPEND — Modal (added 2026-05-22, Step 2)                  -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="overlay" id="spendModal" style="z-index:850;">
+  <div class="modal" style="max-width:440px;max-height:92vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <h2 id="spModalTitle" style="color:#f2a830;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;margin:0;">↑ Spend</h2>
+      <button onclick="closeSpend()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:32px;height:32px;color:#555;font-size:16px;cursor:pointer;">✕</button>
+    </div>
+    <div style="font-size:10px;color:#555;letter-spacing:1px;margin-bottom:16px;">Money leaves a pocket. The bank is just a doorway.</div>
+
+    <!-- What for -->
+    <div class="field">
+      <label>What for</label>
+      <input type="text" id="spLabel" placeholder="e.g. Pizza, petrol, haircut" oninput="_spOnLabelEdit()"/>
+    </div>
+
+    <!-- Amount -->
+    <div class="field">
+      <label>Amount (R)</label>
+      <input type="number" id="spAmount" step="0.01" placeholder="e.g. 204" oninput="_spOnAmountEdit()"
+             style="font-size:20px;font-family:'Syne',sans-serif;font-weight:700;color:#f2a830;"/>
+    </div>
+
+    <!-- Date -->
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="spDate" onchange="_spOnDateEdit()"/>
+    </div>
+
+    <!-- Pocket picker -->
+    <div class="field">
+      <label>From pocket</label>
+      <div id="spPocketList" style="background:#080808;border:1px solid #1a1a1a;border-radius:8px;padding:6px;max-height:280px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Bank doorway picker -->
+    <div class="field">
+      <label>Via bank doorway</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;">
+        <button type="button" id="spDoor_FNB" onclick="_spSetDoorway('FNB')"
+                style="padding:9px 4px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.5px;background:#0d0d0d;border:1px solid #2a2a2a;color:#888;cursor:pointer;">🏦 FNB</button>
+        <button type="button" id="spDoor_TymeBank" onclick="_spSetDoorway('TymeBank')"
+                style="padding:9px 4px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.5px;background:#0d0d0d;border:1px solid #2a2a2a;color:#888;cursor:pointer;">🏦 Tyme</button>
+        <button type="button" id="spDoor_Cash" onclick="_spSetDoorway('Cash')"
+                style="padding:9px 4px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.5px;background:#0d0d0d;border:1px solid #2a2a2a;color:#888;cursor:pointer;">💵 Cash</button>
+        <button type="button" id="spDoor_DIRECT" onclick="_spSetDoorway('DIRECT')"
+                style="padding:9px 4px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.5px;background:#1a2e00;border:1px solid #c8f230;color:#c8f230;cursor:pointer;">— Direct</button>
+      </div>
+      <div style="font-size:10px;color:#555;margin-top:6px;letter-spacing:.5px;">Direct = straight from pocket, bank not touched.</div>
+    </div>
+
+    <button id="spSaveBtn" onclick="saveSpend()" disabled
+            style="width:100%;padding:14px;background:#2a2a2a;color:#888;border:none;border-radius:8px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:700;cursor:not-allowed;opacity:.45;margin-top:6px;">
+      🔒 Enter what it was for
+    </button>
+  </div>
+</div>
+
+  <script src="spend.js"></script>
 </body>
 </html>

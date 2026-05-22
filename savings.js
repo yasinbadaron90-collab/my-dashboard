@@ -623,6 +623,48 @@ function deleteDeposit(fid,did){
     }catch(e){ console.warn('[deleteDeposit] money-in guard error', e); }
   }
 
+  // ── HARD-BLOCK GUARD: Spend linked deposits (2026-05-22) ───────────────
+  // Same rule as Money In: if this deposit is part of a Spend record,
+  // deleting it alone would orphan the Cash Flow line. Redirect to reverse
+  // the whole Spend instead.
+  if(dep && dep.spendId){
+    try{
+      var _spList = [];
+      try{ _spList = JSON.parse(lsGet('yb_spend_v1')||'[]'); }catch(e){}
+      var _spRec = _spList.find(function(r){ return r.id === dep.spendId; });
+      if(_spRec){
+        var _spPname = f.name;
+        var _spLabel = (_spRec.label || 'Spend') + ' · ' + fmtR(_spRec.amount) + ' · ' + _spRec.date;
+        var _spBody =
+          'This deposit is part of:\n  '+_spLabel+'\n\n'+
+          'Deleting from this pocket alone would leave the Cash Flow line behind. Reverse the whole Spend instead — that returns the money to '+_spPname+' AND clears the Cash Flow line cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _spBody,
+            dangerLabel: '↩ Reverse the whole Spend',
+            safeLabel:   'Leave it alone'
+          }, function(go){
+            if(go && typeof _spendReverse === 'function'){
+              _spendReverse(dep.spendId);
+              try{ if(typeof closeModal === 'function') closeModal('histModal'); }catch(e){}
+              try{ renderFunds(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Spend reversed · '+fmtR(_spRec.amount)+' back to '+_spPname, duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_spBody+'\n\nTap OK to reverse the whole Spend now.\nTap Cancel to leave it alone.')){
+            if(typeof _spendReverse === 'function') _spendReverse(dep.spendId);
+          }
+        }
+        return;
+      }
+      // Live Spend gone → orphan → fall through to normal delete
+    }catch(e){ console.warn('[deleteDeposit] spend guard error', e); }
+  }
+
   f.deposits=f.deposits.filter(d=>d.id!==did);
   saveFunds();
   if(dep&&dep.cfId) removeFromCF(dep.cfId);
