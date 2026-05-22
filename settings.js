@@ -497,7 +497,16 @@ function cfRow(e, type, isRecur){
   // entries from before destBank existed).
   var bank = _entryBank(e);
   var bankHtml;
-  if(bank){
+  // ── POCKET BADGE (Spend Step 2, 2026-05-22) ──
+  // Pocket-direct Spends (doorway=Direct) carry sourceType='pocket_spend'
+  // and the pocket name in `account`. Render as a purple pocket badge
+  // instead of falling through to "— Untagged".
+  var isPocketRow = (e && e.sourceType === 'pocket_spend' && e.account && !bank);
+  if(isPocketRow){
+    bankHtml = '<span style="color:#c890ff;background:#1a0a26;border:1px solid #6a3aa0;border-radius:3px;padding:1px 6px;letter-spacing:0.5px;">'
+             + String(e.account).replace(/</g,'&lt;').replace(/>/g,'&gt;')
+             + '</span>';
+  } else if(bank){
     bankHtml = _bankBadge(bank);
   } else {
     // Untagged legacy entry — show grey badge + retro-tag pencil so the user
@@ -507,10 +516,12 @@ function cfRow(e, type, isRecur){
              + ' <button onclick="openCfEntryModal(\''+type+'\',\''+e.id+'\')" title="Tag this with a bank" style="background:none;border:1px solid #2a2a2a;border-radius:3px;color:#666;font-size:9px;cursor:pointer;padding:1px 5px;letter-spacing:1px;margin-left:2px;">✎ tag</button>';
   }
   const subLine = '<div style="font-size:9px;letter-spacing:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+bankHtml+dateBadge+'</div>';
-  // Untagged rows render slightly dimmer so the user notices they need attention
-  var rowStyle = bank ? '' : 'background:#0e0e0e;';
-  var labelStyle = bank ? 'color:#efefef;' : 'color:#aaa;';
-  var amtStyle = bank ? 'color:'+color+';' : 'color:#666;';
+  // Untagged rows render slightly dimmer so the user notices they need attention.
+  // Pocket rows are treated as "tagged" — full brightness.
+  var fullBright = (bank || isPocketRow);
+  var rowStyle = fullBright ? '' : 'background:#0e0e0e;';
+  var labelStyle = fullBright ? 'color:#efefef;' : 'color:#aaa;';
+  var amtStyle = fullBright ? 'color:'+color+';' : 'color:#666;';
   return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);'+rowStyle+'">'
     +'<span style="font-size:18px;flex-shrink:0;">'+e.icon+'</span>'
     +'<div style="flex:1;min-width:0;">'
