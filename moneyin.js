@@ -335,15 +335,29 @@ function _miUpdateLiveTotal(){
 
   if(saveBtn){
     var ok = _miState.amount > 0 && Math.abs(left) < 0.005;
-    saveBtn.disabled = !ok;
-    saveBtn.style.opacity = ok ? '1' : '.45';
-    saveBtn.style.cursor = ok ? 'pointer' : 'not-allowed';
+    var over = _miState.amount > 0 && left < -0.005;
+    // The button has THREE active states: save (green, enabled), reset (orange,
+    // enabled — appears when over), and locked (dim, disabled).
+    saveBtn.disabled = !(ok || over);
+    saveBtn.style.opacity = (ok || over) ? '1' : '.45';
+    saveBtn.style.cursor = (ok || over) ? 'pointer' : 'not-allowed';
+    // Colour the button by action: green for save, orange for reset, grey-green for locked.
+    if(ok){
+      saveBtn.style.background = '#c8f230';
+      saveBtn.style.color = '#000';
+    } else if(over){
+      saveBtn.style.background = '#f2a830';
+      saveBtn.style.color = '#000';
+    } else {
+      saveBtn.style.background = '#c8f230';
+      saveBtn.style.color = '#000';
+    }
     // Label resolution — most specific to least specific so the message matches reality:
     // 1) all good                → "✓ Save Money In"
     // 2) amount not entered yet  → "🔒 Enter amount to start"  (nothing to compare against)
     // 3) house exceeds amount    → "🔒 House is more than amount"
     // 4) more to place           → "🔒 R___ still to place"
-    // 5) over-placed             → "🔒 R___ over — fix it"
+    // 5) over-placed             → "↻ Clear & start over"  (tappable — wipes splits)
     if(ok){
       saveBtn.textContent = '✓ Save Money In';
     } else if(!(_miState.amount > 0)){
@@ -353,7 +367,7 @@ function _miUpdateLiveTotal(){
     } else if(left > 0){
       saveBtn.textContent = '🔒 ' + fmtR(left) + ' still to place';
     } else {
-      saveBtn.textContent = '🔒 ' + fmtR(Math.abs(left)) + ' over — fix it';
+      saveBtn.textContent = '↻ ' + fmtR(Math.abs(left)) + ' over — clear & start over';
     }
   }
 }
@@ -661,6 +675,46 @@ function renderMoneyInHistory(){
   });
 }
 
+// ── Save button dispatcher ──────────────────────────────────────────────
+// The Save button serves three states:
+//   - "Save Money In"          → calls saveMoneyIn()
+//   - "Clear & start over"     → calls _miResetSplit() (when overflow)
+//   - Anything else (locked)   → disabled, this dispatcher won't fire
+// We pick the right action by re-checking the live state here, so the button
+// always does what its current label says.
+function _miOnActionTap(){
+  if(!_miState) return;
+  _miSyncInputs();
+  var leftover = Math.max(0, (_miState.amount||0) - (_miState.house||0));
+  var placed = 0;
+  Object.keys(_miState.splits).forEach(function(k){ placed += (_miState.splits[k]||0); });
+  placed = Math.round(placed * 100) / 100;
+  var left = Math.round((leftover - placed) * 100) / 100;
+  if(_miState.amount > 0 && left < -0.005){
+    // Over → wipe splits, let user start the split again
+    _miResetSplit();
+    return;
+  }
+  // Otherwise default to the save action (its own checks will block invalid saves)
+  saveMoneyIn();
+}
+
+// ── Reset/clear the pocket split (start over) ───────────────────────────
+// One-tap "I typed the wrong amounts, let me start the split again."
+// Wipes every pocket back to R0 — leaves amount/note/date/house alone.
+// The button only appears when at least one pocket has a value typed in.
+function _miResetSplit(){
+  if(!_miState || !_miState.splits) return;
+  Object.keys(_miState.splits).forEach(function(k){
+    _miState.splits[k] = 0;
+  });
+  // Clear the visible input fields too
+  var inputs = document.querySelectorAll('#miPocketList input');
+  inputs.forEach(function(inp){ inp.value = ''; });
+  // Refresh totals + button labels + reset-button visibility
+  if(typeof _miUpdateLiveTotal === 'function') _miUpdateLiveTotal();
+}
+
 // ── Custom hard-block dialog (replaces native confirm) ──────────────────
 // Option 1 (locked 2026-05-20): two clearly-labelled buttons — the dangerous
 // action stated in plain English (red), and the safe default (grey).
@@ -738,4 +792,6 @@ if(typeof window !== 'undefined'){
   window.renderMoneyInHistory = renderMoneyInHistory;
   window._miSetSourceBank = _miSetSourceBank;
   window._miOnHeaderEdit = _miOnHeaderEdit;
+  window._miResetSplit = _miResetSplit;
+  window._miOnActionTap = _miOnActionTap;
 }
