@@ -17,7 +17,7 @@
 // To force every client to upgrade: bump CACHE_VERSION below.
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'v76';
+const CACHE_VERSION = 'v77';
 const SHELL_CACHE   = 'my-dashboard-shell-' + CACHE_VERSION;
 const CDN_CACHE     = 'my-dashboard-cdn-'   + CACHE_VERSION;
 

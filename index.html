@@ -2700,5 +2700,45 @@ function _showUpdateToast(worker){
 </div>
 
   <script src="spend.js"></script>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- FAB-HIDE OBSERVER — added 2026-05-23 (Step 2 polish)             -->
+  <!-- Sets body.modal-open whenever ANY .overlay or .qe-overlay has    -->
+  <!-- the .active class. Pairs with CSS rule in app.css that hides     -->
+  <!-- both FABs when body.modal-open is on. Belt-and-braces fallback   -->
+  <!-- for browsers that don't support :has() (very rare on modern PWA).-->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <script>
+  (function(){
+    function syncModalOpenClass(){
+      var anyActive = document.querySelector('.overlay.active, .qe-overlay.active');
+      if(anyActive){
+        document.body.classList.add('modal-open');
+      } else {
+        document.body.classList.remove('modal-open');
+      }
+    }
+    // Sync once at load
+    syncModalOpenClass();
+    // Watch every overlay for class changes
+    function attachObserver(el){
+      var obs = new MutationObserver(syncModalOpenClass);
+      obs.observe(el, { attributes:true, attributeFilter:['class'] });
+    }
+    document.querySelectorAll('.overlay, .qe-overlay').forEach(attachObserver);
+    // Also catch overlays added dynamically (rare but defensive)
+    var bodyObs = new MutationObserver(function(muts){
+      muts.forEach(function(m){
+        m.addedNodes.forEach(function(n){
+          if(n.nodeType === 1 && (n.classList.contains('overlay') || n.classList.contains('qe-overlay'))){
+            attachObserver(n);
+            syncModalOpenClass();
+          }
+        });
+      });
+    });
+    bodyObs.observe(document.body, { childList:true, subtree:true });
+  })();
+  </script>
 </body>
 </html>

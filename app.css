@@ -495,3 +495,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-
 .routine-card.due-soon{border-left:3px solid #d4a800;}
 .routine-card.ok{border-left:3px solid #c8f230;}
 .routine-section-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#444;margin:16px 0 8px;padding-left:2px;}
+/* ══════════════════════════════════════════════════════════════════════ */
+/* FAB OVERLAP FIX — added 2026-05-23 (Step 2 polish)                     */
+/* Hide both FABs whenever a modal overlay is open, so they don't sit on  */
+/* top of modal save/cancel buttons. Restores when the modal closes.      */
+/* ══════════════════════════════════════════════════════════════════════ */
+body:has(.overlay.active) #moneyInFAB,
+body:has(.overlay.active) #spendFAB,
+body:has(.qe-overlay.active) #moneyInFAB,
+body:has(.qe-overlay.active) #spendFAB {
+  display: none !important;
+}
+
+/* Belt-and-braces JS fallback applies the .modal-open class to <body>    */
+/* when any modal is opened/closed, in case :has() isn't supported.       */
+body.modal-open #moneyInFAB,
+body.modal-open #spendFAB {
+  display: none !important;
+}

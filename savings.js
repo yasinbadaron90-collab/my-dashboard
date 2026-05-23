@@ -159,14 +159,14 @@ function renderFunds(){
       +'<div style="padding:12px 10px"><div style="font-size:9px;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat3Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+stat3Color+'">'+stat3Val+'</div></div>'
       +'</div>'
       +'<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="height:5px;background:#2a2a2a;border-radius:3px;overflow:hidden"><div style="width:'+progPct+'%;height:100%;background:'+progColor+';border-radius:3px;transition:width .5s ease;box-shadow:0 0 8px '+progColor+'55"></div></div><div style="font-size:10px;color:'+barLabelColor+';margin-top:5px;letter-spacing:1px">'+barLabel+'</div></div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--border);margin:0 -18px">'
-      +'<button class="admin-only" onclick="'+(isExpense?'openCarTxn(\''+f.id+'\',\'in\')':'openDeposit(\''+f.id+'\')')+'" style="padding:11px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:none;background:#1a2e00;color:#c8f230;border-right:1px solid var(--border)">＋ '+(isExpense?'Add Funds':'Deposit')+'</button>'
-      +(isExpense
-        ? '<button class="admin-only" onclick="openUseFunds(\'savings\',\''+f.id+'\')" style="padding:11px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:none;background:#2a1000;color:#f2a830">💸 Use Funds</button>'
-        : '<button class="admin-only" onclick="openUseFunds(\'savings\',\''+f.id+'\')" style="padding:11px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:none;background:#2a1500;color:#f2a830;border-right:1px solid var(--border)">💸 Use</button>'
-         +'<button class="admin-only" onclick="openHistory(\''+f.id+'\')" style="padding:11px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:none;background:#1a0a00;color:#888">☰</button>'
-      )
-      +'</div>'
+      // ── Pocket-card action buttons REMOVED 2026-05-23 ──
+      // The old +Deposit / +Add Funds / 💸 Use Funds / 💸 Use buttons used the
+      // legacy openDeposit / openCarTxn / openUseFunds flow which doesn't carry
+      // spendId / moneyInId. All pocket money now goes through the ↓ Money In
+      // and ↑ Spend FABs (always visible bottom-right), which write proper
+      // linked records and are protected by the hard-block guard.
+      // History (☰), rename (✎), delete (✕) and collapse (v) live in the
+      // card header — see line ~188 in this file.
       +'<div style="padding-top:8px">'+txnRows+'</div>'
       +'</div>';
 
