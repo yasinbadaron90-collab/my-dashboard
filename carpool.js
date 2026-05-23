@@ -1011,11 +1011,11 @@ function confirmPayDest(){
   var nowISO = new Date().toISOString();
 
   // 1. Mark carpool trips as paid in the current statement range
+  var _markedDates = [];
   if(tripOwing > 0){
     const from = document.querySelector('#stmtFrom') ? document.querySelector('#stmtFrom').value : null;
     const to   = document.querySelector('#stmtTo')   ? document.querySelector('#stmtTo').value   : null;
     if(from && to){
-      var _markedDates = [];
       Object.keys(cpData).forEach(function(mk){
         Object.keys(cpData[mk]).forEach(function(ds){
           if(ds < from || ds > to) return;
@@ -1032,10 +1032,63 @@ function confirmPayDest(){
     }
   }
 
-  // 2. Mark borrows as repaid
+  // ── SMART NOTE (2026-05-23) ──────────────────────────────────────
+  // Build a "Carpool {passenger} · {smart range}" string from _markedDates:
+  //   • Full Mon-Fri of one calendar week  → "18–22 May"  (date range)
+  //   • Single day                         → "Thu 21 May" (day + date)
+  //   • Scattered days                     → "Mon · Tue · Wed" (day names)
+  // Falls back to "payment" if no dates were marked (e.g. borrow-only repay).
+  function _carpoolSmartNote(dates){
+    if(!dates || !dates.length) return passenger + ' payment';
+    var DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var sorted = dates.slice().sort();
+    // Single day → "Thu 21 May"
+    if(sorted.length === 1){
+      var d1 = new Date(sorted[0]+'T00:00:00');
+      return 'Carpool ' + passenger + ' · ' + DAYS_SHORT[d1.getDay()] + ' ' + d1.getDate() + ' ' + MONTHS_SHORT[d1.getMonth()];
+    }
+    // Check for "full Mon-Fri of one calendar week" → date range
+    if(sorted.length === 5){
+      var first = new Date(sorted[0]+'T00:00:00');
+      var last  = new Date(sorted[sorted.length-1]+'T00:00:00');
+      var dayDiff = Math.round((last - first) / 86400000);
+      if(first.getDay() === 1 && last.getDay() === 5 && dayDiff === 4){
+        // Consecutive Mon-Fri: build range
+        var sameMonth = first.getMonth() === last.getMonth();
+        if(sameMonth){
+          return 'Carpool ' + passenger + ' · ' + first.getDate() + '–' + last.getDate() + ' ' + MONTHS_SHORT[last.getMonth()];
+        }
+        return 'Carpool ' + passenger + ' · ' + first.getDate() + ' ' + MONTHS_SHORT[first.getMonth()] + ' – ' + last.getDate() + ' ' + MONTHS_SHORT[last.getMonth()];
+      }
+    }
+    // Scattered (2-4 days, or 5+ that aren't a clean Mon-Fri week) → day names
+    var dayNames = sorted.map(function(ds){ return DAYS_SHORT[new Date(ds+'T00:00:00').getDay()]; });
+    return 'Carpool ' + passenger + ' · ' + dayNames.join(' · ');
+  }
+  var smartNote = _carpoolSmartNote(_markedDates);
+
+  // ── CARPOOL PAYMENT RECORD (2026-05-23) ──────────────────────────
+  // One payment = one cpPmtId that links ALL the rows we create or modify.
+  // Stored in localStorage key 'yb_carpool_payments_v1'. Deleting the CF
+  // row from Cash Flow hard-blocks and redirects to _carpoolPaymentReverse.
+  // Same Case-A pattern as Money In and Spend.
+  var cpPmtId = 'cp_' + uid();
+  var cfIncomeId = null;
+  var pocketDepositId = null;
+  var pocketDepositFundId = null;
+  var maintEntryId = null;
+  var maintCardId = null;
+  var maintOriginal = false;
+  var paidBorrowIds = [];
+
+  // 2. Mark borrows as repaid (capture which ones WE just paid)
   if(borrowOwing > 0 && borrowData[passenger]){
     borrowData[passenger].forEach(function(b){
-      if(b.type !== 'repay' && !b.paid) b.paid = true;
+      if(b.type !== 'repay' && !b.paid){
+        b.paid = true;
+        paidBorrowIds.push(b.id);
+      }
     });
     saveBorrows();
   }
@@ -1048,7 +1101,8 @@ function confirmPayDest(){
     const mk = (new Date()).getFullYear()+'-'+String((new Date()).getMonth()+1).padStart(2,'0');
     if(!data[mk]) data[mk] = { income:[], expenses:[] };
     data[mk].income = data[mk].income || [];
-    data[mk].income.push({ id: uid(), label: passenger+' payment', amount: totalOwing, icon:'💳', auto:false, date: today, account: destBank, destBank: destBank, createdAt: nowISO });
+    cfIncomeId = uid();
+    data[mk].income.push({ id: cfIncomeId, label: smartNote, amount: totalOwing, icon:'💳', auto:false, date: today, account: destBank, destBank: destBank, createdAt: nowISO, carpoolPaymentId: cpPmtId });
     if(saveCFData) saveCFData(data);
 
   } else if(choice.startsWith('fund:')){
@@ -1056,7 +1110,9 @@ function confirmPayDest(){
     const f = funds.find(function(x){ return x.id === fundId; });
     if(f){
       if(!f.deposits) f.deposits = [];
-      f.deposits.push({ id:uid(), amount:totalOwing, date:today, note:passenger+' carpool+borrow payment', txnType:'in', fromBank: destBank });
+      pocketDepositId = uid();
+      pocketDepositFundId = f.id;
+      f.deposits.push({ id:pocketDepositId, amount:totalOwing, date:today, note:smartNote, txnType:'in', fromBank: destBank, carpoolPaymentId: cpPmtId });
       saveFunds();
       renderFunds();
       // Also add to cash flow as income, tagged with bank
@@ -1064,7 +1120,8 @@ function confirmPayDest(){
       const mk = today.slice(0,7);
       if(!data[mk]) data[mk] = { income:[], expenses:[] };
       data[mk].income = data[mk].income || [];
-      data[mk].income.push({ id:uid(), label:passenger+' → '+f.name, amount:totalOwing, icon:f.emoji||'💰', auto:false, date: today, account: destBank, destBank: destBank, createdAt: nowISO });
+      cfIncomeId = uid();
+      data[mk].income.push({ id:cfIncomeId, label:smartNote+' → '+f.name, amount:totalOwing, icon:f.emoji||'💰', auto:false, date: today, account: destBank, destBank: destBank, createdAt: nowISO, carpoolPaymentId: cpPmtId });
       if(saveCFData) saveCFData(data);
     }
 
@@ -1072,7 +1129,9 @@ function confirmPayDest(){
     const cardId = choice.replace('maint:','');
     if(cardId === 'original'){
       const data = getMaintData();
-      data.push({ id:uid(), person:passenger, amount:totalOwing, date:today, note:'Carpool+borrow payment' });
+      maintEntryId = uid();
+      maintOriginal = true;
+      data.push({ id:maintEntryId, person:passenger, amount:totalOwing, date:today, note:smartNote, carpoolPaymentId: cpPmtId });
       saveMaintData(data);
       renderMaintCard();
     } else {
@@ -1083,7 +1142,9 @@ function confirmPayDest(){
         // Find contributor ID for this passenger
         const contrib = (card.contributors||[]).find(function(c){ return (typeof c==='object'?c.name:c) === passenger; });
         const personId = contrib ? (typeof contrib==='object'?contrib.id:contrib) : passenger;
-        card.entries.push({ id:uid(), personId, person:passenger, amount:totalOwing, date:today, note:'Carpool+borrow payment' });
+        maintEntryId = uid();
+        maintCardId = card.id;
+        card.entries.push({ id:maintEntryId, personId, person:passenger, amount:totalOwing, date:today, note:smartNote, carpoolPaymentId: cpPmtId });
         saveCustomMaintCards(cards);
         renderCustomMaintCards();
       }
@@ -1093,7 +1154,8 @@ function confirmPayDest(){
     const mk = today.slice(0,7);
     if(!data[mk]) data[mk] = { income:[], expenses:[] };
     data[mk].income = data[mk].income || [];
-    data[mk].income.push({ id:uid(), label:passenger+' → Maintenance', amount:totalOwing, icon:'🔧', auto:false, date: today, account: destBank, destBank: destBank, createdAt: nowISO });
+    cfIncomeId = uid();
+    data[mk].income.push({ id:cfIncomeId, label:smartNote+' → Maintenance', amount:totalOwing, icon:'🔧', auto:false, date: today, account: destBank, destBank: destBank, createdAt: nowISO, carpoolPaymentId: cpPmtId });
     if(saveCFData) saveCFData(data);
 
   } else if(choice === 'split'){
@@ -1108,6 +1170,36 @@ function confirmPayDest(){
     generateStatements();
     return;
   }
+
+  // ── SAVE CARPOOL PAYMENT MASTER RECORD ───────────────────────────
+  // This record is the canonical source for reversing this payment. If
+  // the user tries to delete the CF income row from Cash Flow, the guard
+  // looks up this record, lists everything that needs undoing, and the
+  // reverse function un-marks the trips/borrows + removes the CF +
+  // pocket/maint deposit in one atomic step. Same pattern as Money In.
+  try {
+    var allPmts = [];
+    try { allPmts = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); } catch(e){}
+    allPmts.push({
+      id: cpPmtId,
+      passenger: passenger,
+      amount: totalOwing,
+      date: today,
+      smartNote: smartNote,
+      destBank: destBank,
+      destChoice: choice,
+      paidDates: _markedDates.slice(),       // dates we marked paid
+      paidBorrowIds: paidBorrowIds.slice(),  // borrow ids we marked paid
+      cfIncomeId: cfIncomeId,
+      pocketDepositId: pocketDepositId,
+      pocketDepositFundId: pocketDepositFundId,
+      maintEntryId: maintEntryId,
+      maintCardId: maintCardId,
+      maintOriginal: maintOriginal,
+      createdAt: nowISO
+    });
+    lsSet('yb_carpool_payments_v1', JSON.stringify(allPmts));
+  } catch(e){ console.warn('[carpool] save payment record failed', e); }
 
   closeModal('payDestModal');
 
@@ -1131,6 +1223,105 @@ function confirmPayDest(){
   // Refresh everything
   renderCarpool();
   generateStatements();
+}
+
+// ══ CARPOOL PAYMENT REVERSAL (2026-05-23) ════════════════════════════════
+// Reverses a single carpool payment by cpPmtId. Used by the hard-block
+// guard in cashflow.js when the user tries to delete a carpool-payment
+// CF row directly. Reverses atomically:
+//   1. Un-marks the trips back to unpaid
+//   2. Un-marks the borrows back to unpaid
+//   3. Removes the pocket deposit (if any)
+//   4. Removes the maintenance entry (if any)
+//   5. Removes the CF income row
+//   6. Reverses the bank baseline (money "leaves" the bank again)
+//   7. Removes the payment record from yb_carpool_payments_v1
+//
+// Safe to call even if some pieces have already been deleted (defensive
+// filters). Returns true on success, false if the record wasn't found.
+function _carpoolPaymentReverse(cpPmtId, opts){
+  opts = opts || {};
+  var allPmts = [];
+  try { allPmts = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); } catch(e){}
+  var rec = allPmts.find(function(r){ return r.id === cpPmtId; });
+  if(!rec) return false;
+
+  // 1. Un-mark the trips
+  if(rec.paidDates && rec.paidDates.length && typeof cpData !== 'undefined'){
+    rec.paidDates.forEach(function(ds){
+      var mk = ds.slice(0,7);
+      if(cpData[mk] && cpData[mk][ds] && cpData[mk][ds][rec.passenger] && typeof cpData[mk][ds][rec.passenger] === 'object'){
+        cpData[mk][ds][rec.passenger].paid = false;
+      }
+    });
+    if(typeof saveCP === 'function') saveCP();
+    // Cloud-sync the un-marked days
+    if(typeof _cloudQueueDayPassenger === 'function'){
+      rec.paidDates.forEach(function(ds){ _cloudQueueDayPassenger(ds, rec.passenger); });
+    }
+  }
+
+  // 2. Un-mark the borrows
+  if(rec.paidBorrowIds && rec.paidBorrowIds.length && typeof borrowData !== 'undefined' && borrowData[rec.passenger]){
+    borrowData[rec.passenger].forEach(function(b){
+      if(rec.paidBorrowIds.indexOf(b.id) > -1) b.paid = false;
+    });
+    if(typeof saveBorrows === 'function') saveBorrows();
+  }
+
+  // 3. Remove the pocket deposit
+  if(rec.pocketDepositId && rec.pocketDepositFundId && typeof funds !== 'undefined'){
+    var f = funds.find(function(x){ return x.id === rec.pocketDepositFundId; });
+    if(f && f.deposits){
+      f.deposits = f.deposits.filter(function(d){ return d.id !== rec.pocketDepositId; });
+      if(typeof saveFunds === 'function') saveFunds();
+    }
+  }
+
+  // 4. Remove the maintenance entry
+  if(rec.maintEntryId){
+    if(rec.maintOriginal && typeof getMaintData === 'function' && typeof saveMaintData === 'function'){
+      var md = getMaintData().filter(function(e){ return e.id !== rec.maintEntryId; });
+      saveMaintData(md);
+    } else if(rec.maintCardId && typeof loadCustomMaintCards === 'function' && typeof saveCustomMaintCards === 'function'){
+      var cards = loadCustomMaintCards();
+      var card = cards.find(function(c){ return c.id === rec.maintCardId; });
+      if(card && card.entries){
+        card.entries = card.entries.filter(function(e){ return e.id !== rec.maintEntryId; });
+        saveCustomMaintCards(cards);
+      }
+    }
+  }
+
+  // 5. Remove the CF income row
+  if(rec.cfIncomeId && typeof loadCFData === 'function' && typeof saveCFData === 'function'){
+    var cfData = loadCFData();
+    var mk = (rec.date||'').slice(0,7);
+    if(cfData[mk] && cfData[mk].income){
+      cfData[mk].income = cfData[mk].income.filter(function(e){ return e.id !== rec.cfIncomeId; });
+      saveCFData(cfData);
+    }
+  }
+
+  // 6. Reverse the bank baseline (we added +totalOwing on save, now subtract)
+  if(rec.destBank && rec.amount && typeof window._adjustBaselineForBank === 'function'){
+    window._adjustBaselineForBank(rec.destBank, -rec.amount);
+  }
+
+  // 7. Remove the payment record itself
+  allPmts = allPmts.filter(function(r){ return r.id !== cpPmtId; });
+  lsSet('yb_carpool_payments_v1', JSON.stringify(allPmts));
+
+  // Refresh UI unless silent
+  if(!opts.silent){
+    try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
+    try { if(typeof renderFunds === 'function') renderFunds(); } catch(e){}
+    try { if(typeof renderCashFlow === 'function') renderCashFlow(); } catch(e){}
+    try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
+    try { if(typeof renderCustomMaintCards === 'function') renderCustomMaintCards(); } catch(e){}
+    try { if(typeof generateStatements === 'function') generateStatements(); } catch(e){}
+  }
+  return true;
 }
 
 function openWA(btn){const card=btn.closest('.stmt-card');const text=card._waData;window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');}

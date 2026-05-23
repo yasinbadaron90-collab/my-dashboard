@@ -1093,6 +1093,40 @@ function openCfEntryModal(type, editId){
           return;
         }
       }
+
+      // ── Carpool payment guard (2026-05-23) ──
+      if(_peekEntry && _peekEntry.carpoolPaymentId){
+        var _cpList = [];
+        try{ _cpList = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); }catch(e){}
+        var _cpRec = _cpList.find(function(r){ return r.id === _peekEntry.carpoolPaymentId; });
+        if(_cpRec){
+          var _cpLabel = (_cpRec.smartNote || 'Carpool payment') + ' · ' + fmtR(_cpRec.amount);
+          var _cpBody =
+            'This line is part of:\n  '+_cpLabel+'\n\n'+
+            'Editing here would only change the Cash Flow line — the trips would still show paid in Carpool, and the linked pocket/maintenance deposit would not match. Reverse the whole payment instead, then log it again from the Carpool tab.';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from Carpool instead',
+              body:  _cpBody,
+              dangerLabel: '↩ Reverse the whole payment',
+              safeLabel:   'Leave it alone'
+            }, function(go){
+              if(go && typeof _carpoolPaymentReverse === 'function'){
+                _carpoolPaymentReverse(_peekEntry.carpoolPaymentId);
+                try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+                if(typeof softDeleteToast === 'function'){
+                  softDeleteToast({ message:'Carpool payment reversed · '+fmtR(_cpRec.amount), duration:3000 });
+                }
+              }
+            });
+          } else {
+            if(confirm('🔒 Edit from Carpool instead\n\n'+_cpBody+'\n\nTap OK to reverse the whole payment now.\nTap Cancel to leave it alone.')){
+              if(typeof _carpoolPaymentReverse === 'function') _carpoolPaymentReverse(_peekEntry.carpoolPaymentId);
+            }
+          }
+          return;
+        }
+      }
     }catch(e){ console.warn('[cfEdit] money-in guard error', e); }
   }
 
@@ -1337,6 +1371,46 @@ function deleteCfEntry(id, type){
         return;
       }
       // No live Spend record → orphan → fall through
+    }
+
+    // ── Same hard-block guard for Carpool payments (added 2026-05-23) ──
+    if(_peekEntry && _peekEntry.carpoolPaymentId){
+      var _cpList = [];
+      try{ _cpList = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); }catch(e){}
+      var _cpRec = _cpList.find(function(r){ return r.id === _peekEntry.carpoolPaymentId; });
+      if(_cpRec){
+        var _cpLabel = (_cpRec.smartNote || 'Carpool payment') + ' · ' + fmtR(_cpRec.amount) + ' · ' + _cpRec.date;
+        var _cpTripCount = (_cpRec.paidDates||[]).length;
+        var _cpBorrowCount = (_cpRec.paidBorrowIds||[]).length;
+        var _cpExtras = [];
+        if(_cpTripCount) _cpExtras.push(_cpTripCount + ' trip' + (_cpTripCount === 1 ? '' : 's'));
+        if(_cpBorrowCount) _cpExtras.push(_cpBorrowCount + ' borrow' + (_cpBorrowCount === 1 ? '' : 's'));
+        var _cpExtrasStr = _cpExtras.length ? ' (' + _cpExtras.join(' + ') + ' marked paid)' : '';
+        var _cpBody =
+          'This is part of a Carpool payment:\n  '+_cpLabel+_cpExtrasStr+'\n\n'+
+          'Deleting just this line would leave the carpool trips marked paid and any linked pocket/maintenance deposit dangling. Reverse the whole payment instead — that un-marks the trips, returns any deposit, and clears the Cash Flow line cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _cpBody,
+            dangerLabel: '↩ Reverse the whole payment',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse && typeof _carpoolPaymentReverse === 'function'){
+              _carpoolPaymentReverse(_peekEntry.carpoolPaymentId);
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Carpool payment reversed · '+fmtR(_cpRec.amount), duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_cpBody+'\n\nTap OK to reverse the whole payment now.\nTap Cancel to leave it alone.')){
+            if(typeof _carpoolPaymentReverse === 'function') _carpoolPaymentReverse(_peekEntry.carpoolPaymentId);
+          }
+        }
+        return;
+      }
+      // No live payment record → orphan → fall through
     }
   }catch(e){ console.warn('[cfDelete] money-in guard error', e); }
 

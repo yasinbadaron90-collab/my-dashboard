@@ -665,6 +665,48 @@ function deleteDeposit(fid,did){
     }catch(e){ console.warn('[deleteDeposit] spend guard error', e); }
   }
 
+  // ── HARD-BLOCK GUARD: Carpool-payment linked deposits (2026-05-23) ──────
+  // Carpool payments routed to a pocket leave a deposit on that pocket and
+  // an income row in Cash Flow, plus they un-mark trips/borrows. Deleting
+  // from the pocket alone leaves CF orphaned + trips still marked paid.
+  if(dep && dep.carpoolPaymentId){
+    try{
+      var _cpList = [];
+      try{ _cpList = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); }catch(e){}
+      var _cpRec = _cpList.find(function(r){ return r.id === dep.carpoolPaymentId; });
+      if(_cpRec){
+        var _cpPname = f.name;
+        var _cpLabel = (_cpRec.smartNote || 'Carpool payment') + ' · ' + fmtR(_cpRec.amount) + ' · ' + _cpRec.date;
+        var _cpBody =
+          'This deposit is part of:\n  '+_cpLabel+'\n\n'+
+          'Deleting from '+_cpPname+' alone would leave the Cash Flow line behind AND the carpool trips would still show paid. Reverse the whole payment instead — that un-marks the trips, clears the Cash Flow line, and removes this deposit cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _cpBody,
+            dangerLabel: '↩ Reverse the whole payment',
+            safeLabel:   'Leave it alone'
+          }, function(go){
+            if(go && typeof _carpoolPaymentReverse === 'function'){
+              _carpoolPaymentReverse(dep.carpoolPaymentId);
+              try{ if(typeof closeModal === 'function') closeModal('histModal'); }catch(e){}
+              try{ renderFunds(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Carpool payment reversed · '+fmtR(_cpRec.amount), duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_cpBody+'\n\nTap OK to reverse the whole payment now.\nTap Cancel to leave it alone.')){
+            if(typeof _carpoolPaymentReverse === 'function') _carpoolPaymentReverse(dep.carpoolPaymentId);
+          }
+        }
+        return;
+      }
+      // Live payment gone → orphan → fall through to normal delete
+    }catch(e){ console.warn('[deleteDeposit] carpool guard error', e); }
+  }
+
   f.deposits=f.deposits.filter(d=>d.id!==did);
   saveFunds();
   if(dep&&dep.cfId) removeFromCF(dep.cfId);
