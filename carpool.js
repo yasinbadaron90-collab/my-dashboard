@@ -1208,13 +1208,20 @@ function confirmPayDest(){
 
   closeModal('payDestModal');
 
-  // ── Adjust live bank-bucket baseline (May 2026 Round 2) ──
-  // Payment received → income to a bank → that bank goes UP by totalOwing.
-  // This applies whether the money went to cash flow, a savings fund, or
-  // a maintenance card — in all those cases the user got real money landing
-  // in their real bank account.
+  // ── 2026-05-27 — Pocket-first bank doorway (v83) ──
+  // Payment received → bank goes UP by totalOwing (doorway in).
+  // Money then leaves the bank to the destination (pocket / cashflow /
+  // maint card) → bank goes DOWN by totalOwing (doorway out).
+  // Net effect on bank baseline: R0. The money lives where it was sent.
+  // Reverse function already symmetric — undoes the +totalOwing leg.
   if(choice !== 'split' && typeof window._adjustBaselineForBank === 'function'){
-    window._adjustBaselineForBank(destBank, totalOwing);
+    window._adjustBaselineForBank(destBank, totalOwing);       // doorway IN  (+)
+    // Doorway OUT: only when the money LEAVES the bank to a pocket/fund/
+    // maint card. If choice === 'cashflow' the money stays in the bank as
+    // generic income (no pocket destination) — so we do NOT subtract.
+    if(choice !== 'cashflow'){
+      window._adjustBaselineForBank(destBank, -totalOwing);    // doorway OUT (-)
+    }
   }
 
   // Show success toast
@@ -1308,9 +1315,21 @@ function _carpoolPaymentReverse(cpPmtId, opts){
     }
   }
 
-  // 6. Reverse the bank baseline (we added +totalOwing on save, now subtract)
+  // 6. Reverse the bank baseline (v83 doorway-aware)
+  //    Forward path on pocket destinations did: +totalOwing then -totalOwing
+  //    (net 0 on bank baseline — money lives in the pocket).
+  //    For 'cashflow' destination the money stayed in the bank as income, so
+  //    forward only did +totalOwing — reverse must subtract it.
+  //    Older payment records (pre-v83) didn't store destChoice → fall back to
+  //    the legacy behaviour (always subtract the full amount).
   if(rec.destBank && rec.amount && typeof window._adjustBaselineForBank === 'function'){
-    window._adjustBaselineForBank(rec.destBank, -rec.amount);
+    var _isCashflowDest = (rec.destChoice === 'cashflow');
+    var _hasChoiceField = (typeof rec.destChoice !== 'undefined' && rec.destChoice !== null);
+    if(!_hasChoiceField || _isCashflowDest){
+      // Legacy record OR money was sent to cashflow → undo the +amount
+      window._adjustBaselineForBank(rec.destBank, -rec.amount);
+    }
+    // else: destChoice was pocket/fund/maint → forward did net 0, reverse does 0
   }
 
   // 7. Remove the payment record itself
