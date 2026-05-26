@@ -1127,6 +1127,39 @@ function openCfEntryModal(type, editId){
           return;
         }
       }
+      // ── v84 Step 4 — Repayment hard-block (edit) ─────────────────────
+      if(_peekEntry && _peekEntry.repayId){
+        var _rpList = [];
+        try{ _rpList = JSON.parse(lsGet('yb_repayments_v1')||'[]'); }catch(e){}
+        var _rpRec = _rpList.find(function(r){ return r.id === _peekEntry.repayId; });
+        if(_rpRec){
+          var _rpLabel = '↩ Repayment from '+_rpRec.passenger+' · '+fmtR(_rpRec.amount);
+          var _rpBody =
+            'This line is part of:\n  '+_rpLabel+'\n\n'+
+            'Editing here would only change the Cash Flow line — the pocket deposit and borrow record would still show repaid. Reverse the whole repayment instead, then log it again from the Money Owed tab.';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from Money Owed instead',
+              body:  _rpBody,
+              dangerLabel: '↩ Reverse the whole repayment',
+              safeLabel:   'Leave it alone'
+            }, function(go){
+              if(go && typeof window._repaymentReverse === 'function'){
+                window._repaymentReverse(_peekEntry.repayId);
+                try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+                if(typeof softDeleteToast === 'function'){
+                  softDeleteToast({ message:'Repayment reversed · '+fmtR(_rpRec.amount), duration:3000 });
+                }
+              }
+            });
+          } else {
+            if(confirm('🔒 Edit from Money Owed instead\n\n'+_rpBody+'\n\nTap OK to reverse the whole repayment now.\nTap Cancel to leave it alone.')){
+              if(typeof window._repaymentReverse === 'function') window._repaymentReverse(_peekEntry.repayId);
+            }
+          }
+          return;
+        }
+      }
     }catch(e){ console.warn('[cfEdit] money-in guard error', e); }
   }
 
@@ -1411,6 +1444,40 @@ function deleteCfEntry(id, type){
         return;
       }
       // No live payment record → orphan → fall through
+    }
+
+    // ── v84 Step 4 — Repayment hard-block (delete) ───────────────────
+    if(_peekEntry && _peekEntry.repayId){
+      var _rpList = [];
+      try{ _rpList = JSON.parse(lsGet('yb_repayments_v1')||'[]'); }catch(e){}
+      var _rpRec = _rpList.find(function(r){ return r.id === _peekEntry.repayId; });
+      if(_rpRec){
+        var _rpLabel = '↩ Repayment from '+_rpRec.passenger+' · '+fmtR(_rpRec.amount)+' · '+_rpRec.date;
+        var _rpBody =
+          'This is part of a Repayment:\n  '+_rpLabel+'\n\n'+
+          'Deleting just this line would leave the borrow showing repaid and the pocket deposit dangling. Reverse the whole repayment instead — that undoes the pocket deposit, marks the borrow back to owing, and clears the Cash Flow line cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _rpBody,
+            dangerLabel: '↩ Reverse the whole repayment',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse && typeof window._repaymentReverse === 'function'){
+              window._repaymentReverse(_peekEntry.repayId);
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Repayment reversed · '+fmtR(_rpRec.amount), duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_rpBody+'\n\nTap OK to reverse the whole repayment now.\nTap Cancel to leave it alone.')){
+            if(typeof window._repaymentReverse === 'function') window._repaymentReverse(_peekEntry.repayId);
+          }
+        }
+        return;
+      }
+      // No live repayment record → orphan → fall through
     }
   }catch(e){ console.warn('[cfDelete] money-in guard error', e); }
 

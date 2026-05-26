@@ -344,7 +344,67 @@ function openRepayModal(){
   });
   sel.value = firstOwing || PASSENGERS[0];
   updateRepayOwingSummary();
+  renderRepayPocketPicker();   // v84 — Step 4
   document.getElementById('repayModal').classList.add('active');
+}
+
+// ── Step 4 (v84) — pocket picker ───────────────────────────────────────
+// Repayment money has to go back into a pocket. Auto-suggest the pocket
+// the loan originally came from (originPocket on borrow entry); if no
+// origin recorded (legacy loans), no suggestion — user picks manually.
+// Same doorway-out pattern as Money In / Spend / Carpool (v83).
+var _repaySelectedPocketId = null;
+
+function _findOriginPocketForPassenger(passenger){
+  // Look at oldest unpaid borrow for this passenger; if it has an
+  // originPocket field, use it. Future Step 6 will guarantee origin on
+  // new loans; for legacy loans this returns null.
+  if(!borrowData[passenger]) return null;
+  var unpaid = borrowData[passenger].filter(function(e){
+    return e.type !== 'repay' && !e.paid && e.originPocket;
+  });
+  if(unpaid.length === 0) return null;
+  // Oldest first → most likely the loan being repaid
+  unpaid.sort(function(a,b){ return (a.date||'') < (b.date||'') ? -1 : 1; });
+  return unpaid[0].originPocket;
+}
+
+function renderRepayPocketPicker(){
+  var picker = document.getElementById('repayPocketPicker');
+  if(!picker) return;
+  var passenger = document.getElementById('repayPassenger').value;
+  var originId = _findOriginPocketForPassenger(passenger);
+  // Default selection: origin if present, else first pocket
+  if(originId && funds.find(function(f){ return f.id === originId; })){
+    _repaySelectedPocketId = originId;
+  } else if(funds.length > 0){
+    _repaySelectedPocketId = funds[0].id;
+  } else {
+    _repaySelectedPocketId = null;
+  }
+  picker.innerHTML = funds.map(function(f){
+    var bal = (f.deposits||[]).reduce(function(s,d){
+      return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0));
+    }, 0);
+    var isOrigin = (f.id === originId);
+    var isSelected = (f.id === _repaySelectedPocketId);
+    var borderColor = isSelected ? '#7090f0' : (isOrigin ? '#5a8800' : 'transparent');
+    var bgColor = isSelected ? '#0a1a2e' : (isOrigin ? '#0d1a00' : '#0e0e0e');
+    var nameColor = isSelected ? '#7090f0' : '#efefef';
+    var tag = isOrigin
+      ? '<span style="font-size:8px;background:#3a5a00;color:#c8f230;border-radius:3px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
+      : '';
+    return '<div onclick="selectRepayPocket(\''+f.id+'\')" '
+      + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';">'
+      + '<span style="font-size:12px;color:'+nameColor+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+f.name+tag+'</span>'
+      + '<span style="font-size:10px;color:#666;">R'+bal.toLocaleString('en-ZA')+'</span>'
+      + '</div>';
+  }).join('') || '<div style="font-size:11px;color:#444;padding:8px;text-align:center;">No pockets exist yet.</div>';
+}
+
+function selectRepayPocket(id){
+  _repaySelectedPocketId = id;
+  renderRepayPocketPicker();
 }
 
 function updateRepayOwingSummary(){
@@ -371,39 +431,192 @@ function updateRepayOwingSummary(){
 // Wire up passenger change on repay modal
 document.addEventListener('DOMContentLoaded', function(){
   const sel = document.getElementById('repayPassenger');
-  if(sel) sel.addEventListener('change', updateRepayOwingSummary);
+  if(sel) sel.addEventListener('change', function(){
+    updateRepayOwingSummary();
+    renderRepayPocketPicker();   // v84 — re-suggest origin pocket
+  });
 });
 
 function confirmRepay(){
   const passenger = document.getElementById('repayPassenger').value;
   const amount = parseFloat(document.getElementById('repayAmt').value);
   const date = document.getElementById('repayDate').value || localDateStr(new Date());
-  const bank = document.getElementById('repayBank') ? document.getElementById('repayBank').value : 'Tymebank';
+  const bank = document.getElementById('repayBank') ? document.getElementById('repayBank').value : 'TymeBank';
   const noteRaw = document.getElementById('repayNote').value.trim();
   if(!passenger || isNaN(amount) || amount <= 0){ alert('Enter a valid repayment amount.'); return; }
+
+  // ── v84 Step 4 — pocket-first repayment ─────────────────────────────
+  // Money repaid to you goes back into a pocket (NOT the bank). The bank
+  // acts as a doorway: +amount in, -amount out, net 0. The pocket grows
+  // by amount. Repayment record links the borrow + CF row + pocket
+  // deposit so hard-block guard can reverse all 3 atomically.
+  var pocketId = _repaySelectedPocketId;
+  var pocket = pocketId ? funds.find(function(f){ return f.id === pocketId; }) : null;
+  if(!pocket){
+    alert('Pick a pocket for the repayment to go into.');
+    return;
+  }
+
   if(!borrowData[passenger]) borrowData[passenger] = [];
-  // Build enriched label and note for Cash Flow
-  const cfLabel = passenger + ' – Borrow Repayment → ' + bank;
-  const cfNote = 'Borrowed money repaid by ' + passenger + ' into ' + bank + (noteRaw ? ' · ' + noteRaw : '');
-  var cfId_repay=postToCF({label:cfLabel,amount:amount,date:date,icon:'repay',type:'income',sourceType:'borrow_repaid',sourceId:passenger,sourceCardName:bank,note:cfNote});
-  var repayEntry = { id: uid(), type:'repay', amount: amount, date: date, note: cfNote, paid: true, cfId:cfId_repay, bank:bank };
+
+  // 1. Unique ID linking all 3 records
+  var repayId = 'rp_' + uid();
+
+  // 2. CF income row (doorway IN)
+  const cfLabel = '↩ Repayment from ' + passenger + ' → ' + pocket.name;
+  const cfNote = 'Borrowed money repaid by ' + passenger + ' (via ' + bank + ') into pocket: ' + pocket.name + (noteRaw ? ' · ' + noteRaw : '');
+  var cfId_repay = postToCF({
+    label: cfLabel,
+    amount: amount,
+    date: date,
+    icon: 'repay',
+    type: 'income',
+    sourceType: 'borrow_repaid',
+    sourceId: passenger,
+    sourceCardName: bank,
+    note: cfNote,
+    account: bank,           // tag the bank as the doorway
+    repayId: repayId,        // link for hard-block guard
+    destPocketId: pocket.id  // remember which pocket the money went to
+  });
+
+  // 3. Pocket deposit (where the money actually lives)
+  var pocketDepId = uid();
+  pocket.deposits.push({
+    id: pocketDepId,
+    amount: amount,
+    date: date,
+    note: '↩ Repaid by ' + passenger + (noteRaw ? ' · ' + noteRaw : ''),
+    txnType: 'in',
+    repayId: repayId,        // link for hard-block guard
+    cfRowId: cfId_repay      // link back to CF row
+  });
+  saveFunds();
+
+  // 4. Borrow repay entry (audit trail)
+  var repayEntry = {
+    id: uid(),
+    type: 'repay',
+    amount: amount,
+    date: date,
+    note: cfNote,
+    paid: true,
+    cfId: cfId_repay,
+    bank: bank,
+    repayId: repayId,        // link for hard-block guard
+    destPocketId: pocket.id,
+    destPocketDepId: pocketDepId
+  };
   borrowData[passenger].push(repayEntry);
   saveBorrows();
   // Phase D: sync to cloud
   try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(passenger, repayEntry); } catch(e){}
+
+  // 5. Bank doorway (+amount in, -amount out → net 0)
+  if(typeof window._adjustBaselineForBank === 'function'){
+    window._adjustBaselineForBank(bank, amount);    // doorway IN
+    window._adjustBaselineForBank(bank, -amount);   // doorway OUT
+  }
+
+  // 6. Stash a payment record so hard-block guards can reverse atomically
+  try {
+    var allReps = [];
+    try { allReps = JSON.parse(lsGet('yb_repayments_v1')||'[]'); } catch(e){}
+    allReps.push({
+      id: repayId,
+      passenger: passenger,
+      amount: amount,
+      date: date,
+      bank: bank,
+      pocketId: pocket.id,
+      pocketDepId: pocketDepId,
+      cfRowId: cfId_repay,
+      borrowRepayEntryId: repayEntry.id,
+      createdAt: new Date().toISOString()
+    });
+    lsSet('yb_repayments_v1', JSON.stringify(allReps));
+  } catch(e){ console.warn('[repay] save payment record failed', e); }
+
   closeModal('repayModal');
+
+  // Refresh UI
+  if(typeof renderFunds === 'function') try{ renderFunds(); }catch(e){}
   renderCarpool();
   renderMoneyOwed();
+  if(typeof renderCashFlow === 'function') try{ renderCashFlow(); }catch(e){}
   if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){}
   const stmtArea = document.getElementById('stmtArea');
   if(stmtArea && stmtArea.style.display !== 'none') generateStatements();
   loadBorrowReport();
-  // NOTE 2026-05-20: MoneyMoveZ removed. The "repayment → pocket" flow is
-  // build-step 4 in the new pocket-first model. Until that's built, the
-  // repayment is logged here (above) but does NOT auto-prompt for which
-  // pocket received the money. User can add it manually via Money In if
-  // needed. Will be rebuilt cleanly in step 4.
+
+  // Toast
+  try{
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d1a00;border:1px solid #c8f230;border-radius:8px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#c8f230;letter-spacing:1px;white-space:nowrap;';
+    toast.textContent = '✓ R'+amount+' from '+passenger+' → '+pocket.name;
+    document.body.appendChild(toast);
+    setTimeout(function(){ toast.remove(); }, 4000);
+  }catch(e){}
 }
+
+// ── v84 Step 4 — atomic reverse of a repayment ─────────────────────────
+// Called by hard-block guards when user tries to delete the CF row OR
+// the pocket deposit. Undoes all 3 legs (CF row + pocket deposit +
+// borrow repay entry) plus the bank doorway-in adjustment.
+window._repaymentReverse = function(repayId, opts){
+  opts = opts || {};
+  var allReps = [];
+  try { allReps = JSON.parse(lsGet('yb_repayments_v1')||'[]'); } catch(e){}
+  var rec = allReps.find(function(r){ return r.id === repayId; });
+  if(!rec){ console.warn('[repay] reverse: no record for', repayId); return false; }
+
+  // 1. Remove the borrow repay entry
+  if(borrowData && borrowData[rec.passenger]){
+    borrowData[rec.passenger] = borrowData[rec.passenger].filter(function(e){
+      return e.repayId !== repayId;
+    });
+    saveBorrows();
+  }
+
+  // 2. Remove the pocket deposit
+  var pocket = funds.find(function(f){ return f.id === rec.pocketId; });
+  if(pocket){
+    pocket.deposits = (pocket.deposits||[]).filter(function(d){
+      return d.repayId !== repayId;
+    });
+    saveFunds();
+  }
+
+  // 3. Remove the CF row
+  try {
+    var cfData = JSON.parse(lsGet('yb_cashflow_v1')||'{}');
+    Object.keys(cfData).forEach(function(mk){
+      if(cfData[mk].income){
+        cfData[mk].income = cfData[mk].income.filter(function(e){
+          return e.repayId !== repayId;
+        });
+      }
+    });
+    lsSet('yb_cashflow_v1', JSON.stringify(cfData));
+  } catch(e){ console.warn('[repay] reverse CF cleanup failed', e); }
+
+  // 4. Unwind the bank doorway. Forward did +amount then -amount = net 0
+  //    Reverse must do nothing (the net effect was already 0).
+  //    Symmetric to carpool v83 pocket-destination handling.
+
+  // 5. Remove the payment record itself
+  allReps = allReps.filter(function(r){ return r.id !== repayId; });
+  lsSet('yb_repayments_v1', JSON.stringify(allReps));
+
+  // Refresh UI unless silent
+  if(!opts.silent){
+    try { if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+    try { if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+    try { if(typeof renderMoneyOwed === 'function') renderMoneyOwed(); }catch(e){}
+    try { if(typeof renderCarpool === 'function') renderCarpool(); }catch(e){}
+  }
+  return true;
+};
 
 function getBorrowTotal(passenger){
   if(!borrowData[passenger]) return { borrowTotal:0, borrowPaid:0 };

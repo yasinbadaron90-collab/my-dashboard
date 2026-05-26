@@ -707,6 +707,42 @@ function deleteDeposit(fid,did){
     }catch(e){ console.warn('[deleteDeposit] carpool guard error', e); }
   }
 
+  // ── v84 Step 4 — Repayment hard-block (pocket deposit side) ─────────
+  if(dep && dep.repayId){
+    try{
+      var _rpList = [];
+      try{ _rpList = JSON.parse(lsGet('yb_repayments_v1')||'[]'); }catch(e){}
+      var _rpRec = _rpList.find(function(r){ return r.id === dep.repayId; });
+      if(_rpRec){
+        var _rpLabel = '↩ Repayment from '+_rpRec.passenger+' · '+fmtR(_rpRec.amount)+' · '+_rpRec.date;
+        var _rpBody =
+          'This deposit is part of a Repayment:\n  '+_rpLabel+'\n\n'+
+          'Deleting just this deposit would leave the Cash Flow row and the borrow record showing repaid. Reverse the whole repayment instead — that clears all three at once.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _rpBody,
+            dangerLabel: '↩ Reverse the whole repayment',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse && typeof window._repaymentReverse === 'function'){
+              window._repaymentReverse(dep.repayId);
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Repayment reversed · '+fmtR(_rpRec.amount), duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_rpBody+'\n\nTap OK to reverse the whole repayment now.\nTap Cancel to leave it alone.')){
+            if(typeof window._repaymentReverse === 'function') window._repaymentReverse(dep.repayId);
+          }
+        }
+        return;
+      }
+      // Live repayment gone → orphan → fall through
+    }catch(e){ console.warn('[deleteDeposit] repay guard error', e); }
+  }
+
   f.deposits=f.deposits.filter(d=>d.id!==did);
   saveFunds();
   if(dep&&dep.cfId) removeFromCF(dep.cfId);
