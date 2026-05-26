@@ -264,7 +264,16 @@ function calcPersonTotals(entries){
     // direction and are rendered in a separate section.
     if(e.iOwe || e.type === 'iowe') return;
     if(e.type === 'repay') repaid += Number(e.amount||0);
-    else borrowed += Number(e.amount||0);
+    else {
+      borrowed += Number(e.amount||0);
+      // ── FIX 2026-05-26 ──
+      // A borrow with paid:true (set by Carpool's Mark Paid flow) is
+      // equivalent to a full repayment. Without this, the Money Owed UI
+      // shows borrows as still owed even after they've been marked paid
+      // via carpool. type:'repay' entries (manual Repayment button) are
+      // already handled above.
+      if(e.paid) repaid += Number(e.amount||0);
+    }
   });
   return { borrowed, repaid };
 }

@@ -47,11 +47,14 @@ function getLendingSnapshot(){
 }
 function getPersonOwing(name){
   var o=0;
-  if(borrowData&&borrowData[name]) borrowData[name].forEach(function(e){o+=e.type==='borrow'?e.amount:-e.amount;});
+  // FIX 2026-05-26: borrows with paid:true (set by Carpool's Mark Paid)
+  // contribute 0 to owing, not their amount. Same fix applied in money.js
+  // calcPersonTotals — keeps both calculations consistent.
+  if(borrowData&&borrowData[name]) borrowData[name].forEach(function(e){o+=e.type==='borrow'?(e.paid?0:e.amount):-e.amount;});
   var ext=loadExternalBorrows();
   Object.values(ext).forEach(function(p){
     if(p.name&&p.name.toLowerCase()===name.toLowerCase())
-      (p.entries||[]).forEach(function(e){o+=e.type==='borrow'?e.amount:-e.amount;});
+      (p.entries||[]).forEach(function(e){o+=e.type==='borrow'?(e.paid?0:e.amount):-e.amount;});
   });
   return Math.max(0,o);
 }
