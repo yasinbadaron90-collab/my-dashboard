@@ -167,8 +167,13 @@ function cpChangeMonth(dir){
   cpMonth+=dir;
   if(cpMonth>11){cpMonth=0;cpYear++;}
   if(cpMonth<0){cpMonth=11;cpYear--;}
+  // ── 2026-05-26 — allow ONE month ahead for forward planning.
+  // (Previously blocked any month past today. Now you can flip to next
+  // month to project totals for passengers — Auto Fill works as normal.)
   const now=new Date();
-  if(cpYear>now.getFullYear()||(cpYear===now.getFullYear()&&cpMonth>now.getMonth())){
+  const maxMonth=new Date(now.getFullYear(), now.getMonth()+1, 1);
+  const target=new Date(cpYear, cpMonth, 1);
+  if(target > maxMonth){
     cpMonth-=dir;
     if(cpMonth>11){cpMonth=0;cpYear++;}
     if(cpMonth<0){cpMonth=11;cpYear--;}
