@@ -842,9 +842,9 @@ function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borro
   tripData.forEach(function(t){
     if(y>bottomMargin){y=newPage();}
     doc.setTextColor(85,85,85);doc.setFontSize(11);doc.setFont('helvetica','normal');doc.text(t.day,20,y);
-    if(t.amt===0){doc.setTextColor(50,50,50);doc.text('—',190,y,{align:'right'});}
-    else if(t.paid){doc.setTextColor(200,242,48);doc.text('R'+t.amt+' \u2713',190,y,{align:'right'});}
-    else{doc.setTextColor(242,168,48);doc.text('R'+t.amt+' \u23f3',190,y,{align:'right'});}
+    if(t.amt===0){doc.setTextColor(50,50,50);doc.text('-',190,y,{align:'right'});}
+    else if(t.paid){doc.setTextColor(200,242,48);doc.text('R'+t.amt+'  PAID',190,y,{align:'right'});}
+    else{doc.setTextColor(242,168,48);doc.text('R'+t.amt+'  OWING',190,y,{align:'right'});}
     doc.setDrawColor(30,30,30);doc.setLineWidth(0.2);doc.line(20,y+4,190,y+4);
     y+=13;
   });
@@ -855,14 +855,14 @@ function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borro
     y+=4;
     doc.setFillColor(15,10,26);doc.rect(20,y-5,170,9,'F');
     doc.setTextColor(107,79,168);doc.setFontSize(8);doc.setFont('helvetica','normal');
-    doc.text('\u{1F4B8} BORROWED',20,y);
+    doc.text('BORROWED',20,y);
     y+=10;
     borrowData.forEach(function(b){
       if(y>bottomMargin){y=newPage();}
       const label=b.date+(b.note?' \u00B7 '+b.note:'');
       doc.setTextColor(85,85,85);doc.setFontSize(11);doc.setFont('helvetica','normal');doc.text(label,20,y);
       doc.setTextColor(167,139,250);
-      doc.text('R'+b.amount+(b.paid?' \u2713':' \u23f3'),190,y,{align:'right'});
+      doc.text('R'+b.amount+(b.paid?'  PAID':'  OWING'),190,y,{align:'right'});
       doc.setDrawColor(30,30,30);doc.setLineWidth(0.2);doc.line(20,y+4,190,y+4);
       y+=13;
     });
