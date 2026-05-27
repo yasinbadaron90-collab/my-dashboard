@@ -584,10 +584,20 @@ window._repaymentReverse = function(repayId, opts){
   if(!rec){ console.warn('[repay-reverse] no record for', repayId); return false; }
 
   // DIAG: snapshot state before any changes
+  function _diagRepayCount(){
+    if(rec.isExternal && rec.externalKey){
+      try {
+        var ed = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
+        var entries = (ed[rec.externalKey] && ed[rec.externalKey].entries) || [];
+        return entries.filter(function(e){ return e.type==='repay'; }).length;
+      } catch(e){ return 'n/a'; }
+    }
+    return (borrowData[rec.passenger]||[]).filter(function(e){return e.type==='repay';}).length;
+  }
   var _diagBefore = {
     pocketDeposits: ((funds.find(function(f){return f.id===rec.pocketId;})||{}).deposits||[]).length,
     bankRecon: (typeof loadReconBalances === 'function') ? loadReconBalances() : 'n/a',
-    repayCount: (borrowData[rec.passenger]||[]).filter(function(e){return e.type==='repay';}).length,
+    repayCount: _diagRepayCount(),
     cfCount: (function(){
       try {
         var cfd = (typeof loadCFData === 'function') ? loadCFData() : {};
@@ -598,8 +608,23 @@ window._repaymentReverse = function(repayId, opts){
   };
   console.log('[repay-reverse] BEFORE', repayId, JSON.parse(JSON.stringify(_diagBefore)));
 
-  // 1. Remove the borrow repay entry (the type:'repay' one we added)
-  if(borrowData && borrowData[rec.passenger]){
+  // 1. Remove the borrow repay entry (the type:'repay' one we added).
+  //    v86 branch: external (personal) repayments live in loadExternalBorrows()
+  //    keyed by externalKey. Carpool repayments live in borrowData[passenger].
+  if(rec.isExternal && rec.externalKey){
+    try {
+      var extData = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
+      if(extData[rec.externalKey] && extData[rec.externalKey].entries){
+        var beforeLen = extData[rec.externalKey].entries.length;
+        extData[rec.externalKey].entries = extData[rec.externalKey].entries.filter(function(e){
+          return e.repayId !== repayId;
+        });
+        var removed = beforeLen - extData[rec.externalKey].entries.length;
+        console.log('[repay-reverse] removed external repay entries:', removed, 'for key', rec.externalKey);
+        if(typeof saveExternalBorrows === 'function') saveExternalBorrows(extData);
+      }
+    } catch(e){ console.warn('[repay-reverse] external reverse failed', e); }
+  } else if(borrowData && borrowData[rec.passenger]){
     var bBefore = borrowData[rec.passenger].length;
     borrowData[rec.passenger] = borrowData[rec.passenger].filter(function(e){
       return e.repayId !== repayId;
@@ -614,11 +639,24 @@ window._repaymentReverse = function(repayId, opts){
   //    on the payment record for exactly this purpose. (Step 4 v84 forward
   //    does NOT flip any flag — pure additive — so this is a no-op today.
   //    Defensive for future multi-debt split flow.)
-  if(rec.origBorrowFlipIds && rec.origBorrowFlipIds.length && borrowData && borrowData[rec.passenger]){
-    borrowData[rec.passenger].forEach(function(e){
-      if(e && rec.origBorrowFlipIds.indexOf(e.id) > -1){ e.paid = false; }
-    });
-    saveBorrows();
+  //    v86: handle external side too.
+  if(rec.origBorrowFlipIds && rec.origBorrowFlipIds.length){
+    if(rec.isExternal && rec.externalKey){
+      try {
+        var extD = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
+        if(extD[rec.externalKey] && extD[rec.externalKey].entries){
+          extD[rec.externalKey].entries.forEach(function(e){
+            if(e && rec.origBorrowFlipIds.indexOf(e.id) > -1){ e.paid = false; }
+          });
+          if(typeof saveExternalBorrows === 'function') saveExternalBorrows(extD);
+        }
+      } catch(e){ console.warn('[repay-reverse] external flip-back failed', e); }
+    } else if(borrowData && borrowData[rec.passenger]){
+      borrowData[rec.passenger].forEach(function(e){
+        if(e && rec.origBorrowFlipIds.indexOf(e.id) > -1){ e.paid = false; }
+      });
+      saveBorrows();
+    }
   }
 
   // 3. Remove the pocket deposit. Match by stored dep ID (precise) OR by
@@ -671,7 +709,7 @@ window._repaymentReverse = function(repayId, opts){
   var _diagAfter = {
     pocketDeposits: ((funds.find(function(f){return f.id===rec.pocketId;})||{}).deposits||[]).length,
     bankRecon: (typeof loadReconBalances === 'function') ? loadReconBalances() : 'n/a',
-    repayCount: (borrowData[rec.passenger]||[]).filter(function(e){return e.type==='repay';}).length,
+    repayCount: _diagRepayCount(),
     cfCount: (function(){
       try {
         var cfd = (typeof loadCFData === 'function') ? loadCFData() : {};

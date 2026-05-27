@@ -179,6 +179,73 @@ function buildFundSelectOptions(selectId){
   sel.value = '';
 }
 
+// ══ v86 (2026-05-27) — POCKET-FIRST external repay ═════════════════════
+// Mirror of carpool confirmRepay flow. Same data shape, same hard-block,
+// same atomic reverse. Differences from carpool:
+//   - Stores person record in loadExternalBorrows() not borrowData
+//   - Payment record carries isExternal:true + externalKey for _repaymentReverse
+//   - Origin pocket lookup walks data[key].entries not borrowData[passenger]
+//
+// State for the pocket picker (separate from carpool's _repaySelectedPocketId
+// so opening one modal doesn't pollute the other).
+var _extRepaySelectedPocketId = null;
+
+function _findOriginPocketForExternal(key){
+  // Look at oldest unpaid borrow on this person; if it has an originPocket
+  // field, use it. Pre-Step-6 personal loans won't have one → returns null
+  // and picker falls back to Daily (or first pocket).
+  var data = loadExternalBorrows();
+  if(!data[key] || !data[key].entries) return null;
+  var unpaid = data[key].entries.filter(function(e){
+    return e.type !== 'repay' && !e.paid && !e.iOwe && !e.completed && e.originPocket;
+  });
+  if(unpaid.length === 0) return null;
+  unpaid.sort(function(a,b){ return (a.date||'') < (b.date||'') ? -1 : 1; });
+  return unpaid[0].originPocket;
+}
+
+function _findDailyPocketId(){
+  // Used as fallback default. Matches the pattern in Spend.
+  var daily = (funds||[]).find(function(f){ return (f.name||'').toLowerCase() === 'daily'; });
+  return daily ? daily.id : (funds && funds.length > 0 ? funds[0].id : null);
+}
+
+function renderExtRepayPocketPicker(){
+  var picker = document.getElementById('extRepayPocketPicker');
+  if(!picker) return;
+  var key = document.getElementById('extRepayPersonKey').value;
+  var originId = _findOriginPocketForExternal(key);
+  // Default selection: origin → daily → first pocket
+  if(originId && funds.find(function(f){ return f.id === originId; })){
+    _extRepaySelectedPocketId = originId;
+  } else {
+    _extRepaySelectedPocketId = _findDailyPocketId();
+  }
+  picker.innerHTML = (funds||[]).map(function(f){
+    var bal = (f.deposits||[]).reduce(function(s,d){
+      return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0));
+    }, 0);
+    var isOrigin = (f.id === originId);
+    var isSelected = (f.id === _extRepaySelectedPocketId);
+    var borderColor = isSelected ? '#a78bfa' : (isOrigin ? '#5a8800' : 'transparent');
+    var bgColor = isSelected ? '#0d0a1a' : (isOrigin ? '#0d1a00' : '#0e0e0e');
+    var nameColor = isSelected ? '#a78bfa' : '#efefef';
+    var tag = isOrigin
+      ? '<span style="font-size:8px;background:#3a5a00;color:#c8f230;border-radius:3px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
+      : '';
+    return '<div onclick="selectExtRepayPocket(\''+f.id+'\')" '
+      + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';">'
+      + '<span style="font-size:12px;color:'+nameColor+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+f.name+tag+'</span>'
+      + '<span style="font-size:10px;color:#666;">R'+bal.toLocaleString('en-ZA')+'</span>'
+      + '</div>';
+  }).join('') || '<div style="font-size:11px;color:#444;padding:8px;text-align:center;">No pockets exist yet.</div>';
+}
+
+function selectExtRepayPocket(id){
+  _extRepaySelectedPocketId = id;
+  renderExtRepayPocketPicker();
+}
+
 function openExternalRepayModal(key){
   const data   = loadExternalBorrows();
   const person = data[key];
@@ -188,12 +255,20 @@ function openExternalRepayModal(key){
   document.getElementById('extRepayAmt').value = '';
   document.getElementById('extRepayDate').value = localDateStr(new Date());
   document.getElementById('extRepayNote').value = '';
+  // Reset bank dropdown to default
+  var bankSel = document.getElementById('extRepayBank');
+  if(bankSel) bankSel.value = 'TymeBank';
   // Show owing
   const { borrowed, repaid } = calcPersonTotals(person.entries);
   const owing = borrowed - repaid;
-  document.getElementById('extRepayOwingSummary').innerHTML =
-    person.name + ' currently owes <strong style="color:#f2a830;font-size:13px;">R' + owing.toLocaleString('en-ZA') + '</strong>';
-  buildFundSelectOptions('extRepayFundSelect');
+  if(owing <= 0){
+    document.getElementById('extRepayOwingSummary').innerHTML =
+      '<span style="color:#c8f230;">✓ ' + person.name + ' has no outstanding balance.</span>';
+  } else {
+    document.getElementById('extRepayOwingSummary').innerHTML =
+      person.name + ' currently owes <strong style="color:#f2a830;font-size:13px;">R' + owing.toLocaleString('en-ZA') + '</strong>';
+  }
+  renderExtRepayPocketPicker();
   document.getElementById('externalRepayModal').classList.add('active');
 }
 
@@ -201,16 +276,75 @@ function confirmExternalRepay(){
   const key    = document.getElementById('extRepayPersonKey').value;
   const amount = parseFloat(document.getElementById('extRepayAmt').value);
   const date   = document.getElementById('extRepayDate').value || localDateStr(new Date());
-  const note   = document.getElementById('extRepayNote').value.trim() || 'Repayment';
+  const bankEl = document.getElementById('extRepayBank');
+  const bank   = bankEl ? bankEl.value : 'TymeBank';
+  const noteRaw = document.getElementById('extRepayNote').value.trim();
   if(!amount || amount <= 0){ alert('Enter a valid repayment amount.'); return; }
+
+  // ── v86 — pocket-first ──
+  var pocketId = _extRepaySelectedPocketId;
+  var pocket = pocketId ? funds.find(function(f){ return f.id === pocketId; }) : null;
+  if(!pocket){
+    alert('Pick a pocket for the repayment to go into.');
+    return;
+  }
+
   const data = loadExternalBorrows();
   if(!data[key]) return;
   const personName = data[key].name || key;
   if(!data[key].borrowerId){
     data[key].borrowerId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : uid();
   }
-  const borrowEntryId = uid();
-  var repayEntry = { id: borrowEntryId, type:'repay', amount, date, note };
+
+  // 1. Unique ID linking all records
+  var repayId = 'rp_' + uid();
+
+  // 2. CF income row (doorway IN)
+  const cfLabel = '↩ Repayment from ' + personName + ' → ' + pocket.name;
+  const cfNote = 'Borrowed money repaid by ' + personName + ' (via ' + bank + ') into pocket: ' + pocket.name + (noteRaw ? ' · ' + noteRaw : '');
+  var cfId_repay = postToCF({
+    label: cfLabel,
+    amount: amount,
+    date: date,
+    icon: 'repay',
+    type: 'income',
+    sourceType: 'borrow_repaid',
+    sourceId: key,
+    sourceCardName: bank,
+    note: cfNote,
+    destBank: bank,
+    repayId: repayId,
+    destPocketId: pocket.id
+  });
+
+  // 3. Pocket deposit (where the money actually lives)
+  var pocketDepId = uid();
+  pocket.deposits.push({
+    id: pocketDepId,
+    amount: amount,
+    date: date,
+    note: '↩ Repaid by ' + personName + (noteRaw ? ' · ' + noteRaw : ''),
+    txnType: 'in',
+    repayId: repayId,
+    cfRowId: cfId_repay
+  });
+  saveFunds();
+
+  // 4. External borrow repay entry (audit trail)
+  var borrowEntryId = uid();
+  var repayEntry = {
+    id: borrowEntryId,
+    type: 'repay',
+    amount: amount,
+    date: date,
+    note: cfNote,
+    paid: true,
+    cfId: cfId_repay,
+    bank: bank,
+    repayId: repayId,
+    destPocketId: pocket.id,
+    destPocketDepId: pocketDepId
+  };
   data[key].entries.push(repayEntry);
   saveExternalBorrows(data);
   // Phase D: sync this repay to cloud
@@ -220,30 +354,56 @@ function confirmExternalRepay(){
       window.cloudSync.externalBorrows.upsertEntry(data[key].borrowerId, repayEntry);
     }
   } catch(e){}
-  // ── Optional: push repayment into a savings fund ──
-  const fundSel = document.getElementById('extRepayFundSelect');
-  if(fundSel && fundSel.value){
-    const linkedId = key + ':' + borrowEntryId;
-    if(fundSel.value === '__maint__'){
-      const mdata = getMaintData();
-      mdata.push({ id: uid(), borrowEntryId: linkedId, person: personName, amount, date, note: '↩ Repaid by ' + personName + (note && note !== 'Repayment' ? ' · ' + note : '') });
-      saveMaintData(mdata);
-      renderMaintCard();
-  odinRefreshIfOpen();
-      showRepayToast(personName, amount, 'Maintenance Fund');
-    } else {
-      const f = funds.find(x => x.id === fundSel.value);
-      if(f){
-        f.deposits.push({ id: uid(), borrowEntryId: linkedId, amount, date, note: '↩ Repaid by ' + personName + (note && note !== 'Repayment' ? ' · ' + note : ''), txnType: 'in' });
-        saveFunds();
-        renderFunds();
-        showRepayToast(personName, amount, f.name);
-      }
-    }
+
+  // 5. Bank doorway (+amount in, -amount out → net 0)
+  if(typeof window._adjustBaselineForBank === 'function'){
+    var _bankBefore = (typeof loadReconBalances === 'function') ? loadReconBalances() : {};
+    var _kBefore = (bank==='FNB')?'fnb':(bank==='TymeBank')?'tyme':(bank==='Cash')?'cash':null;
+    var _vBefore = _kBefore ? Number(_bankBefore[_kBefore]||0) : null;
+    window._adjustBaselineForBank(bank, amount);    // doorway IN
+    window._adjustBaselineForBank(bank, -amount);   // doorway OUT
+    var _bankAfter = (typeof loadReconBalances === 'function') ? loadReconBalances() : {};
+    var _vAfter = _kBefore ? Number(_bankAfter[_kBefore]||0) : null;
+    console.log('[ext-repay-forward] bank', bank, 'before:', _vBefore, 'after doorway in+out:', _vAfter, '(should match)');
   }
+
+  // 6. Stash payment record (carries isExternal flag for _repaymentReverse)
+  try {
+    var allReps = [];
+    try { allReps = JSON.parse(lsGet('yb_repayments_v1')||'[]'); } catch(e){}
+    allReps.push({
+      id: repayId,
+      isExternal: true,
+      externalKey: key,
+      passenger: personName,   // for display only; reverse uses externalKey
+      amount: amount,
+      date: date,
+      bank: bank,
+      pocketId: pocket.id,
+      pocketDepId: pocketDepId,
+      cfRowId: cfId_repay,
+      borrowRepayEntryId: borrowEntryId,
+      createdAt: new Date().toISOString()
+    });
+    lsSet('yb_repayments_v1', JSON.stringify(allReps));
+  } catch(e){ console.warn('[ext-repay] save payment record failed', e); }
+
   closeModal('externalRepayModal');
+
+  // Refresh UI
+  if(typeof renderFunds === 'function') try{ renderFunds(); }catch(e){}
   renderMoneyOwed();
+  if(typeof renderCashFlow === 'function') try{ renderCashFlow(); }catch(e){}
   if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){}
+
+  // Toast
+  try{
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d0a1a;border:1px solid #a78bfa;border-radius:8px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#a78bfa;letter-spacing:1px;white-space:nowrap;';
+    toast.textContent = '✓ R'+amount+' from '+personName+' → '+pocket.name;
+    document.body.appendChild(toast);
+    setTimeout(function(){ toast.remove(); }, 4000);
+  }catch(e){}
 }
 
 function showRepayToast(name, amount, fundName){
