@@ -768,6 +768,19 @@ function postToCF(opts){
   // Carry destBank through so savings allocations drain the right bucket
   // in the Available Cash card (May 2026 redesign).
   if(opts.destBank) rec.destBank = opts.destBank;
+  // ── v85-patch3 (2026-05-27) — carry mirror-link IDs through ─────────
+  // Hard-block guards read these fields off the CF row to know "is this a
+  // mirror of something elsewhere?" → if so, refuse the legacy delete and
+  // fire the purple cascade dialog instead. Before this patch, postToCF
+  // silently dropped them, so guards never tripped on the CF side.
+  // Add: repayId (repayments), destPocketId (repay destination),
+  // spendId (spends), moneyInId (income splits), carpoolPaymentId (carpool).
+  if(opts.repayId)          rec.repayId          = opts.repayId;
+  if(opts.destPocketId)     rec.destPocketId     = opts.destPocketId;
+  if(opts.spendId)          rec.spendId          = opts.spendId;
+  if(opts.moneyInId)        rec.moneyInId        = opts.moneyInId;
+  if(opts.carpoolPaymentId) rec.carpoolPaymentId = opts.carpoolPaymentId;
+  // ────────────────────────────────────────────────────────────────────
   cfData[mk][section].push(rec);
   saveCFData(cfData);
   return cfId;
