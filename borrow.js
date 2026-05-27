@@ -514,8 +514,14 @@ function confirmRepay(){
 
   // 5. Bank doorway (+amount in, -amount out → net 0)
   if(typeof window._adjustBaselineForBank === 'function'){
+    var _bankBefore = (typeof loadReconBalances === 'function') ? loadReconBalances() : {};
+    var _kBefore = (bank==='FNB')?'fnb':(bank==='TymeBank')?'tyme':(bank==='Cash')?'cash':null;
+    var _vBefore = _kBefore ? Number(_bankBefore[_kBefore]||0) : null;
     window._adjustBaselineForBank(bank, amount);    // doorway IN
     window._adjustBaselineForBank(bank, -amount);   // doorway OUT
+    var _bankAfter = (typeof loadReconBalances === 'function') ? loadReconBalances() : {};
+    var _vAfter = _kBefore ? Number(_bankAfter[_kBefore]||0) : null;
+    console.log('[repay-forward] bank', bank, 'before:', _vBefore, 'after doorway in+out:', _vAfter, '(should match)');
   }
 
   // 6. Stash a payment record so hard-block guards can reverse atomically
@@ -559,61 +565,149 @@ function confirmRepay(){
   }catch(e){}
 }
 
-// ── v84 Step 4 — atomic reverse of a repayment ─────────────────────────
+// ── v84-patch1 (2026-05-27) — atomic reverse of a repayment ───────────
 // Called by hard-block guards when user tries to delete the CF row OR
-// the pocket deposit. Undoes all 3 legs (CF row + pocket deposit +
-// borrow repay entry) plus the bank doorway-in adjustment.
+// the pocket deposit. Undoes all 4 legs:
+//   (a) borrow repay entry → removed
+//   (b) original borrow.paid flag → reset to false
+//   (c) pocket deposit → removed via saveFunds
+//   (d) CF row → removed via loadCFData/saveCFData (the proper API)
+// Bank doorway: forward did +amount IN then -amount OUT = net 0 on the
+// stored reconBalances. Reverse must also be net 0 → so we apply +amount
+// then -amount to UNDO each side symmetrically. (Doing nothing only works
+// if no upstream cascade ran an extra adjust; safer to be explicit.)
 window._repaymentReverse = function(repayId, opts){
   opts = opts || {};
   var allReps = [];
   try { allReps = JSON.parse(lsGet('yb_repayments_v1')||'[]'); } catch(e){}
   var rec = allReps.find(function(r){ return r.id === repayId; });
-  if(!rec){ console.warn('[repay] reverse: no record for', repayId); return false; }
+  if(!rec){ console.warn('[repay-reverse] no record for', repayId); return false; }
 
-  // 1. Remove the borrow repay entry
+  // DIAG: snapshot state before any changes
+  var _diagBefore = {
+    pocketDeposits: ((funds.find(function(f){return f.id===rec.pocketId;})||{}).deposits||[]).length,
+    bankRecon: (typeof loadReconBalances === 'function') ? loadReconBalances() : 'n/a',
+    repayCount: (borrowData[rec.passenger]||[]).filter(function(e){return e.type==='repay';}).length,
+    cfCount: (function(){
+      try {
+        var cfd = (typeof loadCFData === 'function') ? loadCFData() : {};
+        var mk = (rec.date||'').slice(0,7);
+        return ((cfd[mk]||{}).income||[]).length;
+      } catch(e){ return 'n/a'; }
+    })()
+  };
+  console.log('[repay-reverse] BEFORE', repayId, JSON.parse(JSON.stringify(_diagBefore)));
+
+  // 1. Remove the borrow repay entry (the type:'repay' one we added)
   if(borrowData && borrowData[rec.passenger]){
+    var bBefore = borrowData[rec.passenger].length;
     borrowData[rec.passenger] = borrowData[rec.passenger].filter(function(e){
       return e.repayId !== repayId;
+    });
+    var bRemoved = bBefore - borrowData[rec.passenger].length;
+    console.log('[repay-reverse] removed borrow repay entries:', bRemoved);
+    saveBorrows();
+  }
+
+  // 2. NEW (patch1) — If forward had flipped an original borrow's .paid flag
+  //    as part of this repayment, flip it back. We store origBorrowFlipIds
+  //    on the payment record for exactly this purpose. (Step 4 v84 forward
+  //    does NOT flip any flag — pure additive — so this is a no-op today.
+  //    Defensive for future multi-debt split flow.)
+  if(rec.origBorrowFlipIds && rec.origBorrowFlipIds.length && borrowData && borrowData[rec.passenger]){
+    borrowData[rec.passenger].forEach(function(e){
+      if(e && rec.origBorrowFlipIds.indexOf(e.id) > -1){ e.paid = false; }
     });
     saveBorrows();
   }
 
-  // 2. Remove the pocket deposit
+  // 3. Remove the pocket deposit. Match by stored dep ID (precise) OR by
+  //    repayId (defensive — old records may not have pocketDepId stored).
   var pocket = funds.find(function(f){ return f.id === rec.pocketId; });
   if(pocket){
+    var pdBefore = (pocket.deposits||[]).length;
     pocket.deposits = (pocket.deposits||[]).filter(function(d){
-      return d.repayId !== repayId;
+      var matchById = rec.pocketDepId && d.id === rec.pocketDepId;
+      var matchByRepayId = d.repayId === repayId;
+      return !matchById && !matchByRepayId;
     });
-    saveFunds();
+    var pdRemoved = pdBefore - pocket.deposits.length;
+    console.log('[repay-reverse] removed pocket deposits:', pdRemoved, 'from pocket', pocket.name);
+    if(pdRemoved > 0) saveFunds();
+  } else {
+    console.warn('[repay-reverse] pocket not found:', rec.pocketId);
   }
 
-  // 3. Remove the CF row
-  try {
-    var cfData = JSON.parse(lsGet('yb_cashflow_v1')||'{}');
-    Object.keys(cfData).forEach(function(mk){
-      if(cfData[mk].income){
-        cfData[mk].income = cfData[mk].income.filter(function(e){
-          return e.repayId !== repayId;
-        });
-      }
-    });
-    lsSet('yb_cashflow_v1', JSON.stringify(cfData));
-  } catch(e){ console.warn('[repay] reverse CF cleanup failed', e); }
-
-  // 4. Unwind the bank doorway. Forward did +amount then -amount = net 0
-  //    Reverse must do nothing (the net effect was already 0).
-  //    Symmetric to carpool v83 pocket-destination handling.
+  // 4. Remove the CF row using the proper API (loadCFData/saveCFData).
+  //    My previous version used raw lsGet/lsSet on 'yb_cashflow_v1' which
+  //    bypassed any caching/state hooks. Mirror carpool v83 exactly.
+  if(typeof loadCFData === 'function' && typeof saveCFData === 'function'){
+    var cfData = loadCFData();
+    var mk = (rec.date||'').slice(0,7);
+    var cfRemovedTotal = 0;
+    if(cfData[mk] && cfData[mk].income){
+      var cfBefore = cfData[mk].income.length;
+      cfData[mk].income = cfData[mk].income.filter(function(e){
+        return e.id !== rec.cfRowId && e.repayId !== repayId;
+      });
+      cfRemovedTotal += (cfBefore - cfData[mk].income.length);
+    }
+    if(cfData.recurring && cfData.recurring.income){
+      var rcBefore = cfData.recurring.income.length;
+      cfData.recurring.income = cfData.recurring.income.filter(function(e){
+        return e.id !== rec.cfRowId && e.repayId !== repayId;
+      });
+      cfRemovedTotal += (rcBefore - cfData.recurring.income.length);
+    }
+    if(cfRemovedTotal > 0) saveCFData(cfData);
+    console.log('[repay-reverse] removed CF rows:', cfRemovedTotal);
+  }
 
   // 5. Remove the payment record itself
   allReps = allReps.filter(function(r){ return r.id !== repayId; });
   lsSet('yb_repayments_v1', JSON.stringify(allReps));
 
-  // Refresh UI unless silent
+  // 6. DIAG: snapshot state after, and warn if anything weird
+  var _diagAfter = {
+    pocketDeposits: ((funds.find(function(f){return f.id===rec.pocketId;})||{}).deposits||[]).length,
+    bankRecon: (typeof loadReconBalances === 'function') ? loadReconBalances() : 'n/a',
+    repayCount: (borrowData[rec.passenger]||[]).filter(function(e){return e.type==='repay';}).length,
+    cfCount: (function(){
+      try {
+        var cfd = (typeof loadCFData === 'function') ? loadCFData() : {};
+        var mk = (rec.date||'').slice(0,7);
+        return ((cfd[mk]||{}).income||[]).length;
+      } catch(e){ return 'n/a'; }
+    })()
+  };
+  console.log('[repay-reverse] AFTER', repayId, JSON.parse(JSON.stringify(_diagAfter)));
+
+  // Check bank baseline drift for the doorway bank — if it differs from
+  // expected, surface a visible warning so Yasin can use Settings → 0 to
+  // recalibrate before more state changes pile on.
+  if(rec.bank && _diagBefore.bankRecon && _diagAfter.bankRecon){
+    var key = (rec.bank === 'FNB') ? 'fnb' : (rec.bank === 'TymeBank') ? 'tyme' : (rec.bank === 'Cash') ? 'cash' : null;
+    if(key){
+      var before = Number(_diagBefore.bankRecon[key]||0);
+      var after  = Number(_diagAfter.bankRecon[key]||0);
+      if(Math.abs(before - after) > 0.01){
+        console.warn('[repay-reverse] BANK DRIFT on', key, 'before:', before, 'after:', after);
+        try {
+          var msg = '⚠ Bank '+rec.bank+' drifted by R'+(after-before).toFixed(2)+' after reverse. Settings → Account Balances → set to 0 to fix.';
+          if(typeof softDeleteToast === 'function'){ softDeleteToast({message: msg, duration: 6000}); }
+        } catch(e){}
+      }
+    }
+  }
+
+  // 7. Refresh UI unless silent
   if(!opts.silent){
+    try { if(typeof loadFunds === 'function') loadFunds(); }catch(e){}      // re-sync in-memory from disk
     try { if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
     try { if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
     try { if(typeof renderMoneyOwed === 'function') renderMoneyOwed(); }catch(e){}
     try { if(typeof renderCarpool === 'function') renderCarpool(); }catch(e){}
+    try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); }catch(e){}
   }
   return true;
 };
