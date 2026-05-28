@@ -12,8 +12,61 @@ function openExternalBorrowModal(){
   document.getElementById('extBorrowAmt').value = '';
   document.getElementById('extBorrowDate').value = localDateStr(new Date());
   document.getElementById('extBorrowNote').value = '';
+  _extLendSelectedPocketId = null;               // v90 — reset pocket choice
+  renderExtLendPocketPicker();                    // v90 — show pockets
   document.getElementById('externalBorrowModal').classList.add('active');
   setTimeout(updateExtLendingGuardrail,100);
+}
+
+// ── v90 Step 6 — pocket picker for Log Money Lent ─────────────────────────
+// A personal lend pulls money OUT of a chosen pocket (and through a bank
+// doorway). Default = the Daily pocket if it exists, else first pocket.
+// The chosen pocket is stored as originPocket on the borrow entry so the
+// repayment flow can auto-suggest it later (closing the lend↔repay loop).
+var _extLendSelectedPocketId = null;
+
+function _extLendBalance(f){
+  return (f.deposits||[]).reduce(function(s,d){
+    return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0));
+  }, 0);
+}
+
+function renderExtLendPocketPicker(){
+  var picker = document.getElementById('extLendPocketPicker');
+  if(!picker) return;
+  var list = (funds||[]).filter(function(f){ return !f._deleted; });
+  // Default selection: Daily if present, else first pocket
+  if(!_extLendSelectedPocketId){
+    var daily = list.find(function(f){ return /daily/i.test(f.name||''); });
+    _extLendSelectedPocketId = daily ? daily.id : (list[0] ? list[0].id : null);
+  }
+  if(!list.length){
+    picker.innerHTML = '<div style="font-size:11px;color:#444;padding:10px;text-align:center;">No pockets exist yet — create one on the Savings tab first.</div>';
+    return;
+  }
+  picker.innerHTML = list.map(function(f){
+    var bal = _extLendBalance(f);
+    var isSel = (f.id === _extLendSelectedPocketId);
+    var border = isSel ? '#a78bfa' : '#1a1a1a';
+    var bg     = isSel ? '#1a1030' : '#0e0e0e';
+    var nameC  = isSel ? '#a78bfa' : '#efefef';
+    var balC   = bal <= 0 ? '#555' : '#c8f230';
+    return '<div onclick="selectExtLendPocket(\''+f.id+'\')" '
+      + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+border+';background:'+bg+';">'
+      + '<span style="font-size:12px;color:'+nameC+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+escapeHtmlSafe(f.name)+'</span>'
+      + '<span style="font-size:11px;color:'+balC+';font-family:Syne,sans-serif;font-weight:700;">'+fmtR(bal)+'</span>'
+      + '</div>';
+  }).join('');
+}
+
+function selectExtLendPocket(id){
+  _extLendSelectedPocketId = id;
+  renderExtLendPocketPicker();
+  if(typeof updateExtLendingGuardrail === 'function') try{ updateExtLendingGuardrail(); }catch(e){}
+}
+
+function escapeHtmlSafe(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function confirmExternalBorrow(){
@@ -24,23 +77,79 @@ function confirmExternalBorrow(){
   const account = document.getElementById('extBorrowAccount').value || 'FNB';
   if(!name){ alert('Please enter a name.'); return; }
   if(!amount || amount <= 0){ alert('Please enter a valid amount.'); return; }
+
+  // ── v90 Step 6 — pocket-first: the lent money leaves a pocket ──────────
+  var pocket = funds.find(function(f){ return f.id === _extLendSelectedPocketId; });
+  if(!pocket){ alert('Pick which pocket the money comes out of.'); return; }
+  var pocketBal = _extLendBalance(pocket);
+  if(amount > pocketBal){
+    alert('Only ' + fmtR(pocketBal) + ' available in ' + pocket.name + '. Pick another pocket or a smaller amount.');
+    return;
+  }
+
   const data = loadExternalBorrows();
   const key  = name.toLowerCase().replace(/\s+/g,'_');
   // ── Phase D: every borrower needs a UUID so cloud-sync can reference them ──
-  // The borrowerId is generated once on first create and persisted; future
-  // entries/edits reuse it. We hand it to cloudSync.externalBorrows.upsertBorrower
-  // so the external_borrowers table gets a row before we push entries against it.
   var isNew = !data[key];
   if(!data[key]) data[key] = { name: name, entries: [] };
   if(!data[key].borrowerId){
     data[key].borrowerId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : uid();
   }
-  var newEntry = { id: uid(), type:'borrow', amount, date, note, account };
+  // v90: lendId links the borrow entry ↔ pocket deposit ↔ CF row for the
+  //      hard-block guard + atomic reverse. originPocket lets the repayment
+  //      flow auto-suggest where the money should come back to.
+  var lendId = 'ln_' + uid();
+  var entryId = uid();
+  var newEntry = {
+    id: entryId, type:'borrow', amount, date, note, account,
+    originPocket: pocket.id,          // Step 6 — remember source pocket
+    lendId: lendId
+  };
   data[key].entries.push(newEntry);
   saveExternalBorrows(data);
-  // Log as expense in cashflow — stamp cfId back for cascade delete
-  var cfId = logBorrowToCashflow(name, amount, date, account, 'personal');
+
+  // 1) Deduct the pocket (money genuinely leaves you)
+  var pocketDepId = uid();
+  pocket.deposits.push({
+    id: pocketDepId,
+    txnType: 'out',
+    amount: amount,
+    date: date,
+    note: '🤝 Lent to ' + name + (note ? ' · ' + note : ''),
+    lendId: lendId,
+    borrowEntryId: key + ':' + entryId   // lets removeSavingsDepositByBorrowId find it too
+  });
+  saveFunds();
+
+  // 2) Log as expense in cashflow — stamp cfId + destBank for the reverse path
+  var cfId = logBorrowToCashflow(name, amount, date, account, 'personal', lendId);
   if(cfId){ newEntry.cfId = cfId; saveExternalBorrows(data); }
+
+  // 3) Bank doorway (+amount in, -amount out → net 0). The money passed
+  //    through the bank on its way out; the tile returns to where it was.
+  if(typeof window._adjustBaselineForBank === 'function'){
+    window._adjustBaselineForBank(account, amount);    // doorway IN
+    window._adjustBaselineForBank(account, -amount);   // doorway OUT
+  }
+
+  // 4) Stash the lend record so the hard-block guard + reverse can find it.
+  var lendRecs = [];
+  try { lendRecs = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
+  lendRecs.push({
+    id: lendId,
+    key: key,
+    personName: name,
+    entryId: entryId,
+    amount: amount,
+    date: date,
+    bank: account,
+    pocketId: pocket.id,
+    pocketDepId: pocketDepId,
+    cfId: cfId,
+    createdAt: new Date().toISOString()
+  });
+  lsSet('yb_lends_v1', JSON.stringify(lendRecs));
+
   // Phase D: sync borrower (if new or rename) and the new entry to cloud
   try {
     if(window.cloudSync && window.cloudSync.externalBorrows){
@@ -48,25 +157,105 @@ function confirmExternalBorrow(){
       window.cloudSync.externalBorrows.upsertEntry(data[key].borrowerId, newEntry);
     }
   } catch(e){}
+
   closeModal('externalBorrowModal');
   renderMoneyOwed();
+  try { renderFunds(); } catch(e){}
+  try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
   odinRefreshIfOpen();
   if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){}
+  if(typeof softDeleteToast === 'function'){
+    softDeleteToast({ message: '🤝 Lent ' + fmtR(amount) + ' to ' + name + ' · from ' + pocket.name, duration: 3500 });
+  }
 }
+
+// ── v90 — Reverse a personal lend atomically ─────────────────────────────
+// Mirrors _repaymentReverse's discipline: remove the CF row DIRECTLY (via
+// loadCFData/saveCFData), NOT through removeFromCF — because the forward
+// doorway already netted the bank to 0, so we must NOT touch the bank
+// baseline again (that would create a +amount drift). Removes: pocket
+// deposit, CF expense row, borrow entry, and the lend record.
+function _lendReverse(lendId, opts){
+  opts = opts || {};
+  var lendRecs = [];
+  try { lendRecs = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
+  var rec = lendRecs.find(function(r){ return r.id === lendId; });
+  if(!rec){ console.warn('[lend-reverse] no record for', lendId); return false; }
+
+  // 1) Remove the pocket deposit (gives the money back to the pocket)
+  var pocket = funds.find(function(f){ return f.id === rec.pocketId; });
+  if(pocket){
+    pocket.deposits = (pocket.deposits||[]).filter(function(d){
+      var byId      = rec.pocketDepId && d.id === rec.pocketDepId;
+      var byLendId  = d.lendId === lendId;
+      return !byId && !byLendId;
+    });
+    saveFunds();
+  }
+
+  // 2) Remove the CF expense row DIRECTLY (no removeFromCF → no bank touch)
+  if(typeof loadCFData === 'function' && typeof saveCFData === 'function'){
+    var cfData = loadCFData();
+    var mk = (rec.date||'').slice(0,7);
+    var removed = 0;
+    ['expenses'].forEach(function(sec){
+      if(cfData[mk] && cfData[mk][sec]){
+        var b = cfData[mk][sec].length;
+        cfData[mk][sec] = cfData[mk][sec].filter(function(e){
+          return e.id !== rec.cfId && e.lendId !== lendId;
+        });
+        removed += (b - cfData[mk][sec].length);
+      }
+      if(cfData.recurring && cfData.recurring[sec]){
+        var rb = cfData.recurring[sec].length;
+        cfData.recurring[sec] = cfData.recurring[sec].filter(function(e){
+          return e.id !== rec.cfId && e.lendId !== lendId;
+        });
+        removed += (rb - cfData.recurring[sec].length);
+      }
+    });
+    if(removed > 0) saveCFData(cfData);
+  }
+
+  // 3) Remove the borrow entry from the external borrower
+  try {
+    var data = loadExternalBorrows();
+    if(data[rec.key] && data[rec.key].entries){
+      data[rec.key].entries = data[rec.key].entries.filter(function(e){ return e.id !== rec.entryId; });
+      saveExternalBorrows(data);
+    }
+  } catch(e){ console.warn('[lend-reverse] borrow entry remove failed', e); }
+
+  // 4) Remove the lend record itself
+  lendRecs = lendRecs.filter(function(r){ return r.id !== lendId; });
+  lsSet('yb_lends_v1', JSON.stringify(lendRecs));
+
+  // 5) Bank baseline: NOT touched (forward doorway was net 0). Nothing to do.
+
+  if(!opts.silent){
+    try { renderMoneyOwed(); } catch(e){}
+    try { renderFunds(); } catch(e){}
+    try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
+    try { if(typeof odinRefreshIfOpen === 'function') odinRefreshIfOpen(); } catch(e){}
+  }
+  return true;
+}
+if(typeof window !== 'undefined') window._lendReverse = _lendReverse;
+
 
 // ── LOG BORROW AS CASHFLOW EXPENSE ──
 // Returns the CF entry id so callers can stamp cfId onto the borrow entry for cascade delete
-function logBorrowToCashflow(personName, amount, date, account, tag){
+function logBorrowToCashflow(personName, amount, date, account, tag, lendId){
   try{
     var data = loadCFData();
     var d = new Date(date + 'T00:00:00');
     var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     if(!data[mk]) data[mk] = { income:[], expenses:[] };
     if(!data[mk].expenses) data[mk].expenses = [];
-    var acctLabel = account === 'TymeBank' ? 'TymeBank' : 'FNB';
+    var acctLabel = account === 'TymeBank' ? 'TymeBank' : (account === 'Cash' ? 'Cash' : 'FNB');
     var tagLabel  = tag === 'carpool' ? '🚗 Carpool' : '👤 Personal';
     var cfEntryId = uid();
-    data[mk].expenses.push({
+    var row = {
       id: cfEntryId,
       label: '💸 Lent to ' + personName + ' [' + acctLabel + ']',
       amount: amount,
@@ -75,7 +264,12 @@ function logBorrowToCashflow(personName, amount, date, account, tag){
       account: account,
       borrowTag: tagLabel,
       date: date
-    });
+    };
+    // v90: personal lends carry lendId so _lendReverse can find & remove this
+    // row directly. destBank is informational; the bank baseline is handled by
+    // the doorway dance in confirmExternalBorrow (net 0), NOT by this row.
+    if(lendId) row.lendId = lendId;
+    data[mk].expenses.push(row);
     saveCFData(data);
     return cfEntryId;
   }catch(e){ console.warn('Could not log borrow to cashflow:', e); return null; }

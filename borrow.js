@@ -228,14 +228,41 @@ function confirmEditBorrowUnified(){
     if(!data[personKey]) return;
     const idx = data[personKey].entries.findIndex(function(e){ return e.id === entryId; });
     if(idx === -1) return;
+    var _editingEntry = data[personKey].entries[idx];
     data[personKey].entries[idx].amount = amount;
     data[personKey].entries[idx].date   = date;
     data[personKey].entries[idx].note   = note;
     saveExternalBorrows(data);
     // Sync linked savings deposit
     updateSavingsDepositByBorrowId(personKey + ':' + entryId, amount, date, note);
-    // Sync linked Cash Flow expense + adjust bank tile by the difference.
-    try { updateLinkedCFEntry(data[personKey].entries[idx].cfId, amount, date, personKey); } catch(e){}
+    // ── v90 — pocket-first lend: update the CF row amount/date DIRECTLY,
+    //    WITHOUT touching the bank baseline. The doorway is always net 0, so
+    //    changing the loan amount must not move the bank tile. (Calling
+    //    updateLinkedCFEntry here would re-credit/debit the bank → drift.)
+    if(_editingEntry && _editingEntry.lendId){
+      try{
+        if(typeof loadCFData === 'function' && _editingEntry.cfId){
+          var _cfd = loadCFData();
+          Object.keys(_cfd).forEach(function(mk){
+            ['expenses'].forEach(function(sec){
+              if(_cfd[mk] && _cfd[mk][sec]){
+                _cfd[mk][sec].forEach(function(e){
+                  if(e.id === _editingEntry.cfId){ e.amount = amount; if(date) e.date = date; }
+                });
+              }
+            });
+          });
+          if(typeof saveCFData === 'function') saveCFData(_cfd);
+        }
+        // Keep the lend record's amount in sync for correct future reverse.
+        var _lr = []; try { _lr = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
+        _lr.forEach(function(r){ if(r.id === _editingEntry.lendId){ r.amount = amount; r.date = date; } });
+        lsSet('yb_lends_v1', JSON.stringify(_lr));
+      }catch(e){ console.warn('[lend-edit] cf sync failed', e); }
+    } else {
+      // Non-lend external entry (legacy) — keep old behaviour.
+      try { updateLinkedCFEntry(data[personKey].entries[idx].cfId, amount, date, personKey); } catch(e){}
+    }
   } else {
     const entries = borrowData[passengerVal] || [];
     const idx = entries.findIndex(function(e){ return e.id === entryId; });
@@ -293,6 +320,45 @@ function updateSavingsDepositByBorrowId(linkedId, newAmount, newDate, newNote){
 }
 
 function deleteBorrowEntryUnified(passengerVal, entryId){
+  // ── v90 — personal lend entries reverse atomically via _lendReverse ────
+  // A pocket-first lend links pocket deposit ↔ CF row ↔ borrow entry via a
+  // lendId. Routing through _lendReverse keeps the bank untouched (the
+  // forward doorway already netted to 0). Going through the old path would
+  // call removeFromCF and re-credit the bank → +amount drift.
+  if(passengerVal.startsWith('__ext__')){
+    var _lk = passengerVal.replace('__ext__','');
+    var _ld = loadExternalBorrows();
+    var _le = (_ld[_lk]&&_ld[_lk].entries||[]).find(function(e){ return e.id === entryId; });
+    if(_le && _le.lendId){
+      var _lrec = [];
+      try { _lrec = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
+      var _live = _lrec.find(function(r){ return r.id === _le.lendId; });
+      if(_live){
+        var _pk = funds.find(function(f){ return f.id === _live.pocketId; });
+        var _pn = _pk ? _pk.name : 'its pocket';
+        var _body = '🤝 Lent ' + fmtR(_live.amount) + ' to ' + _live.personName + ' · ' + _live.date +
+                    '\n\nReversing puts ' + fmtR(_live.amount) + ' back into ' + _pn + ', removes the Cash Flow record, and clears the loan. The bank stays at R0.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: 'Reverse this loan?',
+            body: _body,
+            dangerLabel: '↩ Reverse the whole loan',
+            safeLabel: 'Leave it alone'
+          }, function(go){
+            if(go){
+              _lendReverse(_le.lendId);
+              if(typeof softDeleteToast === 'function') softDeleteToast({ message:'Loan reversed · '+fmtR(_live.amount)+' back to '+_pn, duration:3000 });
+            }
+          });
+        } else {
+          if(confirm('Reverse this loan?\n\n'+_body)) _lendReverse(_le.lendId);
+        }
+        return;
+      }
+      // Live lend record gone → orphan → fall through to normal delete below.
+    }
+  }
+
   var hasCF = false;
   if(passengerVal.startsWith('__ext__')){
     var _ck = passengerVal.replace('__ext__','');

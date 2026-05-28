@@ -789,6 +789,48 @@ function deleteDeposit(fid,did){
     }catch(e){ console.warn('[deleteDeposit] move guard error', e); }
   }
 
+  // ── v90 (2026-05-28) — Lend hard-block (pocket deposit side) ──────────
+  // A personal lend links this pocket deposit ↔ a CF expense ↔ a borrow
+  // entry via a lendId. Deleting just this deposit would orphan the loan
+  // and desync Money Owed. Redirect to reverse the whole loan.
+  if(dep && dep.lendId){
+    try{
+      var _lnList = [];
+      try{ _lnList = JSON.parse(lsGet('yb_lends_v1')||'[]'); }catch(e){}
+      var _lnRec = _lnList.find(function(r){ return r.id === dep.lendId; });
+      if(_lnRec){
+        var _lnPk = funds.find(function(x){ return x.id === _lnRec.pocketId; });
+        var _lnPn = _lnPk ? _lnPk.name : 'this pocket';
+        var _lnBody =
+          'This deposit is part of a loan:\n  🤝 Lent '+fmtR(_lnRec.amount)+' to '+_lnRec.personName+' · '+_lnRec.date+'\n\n'+
+          'Deleting just this would orphan the loan in Money Owed. Reverse the whole loan instead — that puts '+fmtR(_lnRec.amount)+' back in '+_lnPn+', removes the Cash Flow record, and clears the loan.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _lnBody,
+            dangerLabel: '↩ Reverse the whole loan',
+            safeLabel:   'Leave it alone'
+          }, function(go){
+            if(go && typeof window._lendReverse === 'function'){
+              window._lendReverse(dep.lendId);
+              try{ if(typeof closeModal === 'function') closeModal('histModal'); }catch(e){}
+              try{ renderFunds(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Loan reversed · '+fmtR(_lnRec.amount)+' back to '+_lnPn, duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_lnBody+'\n\nTap OK to reverse the whole loan now.\nTap Cancel to leave it alone.')){
+            if(typeof window._lendReverse === 'function') window._lendReverse(dep.lendId);
+          }
+        }
+        return;
+      }
+      // Live lend gone → orphan → fall through to normal delete
+    }catch(e){ console.warn('[deleteDeposit] lend guard error', e); }
+  }
+
   f.deposits=f.deposits.filter(d=>d.id!==did);
   saveFunds();
   if(dep&&dep.cfId) removeFromCF(dep.cfId);
