@@ -17,7 +17,7 @@
 // To force every client to upgrade: bump CACHE_VERSION below.
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'v88';
+const CACHE_VERSION = 'v89';
 const SHELL_CACHE   = 'my-dashboard-shell-' + CACHE_VERSION;
 const CDN_CACHE     = 'my-dashboard-cdn-'   + CACHE_VERSION;
 
@@ -49,6 +49,9 @@ const SHELL_ASSETS = [
   '/my-dashboard/routine.js',
   '/my-dashboard/supabase-client.js',
   '/my-dashboard/cloud-sync.js',
+  '/my-dashboard/moneyin.js',
+  '/my-dashboard/spend.js',
+  '/my-dashboard/move.js',
   '/my-dashboard/manifest.json'
 ];
 

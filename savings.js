@@ -743,6 +743,52 @@ function deleteDeposit(fid,did){
     }catch(e){ console.warn('[deleteDeposit] repay guard error', e); }
   }
 
+  // ── Step 5 (2026-05-28) — Move hard-block (pocket deposit side) ────────
+  // A Move links two pocket deposits (out of From, into To). Deleting just
+  // one side would leave the other dangling and the pockets wouldn't balance.
+  // Redirect to reverse the whole move — both sides go back together. Banks
+  // are never involved in a move, so there's nothing bank-side to reconcile.
+  if(dep && dep.moveId){
+    try{
+      var _mvList = [];
+      try{ _mvList = JSON.parse(lsGet('yb_moves_v1')||'[]'); }catch(e){}
+      var _mvRec = _mvList.find(function(r){ return r.id === dep.moveId; });
+      if(_mvRec){
+        var _mvFrom = funds.find(function(x){ return x.id === _mvRec.fromId; });
+        var _mvTo   = funds.find(function(x){ return x.id === _mvRec.toId; });
+        var _mvFname = _mvFrom ? _mvFrom.name : 'From pocket';
+        var _mvTname = _mvTo ? _mvTo.name : 'To pocket';
+        var _mvLabel = '🔄 ' + _mvFname + ' → ' + _mvTname + ' · ' + fmtR(_mvRec.amount) + ' · ' + _mvRec.date;
+        var _mvBody =
+          'This deposit is part of a Move:\n  '+_mvLabel+'\n\n'+
+          'Deleting just this side would leave the other pocket dangling. Reverse the whole move instead — that puts '+fmtR(_mvRec.amount)+' back in '+_mvFname+' and removes it from '+_mvTname+', both at once.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _mvBody,
+            dangerLabel: '↩ Reverse the whole move',
+            safeLabel:   'Leave it alone'
+          }, function(go){
+            if(go && typeof _moveReverse === 'function'){
+              _moveReverse(dep.moveId);
+              try{ if(typeof closeModal === 'function') closeModal('histModal'); }catch(e){}
+              try{ renderFunds(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Move reversed · '+fmtR(_mvRec.amount), duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_mvBody+'\n\nTap OK to reverse the whole move now.\nTap Cancel to leave it alone.')){
+            if(typeof _moveReverse === 'function') _moveReverse(dep.moveId);
+          }
+        }
+        return;
+      }
+      // Live move gone → orphan → fall through to normal delete
+    }catch(e){ console.warn('[deleteDeposit] move guard error', e); }
+  }
+
   f.deposits=f.deposits.filter(d=>d.id!==did);
   saveFunds();
   if(dep&&dep.cfId) removeFromCF(dep.cfId);
