@@ -32,13 +32,20 @@ function saveInst(d){ lsSet(INST_KEY, JSON.stringify(d)); }
 
 // ── Step 8 v93: pocket helpers (read-only — never write funds here) ──
 function _instLoadFunds(){
+  // savings.js owns a global `funds` array. loadFunds() hydrates it as a
+  // side-effect (returns undefined). Read the global first; if that's not
+  // ready, fall back to lsGet(SK) so we still work pre-DOMContentLoaded.
   try{
-    if(typeof loadFunds === 'function'){
-      var f = loadFunds();
-      if(Array.isArray(f)) return f;
-    }
+    if(typeof loadFunds === 'function'){ loadFunds(); }
   }catch(e){}
-  try{ return JSON.parse(lsGet('funds')||'[]'); }catch(e){ return []; }
+  if(typeof funds !== 'undefined' && Array.isArray(funds) && funds.length){
+    return funds;
+  }
+  try{
+    var raw = (typeof SK === 'string' && SK) ? lsGet(SK) : lsGet('yasin_funds_v16');
+    var arr = JSON.parse(raw || '[]');
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){ return []; }
 }
 function _instGetPocket(pid){
   if(!pid) return null;
@@ -47,6 +54,17 @@ function _instGetPocket(pid){
 function _instPocketLabel(pid){
   var p = _instGetPocket(pid);
   return p ? p.name : '';
+}
+function _instPocketBalance(p){
+  if(!p) return 0;
+  if(typeof fundTotal === 'function'){
+    try{ return fundTotal(p); }catch(e){}
+  }
+  // Fallback math mirroring fundTotal
+  return (p.deposits||[]).reduce(function(s,d){
+    var amt = Number(d.amount)||0;
+    return s + (d.txnType === 'out' ? -amt : amt);
+  }, 0);
 }
 
 // ── Step 8 v93: builder for the funding-pocket dropdown in the Edit Plan modal ──
@@ -325,7 +343,7 @@ function _instPopulatePocketPicker(plan){
 
   funds.forEach(function(p){
     if(!p || !p.id) return;
-    var bal = (typeof getFundBalance === 'function') ? getFundBalance(p) : 0;
+    var bal = _instPocketBalance(p);
     var opt = document.createElement('option');
     opt.value = p.id;
     opt.textContent = p.name + '  ·  ' + fmtR(bal);
@@ -369,14 +387,19 @@ function confirmInstPay(){
   var plan  = plans.find(function(p){ return p.id === planId; });
   if(!plan) return;
 
-  var pocket = _instGetPocket(pocketId);
+  // Hydrate the global funds array and look up the pocket *inside* it so
+  // mutations land on the real object that saveFunds() will write.
+  try{ if(typeof loadFunds === 'function') loadFunds(); }catch(e){}
+  var pocket = (typeof funds !== 'undefined' && Array.isArray(funds))
+    ? funds.find(function(p){ return p && p.id === pocketId; })
+    : null;
   if(!pocket){ alert('Pocket not found. Please pick another.'); return; }
 
   if(!plan.paid) plan.paid = [];
 
   // ── Soft balance check (non-blocking, just confirm) ──
   try{
-    var bal = (typeof getFundBalance === 'function') ? getFundBalance(pocket) : 0;
+    var bal = _instPocketBalance(pocket);
     if(bal < plan.amt){
       var shortMsg = 'Heads up: '+pocket.name+' only has '+fmtR(bal)+' but the payment is '+fmtR(plan.amt)+' — short by '+fmtR(plan.amt - bal)+'.\n\nContinue anyway? (The pocket balance will go negative — usually a sign to move money in first.)';
       if(!confirm(shortMsg)) return;
@@ -401,15 +424,10 @@ function confirmInstPay(){
   };
   pocket.deposits = pocket.deposits || [];
   pocket.deposits.push(deposit);
-  // Persist via the canonical saveFunds path so listeners refresh
+  // saveFunds() takes no args — it writes the global funds array
   try{
-    if(typeof saveFunds === 'function'){
-      saveFunds();
-    } else {
-      var allFunds = _instLoadFunds();
-      var idxF = allFunds.findIndex(function(f){ return f && f.id === pocketId; });
-      if(idxF > -1){ allFunds[idxF] = pocket; lsSet('funds', JSON.stringify(allFunds)); }
-    }
+    if(typeof saveFunds === 'function'){ saveFunds(); }
+    else { lsSet(SK, JSON.stringify(funds)); }
   }catch(e){ console.warn('[inst] saveFunds failed', e); }
 
   // 2) Cash Flow row — tagged to the pocket (account = pocket name) so the
@@ -498,11 +516,16 @@ function _instalmentPayReverse(planId, idx, opts){
   // 2) Remove the pocket deposit (if linked)
   try{
     if(payEntry.depositId && payEntry.pocketId){
-      var funds = _instLoadFunds();
-      var pk = funds.find(function(f){ return f && f.id === payEntry.pocketId; });
-      if(pk && Array.isArray(pk.deposits)){
-        pk.deposits = pk.deposits.filter(function(d){ return d.id !== payEntry.depositId; });
-        try{ if(typeof saveFunds === 'function'){ saveFunds(); } else { lsSet('funds', JSON.stringify(funds)); } }catch(e){}
+      try{ if(typeof loadFunds === 'function') loadFunds(); }catch(e){}
+      if(typeof funds !== 'undefined' && Array.isArray(funds)){
+        var pk = funds.find(function(f){ return f && f.id === payEntry.pocketId; });
+        if(pk && Array.isArray(pk.deposits)){
+          pk.deposits = pk.deposits.filter(function(d){ return d.id !== payEntry.depositId; });
+          try{
+            if(typeof saveFunds === 'function'){ saveFunds(); }
+            else { lsSet(SK, JSON.stringify(funds)); }
+          }catch(e){}
+        }
       }
     }
   }catch(e){ console.warn('[instReverse] pocket deposit removal failed', e); }
