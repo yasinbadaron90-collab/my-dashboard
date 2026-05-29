@@ -974,7 +974,7 @@ function postToCF(opts){
   var rec = {
     id:cfId, label:opts.label, amount:opts.amount,
     icon:opts.icon||'', date:opts.date||localDateStr(new Date()),
-    auto:false, account:opts.sourceCardName||'',
+    auto:false, account:(opts.account!=null?opts.account:(opts.sourceCardName||'')),
     sourceType:opts.sourceType||'', sourceId:opts.sourceId||'',
     note:opts.note||'',
     // createdAt is the precise ISO timestamp this entry was logged. The bank-
@@ -997,6 +997,13 @@ function postToCF(opts){
   if(opts.spendId)          rec.spendId          = opts.spendId;
   if(opts.moneyInId)        rec.moneyInId        = opts.moneyInId;
   if(opts.carpoolPaymentId) rec.carpoolPaymentId = opts.carpoolPaymentId;
+  if(opts.carExpenseId)     rec.carExpenseId     = opts.carExpenseId;
+  // ── Step 8 v93.3 (2026-05-29) — instalment mirror-link IDs ──
+  // Without these, the hard-block guards never see the link and the legacy
+  // delete path runs silently (same class of bug as v85-patch3 fixed for
+  // repayments). Always extend this list when adding a new flow.
+  if(opts.instalmentPayId)  rec.instalmentPayId  = opts.instalmentPayId;
+  if(opts.planId)           rec.planId           = opts.planId;
   // ────────────────────────────────────────────────────────────────────
   cfData[mk][section].push(rec);
   saveCFData(cfData);
