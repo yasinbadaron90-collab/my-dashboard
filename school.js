@@ -295,15 +295,15 @@ function _schoolSeed(){
 
     // ── YEAR 3 (2026) — in progress ────────────────────────────────────────
     { _id:_schoolUuid(), code:'BCOM_ENT-31',   name:'Entrepreneurship 301',        year:3, type:'semester', period:'2026 January Semester', credits:15, nqfLevel:7,
-      quizRaw:30, assignmentRaw:59, examRaw:null, resultOverride:null, isPlaceholder:false, notes:'Exam 23 July 2026' },
+      quizRaw:30, assignmentRaw:59, examRaw:null, resultOverride:null, isPlaceholder:false, examDate:'2026-07-23', notes:'' },
     { _id:_schoolUuid(), code:'BCOM_IBS-31',   name:'International Business 302',  year:3, type:'semester', period:'2026 January Semester', credits:15, nqfLevel:7,
-      quizRaw:null, assignmentRaw:null, examRaw:null, resultOverride:null, isPlaceholder:false, notes:'In progress' },
+      quizRaw:30, assignmentRaw:65, examRaw:null, resultOverride:null, isPlaceholder:false, examDate:'2026-07-21', notes:'' },
     { _id:_schoolUuid(), code:'BCOM_BIN-3',    name:'Business Intelligence 3',     year:3, type:'annual',   period:'2026 January Annual', credits:30, nqfLevel:7,
-      quizRaw:null, assignmentRaw:null, examRaw:null, resultOverride:null, isPlaceholder:false, notes:'In progress' },
+      quizRaw:null, assignmentRaw:null, examRaw:null, resultOverride:null, isPlaceholder:false, examDate:null, notes:'In progress' },
     { _id:_schoolUuid(), code:'BCOM_BM-3',     name:'Business Management 3',       year:3, type:'annual',   period:'2026 January Annual', credits:30, nqfLevel:7,
-      quizRaw:null, assignmentRaw:null, examRaw:null, resultOverride:null, isPlaceholder:false, notes:'In progress' },
+      quizRaw:null, assignmentRaw:null, examRaw:null, resultOverride:null, isPlaceholder:false, examDate:null, notes:'In progress' },
     { _id:_schoolUuid(), code:'BCOM_IT-3',     name:'Information Technology 3',    year:3, type:'annual',   period:'2026 January Annual', credits:30, nqfLevel:7,
-      quizRaw:null, assignmentRaw:null, examRaw:null, resultOverride:null, isPlaceholder:false, notes:'In progress' }
+      quizRaw:null, assignmentRaw:null, examRaw:null, resultOverride:null, isPlaceholder:false, examDate:null, notes:'In progress' }
   ];
 }
 
@@ -320,7 +320,48 @@ function loadSchoolSubjects(){
     var raw = lsGet(SCHOOL_RESULTS_V2_KEY);
     if(raw){
       var arr = JSON.parse(raw);
-      if(Array.isArray(arr) && arr.length > 0) return arr;
+      if(Array.isArray(arr) && arr.length > 0){
+        // ── v94 lazy migration (2026-05-29) ─────────────────────────────
+        // Add examDate field to every record (default null). Backfill the
+        // two known dates from the Regent timetable. Correct IBS-31 data
+        // that was stale in v1→v2 seed. Strip the legacy "Exam 23 July
+        // 2026" string from ENT-301's notes field (now lives on examDate).
+        // Runs every load — idempotent, only writes if anything changed.
+        var changed = false;
+        arr.forEach(function(s){
+          if(!s) return;
+          // 1) Add examDate field if missing
+          if(s.examDate === undefined){
+            s.examDate = null;
+            changed = true;
+          }
+          // 2) Backfill known dates from the Regent timetable
+          if(s.code === 'BCOM_ENT-31' && !s.examDate){
+            s.examDate = '2026-07-23';
+            changed = true;
+          }
+          if(s.code === 'BCOM_IBS-31' && !s.examDate){
+            s.examDate = '2026-07-21';
+            changed = true;
+          }
+          // 3) Clean stale notes that used to carry the date as a hack
+          if(s.code === 'BCOM_ENT-31' && s.notes === 'Exam 23 July 2026'){
+            s.notes = '';
+            changed = true;
+          }
+          // 4) Correct IBS-31 marks (was 30/null, real is 30/65, yearPct→95)
+          if(s.code === 'BCOM_IBS-31'){
+            if(s.quizRaw !== 30){ s.quizRaw = 30; changed = true; }
+            if(s.assignmentRaw !== 65){ s.assignmentRaw = 65; changed = true; }
+            if(s.notes === 'In progress'){ s.notes = ''; changed = true; }
+          }
+        });
+        if(changed){
+          try { lsSet(SCHOOL_RESULTS_V2_KEY, JSON.stringify(arr)); } catch(e){}
+          console.log('[school v94] migration: added examDate + corrected IBS-31 marks');
+        }
+        return arr;
+      }
     }
   } catch(e){
     console.warn('[school] v2 read failed, will re-seed:', e);
@@ -456,6 +497,18 @@ function getResultLabel(r){
   return lookup[r] || r;
 }
 
+// ── v94: Format an examDate ISO string ("2026-07-23") to "23 July 2026" ────
+function _fmtExamDate(iso){
+  if(!iso || typeof iso !== 'string') return '';
+  try {
+    var d = new Date(iso + 'T00:00:00');
+    if(isNaN(d.getTime())) return iso;
+    var months = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+    return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+  } catch(e){ return iso; }
+}
+
 
 // ── Subject colour by name (for left-border accent) ─────────────────────────
 function _subjectColor(code){
@@ -536,7 +589,9 @@ function openEditSubject(code){
   }
 
   var examVal = (sub.examRaw == null) ? '' : sub.examRaw;
-  var examPlaceholder = (sub.notes && sub.notes.indexOf('July') > -1) ? 'Exam 23 July 2026' : '— not yet written';
+  var examPlaceholder = sub.examDate
+    ? 'Exam ' + _fmtExamDate(sub.examDate) + ' — not yet written'
+    : '— not yet written';
 
   var placeholderToggle =
     '<div style="background:#1a1500;border:1px dashed #5a4a00;border-radius:6px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">'
@@ -582,6 +637,13 @@ function openEditSubject(code){
           +'<div style="font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">Result Code</div>'
           +'<div style="font-size:10px;color:#666;margin-bottom:6px;">Auto-suggested from Final %. Pick another to override:</div>'
           +'<div style="display:flex;flex-wrap:wrap;gap:5px;" id="overridePills">'+overridePills+'</div>'
+        +'</div>'
+
+        // EXAM DATE (v94)
+        +'<div style="margin-top:14px;">'
+          +'<label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">📅 Exam Date (optional)</label>'
+          +'<input id="rExamDate" type="date" value="'+(sub.examDate || '')+'" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#f2c830;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:13px;outline:none;">'
+          +'<div style="font-size:9px;color:#666;margin-top:4px;line-height:1.4;">Shows on the card as "⏰ Exam DD Month YYYY". Leave blank if not set yet.</div>'
         +'</div>'
 
         // NOTES
@@ -668,6 +730,12 @@ function _readEditInputs(){
 
   var notesEl = document.getElementById('rNotes');
   if(notesEl) out.notes = notesEl.value;
+
+  // v94: examDate (ISO yyyy-mm-dd, '' = clear)
+  var examDateEl = document.getElementById('rExamDate');
+  if(examDateEl){
+    out.examDate = examDateEl.value || null;
+  }
 
   return out;
 }
@@ -1020,7 +1088,7 @@ function _renderSubjectCard(sub){
         +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:18px;color:'+phColor+';">'+ympDisp+'</span>'
       +'</div>'
       +'<div style="display:flex;justify-content:space-between;padding:10px 16px;border-top:1px solid #0f0f0f;font-size:13px;align-items:center;">'
-        +'<span style="color:#666;letter-spacing:0.5px;font-size:13px;">Exam %'+(sub.notes && sub.notes.indexOf('July')>-1 ? '<span style="color:#f2c830;font-size:10px;margin-left:6px;">⏰ '+sub.notes+'</span>':'')+'</span>'
+        +'<span style="color:#666;letter-spacing:0.5px;font-size:13px;">Exam %'+(sub.examDate ? '<span style="color:#f2c830;font-size:10px;margin-left:6px;">⏰ Exam '+_fmtExamDate(sub.examDate)+'</span>' : '')+'</span>'
         +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:18px;color:'+(examDisp==='—'?'#444':phColor)+';">'+examDisp+'</span>'
       +'</div>'
       +'<div style="display:flex;justify-content:space-between;padding:10px 16px;border-top:1px solid #0f0f0f;font-size:13px;align-items:center;background:#0a0a0a;">'
