@@ -497,11 +497,12 @@ function cfRow(e, type, isRecur){
   // entries from before destBank existed).
   var bank = _entryBank(e);
   var bankHtml;
-  // ── POCKET BADGE (Spend Step 2, 2026-05-22) ──
+  // ── POCKET BADGE (Spend Step 2, 2026-05-22; Car expense Step 7, 2026-05-29) ──
   // Pocket-direct Spends (doorway=Direct) carry sourceType='pocket_spend'
-  // and the pocket name in `account`. Render as a purple pocket badge
-  // instead of falling through to "— Untagged".
-  var isPocketRow = (e && e.sourceType === 'pocket_spend' && e.account && !bank);
+  // and the pocket name in `account`. Car expenses funded by a pocket carry
+  // sourceType='car_expense' with the pocket name in `account`. Both render
+  // as a purple pocket badge instead of falling through to "— Untagged".
+  var isPocketRow = (e && (e.sourceType === 'pocket_spend' || e.sourceType === 'car_expense') && e.account && !bank);
   if(isPocketRow){
     bankHtml = '<span style="color:#c890ff;background:#1a0a26;border:1px solid #6a3aa0;border-radius:3px;padding:1px 6px;letter-spacing:0.5px;">'
              + String(e.account).replace(/</g,'&lt;').replace(/>/g,'&gt;')
