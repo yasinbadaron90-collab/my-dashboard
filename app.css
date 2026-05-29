@@ -502,14 +502,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-
 /* ══════════════════════════════════════════════════════════════════════ */
 body:has(.overlay.active) #moneyInFAB,
 body:has(.overlay.active) #spendFAB,
+body:has(.overlay.active) #moveFAB,
 body:has(.qe-overlay.active) #moneyInFAB,
-body:has(.qe-overlay.active) #spendFAB {
+body:has(.qe-overlay.active) #spendFAB,
+body:has(.qe-overlay.active) #moveFAB {
   display: none !important;
 }
 
 /* Belt-and-braces JS fallback applies the .modal-open class to <body>    */
 /* when any modal is opened/closed, in case :has() isn't supported.       */
 body.modal-open #moneyInFAB,
-body.modal-open #spendFAB {
+body.modal-open #spendFAB,
+body.modal-open #moveFAB {
   display: none !important;
 }
