@@ -1311,13 +1311,58 @@ function _showUpdateToast(worker){
 
 <div class="overlay" id="histModal">
   <div class="modal">
-    <h2 id="histTitle">History</h2>
-    <div id="histContent" style="margin-top:4px"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+      <h2 id="histTitle" style="flex:1;margin:0;">History</h2>
+      <button onclick="openPocketStatement(window._currentHistFundId)" title="Pocket statement" style="background:#1a2e00;border:1px solid #3a5a00;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;padding:7px 11px;border-radius:4px;text-transform:uppercase;cursor:pointer;flex-shrink:0;white-space:nowrap;">📄 Statement</button>
+    </div>
+    <div id="histContent" style="margin-top:14px"></div>
     <div class="modal-btns" style="margin-top:20px">
       <button class="btn ghost" onclick="closeModal('histModal')">Close</button>
     </div>
   </div>
 </div>
+
+<!-- ── STEP 9 v95 — PER-POCKET STATEMENT MODAL ── -->
+<div class="overlay" id="pocketStmtModal" style="z-index:210;">
+  <div class="modal" style="max-width:420px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px;">
+      <h2 id="pocketStmtTitle" style="flex:1;margin:0;font-size:16px;line-height:1.3;">📄 Statement</h2>
+      <button class="qe-close" onclick="closePocketStatement()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
+    </div>
+
+    <!-- Date range -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <div style="flex:1;">
+        <label style="display:block;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">From</label>
+        <input type="date" id="stmtFrom" onchange="onStmtDateChange()" style="width:100%;background:#fff;color:#000;border:1px solid #ccc;font-family:'DM Mono',monospace;font-size:12px;padding:7px 8px;border-radius:4px;"/>
+      </div>
+      <div style="flex:1;">
+        <label style="display:block;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">To</label>
+        <input type="date" id="stmtTo" onchange="onStmtDateChange()" style="width:100%;background:#fff;color:#000;border:1px solid #ccc;font-family:'DM Mono',monospace;font-size:12px;padding:7px 8px;border-radius:4px;"/>
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;">
+      <button class="stmt-preset" data-preset="month" onclick="applyPocketStmtPreset('month')" style="flex:1;padding:6px 4px;background:#111;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;text-align:center;cursor:pointer;">This month</button>
+      <button class="stmt-preset" data-preset="30days" onclick="applyPocketStmtPreset('30days')" style="flex:1;padding:6px 4px;background:#111;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;text-align:center;cursor:pointer;">Last 30 days</button>
+      <button class="stmt-preset" data-preset="all" onclick="applyPocketStmtPreset('all')" style="flex:1;padding:6px 4px;background:#111;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;text-align:center;cursor:pointer;">All time</button>
+    </div>
+
+    <!-- Live preview -->
+    <div id="stmtPreview" style="background:#0d1a00;border:1px solid #2a4a00;border-radius:6px;overflow:hidden;margin-bottom:14px;"></div>
+
+    <!-- Outputs -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+      <button onclick="pocketStmtExportPDF()" style="padding:10px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;text-align:center;font-weight:500;background:#2e1a00;color:#f2a830;border:1px solid #5a3a00;cursor:pointer;">📄 PDF</button>
+      <button onclick="pocketStmtExportCSV()" style="padding:10px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;text-align:center;font-weight:500;background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;cursor:pointer;">📊 CSV</button>
+      <button id="stmtCopyBtn" onclick="pocketStmtExportCopy()" style="padding:10px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;text-align:center;font-weight:500;background:#1a1a2e;color:#a0a0ff;border:1px solid #3a3a5a;cursor:pointer;">📋 Copy</button>
+    </div>
+  </div>
+</div>
+<style>
+.stmt-preset.sel{background:#1a2e00 !important;border-color:#5a8800 !important;color:#c8f230 !important;}
+</style>
 <!-- ── PRAYER PAGE ── -->
 <div class="page" id="page-prayer" style="padding:0 0 80px;">
   <div style="max-width:720px;margin:0 auto;padding:20px 16px 60px;">

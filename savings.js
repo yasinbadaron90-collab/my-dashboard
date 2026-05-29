@@ -574,7 +574,7 @@ function confirmDeposit(){
   // Refresh the Available Cash card so the drained bucket updates live.
   try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
 }
-function openHistory(id){const f=funds.find(x=>x.id===id);document.getElementById('histTitle').textContent=f.emoji+' '+f.name;const deps=[...f.deposits].reverse();let html='';if(!deps.length){html='<p style="color:var(--muted);font-size:12px">No deposits yet.</p>';}else{html='<table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">DATE</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">AMOUNT</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">NOTE</th><th style="padding:4px 6px;border-bottom:1px solid var(--border)"></th></tr>';deps.forEach(d=>{const isOut=d.txnType==='out';const amtColor=isOut?'#f23060':'#c8f230';const prefix=isOut?'-':'+';html+=`<tr><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:var(--muted)">${d.date}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:${amtColor};font-weight:500">${prefix}${fmtR(d.amount)}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:var(--muted)">${d.note||'—'}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a"><button onclick="deleteDeposit('${f.id}','${d.id}')" style="background:none;border:none;cursor:pointer;color:#333;font-size:13px" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#333'">✕</button></td></tr>`;});html+='</table>';}document.getElementById('histContent').innerHTML=html;document.getElementById('histModal').classList.add('active');}
+function openHistory(id){window._currentHistFundId=id;const f=funds.find(x=>x.id===id);document.getElementById('histTitle').textContent=f.emoji+' '+f.name;const deps=[...f.deposits].reverse();let html='';if(!deps.length){html='<p style="color:var(--muted);font-size:12px">No deposits yet.</p>';}else{html='<table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">DATE</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">AMOUNT</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">NOTE</th><th style="padding:4px 6px;border-bottom:1px solid var(--border)"></th></tr>';deps.forEach(d=>{const isOut=d.txnType==='out';const amtColor=isOut?'#f23060':'#c8f230';const prefix=isOut?'-':'+';html+=`<tr><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:var(--muted)">${d.date}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:${amtColor};font-weight:500">${prefix}${fmtR(d.amount)}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:var(--muted)">${d.note||'—'}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a"><button onclick="deleteDeposit('${f.id}','${d.id}')" style="background:none;border:none;cursor:pointer;color:#333;font-size:13px" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#333'">✕</button></td></tr>`;});html+='</table>';}document.getElementById('histContent').innerHTML=html;document.getElementById('histModal').classList.add('active');}
 function deleteDeposit(fid,did){
   const f=funds.find(x=>x.id===fid);
   const dep=f.deposits.find(function(d){return d.id===did;});
@@ -1295,3 +1295,372 @@ if(typeof window !== 'undefined'){
 }
 window.maybePromptDeadlineBackfill = maybePromptDeadlineBackfill;
 window.confirmDeadlineBackfill = confirmDeadlineBackfill;
+
+// ════════════════════════════════════════════════════════════════════
+// STEP 9 — PER-POCKET STATEMENT (v95)
+// Bank-statement-style export per pocket: opening → movements → closing
+// Date range, three outputs (PDF · CSV · Copy). All read-only.
+// PDF engine mirrors the carpool statement engine (same aesthetic).
+// ════════════════════════════════════════════════════════════════════
+
+let _stmtFundId = null;
+let _stmtFromISO = null;
+let _stmtToISO = null;
+
+function openPocketStatement(fundId){
+  if(!fundId){ alert('No pocket selected.'); return; }
+  const f = funds.find(x => x.id === fundId);
+  if(!f){ alert('Pocket not found.'); return; }
+  _stmtFundId = fundId;
+
+  document.getElementById('pocketStmtTitle').textContent = '📄 ' + (f.emoji||'💰') + ' ' + f.name;
+
+  // Default range = All time → earliest deposit date to today
+  const deps = f.deposits || [];
+  const today = new Date();
+  let earliest = today;
+  deps.forEach(function(d){
+    const dd = new Date(d.date);
+    if(!isNaN(dd) && dd < earliest) earliest = dd;
+  });
+  _stmtFromISO = deps.length ? earliest.toISOString().split('T')[0] : today.toISOString().split('T')[0];
+  _stmtToISO = today.toISOString().split('T')[0];
+
+  document.getElementById('stmtFrom').value = _stmtFromISO;
+  document.getElementById('stmtTo').value = _stmtToISO;
+
+  // Highlight "All time" preset
+  document.querySelectorAll('.stmt-preset').forEach(function(b){ b.classList.remove('sel'); });
+  const allBtn = document.querySelector('.stmt-preset[data-preset="all"]');
+  if(allBtn) allBtn.classList.add('sel');
+
+  document.getElementById('pocketStmtModal').classList.add('active');
+  renderPocketStmt();
+}
+
+function closePocketStatement(){
+  document.getElementById('pocketStmtModal').classList.remove('active');
+}
+
+function applyPocketStmtPreset(preset){
+  const f = funds.find(function(x){ return x.id === _stmtFundId; });
+  if(!f) return;
+  const today = new Date();
+  let from;
+  if(preset === 'month'){
+    from = new Date(today.getFullYear(), today.getMonth(), 1);
+  } else if(preset === '30days'){
+    from = new Date(today);
+    from.setDate(from.getDate() - 30);
+  } else { // 'all'
+    from = today;
+    (f.deposits||[]).forEach(function(d){
+      const dd = new Date(d.date);
+      if(!isNaN(dd) && dd < from) from = dd;
+    });
+  }
+  _stmtFromISO = from.toISOString().split('T')[0];
+  _stmtToISO = today.toISOString().split('T')[0];
+  document.getElementById('stmtFrom').value = _stmtFromISO;
+  document.getElementById('stmtTo').value = _stmtToISO;
+  document.querySelectorAll('.stmt-preset').forEach(function(b){ b.classList.remove('sel'); });
+  const btn = document.querySelector('.stmt-preset[data-preset="'+preset+'"]');
+  if(btn) btn.classList.add('sel');
+  renderPocketStmt();
+}
+
+function onStmtDateChange(){
+  _stmtFromISO = document.getElementById('stmtFrom').value;
+  _stmtToISO = document.getElementById('stmtTo').value;
+  document.querySelectorAll('.stmt-preset').forEach(function(b){ b.classList.remove('sel'); });
+  renderPocketStmt();
+}
+
+function _pocketStmtComputeData(){
+  const f = funds.find(function(x){ return x.id === _stmtFundId; });
+  if(!f) return null;
+  const fromD = new Date(_stmtFromISO);
+  const toD = new Date(_stmtToISO);
+  toD.setHours(23,59,59,999);
+
+  let opening = 0, totalIn = 0, totalOut = 0;
+  const movements = [];
+
+  (f.deposits||[]).slice().sort(function(a,b){
+    return new Date(a.date) - new Date(b.date);
+  }).forEach(function(d){
+    const dd = new Date(d.date);
+    if(isNaN(dd)) return;
+    const isOut = d.txnType === 'out';
+    const amt = Number(d.amount) || 0;
+
+    if(dd < fromD){
+      opening += isOut ? -amt : amt;
+    } else if(dd <= toD){
+      movements.push({ date: d.date, amount: amt, txnType: isOut ? 'out' : 'in', note: d.note || '' });
+      if(isOut) totalOut += amt; else totalIn += amt;
+    }
+  });
+
+  const closing = opening + totalIn - totalOut;
+  return { fund: f, opening: opening, totalIn: totalIn, totalOut: totalOut, closing: closing, movements: movements };
+}
+
+function renderPocketStmt(){
+  const data = _pocketStmtComputeData();
+  if(!data) return;
+  const previewBox = document.getElementById('stmtPreview');
+  if(!previewBox) return;
+
+  let html = '';
+  html += '<div style="padding:9px 12px;border-bottom:1px solid #1e3a00;display:flex;justify-content:space-between;font-size:10px;">';
+  html +=   '<span style="color:#5a8800;letter-spacing:2px;text-transform:uppercase;">Movements</span>';
+  html +=   '<span style="color:#c8f230;font-weight:500;">' + data.movements.length + '</span>';
+  html += '</div>';
+
+  html += '<div style="padding:4px 0;max-height:220px;overflow-y:auto;">';
+  if(!data.movements.length){
+    html += '<div style="padding:14px;text-align:center;color:#444;font-size:11px;">No movements in range</div>';
+  } else {
+    data.movements.forEach(function(m){
+      const isOut = m.txnType === 'out';
+      const amtColor = isOut ? '#f2a830' : '#c8f230';
+      const prefix = isOut ? '−' : '+';
+      const day = new Date(m.date).toLocaleDateString('en-ZA',{day:'2-digit',month:'short'});
+      const safeNote = (m.note || '—').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      html += '<div style="display:flex;justify-content:space-between;padding:5px 12px;font-size:10.5px;gap:8px;align-items:center;">';
+      html +=   '<span style="color:#666;min-width:62px;flex-shrink:0;">' + day + '</span>';
+      html +=   '<span style="color:#888;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + safeNote + '</span>';
+      html +=   '<span style="color:' + amtColor + ';font-weight:500;flex-shrink:0;">' + prefix + fmtR(m.amount) + '</span>';
+      html += '</div>';
+    });
+  }
+  html += '</div>';
+
+  html += '<div style="padding:8px 12px;background:#0a1500;border-top:1px solid #1e3a00;display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:10px;">';
+  html +=   '<div style="color:#888;letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">Opening</div>';
+  html +=   '<div style="text-align:right;color:#888;">' + fmtR(data.opening) + '</div>';
+  html +=   '<div style="color:#888;letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">In</div>';
+  html +=   '<div style="text-align:right;color:#c8f230;">+' + fmtR(data.totalIn) + '</div>';
+  html +=   '<div style="color:#888;letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">Out</div>';
+  html +=   '<div style="text-align:right;color:#f2a830;">−' + fmtR(data.totalOut) + '</div>';
+  html +=   '<div style="color:#888;letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">Closing</div>';
+  html +=   '<div style="text-align:right;color:#c8f230;font-weight:700;font-family:Syne,sans-serif;">' + fmtR(data.closing) + '</div>';
+  html += '</div>';
+
+  previewBox.innerHTML = html;
+}
+
+// Strip emoji/non-latin for PDF (jsPDF can't render most of them — same approach as cars.js)
+function _pocketStmtStripEmoji(s){
+  if(!s) return '';
+  return String(s)
+    .replace(/[\u{1F300}-\u{1FAFF}]/gu, '')
+    .replace(/[\u{2600}-\u{27BF}]/gu, '')
+    .replace(/[\u{1F000}-\u{1F2FF}]/gu, '')
+    .replace(/[\u{FE0F}]/gu, '')
+    .replace(/[\u{200D}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function pocketStmtExportPDF(){
+  if(typeof window.jspdf === 'undefined'){
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = _pocketStmtBuildPDF;
+    document.head.appendChild(s);
+  } else {
+    _pocketStmtBuildPDF();
+  }
+}
+
+function _pocketStmtBuildPDF(){
+  const data = _pocketStmtComputeData();
+  if(!data) return;
+  const f = data.fund;
+  const fromLabel = _stmtFromISO;
+  const toLabel = _stmtToISO;
+  const safeName = _pocketStmtStripEmoji(f.name) || 'Pocket';
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'a4'});
+
+  function paintPageBg(){
+    doc.setFillColor(10,10,10); doc.rect(0,0,210,297,'F');
+    doc.setFillColor(200,242,48); doc.rect(0,0,210,2,'F');
+  }
+  function newPage(){
+    doc.addPage();
+    paintPageBg();
+    doc.setTextColor(50,50,50); doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.text(safeName + ' (cont.) — ' + fromLabel + ' to ' + toLabel, 105, 12, {align:'center'});
+    return 22;
+  }
+
+  // Page 1 header
+  paintPageBg();
+  doc.setTextColor(90,136,0); doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('MY DASHBOARD \u00B7 POCKET STATEMENT', 105, 18, {align:'center'});
+  doc.setTextColor(200,242,48); doc.setFontSize(24); doc.setFont('helvetica','bold');
+  doc.text(safeName, 105, 32, {align:'center'});
+  doc.setTextColor(85,85,85); doc.setFontSize(10); doc.setFont('helvetica','normal');
+  doc.text(fromLabel + ' to ' + toLabel, 105, 40, {align:'center'});
+  doc.setDrawColor(200,242,48); doc.setLineWidth(0.5); doc.line(20,45,190,45);
+
+  let y = 55;
+  const bottomMargin = 250;
+
+  if(!data.movements.length){
+    doc.setTextColor(85,85,85); doc.setFontSize(11);
+    doc.text('No movements in this period.', 105, y+10, {align:'center'});
+    y += 30;
+  } else {
+    data.movements.forEach(function(m){
+      if(y > bottomMargin){ y = newPage(); }
+      const isOut = m.txnType === 'out';
+      const safeNote = _pocketStmtStripEmoji(m.note) || '-';
+      const noteTrunc = safeNote.length > 55 ? safeNote.substring(0,52) + '...' : safeNote;
+      const day = new Date(m.date).toLocaleDateString('en-ZA',{day:'2-digit',month:'short'});
+      doc.setTextColor(102,102,102); doc.setFontSize(10); doc.setFont('helvetica','normal');
+      doc.text(day, 20, y);
+      doc.setTextColor(136,136,136);
+      doc.text(noteTrunc, 45, y);
+      const amtStr = (isOut ? '-R' : '+R') + Number(m.amount).toLocaleString('en-ZA');
+      if(isOut){ doc.setTextColor(242,168,48); } else { doc.setTextColor(200,242,48); }
+      doc.setFont('helvetica','bold');
+      doc.text(amtStr, 190, y, {align:'right'});
+      doc.setDrawColor(30,30,30); doc.setLineWidth(0.2); doc.line(20, y+3, 190, y+3);
+      y += 9;
+    });
+  }
+
+  // Totals block
+  if(y + 45 > 275){ y = newPage(); }
+  y += 6;
+  doc.setDrawColor(200,242,48); doc.setLineWidth(0.5); doc.line(20,y,190,y);
+  y += 8;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  doc.setTextColor(102,102,102); doc.text('Opening balance', 20, y);
+  doc.setTextColor(136,136,136); doc.text('R' + Number(data.opening).toLocaleString('en-ZA'), 190, y, {align:'right'});
+  y += 6;
+
+  doc.setTextColor(102,102,102); doc.text('Money in', 20, y);
+  doc.setTextColor(200,242,48); doc.text('+R' + Number(data.totalIn).toLocaleString('en-ZA'), 190, y, {align:'right'});
+  y += 6;
+
+  doc.setTextColor(102,102,102); doc.text('Money out', 20, y);
+  doc.setTextColor(242,168,48); doc.text('-R' + Number(data.totalOut).toLocaleString('en-ZA'), 190, y, {align:'right'});
+  y += 8;
+
+  doc.setDrawColor(200,242,48); doc.setLineWidth(0.5); doc.line(20,y,190,y);
+  y += 8;
+  doc.setTextColor(90,136,0); doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('CLOSING BALANCE', 20, y);
+  doc.setTextColor(200,242,48); doc.setFontSize(20); doc.setFont('helvetica','bold');
+  doc.text('R' + Number(data.closing).toLocaleString('en-ZA'), 190, y+2, {align:'right'});
+
+  // Footer
+  doc.setTextColor(50,50,50); doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text('Generated by My Dashboard \u00B7 ' + new Date().toLocaleDateString('en-ZA'), 105, 285, {align:'center'});
+
+  const safeFileName = safeName.replace(/[^a-zA-Z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'') || 'Pocket';
+  doc.save('Statement_' + safeFileName + '_' + fromLabel + '_to_' + toLabel + '.pdf');
+}
+
+function pocketStmtExportCSV(){
+  const data = _pocketStmtComputeData();
+  if(!data) return;
+  const f = data.fund;
+  const safeName = _pocketStmtStripEmoji(f.name) || 'Pocket';
+
+  let csv = 'Pocket Statement\n';
+  csv += 'Pocket,"' + (f.name||'').replace(/"/g,"'") + '"\n';
+  csv += 'Period,' + _stmtFromISO + ' to ' + _stmtToISO + '\n';
+  csv += 'Opening Balance,' + data.opening + '\n';
+  csv += '\n';
+  csv += 'Date,Type,Amount,Note\n';
+  data.movements.forEach(function(m){
+    const note = (m.note || '').replace(/"/g, "'").replace(/\r?\n/g, ' ');
+    const signed = (m.txnType === 'out' ? '-' : '+') + m.amount;
+    csv += m.date + ',' + (m.txnType === 'out' ? 'OUT' : 'IN') + ',' + signed + ',"' + note + '"\n';
+  });
+  csv += '\n';
+  csv += 'Money In,+' + data.totalIn + '\n';
+  csv += 'Money Out,-' + data.totalOut + '\n';
+  csv += 'Closing Balance,' + data.closing + '\n';
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const safeFileName = safeName.replace(/[^a-zA-Z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'') || 'Pocket';
+  a.download = 'Statement_' + safeFileName + '_' + _stmtFromISO + '_to_' + _stmtToISO + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
+}
+
+function pocketStmtExportCopy(){
+  const data = _pocketStmtComputeData();
+  if(!data) return;
+  const f = data.fund;
+
+  let text = '*Pocket Statement — ' + f.name + '*\n';
+  text += _stmtFromISO + ' to ' + _stmtToISO + '\n\n';
+  text += 'Opening: ' + fmtR(data.opening) + '\n';
+  text += '─────────────\n';
+
+  if(!data.movements.length){
+    text += '(no movements in range)\n';
+  } else {
+    data.movements.forEach(function(m){
+      const day = new Date(m.date).toLocaleDateString('en-ZA',{day:'2-digit',month:'short'});
+      const prefix = m.txnType === 'out' ? '−' : '+';
+      text += day + ' · ' + (m.note || '—') + ' · ' + prefix + fmtR(m.amount) + '\n';
+    });
+  }
+
+  text += '─────────────\n';
+  text += 'In: +' + fmtR(data.totalIn) + '\n';
+  text += 'Out: −' + fmtR(data.totalOut) + '\n';
+  text += '*Closing: ' + fmtR(data.closing) + '*\n';
+
+  function flashCopied(){
+    const btn = document.getElementById('stmtCopyBtn');
+    if(!btn) return;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Copied';
+    setTimeout(function(){ btn.innerHTML = orig; }, 1500);
+  }
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(flashCopied, function(){
+      _stmtCopyFallback(text);
+    });
+  } else {
+    _stmtCopyFallback(text);
+  }
+}
+
+function _stmtCopyFallback(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); alert('Copied to clipboard.'); }
+  catch(e) { alert('Copy not supported here. Try PDF or CSV.'); }
+  document.body.removeChild(ta);
+}
+
+// Expose to window so the modal HTML can call them
+window.openPocketStatement = openPocketStatement;
+window.closePocketStatement = closePocketStatement;
+window.applyPocketStmtPreset = applyPocketStmtPreset;
+window.onStmtDateChange = onStmtDateChange;
+window.pocketStmtExportPDF = pocketStmtExportPDF;
+window.pocketStmtExportCSV = pocketStmtExportCSV;
+window.pocketStmtExportCopy = pocketStmtExportCopy;
