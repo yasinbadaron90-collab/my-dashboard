@@ -874,6 +874,8 @@ function openAddExpense(carId){
   setSelectedCategories(['🔧 Service']);
   document.getElementById('expenseDesc').value = '';
   document.getElementById('expenseAmt').value = '';
+  // ── Step 7 — pocket dropdown, default to the car's linked pocket ──
+  populateExpensePocketDropdown(car ? (car.maintenanceFundId || '') : '');
   // Reset date input to picker mode in case it was left in text mode last time
   var dateEl = document.getElementById('expenseDate');
   if(dateEl && dateEl.type !== 'date'){
@@ -887,6 +889,42 @@ function openAddExpense(carId){
   document.getElementById('expenseModalSaveBtn').textContent = 'Save Entry';
   document.getElementById('addExpenseModal').classList.add('active');
   setTimeout(function(){ document.getElementById('expenseDesc').focus(); }, 100);
+}
+
+// ── Step 7 — car-expense pocket dropdown ──────────────────────────────────
+// A funded car expense spends from a pocket (deduct + Cash Flow), reusing the
+// proven Spend money-math. A "record-only" choice logs to car history only —
+// no pocket, no bank, no Cash Flow. The dropdown defaults to the car's linked
+// pocket but every pocket is selectable (short that day → pick another), plus
+// a "None — record only" option at the top.
+function populateExpensePocketDropdown(selectedId){
+  var sel = document.getElementById('expensePocketId');
+  if(!sel) return;
+  var opts = '<option value="">— None (record only) —</option>';
+  try{
+    var list = (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return f && !f._deleted; });
+    list.forEach(function(f){
+      var bal = (f.deposits||[]).reduce(function(s,d){ return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0)); }, 0);
+      var label = (f.emoji ? f.emoji + ' ' : '') + f.name + ' · ' + fmtR(bal);
+      opts += '<option value="'+f.id+'"'+(selectedId===f.id?' selected':'')+'>'+label+'</option>';
+    });
+  }catch(e){}
+  sel.innerHTML = opts;
+  updateExpensePocketHint();
+  sel.onchange = updateExpensePocketHint;
+}
+
+function updateExpensePocketHint(){
+  var sel = document.getElementById('expensePocketId');
+  var hint = document.getElementById('expensePocketHint');
+  if(!sel || !hint) return;
+  if(!sel.value){
+    hint.textContent = '📋 History only — no pocket deducted, nothing in Cash Flow.';
+    hint.style.color = '#7090f0';
+  } else {
+    hint.textContent = '💸 Deducts this pocket + logs to Cash Flow (via Direct).';
+    hint.style.color = '#5fe0a0';
+  }
 }
 
 function openEditExpense(carId, expId){
@@ -904,6 +942,8 @@ function openEditExpense(carId, expId){
   document.getElementById('expenseAmt').value = exp.amt || '';
   document.getElementById('expenseDate').value = exp.date || '';
   document.getElementById('expenseKm').value = exp.km || '';
+  // Step 7 — reflect the pocket this expense was paid from (blank = record-only)
+  populateExpensePocketDropdown(exp.pocketId || '');
   document.getElementById('expenseModalSaveBtn').textContent = 'Save Changes';
   document.getElementById('addExpenseModal').classList.add('active');
 }
@@ -935,14 +975,97 @@ function confirmAddExpense(){
   var km     = document.getElementById('expenseKm').value ? Number(document.getElementById('expenseKm').value) : '';
   if(!cat){ alert('Please select at least one category.'); return; }
   if(!amt || amt <= 0){ alert('Please enter a valid amount.'); return; }
+  // ── Step 7 — which pocket pays for this expense? Blank = record-only. ──
+  var pocketSel = document.getElementById('expensePocketId');
+  var pocketId  = pocketSel ? (pocketSel.value || '') : '';
   var cars = loadCarsData();
   var car = cars.find(function(c){ return c.id === carId; });
   if(!car) return;
   if(!car.expenses) car.expenses = [];
+
+  // If editing: reverse the OLD record's pocket linkage (if any) first, so
+  // edits re-sync correctly (e.g. amount changed, or pocket switched).
+  if(editId){
+    var oldExp = car.expenses.find(function(e){ return e.id === editId; });
+    if(oldExp && oldExp.carExpenseId){
+      _carExpenseReverse(oldExp, { silent: true });
+      // Re-fetch car after the reverse touched data
+      cars = loadCarsData();
+      car  = cars.find(function(c){ return c.id === carId; });
+      if(!car) return;
+      if(!car.expenses) car.expenses = [];
+    }
+  }
+
   var entry = { id: editId||uid(), category: cat, desc: desc, amt: amt, date: date, km: km };
+
+  // ── If a pocket is selected, run the funded path (deduct + Cash Flow) ──
+  if(pocketId){
+    var pocket = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === pocketId; });
+    if(!pocket){ alert('Pocket not found. Pick another.'); return; }
+
+    var carExpenseId = 'ce_' + uid();
+    var doorway = 'DIRECT';  // Step 7 default — money came from the pocket
+    var pocketLabel = (pocket.emoji ? pocket.emoji + ' ' : '') + pocket.name;
+    var catLabel = Array.isArray(cat) ? cat.join(' ') : cat;
+    var cfLabel  = '🔧 ' + (desc || catLabel) + ' · ' + car.name;
+
+    // 1) Pocket deposit (txnType 'out' deducts balance)
+    var depositId = uid();
+    var deposit = {
+      id: depositId,
+      txnType: 'out',
+      amount: amt,
+      date: date,
+      note: '🔧 ' + (desc || catLabel) + ' · ' + car.name,
+      cfPosted: true,
+      carExpenseId: carExpenseId
+    };
+    pocket.deposits.push(deposit);
+    try { saveFunds(); } catch(e){}
+
+    // 2) Cash Flow expense row — Direct doorway (no destBank), banks untouched
+    var cfId = null;
+    try {
+      var cfData = loadCFData();
+      var mk = (date || localDateStr(new Date())).slice(0, 7);
+      if(!cfData[mk]) cfData[mk] = { income: [], expenses: [] };
+      cfId = uid();
+      var cfRec = {
+        id: cfId,
+        label: cfLabel,
+        amount: amt,
+        date: date,
+        icon: '🔧',
+        auto: false,
+        account: pocketLabel,
+        sourceType: 'car_expense',
+        sourceId: carId,
+        sourceCardName: car.name,
+        note: 'Car expense · from ' + pocket.name + ' (direct)',
+        carExpenseId: carExpenseId,
+        createdAt: new Date().toISOString()
+      };
+      cfData[mk].expenses.push(cfRec);
+      saveCFData(cfData);
+    } catch(e){ console.warn('[car-expense] CF post failed', e); }
+
+    // 3) Bank baseline: Direct doorway = bank never touched. Nothing to do.
+    //    (Same as Spend's Direct path — symmetric, net 0, no drift surface.)
+
+    // 4) Stamp the linkage onto the car expense entry
+    entry.carExpenseId = carExpenseId;
+    entry.pocketId     = pocketId;
+    entry.depositId    = depositId;
+    entry.cfId         = cfId;
+    entry.doorway      = doorway;
+  }
+  // Else: record-only path — no pocket, no CF, no bank. History entry only.
+
   if(editId){
     var idx = car.expenses.findIndex(function(e){ return e.id === editId; });
     if(idx > -1) car.expenses[idx] = entry;
+    else car.expenses.push(entry);
   } else {
     car.expenses.push(entry);
     // Update car's current km if provided
@@ -951,16 +1074,109 @@ function confirmAddExpense(){
   saveCarsData(cars);
   closeModal('addExpenseModal');
   renderCars();
+  try { if(typeof renderFunds === 'function') renderFunds(); } catch(e){}
+  try { if(typeof renderCashFlow === 'function') renderCashFlow(); } catch(e){}
+  try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
+}
+
+// ── Step 7 — reverse a funded car expense's pocket+CF linkage ─────────
+// Pure reverse: restore the pocket deposit, drop the CF row directly (NO
+// removeFromCF — Direct doorway means the bank was never touched on save,
+// so it must not be touched on reverse either; removeFromCF would adjust
+// the bank baseline downward and drift it. This is the same pattern Spend
+// uses for its Direct path.)
+function _carExpenseReverse(exp, opts){
+  opts = opts || {};
+  if(!exp || !exp.carExpenseId) return false;
+
+  // 1) Remove the pocket deposit
+  try {
+    var p = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === exp.pocketId; });
+    if(p && exp.depositId){
+      p.deposits = (p.deposits || []).filter(function(d){
+        if(d.id === exp.depositId) return false;
+        if(d.carExpenseId && d.carExpenseId === exp.carExpenseId) return false;
+        return true;
+      });
+    }
+    try { saveFunds(); } catch(e){}
+  } catch(e){}
+
+  // 2) Remove the CF row (direct filter — banks stay where they are)
+  if(exp.cfId){
+    try {
+      var cfData = loadCFData();
+      var mk = (exp.date || '').slice(0, 7);
+      if(cfData[mk] && cfData[mk].expenses){
+        cfData[mk].expenses = cfData[mk].expenses.filter(function(e){
+          if(e.id === exp.cfId) return false;
+          if(e.carExpenseId && e.carExpenseId === exp.carExpenseId) return false;
+          return true;
+        });
+        saveCFData(cfData);
+      }
+    } catch(e){}
+  }
+
+  // 3) No bank reversal — Direct doorway never touched the baseline.
+
+  if(!opts.silent){
+    try { renderFunds(); } catch(e){}
+    try { if(typeof renderCashFlow === 'function') renderCashFlow(); } catch(e){}
+    try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
+  }
+  return true;
 }
 
 function deleteExpense(carId, expId){
-  if(!confirm('Delete this expense entry?')) return;
   var cars = loadCarsData();
   var car = cars.find(function(c){ return c.id === carId; });
   if(!car) return;
-  car.expenses = (car.expenses||[]).filter(function(e){ return e.id !== expId; });
-  saveCarsData(cars);
-  renderCars();
+  var exp = (car.expenses || []).find(function(e){ return e.id === expId; });
+  if(!exp) return;
+
+  // Build a friendly summary for the confirm dialog
+  var amtStr = fmtR(exp.amt || 0);
+  var catStr = Array.isArray(exp.category) ? exp.category.join(' ') : (exp.category || '');
+  var label  = (exp.desc || catStr || 'Expense') + ' · ' + amtStr + ' · ' + (exp.date || '');
+
+  function doDelete(){
+    // Funded expense → reverse the pocket+CF linkage first
+    if(exp.carExpenseId){
+      _carExpenseReverse(exp, { silent: true });
+    }
+    // Then drop the car-history entry
+    var cars2 = loadCarsData();
+    var car2  = cars2.find(function(c){ return c.id === carId; });
+    if(car2){
+      car2.expenses = (car2.expenses || []).filter(function(e){ return e.id !== expId; });
+      saveCarsData(cars2);
+    }
+    renderCars();
+    try { if(typeof renderFunds === 'function') renderFunds(); } catch(e){}
+    try { if(typeof renderCashFlow === 'function') renderCashFlow(); } catch(e){}
+    try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
+  }
+
+  if(exp.carExpenseId && exp.pocketId){
+    // Funded path — show what'll happen
+    var pocket = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === exp.pocketId; });
+    var pname  = pocket ? pocket.name : 'the pocket';
+    var msg    = label + '\n\nThis puts ' + amtStr + ' back into ' + pname + ' and removes the Cash Flow row. Banks stay at R0.';
+    if(typeof mihbConfirm === 'function'){
+      mihbConfirm({
+        title:       '🔧 Delete this car expense?',
+        message:     msg,
+        dangerLabel: '↩ Delete & return to ' + pname,
+        safeLabel:   'Leave it alone'
+      }, function(go){ if(go) doDelete(); });
+    } else {
+      if(confirm('🔧 Delete this car expense?\n\n' + msg)) doDelete();
+    }
+  } else {
+    // Record-only path — plain delete, no pocket math
+    if(confirm('Delete this expense entry?\n\n' + label)) doDelete();
+  }
 }
 
 function autoCalcNextService(){

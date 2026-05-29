@@ -831,6 +831,85 @@ function deleteDeposit(fid,did){
     }catch(e){ console.warn('[deleteDeposit] lend guard error', e); }
   }
 
+  // ── Step 7 (2026-05-28) — Car-expense hard-block (pocket deposit side) ──
+  // A funded car expense links this pocket deposit ↔ a CF expense ↔ a row
+  // inside car.expenses via a carExpenseId. Deleting just this deposit would
+  // orphan the car-history entry and desync the Kia/Toyota log. Redirect to
+  // delete from the car (which reverses the pocket + CF + history together).
+  if(dep && dep.carExpenseId){
+    try{
+      var _carList = [];
+      try{ _carList = (typeof loadCarsData === 'function') ? loadCarsData() : (JSON.parse(lsGet('cars')||'[]')); }catch(e){}
+      var _carRec = null, _expRec = null;
+      for(var ci=0; ci<_carList.length; ci++){
+        var _exps = _carList[ci].expenses || [];
+        for(var ei=0; ei<_exps.length; ei++){
+          if(_exps[ei] && _exps[ei].carExpenseId === dep.carExpenseId){
+            _carRec = _carList[ci];
+            _expRec = _exps[ei];
+            break;
+          }
+        }
+        if(_expRec) break;
+      }
+      if(_expRec){
+        var _carPk  = funds.find(function(x){ return x.id === _expRec.pocketId; });
+        var _carPn  = _carPk ? _carPk.name : 'this pocket';
+        var _carNm  = _carRec ? _carRec.name : 'the car';
+        var _carCat = Array.isArray(_expRec.category) ? _expRec.category.join(' ') : (_expRec.category||'');
+        var _carDsc = _expRec.desc || _carCat || 'Expense';
+        var _carBody =
+          'This deposit is part of a car expense:\n  🔧 '+_carDsc+' · '+fmtR(_expRec.amt)+' · '+_carNm+' · '+(_expRec.date||'')+'\n\n'+
+          'Deleting just this would orphan the car-history entry. Delete it from the car instead — that puts '+fmtR(_expRec.amt)+' back in '+_carPn+', removes the Cash Flow record, and removes the car-history line.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _carBody,
+            dangerLabel: '↩ Reverse the whole car expense',
+            safeLabel:   'Leave it alone'
+          }, function(go){
+            if(go){
+              // Mirror deleteExpense's funded-path doDelete (silent reverse + history strip)
+              if(typeof _carExpenseReverse === 'function') _carExpenseReverse(_expRec, { silent: true });
+              try{
+                var _cars2 = loadCarsData();
+                var _car2  = _cars2.find(function(c){ return c.id === _carRec.id; });
+                if(_car2){
+                  _car2.expenses = (_car2.expenses || []).filter(function(e){ return e.id !== _expRec.id; });
+                  saveCarsData(_cars2);
+                }
+              }catch(e){}
+              try{ if(typeof closeModal === 'function') closeModal('histModal'); }catch(e){}
+              try{ if(typeof renderCars === 'function') renderCars(); }catch(e){}
+              try{ renderFunds(); }catch(e){}
+              try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+              try{ if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Car expense reversed · '+fmtR(_expRec.amt)+' back to '+_carPn, duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_carBody+'\n\nTap OK to reverse the whole car expense now.\nTap Cancel to leave it alone.')){
+            if(typeof _carExpenseReverse === 'function') _carExpenseReverse(_expRec, { silent: true });
+            try{
+              var _cars3 = loadCarsData();
+              var _car3  = _cars3.find(function(c){ return c.id === _carRec.id; });
+              if(_car3){
+                _car3.expenses = (_car3.expenses || []).filter(function(e){ return e.id !== _expRec.id; });
+                saveCarsData(_cars3);
+              }
+            }catch(e){}
+            try{ if(typeof renderCars === 'function') renderCars(); }catch(e){}
+            try{ renderFunds(); }catch(e){}
+          }
+        }
+        return;
+      }
+      // Live car expense gone → orphan → fall through to normal delete
+    }catch(e){ console.warn('[deleteDeposit] car-expense guard error', e); }
+  }
+
   f.deposits=f.deposits.filter(d=>d.id!==did);
   saveFunds();
   if(dep&&dep.cfId) removeFromCF(dep.cfId);

@@ -1160,6 +1160,73 @@ function openCfEntryModal(type, editId){
           return;
         }
       }
+      // ── Step 7 (2026-05-28) — Car-expense hard-block (CF edit side) ──
+      if(_peekEntry && _peekEntry.carExpenseId){
+        var _ceCarList2 = [];
+        try{ _ceCarList2 = (typeof loadCarsData === 'function') ? loadCarsData() : (JSON.parse(lsGet('cars')||'[]')); }catch(e){}
+        var _ceCar2 = null, _ceExp2 = null;
+        for(var _cci2=0; _cci2<_ceCarList2.length; _cci2++){
+          var _ceExps2 = _ceCarList2[_cci2].expenses || [];
+          for(var _cei2=0; _cei2<_ceExps2.length; _cei2++){
+            if(_ceExps2[_cei2] && _ceExps2[_cei2].carExpenseId === _peekEntry.carExpenseId){
+              _ceCar2 = _ceCarList2[_cci2];
+              _ceExp2 = _ceExps2[_cei2];
+              break;
+            }
+          }
+          if(_ceExp2) break;
+        }
+        if(_ceExp2){
+          var _ceNm2  = _ceCar2 ? _ceCar2.name : 'the car';
+          var _ceCat2 = Array.isArray(_ceExp2.category) ? _ceExp2.category.join(' ') : (_ceExp2.category||'');
+          var _ceDsc2 = _ceExp2.desc || _ceCat2 || 'Expense';
+          var _ceBody2 =
+            'This line is part of a car expense:\n  🔧 '+_ceDsc2+' · '+fmtR(_ceExp2.amt)+' · '+_ceNm2+'\n\n'+
+            'Editing here would only change the Cash Flow line — the pocket deduction and the car-history entry would still show the old amount. Edit it from the Cars tab instead (or reverse the whole car expense and re-log it).';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from the Cars tab instead',
+              body:  _ceBody2,
+              dangerLabel: '↩ Reverse the whole car expense',
+              safeLabel:   'Leave it alone'
+            }, function(go){
+              if(go){
+                if(typeof _carExpenseReverse === 'function') _carExpenseReverse(_ceExp2, { silent: true });
+                try{
+                  var _cars6 = loadCarsData();
+                  var _car6  = _cars6.find(function(c){ return c.id === _ceCar2.id; });
+                  if(_car6){
+                    _car6.expenses = (_car6.expenses || []).filter(function(e){ return e.id !== _ceExp2.id; });
+                    saveCarsData(_cars6);
+                  }
+                }catch(e){}
+                try{ if(typeof renderCars === 'function') renderCars(); }catch(e){}
+                try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+                try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+                if(typeof softDeleteToast === 'function'){
+                  softDeleteToast({ message:'Car expense reversed · '+fmtR(_ceExp2.amt), duration:3000 });
+                }
+              }
+            });
+          } else {
+            if(confirm('🔒 Edit from the Cars tab instead\n\n'+_ceBody2+'\n\nTap OK to reverse the whole car expense now.\nTap Cancel to leave it alone.')){
+              if(typeof _carExpenseReverse === 'function') _carExpenseReverse(_ceExp2, { silent: true });
+              try{
+                var _cars7 = loadCarsData();
+                var _car7  = _cars7.find(function(c){ return c.id === _ceCar2.id; });
+                if(_car7){
+                  _car7.expenses = (_car7.expenses || []).filter(function(e){ return e.id !== _ceExp2.id; });
+                  saveCarsData(_cars7);
+                }
+              }catch(e){}
+              try{ if(typeof renderCars === 'function') renderCars(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+              try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+            }
+          }
+          return;
+        }
+      }
     }catch(e){ console.warn('[cfEdit] money-in guard error', e); }
   }
 
@@ -1478,6 +1545,82 @@ function deleteCfEntry(id, type){
         return;
       }
       // No live repayment record → orphan → fall through
+    }
+
+    // ── Step 7 (2026-05-28) — Car-expense hard-block (CF delete side) ──
+    // The CF row is one of three linked records: pocket deposit ↔ car
+    // history ↔ this CF row, tied by carExpenseId. Deleting the CF row
+    // alone would leave the deduction in the pocket + the history entry
+    // on the car. Redirect to reverse the whole car expense (which deletes
+    // all three together and puts money back in the pocket).
+    if(_peekEntry && _peekEntry.carExpenseId){
+      var _ceCarList = [];
+      try{ _ceCarList = (typeof loadCarsData === 'function') ? loadCarsData() : (JSON.parse(lsGet('cars')||'[]')); }catch(e){}
+      var _ceCar = null, _ceExp = null;
+      for(var _cci=0; _cci<_ceCarList.length; _cci++){
+        var _ceExps = _ceCarList[_cci].expenses || [];
+        for(var _cei=0; _cei<_ceExps.length; _cei++){
+          if(_ceExps[_cei] && _ceExps[_cei].carExpenseId === _peekEntry.carExpenseId){
+            _ceCar = _ceCarList[_cci];
+            _ceExp = _ceExps[_cei];
+            break;
+          }
+        }
+        if(_ceExp) break;
+      }
+      if(_ceExp){
+        var _cePk  = (typeof funds !== 'undefined') ? funds.find(function(f){ return f.id === _ceExp.pocketId; }) : null;
+        var _cePn  = _cePk ? _cePk.name : 'the pocket';
+        var _ceNm  = _ceCar ? _ceCar.name : 'the car';
+        var _ceCat = Array.isArray(_ceExp.category) ? _ceExp.category.join(' ') : (_ceExp.category||'');
+        var _ceDsc = _ceExp.desc || _ceCat || 'Expense';
+        var _ceBody =
+          'This is part of a car expense:\n  🔧 '+_ceDsc+' · '+fmtR(_ceExp.amt)+' · '+_ceNm+' · '+(_ceExp.date||'')+'\n\n'+
+          'Deleting just this line would leave the pocket deducted and the car-history entry behind. Reverse the whole car expense instead — that puts '+fmtR(_ceExp.amt)+' back in '+_cePn+', removes the car-history line, and clears this Cash Flow row cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _ceBody,
+            dangerLabel: '↩ Reverse the whole car expense',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse){
+              if(typeof _carExpenseReverse === 'function') _carExpenseReverse(_ceExp, { silent: true });
+              try{
+                var _cars4 = loadCarsData();
+                var _car4  = _cars4.find(function(c){ return c.id === _ceCar.id; });
+                if(_car4){
+                  _car4.expenses = (_car4.expenses || []).filter(function(e){ return e.id !== _ceExp.id; });
+                  saveCarsData(_cars4);
+                }
+              }catch(e){}
+              try{ if(typeof renderCars === 'function') renderCars(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+              try{ renderCashFlow(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Car expense reversed · '+fmtR(_ceExp.amt)+' back to '+_cePn, duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_ceBody+'\n\nTap OK to reverse the whole car expense now.\nTap Cancel to leave it alone.')){
+            if(typeof _carExpenseReverse === 'function') _carExpenseReverse(_ceExp, { silent: true });
+            try{
+              var _cars5 = loadCarsData();
+              var _car5  = _cars5.find(function(c){ return c.id === _ceCar.id; });
+              if(_car5){
+                _car5.expenses = (_car5.expenses || []).filter(function(e){ return e.id !== _ceExp.id; });
+                saveCarsData(_cars5);
+              }
+            }catch(e){}
+            try{ if(typeof renderCars === 'function') renderCars(); }catch(e){}
+            try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+            try{ renderCashFlow(); }catch(e){}
+          }
+        }
+        return;
+      }
+      // No live car expense → orphan → fall through
     }
   }catch(e){ console.warn('[cfDelete] money-in guard error', e); }
 

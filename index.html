@@ -2219,6 +2219,11 @@ function _showUpdateToast(worker){
     <div class="field"><label>Description</label><input type="text" id="expenseDesc" placeholder="e.g. Full service at Tiger Wheel"/></div>
     <div class="field"><label>Amount (R)</label><input type="number" id="expenseAmt" placeholder="e.g. 1800"/></div>
     <div class="field">
+      <label>Pay from pocket <span style="font-size:10px;color:#888;letter-spacing:1px;">(deducts + logs to Cash Flow)</span></label>
+      <select id="expensePocketId" style="width:100%;background:#1a1a1a;border:1px solid #5fd0e0;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;"></select>
+      <div id="expensePocketHint" style="font-size:9px;color:#666;margin-top:4px;letter-spacing:0.5px;"></div>
+    </div>
+    <div class="field">
       <label>Date</label>
       <div style="display:flex;gap:6px;align-items:stretch;">
         <input type="date" id="expenseDate" style="flex:1;"/>
