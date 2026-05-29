@@ -3,8 +3,71 @@
 
 var _instShowCleared = false;
 
-function loadInst(){ try{ return JSON.parse(lsGet(INST_KEY)||'[]'); }catch(e){ return []; } }
+function loadInst(){
+  try{
+    var d = JSON.parse(lsGet(INST_KEY)||'[]');
+    // ── Step 8 v93 migration (one-time, lazy on every read) ──
+    // Existing plans get planType + fundingPocketId fields:
+    //   • monthToMonth ⇒ 'autoDebit'  (MTN-style, auto-debits a bank)
+    //   • everything else ⇒ 'revolving' (TFG-style, you manually pay)
+    //   • fundingPocketId starts null (user picks it on first payment or via Edit)
+    var changed = false;
+    d.forEach(function(p){
+      if(p.planType === undefined){
+        p.planType = p.monthToMonth ? 'autoDebit' : 'revolving';
+        changed = true;
+      }
+      if(p.fundingPocketId === undefined){
+        p.fundingPocketId = null;
+        changed = true;
+      }
+    });
+    if(changed){
+      try{ lsSet(INST_KEY, JSON.stringify(d)); }catch(e){}
+    }
+    return d;
+  }catch(e){ return []; }
+}
 function saveInst(d){ lsSet(INST_KEY, JSON.stringify(d)); }
+
+// ── Step 8 v93: pocket helpers (read-only — never write funds here) ──
+function _instLoadFunds(){
+  try{
+    if(typeof loadFunds === 'function'){
+      var f = loadFunds();
+      if(Array.isArray(f)) return f;
+    }
+  }catch(e){}
+  try{ return JSON.parse(lsGet('funds')||'[]'); }catch(e){ return []; }
+}
+function _instGetPocket(pid){
+  if(!pid) return null;
+  return _instLoadFunds().find(function(p){ return p && p.id === pid; }) || null;
+}
+function _instPocketLabel(pid){
+  var p = _instGetPocket(pid);
+  return p ? p.name : '';
+}
+
+// ── Step 8 v93: builder for the funding-pocket dropdown in the Edit Plan modal ──
+function _instBuildFundingPocketDropdown(selectedId){
+  var sel = document.getElementById('instFundingPocketId');
+  if(!sel) return;
+  var funds = _instLoadFunds();
+  sel.innerHTML = '';
+  var optBlank = document.createElement('option');
+  optBlank.value = '';
+  optBlank.textContent = '— No default (pick each time) —';
+  sel.appendChild(optBlank);
+  funds.forEach(function(p){
+    if(!p || !p.id) return;
+    var opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    sel.appendChild(opt);
+  });
+  sel.value = selectedId || '';
+}
 
 // ── (seedMTNContract removed — all plans must be added manually via + Add Plan) ──
 
@@ -133,12 +196,16 @@ function openInstModal(editId){
     document.getElementById('instDebitDay').value  = plan.debitDay || '';
     // Store M2M flag so confirmInstalment can preserve it
     document.getElementById('instEditId').dataset.m2m = plan.monthToMonth ? '1' : '';
+    // Step 8 v93: load funding pocket
+    _instBuildFundingPocketDropdown(plan.fundingPocketId || '');
   } else {
     document.getElementById('instDesc').value      = '';
     document.getElementById('instTotal').value     = '';
     document.getElementById('instAmt').value       = '';
     document.getElementById('instFreq').value      = 'monthly';
     document.getElementById('instStartDate').value = localDateStr(new Date());
+    // Step 8 v93: reset funding pocket dropdown
+    _instBuildFundingPocketDropdown('');
   }
 
   document.getElementById('instModal').classList.add('active');
@@ -169,6 +236,8 @@ function confirmInstalment(){
 
   var plans = loadInst();
   var dates = (num && start) ? buildInstSchedule(start, num, freq) : [];
+  // Step 8 v93: read funding pocket from modal
+  var fundingPocketId = (document.getElementById('instFundingPocketId')||{}).value || null;
 
   if(editId){
     var idx = plans.findIndex(function(p){ return p.id === editId; });
@@ -185,6 +254,8 @@ function confirmInstalment(){
         freq: freq,
         debitDay: debitDay || oldPlan.debitDay || null,
         monthToMonth: oldPlan.monthToMonth || false,
+        planType: oldPlan.planType || (oldPlan.monthToMonth ? 'autoDebit' : 'revolving'),
+        fundingPocketId: fundingPocketId,
         dates: dates,
         paid: oldPlan.paid || []
       };
@@ -199,8 +270,10 @@ function confirmInstalment(){
       amt: amt,
       freq: freq,
       debitDay: debitDay,
+      planType: 'revolving',
+      fundingPocketId: fundingPocketId,
       dates: dates,
-      paid: []   // array of { index, date, note }
+      paid: []   // array of { index, date, note, cfId, instalmentPayId, depositId, pocketId, amount }
     });
   }
 
@@ -224,45 +297,233 @@ function openInstPayModal(planId, idx){
   document.getElementById('instPayIndex').value  = idx;
   document.getElementById('instPayDate').value   = localDateStr(new Date());
   document.getElementById('instPayNote').value   = '';
+
+  // Build the info banner (plan + amount + scheduled date)
   document.getElementById('instPayInfo').innerHTML =
     '<strong style="color:#c8f230;">'+plan.desc+'</strong><br>'
     +'Payment '+(idx+1)+' of '+plan.num+' &nbsp;·&nbsp; <span style="color:#f2a830;">'+fmtR(plan.amt)+'</span><br>'
     +'Scheduled: '+formatDisplayDate(plan.dates[idx]);
+
+  // Populate pocket picker (default = plan.fundingPocketId)
+  _instPopulatePocketPicker(plan);
+
   document.getElementById('instPayModal').classList.add('active');
 }
 
-function confirmInstPay(){
-  var planId = document.getElementById('instPayPlanId').value;
-  var idx    = parseInt(document.getElementById('instPayIndex').value);
-  var date   = document.getElementById('instPayDate').value || localDateStr(new Date());
-  var note   = document.getElementById('instPayNote').value.trim();
-  var plans  = loadInst();
-  var plan   = plans.find(function(p){ return p.id === planId; });
-  if(!plan) return;
-  if(!plan.paid) plan.paid = [];
-  var payLabel=plan.desc+(idx===-1?' (monthly)':' - payment '+(idx+1));
-  var cfId_inst=postToCF({label:payLabel,amount:plan.amt,date:date,icon:'inst',type:'expense',sourceType:'instalment',sourceId:planId,sourceCardName:plan.provider+' '+plan.desc,note:note});
-  if(idx === -1){
-    var nextIdx = plan.paid.length > 0 ? Math.max.apply(null, plan.paid.map(function(x){ return x.index; })) + 1 : 0;
-    plan.paid.push({ index: nextIdx, date: date, note: note, cfId:cfId_inst });
+// ── Step 8 v93: populate the pocket dropdown on the pay modal ──
+function _instPopulatePocketPicker(plan){
+  var sel = document.getElementById('instPayPocketId');
+  if(!sel) return;
+  var funds = _instLoadFunds();
+  sel.innerHTML = '';
+
+  // First option = blank prompt (forces a choice if no default)
+  var optBlank = document.createElement('option');
+  optBlank.value = '';
+  optBlank.textContent = '— Pick a pocket —';
+  sel.appendChild(optBlank);
+
+  funds.forEach(function(p){
+    if(!p || !p.id) return;
+    var bal = (typeof getFundBalance === 'function') ? getFundBalance(p) : 0;
+    var opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name + '  ·  ' + fmtR(bal);
+    sel.appendChild(opt);
+  });
+
+  // Default to plan's funding pocket if set
+  if(plan && plan.fundingPocketId){
+    sel.value = plan.fundingPocketId;
   } else {
-    plan.paid = plan.paid.filter(function(x){ return x.index !== idx; });
-    plan.paid.push({ index: idx, date: date, note: note, cfId:cfId_inst });
+    sel.value = '';
   }
-  saveInst(plans);
-  closeModal('instPayModal');
-  renderInst();
+
+  // Hint line under picker
+  var hint = document.getElementById('instPayPocketHint');
+  if(hint){
+    if(plan && plan.fundingPocketId){
+      var pname = _instPocketLabel(plan.fundingPocketId) || 'this pocket';
+      hint.innerHTML = '<span style="color:#5fe0a0;">✓ Default = '+pname+'</span> · change for this payment only, or set a new default in Edit Plan';
+      hint.style.color = '#5fe0a0';
+    } else {
+      hint.innerHTML = 'Pick the pocket this payment comes from. We\'ll remember it as the default for this plan next time.';
+      hint.style.color = '#888';
+    }
+  }
 }
 
-function unmarkInstPay(planId, idx){
+function confirmInstPay(){
+  var planId   = document.getElementById('instPayPlanId').value;
+  var idx      = parseInt(document.getElementById('instPayIndex').value);
+  var date     = document.getElementById('instPayDate').value || localDateStr(new Date());
+  var note     = document.getElementById('instPayNote').value.trim();
+  var pocketId = (document.getElementById('instPayPocketId')||{}).value || '';
+
+  if(!pocketId){
+    alert('Please pick the pocket this payment comes from.');
+    return;
+  }
+
   var plans = loadInst();
   var plan  = plans.find(function(p){ return p.id === planId; });
   if(!plan) return;
-  var payEntry=(plan.paid||[]).find(function(x){return x.index===idx;});
-  if(payEntry&&payEntry.cfId) removeFromCF(payEntry.cfId);
+
+  var pocket = _instGetPocket(pocketId);
+  if(!pocket){ alert('Pocket not found. Please pick another.'); return; }
+
+  if(!plan.paid) plan.paid = [];
+
+  // ── Soft balance check (non-blocking, just confirm) ──
+  try{
+    var bal = (typeof getFundBalance === 'function') ? getFundBalance(pocket) : 0;
+    if(bal < plan.amt){
+      var shortMsg = 'Heads up: '+pocket.name+' only has '+fmtR(bal)+' but the payment is '+fmtR(plan.amt)+' — short by '+fmtR(plan.amt - bal)+'.\n\nContinue anyway? (The pocket balance will go negative — usually a sign to move money in first.)';
+      if(!confirm(shortMsg)) return;
+    }
+  }catch(e){}
+
+  // ── Stamp this payment with a stable id ──
+  var instPayId = uid();
+  var depositId = uid();
+
+  // 1) Pocket deposit (out) — mirrors the spend.js pattern, source of truth
+  var payLabel = plan.desc + (idx === -1 ? ' (monthly)' : ' - payment '+(idx+1));
+  var deposit = {
+    id: depositId,
+    txnType: 'out',
+    amount: plan.amt,
+    date: date,
+    note: '🛍 ' + payLabel + (note ? ' · ' + note : ''),
+    cfPosted: true,
+    instalmentPayId: instPayId,
+    planId: planId
+  };
+  pocket.deposits = pocket.deposits || [];
+  pocket.deposits.push(deposit);
+  // Persist via the canonical saveFunds path so listeners refresh
+  try{
+    if(typeof saveFunds === 'function'){
+      saveFunds();
+    } else {
+      var allFunds = _instLoadFunds();
+      var idxF = allFunds.findIndex(function(f){ return f && f.id === pocketId; });
+      if(idxF > -1){ allFunds[idxF] = pocket; lsSet('funds', JSON.stringify(allFunds)); }
+    }
+  }catch(e){ console.warn('[inst] saveFunds failed', e); }
+
+  // 2) Cash Flow row — tagged to the pocket (account = pocket name) so the
+  //    CF renderer shows the purple "🛍 [Pocket]" badge.
+  //    sourceType:'instalment_pay' is recognised as a pocket-row by settings.js.
+  var cfId = null;
+  try{
+    cfId = postToCF({
+      label: payLabel,
+      amount: plan.amt,
+      date: date,
+      icon: 'inst',
+      type: 'expense',
+      account: pocket.name,
+      sourceType: 'instalment_pay',
+      sourceId: planId,
+      sourceCardName: plan.provider + ' ' + plan.desc,
+      note: 'Instalment · from ' + pocket.name + (note ? ' · ' + note : ''),
+      instalmentPayId: instPayId,
+      planId: planId,
+      destPocketId: pocketId
+    });
+  }catch(e){ console.warn('[inst] postToCF failed', e); }
+
+  // 3) Mark the instalment month paid + remember the new default pocket
+  var paidRec = {
+    index: (idx === -1)
+      ? (plan.paid.length > 0 ? Math.max.apply(null, plan.paid.map(function(x){ return x.index; })) + 1 : 0)
+      : idx,
+    date: date,
+    note: note,
+    cfId: cfId,
+    instalmentPayId: instPayId,
+    depositId: depositId,
+    pocketId: pocketId,
+    amount: plan.amt
+  };
+  if(idx !== -1){
+    plan.paid = plan.paid.filter(function(x){ return x.index !== idx; });
+  }
+  plan.paid.push(paidRec);
+
+  // Remember pocket as default for next time
+  plan.fundingPocketId = pocketId;
+
+  saveInst(plans);
+
+  // 4) Refresh
+  closeModal('instPayModal');
+  try{ renderInst(); }catch(e){}
+  try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+  try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+  try{ if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); }catch(e){}
+  try{ if(typeof odinRefreshIfOpen === 'function') odinRefreshIfOpen(); }catch(e){}
+
+  if(typeof softDeleteToast === 'function'){
+    softDeleteToast({ message: 'Paid · '+fmtR(plan.amt)+' from '+pocket.name, duration:2500 });
+  }
+}
+
+function unmarkInstPay(planId, idx){
+  _instalmentPayReverse(planId, idx, { silent: false });
+}
+
+// ── Step 8 v93: atomic reverse of an instalment payment ──
+// Used by:  ① Mark-Unpaid (Undo) button on the plan card
+//           ② Deposit-side hard-block in savings.js (delete deposit ✕)
+//           ③ CF-side hard-block in cashflow.js (delete CF row ✕ / edit ✕)
+// All three call here. Always reverses the pocket deposit, the CF row,
+// and the paid entry as a single unit. Idempotent against partial state.
+function _instalmentPayReverse(planId, idx, opts){
+  opts = opts || {};
+  var plans = loadInst();
+  var plan  = plans.find(function(p){ return p.id === planId; });
+  if(!plan) return false;
+  var payEntry = (plan.paid||[]).find(function(x){ return x.index === idx; });
+  if(!payEntry) return false;
+
+  // 1) Remove the CF row (if linked)
+  try{
+    if(payEntry.cfId && typeof removeFromCF === 'function'){
+      removeFromCF(payEntry.cfId);
+    }
+  }catch(e){ console.warn('[instReverse] removeFromCF failed', e); }
+
+  // 2) Remove the pocket deposit (if linked)
+  try{
+    if(payEntry.depositId && payEntry.pocketId){
+      var funds = _instLoadFunds();
+      var pk = funds.find(function(f){ return f && f.id === payEntry.pocketId; });
+      if(pk && Array.isArray(pk.deposits)){
+        pk.deposits = pk.deposits.filter(function(d){ return d.id !== payEntry.depositId; });
+        try{ if(typeof saveFunds === 'function'){ saveFunds(); } else { lsSet('funds', JSON.stringify(funds)); } }catch(e){}
+      }
+    }
+  }catch(e){ console.warn('[instReverse] pocket deposit removal failed', e); }
+
+  // 3) Remove the paid entry from the plan
   plan.paid = (plan.paid||[]).filter(function(x){ return x.index !== idx; });
   saveInst(plans);
-  renderInst();
+
+  // 4) Refresh UI (skip when silent — caller handles it)
+  if(!opts.silent){
+    try{ renderInst(); }catch(e){}
+    try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+    try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+    try{ if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); }catch(e){}
+    if(typeof softDeleteToast === 'function'){
+      var amt = payEntry.amount || plan.amt;
+      var pkName = _instPocketLabel(payEntry.pocketId) || 'the pocket';
+      softDeleteToast({ message: 'Reversed · '+fmtR(amt)+' back to '+pkName, duration: 2800 });
+    }
+  }
+  return true;
 }
 
 // ── Snowball: skip M2M plans, focus on fixed-term ones ──
@@ -498,11 +759,15 @@ function toggleInstCleared(){
 }
 
 function openInstM2MPay(planId){
+  var plans = loadInst();
+  var plan  = plans.find(function(p){ return p.id === planId; });
+  if(!plan) return;
   document.getElementById('instPayPlanId').value = planId;
   document.getElementById('instPayIndex').value = -1; // -1 = M2M
   document.getElementById('instPayDate').value = localDateStr(new Date());
   document.getElementById('instPayNote').value = '';
-  document.getElementById('instPayInfo').innerHTML = 'Log this month\'s MTN debit of <strong style="color:#f2c830;">R209</strong>.';
+  document.getElementById('instPayInfo').innerHTML = 'Log this month\'s '+plan.provider+' debit of <strong style="color:#f2c830;">'+fmtR(plan.amt)+'</strong>.';
+  _instPopulatePocketPicker(plan);
   document.getElementById('instPayModal').classList.add('active');
 }
 

@@ -2434,6 +2434,15 @@ function _showUpdateToast(worker){
       <label>Monthly Debit Day <span style="color:#555;font-size:9px;">— day of month account is debited</span></label>
       <input type="number" id="instDebitDay" placeholder="e.g. 20" min="1" max="31" style="color:#f2c830;font-weight:700;"/>
     </div>
+
+    <!-- Step 8 v93: default funding pocket for this plan -->
+    <div class="field">
+      <label>Default Funding Pocket <span style="color:#555;font-size:9px;">— which pocket pays this plan</span></label>
+      <select id="instFundingPocketId" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#c890ff;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;font-weight:700;">
+        <option value="">— No default (pick each time) —</option>
+      </select>
+      <div style="font-size:10px;color:#666;margin-top:4px;line-height:1.5;">Pre-selects this pocket on every Mark Paid for this plan. You can still change it for a single payment.</div>
+    </div>
     <input type="hidden" id="instEditId"/>
 
     <div class="modal-btns">
@@ -2448,6 +2457,16 @@ function _showUpdateToast(worker){
   <div class="modal">
     <h2 style="color:#c8f230;">✓ Mark Payment</h2>
     <div id="instPayInfo" style="background:#0d1a00;border:1px solid #2a4a00;border-radius:6px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#8ab820;line-height:1.7;"></div>
+
+    <!-- Step 8 v93: pocket picker — source of truth for the payment -->
+    <div class="field">
+      <label style="color:#c890ff;">Pay from pocket</label>
+      <select id="instPayPocketId" style="width:100%;background:#1a1024;border:1px solid #3a2a5a;color:#c890ff;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;font-weight:700;">
+        <option value="">— Pick a pocket —</option>
+      </select>
+      <div id="instPayPocketHint" style="font-size:10px;color:#888;margin-top:4px;line-height:1.5;">Pick the pocket this payment comes from.</div>
+    </div>
+
     <div class="field"><label>Payment Date</label><input type="date" id="instPayDate"/></div>
     <div class="field"><label>Note (optional)</label><input type="text" id="instPayNote" placeholder="e.g. Paid via app"/></div>
     <input type="hidden" id="instPayPlanId"/>

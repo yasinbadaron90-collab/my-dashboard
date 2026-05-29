@@ -910,6 +910,56 @@ function deleteDeposit(fid,did){
     }catch(e){ console.warn('[deleteDeposit] car-expense guard error', e); }
   }
 
+  // ── Step 8 v93 (2026-05-29) — Instalment-payment hard-block (deposit side) ──
+  // An instalment payment links this pocket deposit ↔ a CF expense ↔ a paid
+  // entry on the plan via instalmentPayId. Deleting just this deposit would
+  // leave the plan still showing "✓ Paid" and the CF row still posted.
+  // Redirect to the plan-level reverse (which removes all three atomically).
+  if(dep && dep.instalmentPayId && dep.planId){
+    try{
+      var _instPlans = (typeof loadInst === 'function') ? loadInst() : [];
+      var _instPlan = _instPlans.find(function(p){ return p.id === dep.planId; });
+      var _instEntry = _instPlan ? (_instPlan.paid||[]).find(function(x){ return x.instalmentPayId === dep.instalmentPayId; }) : null;
+      if(_instPlan && _instEntry){
+        var _instPk    = _instGetPocket(_instEntry.pocketId);
+        var _instPkN   = _instPk ? _instPk.name : 'this pocket';
+        var _instLabel = _instPlan.desc + ' · ' + _instPlan.provider;
+        var _instBody  =
+          'This deposit is part of an instalment payment:\n  🛍 '+_instLabel+' · '+fmtR(_instEntry.amount || _instPlan.amt)+' · '+(_instEntry.date||'')+'\n\n'+
+          'Deleting just this would leave the plan still marked ✓ Paid and the Cash Flow row in place. Mark it unpaid on the plan instead — that puts '+fmtR(_instEntry.amount || _instPlan.amt)+' back in '+_instPkN+', removes the Cash Flow row, and clears the paid tick.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _instBody,
+            dangerLabel: '↩ Mark unpaid on the plan',
+            safeLabel:   'Leave it alone'
+          }, function(go){
+            if(go){
+              if(typeof _instalmentPayReverse === 'function'){
+                _instalmentPayReverse(_instPlan.id, _instEntry.index, { silent: true });
+              }
+              try{ if(typeof closeModal === 'function') closeModal('histModal'); }catch(e){}
+              try{ if(typeof renderInst === 'function') renderInst(); }catch(e){}
+              try{ renderFunds(); }catch(e){}
+              try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Reversed · '+fmtR(_instEntry.amount || _instPlan.amt)+' back to '+_instPkN, duration:2800 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_instBody+'\n\nTap OK to mark unpaid on the plan now.\nTap Cancel to leave it alone.')){
+            if(typeof _instalmentPayReverse === 'function'){
+              _instalmentPayReverse(_instPlan.id, _instEntry.index, { silent: false });
+            }
+          }
+        }
+        return;
+      }
+      // Plan/paid entry gone → orphan → fall through to normal delete
+    }catch(e){ console.warn('[deleteDeposit] instalment guard error', e); }
+  }
+
   f.deposits=f.deposits.filter(d=>d.id!==did);
   saveFunds();
   if(dep&&dep.cfId) removeFromCF(dep.cfId);

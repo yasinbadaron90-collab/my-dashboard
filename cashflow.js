@@ -1227,6 +1227,46 @@ function openCfEntryModal(type, editId){
           return;
         }
       }
+
+      // ── Step 8 v93 (2026-05-29) — Instalment-payment hard-block (CF edit side) ──
+      if(_peekEntry && _peekEntry.instalmentPayId && _peekEntry.planId){
+        var _ceInstPlans = (typeof loadInst === 'function') ? loadInst() : [];
+        var _ceInstPlan  = _ceInstPlans.find(function(p){ return p.id === _peekEntry.planId; });
+        var _ceInstEntry = _ceInstPlan ? (_ceInstPlan.paid||[]).find(function(x){ return x.instalmentPayId === _peekEntry.instalmentPayId; }) : null;
+        if(_ceInstPlan && _ceInstEntry){
+          var _ceInstL = _ceInstPlan.desc + ' · ' + _ceInstPlan.provider;
+          var _ceBody  =
+            'This line is part of an instalment payment:\n  🛍 '+_ceInstL+' · '+fmtR(_ceInstEntry.amount || _ceInstPlan.amt)+'\n\n'+
+            'Editing here would only change the Cash Flow line — the pocket deduction and the plan\'s paid tick would still show the old amount. Edit the plan from the Instalments tab instead (or mark it unpaid and re-log the payment).';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from the Instalments tab instead',
+              body:  _ceBody,
+              dangerLabel: '↩ Mark unpaid on the plan',
+              safeLabel:   'Leave it alone'
+            }, function(go){
+              if(go){
+                if(typeof _instalmentPayReverse === 'function'){
+                  _instalmentPayReverse(_ceInstPlan.id, _ceInstEntry.index, { silent: true });
+                }
+                try{ if(typeof renderInst === 'function') renderInst(); }catch(e){}
+                try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+                try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+                if(typeof softDeleteToast === 'function'){
+                  softDeleteToast({ message:'Reversed · '+fmtR(_ceInstEntry.amount || _ceInstPlan.amt), duration:2500 });
+                }
+              }
+            });
+          } else {
+            if(confirm('🔒 Edit from the Instalments tab instead\n\n'+_ceBody+'\n\nTap OK to mark unpaid on the plan now.\nTap Cancel to leave it alone.')){
+              if(typeof _instalmentPayReverse === 'function'){
+                _instalmentPayReverse(_ceInstPlan.id, _ceInstEntry.index, { silent: false });
+              }
+            }
+          }
+          return;
+        }
+      }
     }catch(e){ console.warn('[cfEdit] money-in guard error', e); }
   }
 
@@ -1621,6 +1661,48 @@ function deleteCfEntry(id, type){
         return;
       }
       // No live car expense → orphan → fall through
+    }
+
+    // ── Step 8 v93 (2026-05-29) — Instalment-payment hard-block (CF delete side) ──
+    if(_peekEntry && _peekEntry.instalmentPayId && _peekEntry.planId){
+      var _cfInstPlans = (typeof loadInst === 'function') ? loadInst() : [];
+      var _cfInstPlan  = _cfInstPlans.find(function(p){ return p.id === _peekEntry.planId; });
+      var _cfInstEntry = _cfInstPlan ? (_cfInstPlan.paid||[]).find(function(x){ return x.instalmentPayId === _peekEntry.instalmentPayId; }) : null;
+      if(_cfInstPlan && _cfInstEntry){
+        var _cfPk    = (typeof funds !== 'undefined') ? funds.find(function(f){ return f.id === _cfInstEntry.pocketId; }) : null;
+        var _cfPkN   = _cfPk ? _cfPk.name : 'the pocket';
+        var _cfInstL = _cfInstPlan.desc + ' · ' + _cfInstPlan.provider;
+        var _cfBody  =
+          'This line is part of an instalment payment:\n  🛍 '+_cfInstL+' · '+fmtR(_cfInstEntry.amount || _cfInstPlan.amt)+' · '+(_cfInstEntry.date||'')+'\n\n'+
+          'Deleting just this line would leave the pocket deducted and the plan still showing ✓ Paid. Mark it unpaid on the plan instead — that puts '+fmtR(_cfInstEntry.amount || _cfInstPlan.amt)+' back in '+_cfPkN+', clears the paid tick, and removes this Cash Flow row cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _cfBody,
+            dangerLabel: '↩ Mark unpaid on the plan',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse){
+              if(typeof _instalmentPayReverse === 'function'){
+                _instalmentPayReverse(_cfInstPlan.id, _cfInstEntry.index, { silent: true });
+              }
+              try{ if(typeof renderInst === 'function') renderInst(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+              try{ renderCashFlow(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Reversed · '+fmtR(_cfInstEntry.amount || _cfInstPlan.amt)+' back to '+_cfPkN, duration:2800 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_cfBody+'\n\nTap OK to mark unpaid on the plan now.\nTap Cancel to leave it alone.')){
+            if(typeof _instalmentPayReverse === 'function'){
+              _instalmentPayReverse(_cfInstPlan.id, _cfInstEntry.index, { silent: false });
+            }
+          }
+        }
+        return;
+      }
     }
   }catch(e){ console.warn('[cfDelete] money-in guard error', e); }
 
