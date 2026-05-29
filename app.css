@@ -516,3 +516,20 @@ body.modal-open #spendFAB,
 body.modal-open #moveFAB {
   display: none !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/* v93.4 (2026-05-29) — FAB TOGGLE button                                  */
+/* When the toggle is in "closed" state, the 3 FABs are hidden via the    */
+/* body.fabs-hidden class. The toggle itself is hidden while FABs show    */
+/* (Q2=B). The toggle also hides when any modal opens (same as the FABs). */
+/* ══════════════════════════════════════════════════════════════════════ */
+body.fabs-hidden #moneyInFAB,
+body.fabs-hidden #spendFAB,
+body.fabs-hidden #moveFAB {
+  display: none !important;
+}
+body:has(.overlay.active) #fabToggle,
+body:has(.qe-overlay.active) #fabToggle,
+body.modal-open #fabToggle {
+  display: none !important;
+}
