@@ -491,28 +491,50 @@ function saveFund(){
 function buildEmojiGrid(){const g=document.getElementById('emojiGrid');g.innerHTML='';EMOJIS.forEach(e=>{const b=document.createElement('button');b.className='emoji-opt'+(e===selEmoji?' selected':'');b.textContent=e;b.onclick=()=>{selEmoji=e;buildEmojiGrid();};g.appendChild(b);});}
 function buildColorGrid(){const g=document.getElementById('colorGrid');g.innerHTML='';COLORS.forEach(c=>{const b=document.createElement('button');b.className='color-opt'+(c===selColor?' selected':'');b.style.background=c;b.onclick=()=>{selColor=c;buildColorGrid();};g.appendChild(b);});}
 function deleteFund(id){
-  if(!confirm('Delete this fund?')) return;
-  // Find the fund first so we can use its name in the toast
+  // v96 — show custom confirm dialog instead of native confirm()
+  // The actual deletion happens in _performDeleteFund, called by the dialog's
+  // Delete button. Custom dialog shows pocket name, balance, history count
+  // so it's clear what's being deleted (the old native confirm was generic).
   var fund = funds.find(function(f){ return f.id===id; });
   if(!fund) return;
-  // Soft-delete: flag the item rather than removing it. renderFunds skips
-  // _deleted entries, so it disappears from the UI immediately.
+  openDeleteFundConfirm(id);
+}
+
+function openDeleteFundConfirm(id){
+  var fund = funds.find(function(f){ return f.id===id; });
+  if(!fund) return;
+  var name = (fund.emoji || '💰') + ' ' + fund.name;
+  var balance = fundTotal(fund);
+  var depCount = (fund.deposits || []).length;
+  document.getElementById('delFundName').textContent = name;
+  document.getElementById('delFundBalance').textContent = fmtR(balance);
+  document.getElementById('delFundGoal').textContent = fund.goal ? fmtR(fund.goal) : '—';
+  document.getElementById('delFundHistCount').textContent = depCount;
+  document.getElementById('delFundConfirmBtn').onclick = function(){
+    closeModal('deleteFundConfirmModal');
+    _performDeleteFund(id);
+  };
+  document.getElementById('deleteFundConfirmModal').classList.add('active');
+}
+
+function _performDeleteFund(id){
+  // The actual delete logic — soft-delete + 2-second undo toast. Unchanged
+  // from previous deleteFund() body except wrapped in this function so the
+  // custom dialog can call it after user confirms.
+  var fund = funds.find(function(f){ return f.id===id; });
+  if(!fund) return;
   fund._deleted = true;
   saveFunds();
   renderFunds();
-  // Wire up undo + purge
   softDeleteToast({
     label: fund.emoji ? (fund.emoji+' '+fund.name) : fund.name,
     onUndo: function(){
-      // Restore — clear the flag and re-render
       var f = funds.find(function(x){ return x.id===id; });
       if(f){ delete f._deleted; saveFunds(); renderFunds(); }
     },
     onPurge: function(){
-      // User didn't undo — purge for real
       funds = funds.filter(function(x){ return x.id!==id; });
       saveFunds();
-      // No need to re-render — the item was already hidden
     }
   });
 }
@@ -574,7 +596,7 @@ function confirmDeposit(){
   // Refresh the Available Cash card so the drained bucket updates live.
   try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
 }
-function openHistory(id){window._currentHistFundId=id;const f=funds.find(x=>x.id===id);document.getElementById('histTitle').textContent=f.emoji+' '+f.name;const deps=[...f.deposits].reverse();let html='';if(!deps.length){html='<p style="color:var(--muted);font-size:12px">No deposits yet.</p>';}else{html='<table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">DATE</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">AMOUNT</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">NOTE</th><th style="padding:4px 6px;border-bottom:1px solid var(--border)"></th></tr>';deps.forEach(d=>{const isOut=d.txnType==='out';const amtColor=isOut?'#f23060':'#c8f230';const prefix=isOut?'-':'+';html+=`<tr><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:var(--muted)">${d.date}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:${amtColor};font-weight:500">${prefix}${fmtR(d.amount)}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:var(--muted)">${d.note||'—'}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a"><button onclick="deleteDeposit('${f.id}','${d.id}')" style="background:none;border:none;cursor:pointer;color:#333;font-size:13px" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#333'">✕</button></td></tr>`;});html+='</table>';}document.getElementById('histContent').innerHTML=html;document.getElementById('histModal').classList.add('active');}
+function openHistory(id){window._currentHistFundId=id;const f=funds.find(x=>x.id===id);document.getElementById('histTitle').textContent=f.emoji+' '+f.name;const deps=[...f.deposits].reverse();let html='';if(!deps.length){html='<p style="color:var(--muted);font-size:12px">No deposits yet.</p>';}else{html='<table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">DATE</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">AMOUNT</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">NOTE</th><th style="padding:4px 6px;border-bottom:1px solid var(--border)"></th></tr>';deps.forEach(d=>{const isOut=d.txnType==='out';const amtColor=isOut?'#f23060':'#c8f230';const prefix=isOut?'-':'+';html+=`<tr><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:var(--muted)">${d.date}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:${amtColor};font-weight:500">${prefix}${fmtR(d.amount)}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:var(--muted)">${d.note||'—'}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;white-space:nowrap"><button onclick="openEditDeposit(\'${f.id}\',\'${d.id}\')" title="Edit" style="background:none;border:none;cursor:pointer;color:#444;font-size:13px;padding:2px 4px" onmouseover="this.style.color=\'#7aa050\'" onmouseout="this.style.color=\'#444\'">✏️</button><button onclick="deleteDeposit('${f.id}','${d.id}')" style="background:none;border:none;cursor:pointer;color:#333;font-size:13px" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#333'">✕</button></td></tr>`;});html+='</table>';}document.getElementById('histContent').innerHTML=html;document.getElementById('histModal').classList.add('active');}
 function deleteDeposit(fid,did){
   const f=funds.find(x=>x.id===fid);
   const dep=f.deposits.find(function(d){return d.id===did;});
@@ -1458,6 +1480,9 @@ function _pocketStmtStripEmoji(s){
     .replace(/[\u{1F300}-\u{1FAFF}]/gu, '')
     .replace(/[\u{2600}-\u{27BF}]/gu, '')
     .replace(/[\u{1F000}-\u{1F2FF}]/gu, '')
+    .replace(/[\u{2190}-\u{21FF}]/gu, '')   // v96 — arrows (↩ ↑ ↓ ← →) jsPDF helvetica can't render
+    .replace(/[\u{2300}-\u{23FF}]/gu, '')   // v96 — misc technical
+    .replace(/[\u{25A0}-\u{25FF}]/gu, '')   // v96 — geometric shapes
     .replace(/[\u{FE0F}]/gu, '')
     .replace(/[\u{200D}]/gu, '')
     .replace(/\s+/g, ' ')
@@ -1664,3 +1689,113 @@ window.onStmtDateChange = onStmtDateChange;
 window.pocketStmtExportPDF = pocketStmtExportPDF;
 window.pocketStmtExportCSV = pocketStmtExportCSV;
 window.pocketStmtExportCopy = pocketStmtExportCopy;
+
+// ═══════════════════════════════════════════════════════════════
+// v96 — POCKET DEPOSIT EDIT
+// ═══════════════════════════════════════════════════════════════
+// Adds an ✏️ button to each pocket history row. Tap → opens edit modal.
+//
+// LINKED deposits (carry moneyInId / spendId / repayId / carExpenseId /
+//   instalmentPayId / carpoolPaymentId / moveId / lendId):
+//     - Amount LOCKED to prevent cascade-drift
+//     - Date + note still editable for typo fixes
+//
+// STANDALONE deposits (legacy seeds, manual entries — no linkage IDs):
+//     - All 3 fields editable (the Emergency R1299→R1100 patch use-case)
+
+function _isLinkedDeposit(d){
+  return !!(d && (
+    d.moneyInId || d.spendId || d.repayId ||
+    d.carExpenseId || d.instalmentPayId ||
+    d.carpoolPaymentId || d.moveId || d.lendId
+  ));
+}
+
+function _depositLinkLabel(d){
+  if(!d) return '';
+  if(d.moneyInId)        return 'Money In';
+  if(d.spendId)          return 'Spend';
+  if(d.repayId)          return 'Repayment';
+  if(d.carExpenseId)     return 'Car expense';
+  if(d.instalmentPayId)  return 'Instalment payment';
+  if(d.carpoolPaymentId) return 'Carpool payment';
+  if(d.moveId)           return 'Pocket-to-pocket Move';
+  if(d.lendId)           return 'Lend';
+  return '';
+}
+
+let _editingDepFundId = null;
+let _editingDepDepId  = null;
+
+function openEditDeposit(fundId, depId){
+  const f = funds.find(function(x){ return x.id===fundId; });
+  if(!f) return;
+  const dep = (f.deposits || []).find(function(d){ return d.id===depId; });
+  if(!dep) return;
+
+  _editingDepFundId = fundId;
+  _editingDepDepId  = depId;
+
+  const linked    = _isLinkedDeposit(dep);
+  const linkLabel = _depositLinkLabel(dep);
+
+  // Populate fields
+  document.getElementById('editDepAmount').value = dep.amount || '';
+  document.getElementById('editDepDate').value   = dep.date   || '';
+  document.getElementById('editDepNote').value   = dep.note   || '';
+
+  // Lock amount for linked deposits
+  document.getElementById('editDepAmount').disabled = linked;
+
+  // Show/hide linked banner + lock note
+  const banner   = document.getElementById('editDepLinkedBanner');
+  const lockNote = document.getElementById('editDepAmountLockNote');
+  if(linked){
+    banner.style.display = 'block';
+    document.getElementById('editDepLinkLabel').textContent = linkLabel;
+    lockNote.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+    lockNote.style.display = 'none';
+  }
+
+  document.getElementById('editDepModal').classList.add('active');
+}
+
+function confirmEditDeposit(){
+  const f = funds.find(function(x){ return x.id===_editingDepFundId; });
+  if(!f){ closeModal('editDepModal'); return; }
+  const dep = (f.deposits || []).find(function(d){ return d.id===_editingDepDepId; });
+  if(!dep){ closeModal('editDepModal'); return; }
+
+  const newAmount = parseFloat(document.getElementById('editDepAmount').value);
+  const newDate   = document.getElementById('editDepDate').value;
+  const newNote   = document.getElementById('editDepNote').value.trim();
+
+  if(!newDate){ alert('Date is required.'); return; }
+
+  const linked = _isLinkedDeposit(dep);
+
+  // Amount only changes for unlinked deposits
+  if(!linked){
+    if(isNaN(newAmount) || newAmount <= 0){
+      alert('Amount must be greater than 0.');
+      return;
+    }
+    dep.amount = newAmount;
+  }
+
+  // Date + note always editable
+  dep.date = newDate;
+  dep.note = newNote;
+
+  saveFunds();
+  closeModal('editDepModal');
+  renderFunds();
+  // Re-open history so user sees the updated row
+  openHistory(_editingDepFundId);
+}
+
+window.openEditDeposit    = openEditDeposit;
+window.confirmEditDeposit = confirmEditDeposit;
+window.openDeleteFundConfirm = openDeleteFundConfirm; // v96 — needed for delete dialog
