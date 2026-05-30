@@ -410,6 +410,7 @@ function openRepayModal(){
   });
   sel.value = firstOwing || PASSENGERS[0];
   updateRepayOwingSummary();
+  _repaySelectedPocketId = null;  // v95.1 — fresh open should re-suggest origin
   renderRepayPocketPicker();   // v84 — Step 4
   document.getElementById('repayModal').classList.add('active');
 }
@@ -440,13 +441,21 @@ function renderRepayPocketPicker(){
   if(!picker) return;
   var passenger = document.getElementById('repayPassenger').value;
   var originId = _findOriginPocketForPassenger(passenger);
-  // Default selection: origin if present, else first pocket
-  if(originId && funds.find(function(f){ return f.id === originId; })){
-    _repaySelectedPocketId = originId;
-  } else if(funds.length > 0){
-    _repaySelectedPocketId = funds[0].id;
-  } else {
-    _repaySelectedPocketId = null;
+  // v95.1 FIX: only set default selection when nothing is selected yet (or
+  // stale selection no longer matches any fund). Previous code reset on every
+  // render, which clobbered user taps in selectRepayPocket(). Callers that
+  // want a fresh origin auto-suggest must reset _repaySelectedPocketId = null
+  // before calling this (modal-open + passenger-change do that).
+  var hasValidSelection = _repaySelectedPocketId &&
+    funds.find(function(f){ return f.id === _repaySelectedPocketId; });
+  if(!hasValidSelection){
+    if(originId && funds.find(function(f){ return f.id === originId; })){
+      _repaySelectedPocketId = originId;
+    } else if(funds.length > 0){
+      _repaySelectedPocketId = funds[0].id;
+    } else {
+      _repaySelectedPocketId = null;
+    }
   }
   picker.innerHTML = funds.map(function(f){
     var bal = (f.deposits||[]).reduce(function(s,d){
@@ -499,6 +508,7 @@ document.addEventListener('DOMContentLoaded', function(){
   const sel = document.getElementById('repayPassenger');
   if(sel) sel.addEventListener('change', function(){
     updateRepayOwingSummary();
+    _repaySelectedPocketId = null;  // v95.1 — passenger changed, re-suggest origin
     renderRepayPocketPicker();   // v84 — re-suggest origin pocket
   });
 });
