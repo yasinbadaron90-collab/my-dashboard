@@ -410,7 +410,6 @@ function openRepayModal(){
   });
   sel.value = firstOwing || PASSENGERS[0];
   updateRepayOwingSummary();
-  _repaySelectedPocketId = null;  // v95.1 — fresh open should re-suggest origin
   renderRepayPocketPicker();   // v84 — Step 4
   document.getElementById('repayModal').classList.add('active');
 }
@@ -441,21 +440,13 @@ function renderRepayPocketPicker(){
   if(!picker) return;
   var passenger = document.getElementById('repayPassenger').value;
   var originId = _findOriginPocketForPassenger(passenger);
-  // v95.1 FIX: only set default selection when nothing is selected yet (or
-  // stale selection no longer matches any fund). Previous code reset on every
-  // render, which clobbered user taps in selectRepayPocket(). Callers that
-  // want a fresh origin auto-suggest must reset _repaySelectedPocketId = null
-  // before calling this (modal-open + passenger-change do that).
-  var hasValidSelection = _repaySelectedPocketId &&
-    funds.find(function(f){ return f.id === _repaySelectedPocketId; });
-  if(!hasValidSelection){
-    if(originId && funds.find(function(f){ return f.id === originId; })){
-      _repaySelectedPocketId = originId;
-    } else if(funds.length > 0){
-      _repaySelectedPocketId = funds[0].id;
-    } else {
-      _repaySelectedPocketId = null;
-    }
+  // Default selection: origin if present, else first pocket
+  if(originId && funds.find(function(f){ return f.id === originId; })){
+    _repaySelectedPocketId = originId;
+  } else if(funds.length > 0){
+    _repaySelectedPocketId = funds[0].id;
+  } else {
+    _repaySelectedPocketId = null;
   }
   picker.innerHTML = funds.map(function(f){
     var bal = (f.deposits||[]).reduce(function(s,d){
@@ -472,9 +463,9 @@ function renderRepayPocketPicker(){
     return '<div onclick="selectRepayPocket(\''+f.id+'\')" '
       + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';">'
       + '<span style="font-size:12px;color:'+nameColor+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+f.name+tag+'</span>'
-      + '<span style="font-size:10px;color:#666;">R'+bal.toLocaleString('en-ZA')+'</span>'
+      + '<span style="font-size:10px;color:var(--muted);">R'+bal.toLocaleString('en-ZA')+'</span>'
       + '</div>';
-  }).join('') || '<div style="font-size:11px;color:#444;padding:8px;text-align:center;">No pockets exist yet.</div>';
+  }).join('') || '<div style="font-size:11px;color:var(--muted);padding:8px;text-align:center;">No pockets exist yet.</div>';
 }
 
 function selectRepayPocket(id){
@@ -508,7 +499,6 @@ document.addEventListener('DOMContentLoaded', function(){
   const sel = document.getElementById('repayPassenger');
   if(sel) sel.addEventListener('change', function(){
     updateRepayOwingSummary();
-    _repaySelectedPocketId = null;  // v95.1 — passenger changed, re-suggest origin
     renderRepayPocketPicker();   // v84 — re-suggest origin pocket
   });
 });
@@ -868,7 +858,7 @@ function renderArchivedMoney(){
     hasAny = true;
     var d = document.createElement('div');
     d.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#111;border:1px solid #2a2a2a;border-radius:8px;margin-bottom:8px;';
-    d.innerHTML = '<div><div style="font-size:13px;color:#555;">'+name+'</div><div style="font-size:9px;color:#333;letter-spacing:1px;">CARPOOL</div></div>'
+    d.innerHTML = '<div><div style="font-size:13px;color:var(--muted);">'+name+'</div><div style="font-size:9px;color:var(--muted2);letter-spacing:1px;">CARPOOL</div></div>'
       +'<button onclick="unarchivePerson(\''+name+'\',\'carpool\')" style="background:none;border:1px solid #2a3a1a;border-radius:6px;padding:5px 12px;color:#5a8800;font-family:DM Mono,monospace;font-size:10px;cursor:pointer;">Restore</button>';
     container.appendChild(d);
   });
@@ -881,13 +871,13 @@ function renderArchivedMoney(){
     hasAny = true;
     var d = document.createElement('div');
     d.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#111;border:1px solid #2a2a2a;border-radius:8px;margin-bottom:8px;';
-    d.innerHTML = '<div><div style="font-size:13px;color:#555;">'+p.name+'</div><div style="font-size:9px;color:#333;letter-spacing:1px;">PERSONAL</div></div>'
+    d.innerHTML = '<div><div style="font-size:13px;color:var(--muted);">'+p.name+'</div><div style="font-size:9px;color:var(--muted2);letter-spacing:1px;">PERSONAL</div></div>'
       +'<button onclick="unarchivePerson(\''+key+'\',\'external\')" style="background:none;border:1px solid #2a3a1a;border-radius:6px;padding:5px 12px;color:#5a8800;font-family:DM Mono,monospace;font-size:10px;cursor:pointer;">Restore</button>';
     container.appendChild(d);
   });
 
   if(!hasAny){
-    container.innerHTML = '<div style="font-size:11px;color:#333;padding:8px 0;">No archived people.</div>';
+    container.innerHTML = '<div style="font-size:11px;color:var(--muted2);padding:8px 0;">No archived people.</div>';
   }
 }
 
@@ -1038,11 +1028,11 @@ function recalcPricing(){
   if(result){ result.style.background=bgColor; result.style.borderColor=borderColor; }
 
   if(resExplain) resExplain.innerHTML =
-    'Tank <strong style="color:#efefef;">R'+tankCost+'</strong>'
+    'Tank <strong style="color:var(--text);">R'+tankCost+'</strong>'
     +' − Private use <strong style="color:#f2a830;">R'+Math.round(privateUseAmt)+'</strong>'
     +' = Carpool share <strong style="color:#c8f230;">R'+Math.round(carpoolCost)+'</strong><br>'
     +'R'+Math.round(carpoolCost)+' ÷ '+tripsPerTank+' trips'
-    +' = <strong style="color:#efefef;">R'+breakEven.toFixed(2)+' break-even</strong>'
+    +' = <strong style="color:var(--text);">R'+breakEven.toFixed(2)+' break-even</strong>'
     +' + 10% → <strong style="color:#c8f230;">R'+recommended+' recommended</strong>';
 
   try{

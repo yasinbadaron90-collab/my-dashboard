@@ -66,25 +66,25 @@ function openAddRoutineTask(editId){
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:flex-end;justify-content:center;';
   overlay.innerHTML =
     '<div style="background:#111;border:1px solid #2a2a2a;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;">'
-      +'<div style="padding:20px 20px 12px;border-bottom:1px solid #1a1a1a;">'
-        +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:#efefef;">'+(existing?'Edit Task':'+ New Task')+'</div>'
+      +'<div style="padding:20px 20px 12px;border-bottom:1px solid var(--border);">'
+        +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:var(--text);">'+(existing?'Edit Task':'+ New Task')+'</div>'
       +'</div>'
       +'<div style="padding:16px 20px;display:grid;gap:14px;">'
-        +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#555;display:block;margin-bottom:6px;">Emoji</label>'
+        +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">Emoji</label>'
           +'<input id="rtEmoji" type="text" maxlength="2" value="'+(existing?existing.emoji:'✅')+'" style="width:60px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:10px 12px;color:#efefef;font-size:20px;text-align:center;"></div>'
-        +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#555;display:block;margin-bottom:6px;">Task Name</label>'
+        +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">Task Name</label>'
           +'<input id="rtName" type="text" value="'+(existing?existing.name:'')+'" placeholder="e.g. Wash EE90" style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:10px 12px;color:#efefef;font-family:\'DM Mono\',monospace;font-size:13px;"></div>'
-        +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#555;display:block;margin-bottom:8px;">Category</label>'
+        +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Category</label>'
           +'<div id="rtCatPicker" style="display:flex;flex-wrap:wrap;gap:6px;">'+catOpts+'</div>'
           +'<input type="hidden" id="rtCat" value="'+(existing?existing.category:'personal')+'"></div>'
-        +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#555;display:block;margin-bottom:8px;">Frequency</label>'
+        +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Frequency</label>'
           +'<div id="rtFreqPicker" style="display:flex;flex-wrap:wrap;gap:6px;">'+freqOpts+'</div>'
           +'<input type="hidden" id="rtFreq" value="'+(existing?existing.freq:'monthly')+'"></div>'
       +'</div>'
       +'<div style="display:flex;gap:8px;padding:12px 20px 20px;">'
         +'<button id="rtSaveBtn" style="flex:1;background:#1a2e00;border:1px solid #3a5a00;border-radius:8px;padding:12px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Save</button>'
-        +(existing?'<button id="rtDeleteBtn" style="background:none;border:1px solid #2a1a1a;border-radius:8px;padding:12px 14px;color:#555;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Delete</button>':'')
-        +'<button id="rtCancelBtn" style="background:none;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px;color:#555;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">Cancel</button>'
+        +(existing?'<button id="rtDeleteBtn" style="background:none;border:1px solid #2a1a1a;border-radius:8px;padding:12px 14px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Delete</button>':'')
+        +'<button id="rtCancelBtn" style="background:none;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">Cancel</button>'
       +'</div>'
     +'</div>';
 
@@ -167,7 +167,7 @@ function renderRoutine(){
 
     if(neverDone){
       statusClass = '';
-      badge = '<span style="color:#555;font-size:10px;letter-spacing:1px;">Never done — tap ✓ to start</span>';
+      badge = '<span style="color:var(--muted);font-size:10px;letter-spacing:1px;">Never done — tap ✓ to start</span>';
     } else if(diff !== null && diff < 0){
       statusClass = 'overdue';
       badge = '<span style="color:#f23060;font-size:10px;letter-spacing:1px;">⚠ Overdue '+Math.abs(diff)+'d</span>';
@@ -199,17 +199,17 @@ function renderRoutine(){
         +'<div style="padding:14px 16px 10px;display:flex;align-items:center;gap:14px;">'
           +'<div style="font-size:26px;flex-shrink:0;">'+task.emoji+'</div>'
           +'<div style="flex:1;min-width:0;">'
-            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#efefef;">'+task.name+'</div>'
+            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--text);">'+task.name+'</div>'
             +'<div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">'
               +'<span style="font-size:9px;background:'+color+'22;border:1px solid '+color+'44;border-radius:100px;padding:1px 7px;color:'+color+';letter-spacing:0.5px;">'+FREQ_LABELS[task.freq].toUpperCase()+'</span>'
-              +'<span style="font-size:9px;background:var(--muted2);border-radius:100px;padding:1px 7px;color:#555;letter-spacing:0.5px;">'+CAT_ICONS[task.category]+' '+(task.category||'other')+'</span>'
+              +'<span style="font-size:9px;background:var(--muted2);border-radius:100px;padding:1px 7px;color:var(--muted);letter-spacing:0.5px;">'+CAT_ICONS[task.category]+' '+(task.category||'other')+'</span>'
               +badge
             +'</div>'
-            +(lastDoneStr?'<div style="font-size:9px;color:#444;margin-top:4px;letter-spacing:0.5px;">'+lastDoneStr+'</div>':'')
+            +(lastDoneStr?'<div style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;">'+lastDoneStr+'</div>':'')
           +'</div>'
           +'<div style="display:flex;gap:6px;flex-shrink:0;">'
             +'<button onclick="markRoutineDone(\''+task.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;width:34px;height:34px;cursor:pointer;font-size:16px;color:#c8f230;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'" title="Mark as done">✓</button>'
-            +'<button onclick="openAddRoutineTask(\''+task.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:34px;height:34px;cursor:pointer;font-size:13px;color:#555;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.borderColor=\'#444\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'" title="Edit">✎</button>'
+            +'<button onclick="openAddRoutineTask(\''+task.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:34px;height:34px;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.borderColor=\'#444\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'" title="Edit">✎</button>'
           +'</div>'
         +'</div>'
         // Progress bar
@@ -230,7 +230,7 @@ function renderRoutine(){
           ctaLabel: '+ Add Task',
           ctaOnclick: 'openAddRoutineTask()'
         })
-      : '<div style="padding:40px 16px;text-align:center;color:#333;font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">No tasks yet — tap + Add Task to get started</div>';
+      : '<div style="padding:40px 16px;text-align:center;color:var(--muted);font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">No tasks yet — tap + Add Task to get started</div>';
   }
 
   list.innerHTML = html;
@@ -241,7 +241,7 @@ function renderRoutine(){
     pills.innerHTML =
       (overdueCount>0?'<span style="background:#2a0000;border:1px solid #f23060;border-radius:100px;padding:5px 12px;font-size:10px;color:#f23060;letter-spacing:1px;">⚠ '+overdueCount+' overdue</span>':'')
       +(dueCount>0?'<span style="background:#2a1a00;border:1px solid #f2a830;border-radius:100px;padding:5px 12px;font-size:10px;color:#f2a830;letter-spacing:1px;">⏰ '+dueCount+' due soon</span>':'')
-      +'<span style="background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:5px 12px;font-size:10px;color:#888;letter-spacing:1px;">'+tasks.length+' tasks</span>';
+      +'<span style="background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:5px 12px;font-size:10px;color:var(--muted);letter-spacing:1px;">'+tasks.length+' tasks</span>';
   }
 }
 
@@ -371,7 +371,7 @@ function renderPriorityList(){
     div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 14px;background:#111;border:1px solid '+(rule.enabled?rule.color+'55':'#2a2a2a')+';border-radius:8px '+(TARGETABLE_RULES.indexOf(rule.id)>-1?'8px 0 0':'8px')+';cursor:grab;transition:border-color .2s;';
 
     var grip = document.createElement('span');
-    grip.style.cssText = 'color:#444;font-size:16px;cursor:grab;user-select:none;';
+    grip.style.cssText = 'color:var(--muted);font-size:16px;cursor:grab;user-select:none;';
     grip.textContent = '⋮⋮';
 
     var cb = document.createElement('input');
@@ -386,7 +386,7 @@ function renderPriorityList(){
     title.style.cssText = 'font-family:Syne,sans-serif;font-weight:700;font-size:13px;color:'+(rule.enabled?'#efefef':'#555')+';';
     title.textContent = rule.name;
     var desc = document.createElement('div');
-    desc.style.cssText = 'font-size:10px;color:#555;margin-top:2px;';
+    desc.style.cssText = 'font-size:10px;color:var(--muted);margin-top:2px;';
     desc.textContent = rule.desc;
     info.appendChild(title);
     info.appendChild(desc);
@@ -407,7 +407,7 @@ function renderPriorityList(){
       targetRow.style.cssText = 'background:#0d0d0d;border:1px solid '+(rule.enabled?rule.color+'33':'#1a1a1a')+';border-top:none;border-radius:0 0 8px 8px;padding:8px 14px;display:flex;align-items:center;gap:8px;';
 
       var targetLabel = document.createElement('span');
-      targetLabel.style.cssText = 'font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;';
+      targetLabel.style.cssText = 'font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;';
       targetLabel.textContent = 'Target:';
 
       var sel = document.createElement('select');

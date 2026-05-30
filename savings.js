@@ -97,7 +97,7 @@ function renderFunds(){
           ctaLabel: '+ New Savings Fund',
           ctaOnclick: 'openNewFund()'
         })+'</div>'
-      : '<div style="grid-column:1/-1;text-align:center;padding:48px 24px;color:#333;font-size:13px;letter-spacing:1px;">No savings funds yet.<br><span style="font-size:11px;color:#2a2a2a;">Tap <strong style="color:#555;">+ New Savings Fund</strong> to get started.</span></div>';
+      : '<div style="grid-column:1/-1;text-align:center;padding:48px 24px;color:var(--muted);font-size:13px;letter-spacing:1px;">No savings funds yet.<br><span style="font-size:11px;color:#2a2a2a;">Tap <strong style="color:var(--muted);">+ New Savings Fund</strong> to get started.</span></div>';
     renderBankStrip();
     try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
     return;
@@ -227,16 +227,16 @@ function openBalanceEdit(fundId){
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;';
   modal.innerHTML =
     '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:20px;width:100%;max-width:340px;">'
-    + '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:16px;color:#efefef;margin-bottom:4px;">' + f.emoji + ' ' + f.name + '</div>'
-    + '<div style="font-size:10px;color:#555;letter-spacing:1px;margin-bottom:16px;">Set the actual balance in your bank account</div>'
+    + '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:16px;color:var(--text);margin-bottom:4px;">' + f.emoji + ' ' + f.name + '</div>'
+    + '<div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:16px;">Set the actual balance in your bank account</div>'
     + '<div style="margin-bottom:6px;">'
-    + '<label style="display:block;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#555;margin-bottom:6px;">Actual Bank Balance (R)</label>'
+    + '<label style="display:block;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Actual Bank Balance (R)</label>'
     + '<input id="balEditInput" type="number" inputmode="decimal" value="' + current.toFixed(2) + '" '
     + 'style="width:100%;background:#111;border:1px solid #333;color:#efefef;font-family:\'DM Mono\',monospace;font-size:18px;padding:12px;border-radius:4px;outline:none;box-sizing:border-box;"/>'
     + '</div>'
-    + '<div style="font-size:10px;color:#444;margin-bottom:18px;letter-spacing:0.5px;">Tracked by deposits: <span style="color:#888;">' + fmtR(tracked) + '</span></div>'
+    + '<div style="font-size:10px;color:var(--muted);margin-bottom:18px;letter-spacing:0.5px;">Tracked by deposits: <span style="color:var(--muted);">' + fmtR(tracked) + '</span></div>'
     + '<div style="display:flex;gap:10px;">'
-    + '<button onclick="document.getElementById(\'balEditModal\').remove();" style="flex:1;padding:11px;background:none;border:1px solid #2a2a2a;color:#555;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;border-radius:4px;cursor:pointer;">Cancel</button>'
+    + '<button onclick="document.getElementById(\'balEditModal\').remove();" style="flex:1;padding:11px;background:none;border:1px solid #2a2a2a;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;border-radius:4px;cursor:pointer;">Cancel</button>'
     + '<button onclick="saveBalanceEdit(\''+fundId+'\')" style="flex:1;padding:11px;background:#c8f230;border:none;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;border-radius:4px;cursor:pointer;font-weight:700;">Save</button>'
     + '</div>'
     + '</div>';
@@ -281,7 +281,7 @@ function renderBankStrip(){
   strip.innerHTML = '';
 
   if(!funds.length){
-    strip.innerHTML = '<div style="padding:10px 14px;font-size:11px;color:#333;">No funds yet</div>';
+    strip.innerHTML = '<div style="padding:10px 14px;font-size:11px;color:var(--muted);">No funds yet</div>';
     return;
   }
 
@@ -310,7 +310,7 @@ function renderBankStrip(){
       + f.emoji + ' ' + f.name
       + '</span>'
       + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
-      + (hasManual ? '<span style="font-size:9px;color:#555;" title="Manually set">✎</span>' : '')
+      + (hasManual ? '<span style="font-size:9px;color:var(--muted);" title="Manually set">✎</span>' : '')
       + '<strong style="font-size:13px;color:' + color + ';">' + fmtR(bal) + '</strong>'
       + '</div>';
     strip.appendChild(row);
@@ -596,7 +596,7 @@ function confirmDeposit(){
   // Refresh the Available Cash card so the drained bucket updates live.
   try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
 }
-function openHistory(id){window._currentHistFundId=id;const f=funds.find(x=>x.id===id);document.getElementById('histTitle').textContent=f.emoji+' '+f.name;const deps=[...f.deposits].reverse();let html='';if(!deps.length){html='<p style="color:var(--muted);font-size:12px">No deposits yet.</p>';}else{html='<table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">DATE</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">AMOUNT</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">NOTE</th><th style="padding:4px 6px;border-bottom:1px solid var(--border)"></th></tr>';deps.forEach(d=>{const isOut=d.txnType==='out';const amtColor=isOut?'#f23060':'#c8f230';const prefix=isOut?'-':'+';html+=`<tr><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:var(--muted)">${d.date}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:${amtColor};font-weight:500">${prefix}${fmtR(d.amount)}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;color:var(--muted)">${d.note||'—'}</td><td style="padding:9px 6px;border-bottom:1px solid #1a1a1a;white-space:nowrap"><button onclick="openEditDeposit(\'${f.id}\',\'${d.id}\')" title="Edit" style="background:none;border:none;cursor:pointer;color:#444;font-size:13px;padding:2px 4px" onmouseover="this.style.color=\'#7aa050\'" onmouseout="this.style.color=\'#444\'">✏️</button><button onclick="deleteDeposit('${f.id}','${d.id}')" style="background:none;border:none;cursor:pointer;color:#333;font-size:13px" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#333'">✕</button></td></tr>`;});html+='</table>';}document.getElementById('histContent').innerHTML=html;document.getElementById('histModal').classList.add('active');}
+function openHistory(id){window._currentHistFundId=id;const f=funds.find(x=>x.id===id);document.getElementById('histTitle').textContent=f.emoji+' '+f.name;const deps=[...f.deposits].reverse();let html='';if(!deps.length){html='<p style="color:var(--muted);font-size:12px">No deposits yet.</p>';}else{html='<table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">DATE</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">AMOUNT</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">NOTE</th><th style="padding:4px 6px;border-bottom:1px solid var(--border)"></th></tr>';deps.forEach(d=>{const isOut=d.txnType==='out';const amtColor=isOut?'#f23060':'#c8f230';const prefix=isOut?'-':'+';html+=`<tr><td style="padding:9px 6px;border-bottom:1px solid var(--border);color:var(--muted)">${d.date}</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);color:${amtColor};font-weight:500">${prefix}${fmtR(d.amount)}</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);color:var(--muted)">${d.note||'—'}</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);white-space:nowrap"><button onclick="openEditDeposit(\'${f.id}\',\'${d.id}\')" title="Edit" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 4px" onmouseover="this.style.color=\'#7aa050\'" onmouseout="this.style.color=\'#444\'">✏️</button><button onclick="deleteDeposit('${f.id}','${d.id}')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#333'">✕</button></td></tr>`;});html+='</table>';}document.getElementById('histContent').innerHTML=html;document.getElementById('histModal').classList.add('active');}
 function deleteDeposit(fid,did){
   const f=funds.find(x=>x.id===fid);
   const dep=f.deposits.find(function(d){return d.id===did;});
@@ -1238,7 +1238,7 @@ function openMoveToSavings(){
   // `funds` is the module-scoped array in this file (declared with `let` at top).
   var activeFunds = (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return !f._deleted; });
   if(!activeFunds.length){
-    list.innerHTML = '<div style="padding:16px;text-align:center;color:#555;font-size:12px;letter-spacing:1px;">No savings funds yet. Create one on the Savings tab first.</div>';
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;letter-spacing:1px;">No savings funds yet. Create one on the Savings tab first.</div>';
   } else {
     list.innerHTML = activeFunds.map(function(f){
       var saved = (typeof fundTotal === 'function') ? fundTotal(f) : 0;
@@ -1248,8 +1248,8 @@ function openMoveToSavings(){
         + 'style="width:100%;text-align:left;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:12px;font-family:DM Mono,monospace;">'
         + '<span style="font-size:22px;flex-shrink:0;">'+(f.emoji||'💰')+'</span>'
         + '<div style="flex:1;min-width:0;">'
-        +   '<div style="font-size:13px;color:#efefef;font-family:Syne,sans-serif;font-weight:700;">'+f.name+'</div>'
-        +   '<div style="font-size:10px;color:#666;letter-spacing:1px;margin-top:2px;">'+fmtR(saved)+(goal?' / '+fmtR(goal)+' · '+pct+'%':'')+'</div>'
+        +   '<div style="font-size:13px;color:var(--text);font-family:Syne,sans-serif;font-weight:700;">'+f.name+'</div>'
+        +   '<div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:2px;">'+fmtR(saved)+(goal?' / '+fmtR(goal)+' · '+pct+'%':'')+'</div>'
         + '</div>'
         + '<span style="color:#c8f230;font-size:18px;">→</span>'
         + '</button>';
@@ -1283,8 +1283,8 @@ function maybePromptDeadlineBackfill(){
     return '<div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;font-family:DM Mono,monospace;">'
       + '<span style="font-size:20px;flex-shrink:0;">'+(f.emoji||'💰')+'</span>'
       + '<div style="flex:1;min-width:0;">'
-      +   '<div style="font-size:12px;color:#efefef;font-family:Syne,sans-serif;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</div>'
-      +   '<div style="font-size:9px;color:#666;letter-spacing:1px;margin-top:2px;">Goal '+fmtR(f.goal)+'</div>'
+      +   '<div style="font-size:12px;color:var(--text);font-family:Syne,sans-serif;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</div>'
+      +   '<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px;">Goal '+fmtR(f.goal)+'</div>'
       + '</div>'
       + '<input type="date" data-fund-id="'+f.id+'" class="dl-backfill-input" style="background:#fff;border:1px solid #ccc;border-radius:4px;padding:5px 6px;font-family:DM Mono,monospace;font-size:11px;color:#000;width:130px;flex-shrink:0;"/>'
       + '</div>';
@@ -1442,7 +1442,7 @@ function renderPocketStmt(){
 
   html += '<div style="padding:4px 0;max-height:220px;overflow-y:auto;">';
   if(!data.movements.length){
-    html += '<div style="padding:14px;text-align:center;color:#444;font-size:11px;">No movements in range</div>';
+    html += '<div style="padding:14px;text-align:center;color:var(--muted);font-size:11px;">No movements in range</div>';
   } else {
     data.movements.forEach(function(m){
       const isOut = m.txnType === 'out';
@@ -1451,8 +1451,8 @@ function renderPocketStmt(){
       const day = new Date(m.date).toLocaleDateString('en-ZA',{day:'2-digit',month:'short'});
       const safeNote = (m.note || '—').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       html += '<div style="display:flex;justify-content:space-between;padding:5px 12px;font-size:10.5px;gap:8px;align-items:center;">';
-      html +=   '<span style="color:#666;min-width:62px;flex-shrink:0;">' + day + '</span>';
-      html +=   '<span style="color:#888;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + safeNote + '</span>';
+      html +=   '<span style="color:var(--muted);min-width:62px;flex-shrink:0;">' + day + '</span>';
+      html +=   '<span style="color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + safeNote + '</span>';
       html +=   '<span style="color:' + amtColor + ';font-weight:500;flex-shrink:0;">' + prefix + fmtR(m.amount) + '</span>';
       html += '</div>';
     });
@@ -1460,13 +1460,13 @@ function renderPocketStmt(){
   html += '</div>';
 
   html += '<div style="padding:8px 12px;background:#0a1500;border-top:1px solid #1e3a00;display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:10px;">';
-  html +=   '<div style="color:#888;letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">Opening</div>';
-  html +=   '<div style="text-align:right;color:#888;">' + fmtR(data.opening) + '</div>';
-  html +=   '<div style="color:#888;letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">In</div>';
+  html +=   '<div style="color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">Opening</div>';
+  html +=   '<div style="text-align:right;color:var(--muted);">' + fmtR(data.opening) + '</div>';
+  html +=   '<div style="color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">In</div>';
   html +=   '<div style="text-align:right;color:#c8f230;">+' + fmtR(data.totalIn) + '</div>';
-  html +=   '<div style="color:#888;letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">Out</div>';
+  html +=   '<div style="color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">Out</div>';
   html +=   '<div style="text-align:right;color:#f2a830;">−' + fmtR(data.totalOut) + '</div>';
-  html +=   '<div style="color:#888;letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">Closing</div>';
+  html +=   '<div style="color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">Closing</div>';
   html +=   '<div style="text-align:right;color:#c8f230;font-weight:700;font-family:Syne,sans-serif;">' + fmtR(data.closing) + '</div>';
   html += '</div>';
 

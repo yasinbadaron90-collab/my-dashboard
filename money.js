@@ -41,7 +41,7 @@ function renderExtLendPocketPicker(){
     _extLendSelectedPocketId = daily ? daily.id : (list[0] ? list[0].id : null);
   }
   if(!list.length){
-    picker.innerHTML = '<div style="font-size:11px;color:#444;padding:10px;text-align:center;">No pockets exist yet — create one on the Savings tab first.</div>';
+    picker.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:10px;text-align:center;">No pockets exist yet — create one on the Savings tab first.</div>';
     return;
   }
   picker.innerHTML = list.map(function(f){
@@ -351,7 +351,7 @@ function confirmAddMoreBorrow(){
   var toast = document.createElement('div');
   toast.id = 'borrowAddToast';
   toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a0e2e;border:1px solid #a78bfa;border-radius:8px;padding:12px 16px;z-index:9999;display:flex;align-items:center;gap:10px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;color:#a78bfa;box-shadow:0 4px 20px rgba(0,0,0,.6);min-width:260px;';
-  toast.innerHTML = '<span>💸 R'+Number(amount).toLocaleString('en-ZA')+' added to <strong style="color:#efefef;">'+personName+'</strong> · from '+account+' · logged to cashflow</span><button onclick="document.getElementById(\'borrowAddToast\').remove();" style="background:none;border:none;color:#555;cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
+  toast.innerHTML = '<span>💸 R'+Number(amount).toLocaleString('en-ZA')+' added to <strong style="color:var(--text);">'+personName+'</strong> · from '+account+' · logged to cashflow</span><button onclick="document.getElementById(\'borrowAddToast\').remove();" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
   document.body.appendChild(toast);
   setTimeout(function(){ if(toast.parentNode) toast.remove(); }, 5000);
 }
@@ -430,9 +430,9 @@ function renderExtRepayPocketPicker(){
     return '<div onclick="selectExtRepayPocket(\''+f.id+'\')" '
       + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';">'
       + '<span style="font-size:12px;color:'+nameColor+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+f.name+tag+'</span>'
-      + '<span style="font-size:10px;color:#666;">R'+bal.toLocaleString('en-ZA')+'</span>'
+      + '<span style="font-size:10px;color:var(--muted);">R'+bal.toLocaleString('en-ZA')+'</span>'
       + '</div>';
-  }).join('') || '<div style="font-size:11px;color:#444;padding:8px;text-align:center;">No pockets exist yet.</div>';
+  }).join('') || '<div style="font-size:11px;color:var(--muted);padding:8px;text-align:center;">No pockets exist yet.</div>';
 }
 
 function selectExtRepayPocket(id){
@@ -606,7 +606,7 @@ function showRepayToast(name, amount, fundName){
   const toast = document.createElement('div');
   toast.id = 'repayFundToast';
   toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0a1a2e;border:1px solid #7090f0;border-radius:8px;padding:12px 16px;z-index:9999;display:flex;align-items:center;gap:10px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;color:#7090f0;box-shadow:0 4px 20px rgba(0,0,0,.6);min-width:260px;';
-  toast.innerHTML = '<span>✓ R'+Number(amount).toLocaleString('en-ZA')+' from '+name+' added to <strong style="color:#efefef;">'+fundName+'</strong></span><button onclick="document.getElementById(\'repayFundToast\').remove();" style="background:none;border:none;color:#555;cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
+  toast.innerHTML = '<span>✓ R'+Number(amount).toLocaleString('en-ZA')+' from '+name+' added to <strong style="color:var(--text);">'+fundName+'</strong></span><button onclick="document.getElementById(\'repayFundToast\').remove();" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
   document.body.appendChild(toast);
   setTimeout(function(){ if(toast.parentNode) toast.remove(); }, 5000);
 }
@@ -699,7 +699,7 @@ function renderMoneyOwed(){
           ctaLabel: '+ Add Person',
           ctaOnclick: 'openExternalBorrowModal()'
         })
-      : '<div style="color:#555;font-size:13px;text-align:center;padding:40px 0;">No one owes you anything right now 🎉</div>';
+      : '<div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">No one owes you anything right now 🎉</div>';
     return;
   }
 
@@ -720,10 +720,10 @@ function renderMoneyOwed(){
       const delFn    = p.tag === 'carpool'
         ? 'deleteBorrowEntry(\''+p.key+'\',\''+e.id+'\')'
         : 'deleteBorrowEntryUnified(\'__ext__'+p.key+'\',\''+e.id+'\')';
-      const actionBtns = '<span onclick="'+editFn+'" style="cursor:pointer;color:#444;font-size:13px;padding:2px 5px;" title="Edit">✏️</span>'
-        +'<span onclick="'+delFn+'" style="cursor:pointer;color:#444;font-size:13px;padding:2px 5px;" title="Delete">🗑</span>';
+      const actionBtns = '<span onclick="'+editFn+'" style="cursor:pointer;color:var(--muted);font-size:13px;padding:2px 5px;" title="Edit">✏️</span>'
+        +'<span onclick="'+delFn+'" style="cursor:pointer;color:var(--muted);font-size:13px;padding:2px 5px;" title="Delete">🗑</span>';
       if(e.type==='repay') return ''; // repayments hidden from mini statement
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:11px;border-bottom:1px solid #161616;">'
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:11px;border-bottom:1px solid var(--border);">'
         +'<span style="color:#555;">'+e.date+(e.note?' · '+e.note:'')+(e.account?' <span style="font-size:9px;background:#1a0e2e;border:1px solid #3a2060;border-radius:3px;padding:1px 4px;color:#a78bfa;">'+e.account+'</span>':'')+' </span>'
         +'<span style="display:flex;align-items:center;gap:4px;"><span style="color:#a78bfa;">💸 R'+Number(e.amount).toLocaleString('en-ZA')+'</span>'+actionBtns+'</span>'
         +'</div>';
@@ -746,7 +746,7 @@ function renderMoneyOwed(){
       // Top
       '<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">'
         +'<div style="display:flex;align-items:center;gap:10px;">'
-          +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:16px;color:#efefef;">'+p.name+'</div>'
+          +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:16px;color:var(--text);">'+p.name+'</div>'
           +tagHtml
         +'</div>'
         +'<div style="text-align:right;">'
@@ -756,7 +756,7 @@ function renderMoneyOwed(){
       +'</div>'
       // Progress bar
       +'<div style="padding:10px 16px;border-bottom:1px solid var(--border);background:#0a0a0a;">'
-        +'<div style="display:flex;justify-content:space-between;font-size:9px;color:#444;margin-bottom:4px;letter-spacing:1px;">'
+        +'<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:4px;letter-spacing:1px;">'
           +'<span>Lent R'+p.borrowed.toLocaleString('en-ZA')+'</span>'
           +'<span>'+pct+'% repaid</span>'
           +'<span>Repaid R'+p.repaid.toLocaleString('en-ZA')+'</span>'
@@ -842,7 +842,7 @@ function renderIOweSection(container){
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
     +   '<div>'
     +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:18px;color:#f2a830;letter-spacing:0.5px;">↩ YOU OWE</div>'
-    +     '<div style="font-size:10px;color:#666;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Refunds from overpayments</div>'
+    +     '<div style="font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Refunds from overpayments</div>'
     +   '</div>'
     +   '<div style="background:#1a0f00;border:1px solid #5a3a00;border-radius:6px;padding:6px 12px;color:#f2a830;font-family:DM Mono,monospace;font-size:13px;font-weight:700;">R'+totalOwed.toFixed(2)+'</div>'
     + '</div>';
@@ -1098,7 +1098,7 @@ function loadBorrowReport() {
 
   const names = Object.keys(byPerson);
   if (names.length === 0) {
-    container.innerHTML = '<div style="color:#555;font-size:13px;padding:8px 0;">No borrow records yet.</div>';
+    container.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No borrow records yet.</div>';
     return;
   }
 
@@ -1119,8 +1119,8 @@ function loadBorrowReport() {
       ? '<span style="color:#c8f230;font-weight:500">✓ Settled</span>'
       : '<span style="color:#f2a830;font-weight:500">' + fmtR(owing) + '</span>';
     row.innerHTML =
-      '<span style="color:#ccc;display:flex;align-items:center;">' + name + tagBadge + '</span>' +
-      '<span style="color:#888">' + fmtR(b.borrowed) + '</span>' +
+      '<span style="color:var(--text);display:flex;align-items:center;">' + name + tagBadge + '</span>' +
+      '<span style="color:var(--muted)">' + fmtR(b.borrowed) + '</span>' +
       '<span style="color:#c8f230">' + fmtR(b.repaid) + '</span>' +
       owingCell;
     container.appendChild(row);
@@ -1337,17 +1337,17 @@ function openIOwePayBack(store, key, entryId){
     +   '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
     +     '<div>'
     +       '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:18px;color:#f2a830;">↩ Pay back '+escHtml(displayName)+'</div>'
-    +       '<div style="font-size:10px;color:#666;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Refund owed: R'+amt.toFixed(2)+'</div>'
+    +       '<div style="font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Refund owed: R'+amt.toFixed(2)+'</div>'
     +     '</div>'
-    +     '<button onclick="document.getElementById(\'iOweModal\').remove();" style="background:none;border:none;color:#666;font-size:22px;cursor:pointer;">&times;</button>'
+    +     '<button onclick="document.getElementById(\'iOweModal\').remove();" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;">&times;</button>'
     +   '</div>'
     +   '<div style="margin-bottom:10px;">'
-    +     '<div style="font-size:9px;color:#666;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Amount paid</div>'
+    +     '<div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Amount paid</div>'
     +     '<input type="number" id="iOweAmt" value="'+amt.toFixed(2)+'" step="0.01" '
     +       'style="width:100%;background:#111;border:1px solid #2a2a2a;color:#c8f230;font-family:DM Mono,monospace;font-size:16px;font-weight:700;padding:10px 12px;border-radius:6px;outline:none;box-sizing:border-box;"/>'
     +   '</div>'
     +   '<div style="margin-bottom:10px;">'
-    +     '<div style="font-size:9px;color:#666;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Paid from</div>'
+    +     '<div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Paid from</div>'
     +     '<select id="iOweBank" style="width:100%;background:#111;border:1px solid #2a2a2a;color:#efefef;font-family:DM Mono,monospace;font-size:13px;padding:10px 12px;border-radius:6px;outline:none;">'
     +       '<option value="TymeBank">TymeBank</option>'
     +       '<option value="FNB">FNB</option>'
@@ -1356,12 +1356,12 @@ function openIOwePayBack(store, key, entryId){
     +     '</select>'
     +   '</div>'
     +   '<div style="margin-bottom:14px;">'
-    +     '<div style="font-size:9px;color:#666;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Date</div>'
+    +     '<div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Date</div>'
     +     '<input type="date" id="iOweDate" value="'+todayStr+'" '
     +       'style="width:100%;background:#111;border:1px solid #2a2a2a;color:#efefef;font-family:DM Mono,monospace;font-size:13px;padding:10px 12px;border-radius:6px;outline:none;box-sizing:border-box;"/>'
     +   '</div>'
     +   '<div style="display:flex;gap:8px;">'
-    +     '<button onclick="document.getElementById(\'iOweModal\').remove();" style="flex:1;padding:11px;background:none;border:1px solid #2a2a2a;border-radius:6px;color:#888;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Cancel</button>'
+    +     '<button onclick="document.getElementById(\'iOweModal\').remove();" style="flex:1;padding:11px;background:none;border:1px solid #2a2a2a;border-radius:6px;color:var(--muted);font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Cancel</button>'
     +     '<button onclick="confirmIOwePayBack()" style="flex:2;padding:11px;background:#f2a830;border:none;border-radius:6px;color:#000;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">✓ Confirm payment</button>'
     +   '</div>'
     + '</div>';
@@ -1520,7 +1520,7 @@ function openRepaymentsManager(personKey, tag){
     modal.className = 'overlay';
     modal.innerHTML =
       '<div class="modal" style="max-width:420px;">'
-      + '<h2 style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:20px;color:#efefef;margin-bottom:4px;">↩ Repayments</h2>'
+      + '<h2 style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:20px;color:var(--text);margin-bottom:4px;">↩ Repayments</h2>'
       + '<div id="repayMgrSub" style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;"></div>'
       + '<div id="repayMgrList"></div>'
       + '<div class="modal-btns" style="margin-top:18px;">'
@@ -1535,7 +1535,7 @@ function openRepaymentsManager(personKey, tag){
 
   var listEl = document.getElementById('repayMgrList');
   if(!entries.length){
-    listEl.innerHTML = '<div style="color:#555;font-size:12px;padding:20px 0;text-align:center;">No repayments logged for ' + name + '.</div>';
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:20px 0;text-align:center;">No repayments logged for ' + name + '.</div>';
   } else {
     listEl.innerHTML = entries
       .slice()
@@ -1547,10 +1547,10 @@ function openRepaymentsManager(personKey, tag){
         var acct = e.account
           ? ' <span style="font-size:9px;background:#1a0e2e;border:1px solid #3a2060;border-radius:3px;padding:1px 4px;color:#a78bfa;">' + e.account + '</span>'
           : '';
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #1a1a1a;">'
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">'
           + '<div style="display:flex;flex-direction:column;gap:2px;">'
           + '<span style="font-size:12px;color:#c8f230;font-weight:500;">+R' + Number(e.amount).toLocaleString('en-ZA') + '</span>'
-          + '<span style="font-size:10px;color:#555;">' + (e.date || '—') + (e.note ? ' · ' + e.note : '') + acct + '</span>'
+          + '<span style="font-size:10px;color:var(--muted);">' + (e.date || '—') + (e.note ? ' · ' + e.note : '') + acct + '</span>'
           + '</div>'
           + '<button onclick="' + delFn + '" style="background:#1a0000;border:1px solid #5a1a1a;border-radius:6px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;padding:6px 12px;cursor:pointer;">🗑 Delete</button>'
           + '</div>';

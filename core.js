@@ -139,10 +139,10 @@ function showStorageError(reason){
   toast.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:99999;background:#1a0a0a;border:1px solid #5a1010;border-radius:8px;padding:14px 16px;max-width:340px;width:calc(100% - 40px);box-shadow:0 4px 20px rgba(0,0,0,0.6);font-family:DM Mono,monospace;color:#efefef;';
   toast.innerHTML =
     '<div style="font-size:13px;font-weight:700;color:#f23060;margin-bottom:6px;">'+msg+'</div>'
-    + '<div style="font-size:10px;color:#888;line-height:1.5;margin-bottom:12px;letter-spacing:0.5px;">'+hint+'</div>'
+    + '<div style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:12px;letter-spacing:0.5px;">'+hint+'</div>'
     + '<div style="display:flex;gap:6px;">'
     +   '<button id="storageErrorBackupBtn" style="flex:1;padding:9px 10px;background:#c8f230;border:none;border-radius:5px;color:#000;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">Download Backup</button>'
-    +   '<button id="storageErrorDismissBtn" style="padding:9px 12px;background:none;border:1px solid #2a2a2a;border-radius:5px;color:#666;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Dismiss</button>'
+    +   '<button id="storageErrorDismissBtn" style="padding:9px 12px;background:none;border:1px solid #2a2a2a;border-radius:5px;color:var(--muted);font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Dismiss</button>'
     + '</div>';
   document.body.appendChild(toast);
 
@@ -232,8 +232,8 @@ function softDeleteToast(opts){
   toast.innerHTML = ''
     + '<span style="font-size:16px;flex-shrink:0;">🗑</span>'
     + '<div style="flex:1;min-width:0;">'
-    +   '<div style="font-size:12px;color:#efefef;letter-spacing:0.3px;">Deleted '+_escSDLabel(label)+'</div>'
-    +   '<div style="font-size:9px;color:#666;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;" id="softDeleteCountdown">'+(ms/1000)+'s to undo</div>'
+    +   '<div style="font-size:12px;color:var(--text);letter-spacing:0.3px;">Deleted '+_escSDLabel(label)+'</div>'
+    +   '<div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;" id="softDeleteCountdown">'+(ms/1000)+'s to undo</div>'
     + '</div>'
     + '<button id="softDeleteUndoBtn" style="flex-shrink:0;background:#c8f230;border:none;color:#000;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:8px 14px;border-radius:5px;cursor:pointer;font-weight:700;">Undo</button>';
 
@@ -319,7 +319,7 @@ function _ensureSpinnerEl(){
   el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(2px);';
   el.innerHTML = '<div style="background:#0d0d0d;border:1px solid #2a2a2a;border-radius:12px;padding:24px 32px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:200px;max-width:80vw;">'
     + '<div style="width:32px;height:32px;border:3px solid #1a2e00;border-top-color:#c8f230;border-radius:50%;animation:ybSpin 0.8s linear infinite;"></div>'
-    + '<div id="ybSpinnerMsg" style="font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;color:#888;text-align:center;line-height:1.5;">Working…</div>'
+    + '<div id="ybSpinnerMsg" style="font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;color:var(--muted);text-align:center;line-height:1.5;">Working…</div>'
     + '</div>';
   document.body.appendChild(el);
   // Inject the keyframes once
@@ -393,9 +393,9 @@ function buildEmptyState(opts){
 
   var html = '<div style="text-align:center;padding:'+pad+';background:var(--surface);border:1px dashed var(--border);border-radius:10px;">'
     +   '<div style="font-size:'+(compact?'28':'42')+'px;line-height:1;margin-bottom:'+(compact?'8':'12')+'px;opacity:0.7;">'+icon+'</div>'
-    +   '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:'+(compact?'13':'15')+'px;color:#888;letter-spacing:0.5px;">'+_eEsc(title)+'</div>';
+    +   '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:'+(compact?'13':'15')+'px;color:var(--muted);letter-spacing:0.5px;">'+_eEsc(title)+'</div>';
   if(subtitle){
-    html += '<div style="font-size:11px;color:#555;letter-spacing:0.5px;margin-top:6px;line-height:1.5;">'+_eEsc(subtitle)+'</div>';
+    html += '<div style="font-size:11px;color:var(--muted);letter-spacing:0.5px;margin-top:6px;line-height:1.5;">'+_eEsc(subtitle)+'</div>';
   }
   if(ctaLabel && ctaClick){
     html += '<button onclick="'+ctaClick+'" style="margin-top:'+(compact?'10':'16')+'px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 18px;color:#c8f230;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">'+_eEsc(ctaLabel)+'</button>';
@@ -875,10 +875,10 @@ function offerBiometricRegistration(){
   overlay.innerHTML =
     '<div style="background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">'
     +'<div style="font-size:48px;margin-bottom:16px;">👆</div>'
-    +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:#efefef;margin-bottom:8px;">Enable Fingerprint Login?</div>'
-    +'<div style="font-size:11px;color:#555;letter-spacing:0.5px;line-height:1.7;margin-bottom:24px;">Skip the PIN next time — just touch your fingerprint sensor to unlock your dashboard instantly.</div>'
+    +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:var(--text);margin-bottom:8px;">Enable Fingerprint Login?</div>'
+    +'<div style="font-size:11px;color:var(--muted);letter-spacing:0.5px;line-height:1.7;margin-bottom:24px;">Skip the PIN next time — just touch your fingerprint sensor to unlock your dashboard instantly.</div>'
     +'<button onclick="confirmBiometricSetup(this.parentElement.parentElement)" style="width:100%;padding:14px;background:#c8f230;border:none;border-radius:8px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;margin-bottom:10px;">👆 Enable Fingerprint</button>'
-    +'<button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:12px;background:none;border:1px solid #2a2a2a;border-radius:8px;color:#555;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Not Now</button>'
+    +'<button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:12px;background:none;border:1px solid #2a2a2a;border-radius:8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Not Now</button>'
     +'</div>';
   document.body.appendChild(overlay);
 }
@@ -1123,8 +1123,8 @@ function buildResultsPDF(){
   toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #3a5a00;border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 24px rgba(0,0,0,.5);min-width:240px;';
   toast.innerHTML =
     '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:#c8f230;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
-    +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:#efefef;">Generating PDF...</div>'
-    +'<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">'+yearData.year+' · Yasin Badaron</div></div>';
+    +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:var(--text);">Generating PDF...</div>'
+    +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">'+yearData.year+' · Yasin Badaron</div></div>';
   if(!document.getElementById('spinStyle')){
     var sp=document.createElement('style');sp.id='spinStyle';
     sp.textContent='@keyframes spin{to{transform:rotate(360deg);}}';
@@ -1256,7 +1256,7 @@ function buildResultsPDF(){
     toast.innerHTML =
       '<div style="width:18px;height:18px;background:#1a2e00;border:2px solid #3a5a00;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color:#c8f230;">✓</div>'
       +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:#c8f230;">PDF Downloaded!</div>'
-      +'<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">Saved to your Downloads folder</div></div>';
+      +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">Saved to your Downloads folder</div></div>';
     toast.style.borderColor = '#3a5a00';
     setTimeout(function(){
       toast.style.transition='opacity .4s'; toast.style.opacity='0';
@@ -1445,16 +1445,16 @@ function loadFuelReport() {
   if(fuelRowsEl){
     fuelRowsEl.innerHTML = '';
     if(fuelData.length === 0){
-      fuelRowsEl.innerHTML = '<div style="color:#555;font-size:13px;padding:12px 14px;">No fuel entries yet.</div>';
+      fuelRowsEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 14px;">No fuel entries yet.</div>';
     } else {
       fuelData.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).forEach(function(x){
         var row = document.createElement('div');
-        row.style.cssText = 'display:grid;grid-template-columns:1.5fr 1fr 1fr 28px;padding:9px 14px;border-bottom:1px solid #161616;font-size:12px;align-items:center;';
+        row.style.cssText = 'display:grid;grid-template-columns:1.5fr 1fr 1fr 28px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px;align-items:center;';
         var litres = x.price > 0 ? (x.amount/x.price).toFixed(1)+'L' : '-';
         row.innerHTML = '<span style="color:var(--muted)">'+x.date+'</span>'
-          +'<span style="color:#ccc">R'+Number(x.price).toFixed(2)+' <span style="color:#555;font-size:10px;">('+litres+')</span></span>'
+          +'<span style="color:var(--text)">R'+Number(x.price).toFixed(2)+' <span style="color:var(--muted);font-size:10px;">('+litres+')</span></span>'
           +'<span style="color:#a78bfa;font-weight:500">'+fmtR(x.amount)+'</span>'
-          +'<span onclick="deleteFuelEntry(\''+x.id+'\')" style="color:#555;cursor:pointer;font-size:18px;line-height:1;text-align:center;">&times;</span>';
+          +'<span onclick="deleteFuelEntry(\''+x.id+'\')" style="color:var(--muted);cursor:pointer;font-size:18px;line-height:1;text-align:center;">&times;</span>';
         fuelRowsEl.appendChild(row);
       });
     }
@@ -1486,7 +1486,7 @@ function loadFuelReport() {
   // ── Per-day coverage rows ──
   if(plRowsEl){
     if(dayRows.length === 0){
-      plRowsEl.innerHTML = '<div style="color:#555;font-size:13px;padding:12px 14px;">No carpool data this cycle yet.</div>';
+      plRowsEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 14px;">No carpool data this cycle yet.</div>';
     } else {
       plRowsEl.innerHTML = '';
       dayRows.forEach(function(d){
@@ -1495,11 +1495,11 @@ function loadFuelReport() {
         var pctLabel = pct >= 100 ? '✅ '+pct+'%' : pct+'%';
         var paxStr   = d.pax.length > 0 ? d.pax.join(', ') : '—';
         var row = document.createElement('div');
-        row.style.cssText = 'padding:9px 14px;border-bottom:1px solid #161616;';
+        row.style.cssText = 'padding:9px 14px;border-bottom:1px solid var(--border);';
         row.innerHTML =
           '<div style="display:grid;grid-template-columns:1.2fr 0.8fr 1fr 1fr 1fr;font-size:11px;align-items:center;margin-bottom:5px;">'
           +'<span style="color:var(--muted)">'+d.ds+'</span>'
-          +'<span style="color:#888;text-align:center;">'+paxStr+'</span>'
+          +'<span style="color:var(--muted);text-align:center;">'+paxStr+'</span>'
           +'<span style="color:#c8f230;text-align:right;">'+fmtR(Math.round(d.income))+'</span>'
           +'<span style="color:#f2a830;text-align:right;">'+fmtR(Math.round(dailyFuelCost))+'</span>'
           +'<span style="color:'+dColor+';font-weight:700;text-align:right;">'+pctLabel+'</span>'
@@ -1522,7 +1522,7 @@ function loadFuelReport() {
       var card = document.createElement('div');
       card.style.cssText = 'background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:8px;';
       card.innerHTML =
-        '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#efefef;margin-bottom:8px;">'+p+'</div>'
+        '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--text);margin-bottom:8px;">'+p+'</div>'
         +'<div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Saved you</div>'
         +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;color:#c8f230;margin-bottom:8px;">'+fmtR(s.income)+'</div>'
         +'<div style="font-size:10px;color:var(--muted);">'+s.trips+' trips &nbsp;·&nbsp; '+attendance+'% attendance</div>';

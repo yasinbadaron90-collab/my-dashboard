@@ -608,7 +608,7 @@ function renderInst(){
   container.innerHTML = '';
 
   if(active.length === 0){
-    container.innerHTML = '<div style="padding:48px 16px;text-align:center;color:#333;font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">No active instalment plans — tap <strong style="color:#c8f230;">+ Add Plan</strong> to get started</div>';
+    container.innerHTML = '<div style="padding:48px 16px;text-align:center;color:var(--muted);font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">No active instalment plans — tap <strong style="color:#c8f230;">+ Add Plan</strong> to get started</div>';
   } else {
     // Separate M2M (ongoing) plans from fixed-term plans
     var m2mPlans = active.filter(function(p){ return !!p.monthToMonth; });
@@ -668,23 +668,23 @@ function buildInstCard(plan, isTarget, isCleared){
           +(isTarget && !isM2M ? '<span style="font-size:9px;padding:2px 9px;border-radius:100px;background:#0d1a00;color:#c8f230;border:1px solid #3a5a00;letter-spacing:1.5px;">❄️ ATTACK FIRST</span>' : '')
           +(isCleared ? '<span style="font-size:9px;padding:2px 9px;border-radius:100px;background:#0d1a00;color:#c8f230;border:1px solid #3a5a00;letter-spacing:1.5px;">✓ CLEARED</span>' : '')
         +'</div>'
-        +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:17px;color:#efefef;">'+plan.desc+'</div>'
-        +'<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">'+subLabel+'</div>'
+        +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:17px;color:var(--text);">'+plan.desc+'</div>'
+        +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">'+subLabel+'</div>'
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0;">'
-        +'<div style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">'+(isM2M ? 'Total Paid' : isCleared ? 'Paid off' : 'Remaining')+'</div>'
+        +'<div style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">'+(isM2M ? 'Total Paid' : isCleared ? 'Paid off' : 'Remaining')+'</div>'
         +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:22px;color:'+(isM2M?'#f2c830':isCleared?'#c8f230':'#f2a830')+';">'+(isM2M ? fmtR(totalPaid) : isCleared ? fmtR(plan.total) : fmtR(remAmt))+'</div>'
       +'</div>'
     +'</div>';
 
   // Progress bar — skip for month-to-month
   var progHtml = isM2M
-    ? '<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;font-size:10px;color:#555;letter-spacing:1px;">'
+    ? '<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;font-size:10px;color:var(--muted);letter-spacing:1px;">'
         +'<span>'+paidCount+' payment'+(paidCount!==1?'s':'')+' logged</span>'
         +'<span>R'+plan.amt+' debited on the '+( plan.debitDay || '?')+'th each month</span>'
       +'</div>'
     : '<div style="padding:12px 16px;border-bottom:1px solid var(--border);">'
-        +'<div style="display:flex;justify-content:space-between;font-size:10px;color:#555;margin-bottom:6px;letter-spacing:1px;">'
+        +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">'
           +'<span>'+paidCount+' of '+plan.num+' paid</span>'
           +'<span>'+pct+'%</span>'
           +'<span>'+fmtR(plan.amt)+'/payment</span>'
@@ -703,20 +703,20 @@ function buildInstCard(plan, isTarget, isCleared){
     var nextDue = new Date(now2.getFullYear(), now2.getMonth(), plan.debitDay || 20);
     if(nextDue < now2) nextDue = new Date(now2.getFullYear(), now2.getMonth()+1, plan.debitDay || 20);
     var isToday2 = nextDue.getTime() === now2.getTime();
-    rowsHtml += '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#444;margin-bottom:8px;padding-top:4px;">Next debit</div>';
-    rowsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #161616;font-size:12px;">'
+    rowsHtml += '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;padding-top:4px;">Next debit</div>';
+    rowsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">'
       +'<span style="width:10px;height:10px;border-radius:50%;background:'+(isToday2?'#f2a830':'#333')+';display:inline-block;flex-shrink:0;"></span>'
-      +'<div style="flex:1;"><span style="color:#888;font-size:11px;">'+(isToday2?'Today!':nextDue.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}))+'</span></div>'
+      +'<div style="flex:1;"><span style="color:var(--muted);font-size:11px;">'+(isToday2?'Today!':nextDue.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}))+'</span></div>'
       +'<span style="color:#f2c830;font-weight:700;">'+fmtR(plan.amt)+'</span>'
       +'<button onclick="openInstM2MPay(\''+plan.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 10px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">Mark Paid</button>'
     +'</div>';
     if(plan.paid && plan.paid.length > 0){
-      rowsHtml += '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#444;margin:10px 0 6px;">Payment history</div>';
+      rowsHtml += '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:10px 0 6px;">Payment history</div>';
       var sortedPaid = plan.paid.slice().sort(function(a,b){ return b.date > a.date ? 1 : -1; });
       sortedPaid.slice(0,6).forEach(function(p){
-        rowsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #161616;font-size:12px;">'
+        rowsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">'
           +'<span style="width:10px;height:10px;border-radius:50%;background:#c8f230;display:inline-block;flex-shrink:0;"></span>'
-          +'<div style="flex:1;"><span style="color:#555;font-size:10px;">'+p.date+'</span>'+(p.note?'<span style="color:#444;font-size:10px;"> · '+p.note+'</span>':'')+'</div>'
+          +'<div style="flex:1;"><span style="color:var(--muted);font-size:10px;">'+p.date+'</span>'+(p.note?'<span style="color:var(--muted);font-size:10px;"> · '+p.note+'</span>':'')+'</div>'
           +'<span style="color:#c8f230;font-weight:700;">'+fmtR(plan.amt)+'</span>'
         +'</div>';
       });
@@ -738,22 +738,22 @@ function buildInstCard(plan, isTarget, isCleared){
                 : '<span style="width:10px;height:10px;border-radius:50%;border:2px solid #333;display:inline-block;flex-shrink:0;"></span>'));
 
       var label = isPaid
-        ? '<span style="color:#c8f230;">✓ Paid</span>'+(paidEntry&&paidEntry.date?' <span style="color:#555;font-size:10px;">'+paidEntry.date+'</span>':'')+(paidEntry&&paidEntry.note?' · <span style="color:#555;font-size:10px;">'+paidEntry.note+'</span>':'')
-        : (isOverdue ? '<span style="color:#f23060;">Overdue</span>' : (isToday ? '<span style="color:#f2a830;">Due today!</span>' : '<span style="color:#555;">'+formatDisplayDate(ds)+'</span>'));
+        ? '<span style="color:#c8f230;">✓ Paid</span>'+(paidEntry&&paidEntry.date?' <span style="color:var(--muted);font-size:10px;">'+paidEntry.date+'</span>':'')+(paidEntry&&paidEntry.note?' · <span style="color:var(--muted);font-size:10px;">'+paidEntry.note+'</span>':'')
+        : (isOverdue ? '<span style="color:#f23060;">Overdue</span>' : (isToday ? '<span style="color:#f2a830;">Due today!</span>' : '<span style="color:var(--muted);">'+formatDisplayDate(ds)+'</span>'));
 
       var actionBtn = isPaid
-        ? '<button onclick="unmarkInstPay(\''+plan.id+'\','+i+')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:#444;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor=\'#555\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#444\'">Undo</button>'
+        ? '<button onclick="unmarkInstPay(\''+plan.id+'\','+i+')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor=\'#555\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#444\'">Undo</button>'
         : '<button onclick="openInstPayModal(\''+plan.id+'\','+i+')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 10px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">Mark Paid</button>';
 
       rowsHtml +=
-        '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #161616;font-size:12px;">'
+        '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">'
           +statusDot
-          +'<span style="color:#555;min-width:24px;font-size:10px;">'+(i+1)+'</span>'
+          +'<span style="color:var(--muted);min-width:24px;font-size:10px;">'+(i+1)+'</span>'
           +'<div style="flex:1;">'
-            +'<span style="color:#888;font-size:10px;letter-spacing:0.5px;">'+formatDisplayDate(ds)+'</span>'
+            +'<span style="color:var(--muted);font-size:10px;letter-spacing:0.5px;">'+formatDisplayDate(ds)+'</span>'
             +'<div style="margin-top:1px;">'+label+'</div>'
           +'</div>'
-          +'<span style="color:#efefef;font-weight:700;font-size:13px;white-space:nowrap;">'+fmtR(plan.amt)+'</span>'
+          +'<span style="color:var(--text);font-weight:700;font-size:13px;white-space:nowrap;">'+fmtR(plan.amt)+'</span>'
           +(!isCleared ? actionBtn : '')
         +'</div>';
     });
@@ -764,10 +764,10 @@ function buildInstCard(plan, isTarget, isCleared){
   var actionsHtml = !isCleared
     ? '<div style="display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border);">'
         +'<button onclick="openInstModal(\''+plan.id+'\')" style="background:#1a1a00;border:1px solid #3a3a00;border-radius:6px;padding:7px 14px;color:#888;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">✏️ Edit</button>'
-        +'<button onclick="deleteInstPlan(\''+plan.id+'\')" style="margin-left:auto;background:none;border:1px solid #2a1a1a;border-radius:6px;padding:7px 12px;color:#555;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Remove</button>'
+        +'<button onclick="deleteInstPlan(\''+plan.id+'\')" style="margin-left:auto;background:none;border:1px solid #2a1a1a;border-radius:6px;padding:7px 12px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Remove</button>'
       +'</div>'
     : '<div style="display:flex;justify-content:flex-end;padding:10px 16px;border-top:1px solid var(--border);">'
-        +'<button onclick="deleteInstPlan(\''+plan.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;padding:7px 12px;color:#555;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Remove</button>'
+        +'<button onclick="deleteInstPlan(\''+plan.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;padding:7px 12px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Remove</button>'
       +'</div>';
 
   card.innerHTML = headerHtml + progHtml + rowsHtml + actionsHtml;

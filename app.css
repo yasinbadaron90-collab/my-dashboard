@@ -21,6 +21,8 @@
 :root.light .nav-tab{color:#999;}
 :root.light .nav-tab.active{color:#5a9e00;border-bottom-color:#5a9e00;}
 :root.light .fund-card{background:#fff;border-color:#e0e0e0;}
+:root.light .qe-date-nav h3{color:var(--text);}
+:root.light .pass-card-name{color:var(--text);}
 :root.light .hbg-section-label{color:#bbb;}
 :root.light .hbg-logo{color:#111;}
 :root.light .hbg-item{color:#777;}

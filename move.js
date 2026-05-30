@@ -100,7 +100,7 @@ function _mvRenderPocketLists(){
   var visible = (funds || []).filter(function(f){ return !f._deleted; });
 
   if(!visible.length){
-    var empty = '<div style="padding:14px;color:#555;font-size:11px;text-align:center;letter-spacing:1px;">No pockets yet. Create one on the Savings tab.</div>';
+    var empty = '<div style="padding:14px;color:var(--muted);font-size:11px;text-align:center;letter-spacing:1px;">No pockets yet. Create one on the Savings tab.</div>';
     fromList.innerHTML = empty;
     toList.innerHTML   = empty;
     return;
@@ -137,7 +137,7 @@ function _mvPocketRow(f, side){
     row.innerHTML =
       '<span style="font-size:18px;flex-shrink:0;">' + (f.emoji || '💰') + '</span>' +
       '<span style="flex:1;font-size:12px;color:#777;">' + escapeMvHTML(f.name) + dimLabel + '</span>' +
-      '<span style="font-size:11px;color:#444;font-family:Syne,sans-serif;font-weight:700;">—</span>';
+      '<span style="font-size:11px;color:var(--muted);font-family:Syne,sans-serif;font-weight:700;">—</span>';
     return row;
   }
 

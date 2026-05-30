@@ -191,7 +191,7 @@ function renderSchool(){
   }
 
   if(filtered.length === 0){
-    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#444;font-size:12px;">Nothing here yet. Tap <b>+ Add Event</b> to add your first.</div>';
+    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:12px;">Nothing here yet. Tap <b>+ Add Event</b> to add your first.</div>';
     return;
   }
 
@@ -205,9 +205,9 @@ function renderSchool(){
         +'<button onclick="toggleSchoolDone(\''+e.id+'\')" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:2px solid '+(isDone?'#c8f230':'#333')+';background:'+(isDone?'#c8f230':'transparent')+';color:#000;font-size:14px;cursor:pointer;font-weight:bold;line-height:1;">'+(isDone?'✓':'')+'</button>'
         +'<div style="flex:1;min-width:0;">'
           +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;margin-bottom:3px;'+(isDone?'text-decoration:line-through;':'')+'">'+icon+' '+(e.title||'(no title)')+'</div>'
-          +'<div style="font-size:11px;color:#666;letter-spacing:0.5px;">'+(e.subject||'')+(e.subject&&e.date?' · ':'')+(e.date||'')+(e.time?' · '+e.time:'')+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);letter-spacing:0.5px;">'+(e.subject||'')+(e.subject&&e.date?' · ':'')+(e.date||'')+(e.time?' · '+e.time:'')+'</div>'
         +'</div>'
-        +'<button onclick="deleteSchoolEvent(\''+e.id+'\')" style="background:transparent;border:1px solid #2a2a2a;border-radius:4px;width:26px;height:26px;color:#444;cursor:pointer;font-size:11px;">✕</button>'
+        +'<button onclick="deleteSchoolEvent(\''+e.id+'\')" style="background:transparent;border:1px solid #2a2a2a;border-radius:4px;width:26px;height:26px;color:var(--muted);cursor:pointer;font-size:11px;">✕</button>'
       +'</div>';
   });
   el.innerHTML = html;
@@ -552,10 +552,10 @@ function openEditSubject(code){
     var qVal = (typeof sub.quizRaw === 'number') ? sub.quizRaw : (Array.isArray(sub.quizRaw) ? (sub.quizRaw[0] || '') : '');
     var aVal = (typeof sub.assignmentRaw === 'number') ? sub.assignmentRaw : (Array.isArray(sub.assignmentRaw) ? (sub.assignmentRaw[0] || '') : '');
     quizFields =
-      '<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">🧪 Quiz Raw Score</label>'
+      '<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">🧪 Quiz Raw Score</label>'
       +'<div style="display:flex;gap:8px;align-items:center;"><input id="rQ1" type="number" min="0" max="30" step="any" value="'+qVal+'" placeholder="—" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#efefef;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:14px;outline:none;"><span style="font-size:10px;color:#666;letter-spacing:1px;">/ 30</span></div></div>';
     assignFields =
-      '<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">📝 Assignment Raw Score</label>'
+      '<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">📝 Assignment Raw Score</label>'
       +'<div style="display:flex;gap:8px;align-items:center;"><input id="rA1" type="number" min="0" max="70" step="any" value="'+aVal+'" placeholder="—" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#efefef;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:14px;outline:none;"><span style="font-size:10px;color:#666;letter-spacing:1px;">/ 70</span></div></div>';
   } else {
     // annual — 2 quizzes (15 each), 2 assignments (35 each)
@@ -565,11 +565,11 @@ function openEditSubject(code){
     if(Array.isArray(sub.assignmentRaw)){ a1 = sub.assignmentRaw[0] || ''; a2 = sub.assignmentRaw[1] || ''; }
     else if(typeof sub.assignmentRaw === 'number'){ a1 = sub.assignmentRaw; }
     quizFields =
-      '<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">🧪 Quizzes (2 × out of 15)</label>'
+      '<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">🧪 Quizzes (2 × out of 15)</label>'
       +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;"><input id="rQ1" type="number" min="0" max="15" step="any" value="'+q1+'" placeholder="Quiz 1" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#efefef;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:14px;outline:none;"><span style="font-size:10px;color:#666;letter-spacing:1px;">/ 15</span></div>'
       +'<div style="display:flex;gap:8px;align-items:center;"><input id="rQ2" type="number" min="0" max="15" step="any" value="'+q2+'" placeholder="Quiz 2" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#efefef;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:14px;outline:none;"><span style="font-size:10px;color:#666;letter-spacing:1px;">/ 15</span></div></div>';
     assignFields =
-      '<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">📝 Assignments (2 × out of 35)</label>'
+      '<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">📝 Assignments (2 × out of 35)</label>'
       +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;"><input id="rA1" type="number" min="0" max="35" step="any" value="'+a1+'" placeholder="Assign 1" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#efefef;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:14px;outline:none;"><span style="font-size:10px;color:#666;letter-spacing:1px;">/ 35</span></div>'
       +'<div style="display:flex;gap:8px;align-items:center;"><input id="rA2" type="number" min="0" max="35" step="any" value="'+a2+'" placeholder="Assign 2" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#efefef;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:14px;outline:none;"><span style="font-size:10px;color:#666;letter-spacing:1px;">/ 35</span></div></div>';
   }
@@ -605,13 +605,13 @@ function openEditSubject(code){
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:flex;align-items:flex-end;justify-content:center;';
   overlay.innerHTML =
     '<div style="background:#0a0a0a;border-top:2px solid #c8f230;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;">'
-      +'<div style="padding:18px 18px 12px;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">'
+      +'<div style="padding:18px 18px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">'
         +'<div style="flex:1;min-width:0;">'
           +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:#c8f230;">✏️ Edit Marks</div>'
-          +'<div style="font-size:11px;color:#aaa;margin-top:3px;">'+sub.name+'</div>'
-          +'<div style="font-size:10px;color:#666;letter-spacing:1px;margin-top:3px;">'+sub.code+' · '+(sub.type==='semester'?'📆 Semester':'📅 Annual')+' · '+sub.credits+'cr · NQF '+sub.nqfLevel+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-top:3px;">'+sub.name+'</div>'
+          +'<div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:3px;">'+sub.code+' · '+(sub.type==='semester'?'📆 Semester':'📅 Annual')+' · '+sub.credits+'cr · NQF '+sub.nqfLevel+'</div>'
         +'</div>'
-        +'<button onclick="this.closest(\'.school-edit-overlay\').remove()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:28px;height:28px;color:#666;cursor:pointer;font-size:16px;flex-shrink:0;">×</button>'
+        +'<button onclick="this.closest(\'.school-edit-overlay\').remove()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:28px;height:28px;color:var(--muted);cursor:pointer;font-size:16px;flex-shrink:0;">×</button>'
       +'</div>'
       +'<div style="padding:14px 18px;">'
 
@@ -623,7 +623,7 @@ function openEditSubject(code){
 
         // EXAM
         +'<div style="font-size:9px;letter-spacing:2px;color:#5a8800;text-transform:uppercase;margin-bottom:8px;margin-top:14px;">📋 Exam</div>'
-        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">Exam Raw Score</label>'
+        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Exam Raw Score</label>'
         +'<div style="display:flex;gap:8px;align-items:center;"><input id="rExam" type="number" min="0" max="100" step="any" value="'+examVal+'" placeholder="'+examPlaceholder+'" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#efefef;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:14px;outline:none;"><span style="font-size:10px;color:#666;letter-spacing:1px;">/ 100</span></div></div>'
 
         // PLACEHOLDER TOGGLE
@@ -634,27 +634,27 @@ function openEditSubject(code){
 
         // RESULT OVERRIDE
         +'<div style="margin-top:14px;">'
-          +'<div style="font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">Result Code</div>'
-          +'<div style="font-size:10px;color:#666;margin-bottom:6px;">Auto-suggested from Final %. Pick another to override:</div>'
+          +'<div style="font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Result Code</div>'
+          +'<div style="font-size:10px;color:var(--muted);margin-bottom:6px;">Auto-suggested from Final %. Pick another to override:</div>'
           +'<div style="display:flex;flex-wrap:wrap;gap:5px;" id="overridePills">'+overridePills+'</div>'
         +'</div>'
 
         // EXAM DATE (v94)
         +'<div style="margin-top:14px;">'
-          +'<label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">📅 Exam Date (optional)</label>'
+          +'<label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">📅 Exam Date (optional)</label>'
           +'<input id="rExamDate" type="date" value="'+(sub.examDate || '')+'" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#f2c830;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:13px;outline:none;">'
-          +'<div style="font-size:9px;color:#666;margin-top:4px;line-height:1.4;">Shows on the card as "⏰ Exam DD Month YYYY". Leave blank if not set yet.</div>'
+          +'<div style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.4;">Shows on the card as "⏰ Exam DD Month YYYY". Leave blank if not set yet.</div>'
         +'</div>'
 
         // NOTES
         +'<div style="margin-top:14px;">'
-          +'<label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">Notes (optional)</label>'
+          +'<label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Notes (optional)</label>'
           +'<input id="rNotes" type="text" value="'+(sub.notes || '').replace(/"/g,'&quot;')+'" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:12px;outline:none;">'
         +'</div>'
 
       +'</div>'
-      +'<div style="display:flex;gap:8px;padding:14px 18px 18px;border-top:1px solid #1a1a1a;">'
-        +'<button onclick="this.closest(\'.school-edit-overlay\').remove()" style="flex:1;background:transparent;border:1px solid #2a2a2a;border-radius:6px;padding:11px;color:#888;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Cancel</button>'
+      +'<div style="display:flex;gap:8px;padding:14px 18px 18px;border-top:1px solid var(--border);">'
+        +'<button onclick="this.closest(\'.school-edit-overlay\').remove()" style="flex:1;background:transparent;border:1px solid #2a2a2a;border-radius:6px;padding:11px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Cancel</button>'
         +'<button onclick="saveEditedSubject()" style="flex:2;background:#c8f230;border:none;border-radius:6px;padding:11px;color:#000;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save</button>'
       +'</div>'
     +'</div>';
@@ -683,9 +683,9 @@ function _updateLiveCalc(){
   var block = document.getElementById('liveCalcBlock');
   if(!block) return;
   block.innerHTML =
-    '<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span style="color:#888;">Year Mark %</span><span style="color:#efefef;font-weight:500;">'+(ymp !== null ? ymp : '—')+'</span></div>'
-   +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span style="color:#888;">Year contribution (40%)</span><span style="color:#efefef;">'+(ymp !== null ? (ymp * 0.40).toFixed(1) : '—')+'</span></div>'
-   +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span style="color:#888;">Exam contribution (60%)</span><span style="color:#efefef;">'+(snap.examRaw !== null && snap.examRaw !== undefined ? (snap.examRaw * 0.60).toFixed(1) : '<span style="color:#444;">— pending</span>')+'</span></div>'
+    '<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span style="color:var(--muted);">Year Mark %</span><span style="color:var(--text);font-weight:500;">'+(ymp !== null ? ymp : '—')+'</span></div>'
+   +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span style="color:var(--muted);">Year contribution (40%)</span><span style="color:var(--text);">'+(ymp !== null ? (ymp * 0.40).toFixed(1) : '—')+'</span></div>'
+   +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span style="color:var(--muted);">Exam contribution (60%)</span><span style="color:var(--text);">'+(snap.examRaw !== null && snap.examRaw !== undefined ? (snap.examRaw * 0.60).toFixed(1) : '<span style="color:var(--muted);">— pending</span>')+'</span></div>'
    +'<div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed #2a4a00;padding-top:6px;margin-top:4px;"><span style="color:#5a8800;font-weight:700;font-size:12px;">Final %</span><span style="color:#c8f230;font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;">'+(fp !== null ? fp : 'TBD')+'</span></div>'
    +'<div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:4px;"><span style="color:#5a8800;font-weight:700;font-size:11px;">Result</span><span style="color:'+getResultColor(rslt)+';font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;">'+(rslt || '—')+'</span></div>';
 
@@ -799,50 +799,50 @@ function openAddSubject(){
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:flex;align-items:flex-end;justify-content:center;';
   overlay.innerHTML =
     '<div style="background:#0a0a0a;border-top:2px solid #c8f230;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;">'
-      +'<div style="padding:18px 18px 12px;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center;">'
+      +'<div style="padding:18px 18px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
         +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:#c8f230;">➕ Add Subject</div>'
-        +'<div style="font-size:10px;color:#666;margin-top:2px;letter-spacing:1px;">Fill in what you know — all marks editable later</div></div>'
-        +'<button onclick="this.closest(\'.school-add-overlay\').remove()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:28px;height:28px;color:#666;cursor:pointer;font-size:16px;">×</button>'
+        +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">Fill in what you know — all marks editable later</div></div>'
+        +'<button onclick="this.closest(\'.school-add-overlay\').remove()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:28px;height:28px;color:var(--muted);cursor:pointer;font-size:16px;">×</button>'
       +'</div>'
       +'<div style="padding:14px 18px;">'
-        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">Course Code</label>'
+        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Course Code</label>'
         +'<input id="addCode" type="text" placeholder="e.g. BCOM_MKT-201" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:13px;outline:none;"></div>'
 
-        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">Course Name</label>'
+        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Course Name</label>'
         +'<input id="addName" type="text" placeholder="e.g. Marketing 201" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:13px;outline:none;"></div>'
 
-        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">Year</label>'
+        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Year</label>'
         +'<div id="addYear" data-v="3" style="display:flex;gap:5px;flex-wrap:wrap;">'
         +[1,2,3,4].map(function(y){
           return '<button onclick="_pickAdd(this,\'addYear\','+y+')" style="padding:6px 12px;background:'+(y===3?'#1a2e00':'#1a1a1a')+';border:1px solid '+(y===3?'#5a8800':'#2a2a2a')+';border-radius:4px;color:'+(y===3?'#c8f230':'#888')+';font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">Year '+y+'</button>';
         }).join('')+'</div></div>'
 
-        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">Course Type</label>'
+        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Course Type</label>'
         +'<div id="addType" data-v="semester" style="display:flex;gap:5px;flex-wrap:wrap;">'
         +'<button onclick="_pickAdd(this,\'addType\',\'semester\')" style="padding:6px 12px;background:#1a2e00;border:1px solid #5a8800;border-radius:4px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">📆 Semester (1Q+1A)</button>'
         +'<button onclick="_pickAdd(this,\'addType\',\'annual\')" style="padding:6px 12px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;color:#888;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">📅 Annual (2Q+2A)</button>'
         +'</div></div>'
 
-        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">Credits</label>'
+        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Credits</label>'
         +'<div id="addCredits" data-v="15" style="display:flex;gap:5px;flex-wrap:wrap;">'
         +'<button onclick="_pickAdd(this,\'addCredits\',15)" style="padding:6px 12px;background:#1a2e00;border:1px solid #5a8800;border-radius:4px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">15</button>'
         +'<button onclick="_pickAdd(this,\'addCredits\',30)" style="padding:6px 12px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;color:#888;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">30</button>'
         +'</div></div>'
 
-        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">NQF Level</label>'
+        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">NQF Level</label>'
         +'<div id="addNqf" data-v="7" style="display:flex;gap:5px;flex-wrap:wrap;">'
         +[5,6,7].map(function(n){
           return '<button onclick="_pickAdd(this,\'addNqf\','+n+')" style="padding:6px 12px;background:'+(n===7?'#1a2e00':'#1a1a1a')+';border:1px solid '+(n===7?'#5a8800':'#2a2a2a')+';border-radius:4px;color:'+(n===7?'#c8f230':'#888')+';font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">'+n+'</button>';
         }).join('')+'</div></div>'
 
-        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:5px;">Period</label>'
+        +'<div style="margin-bottom:10px;"><label style="display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Period</label>'
         +'<input id="addPeriod" type="text" placeholder="e.g. 2026 January Semester" value="2026 January Semester" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;padding:9px 11px;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:13px;outline:none;"></div>'
 
         +'<div style="padding:10px;background:#1a1a00;border:1px dashed #4a3a00;border-radius:6px;font-size:10px;color:#876500;text-align:center;margin-top:10px;">💡 Marks come later via Edit</div>'
 
       +'</div>'
-      +'<div style="display:flex;gap:8px;padding:14px 18px 18px;border-top:1px solid #1a1a1a;">'
-        +'<button onclick="this.closest(\'.school-add-overlay\').remove()" style="flex:1;background:transparent;border:1px solid #2a2a2a;border-radius:6px;padding:11px;color:#888;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Cancel</button>'
+      +'<div style="display:flex;gap:8px;padding:14px 18px 18px;border-top:1px solid var(--border);">'
+        +'<button onclick="this.closest(\'.school-add-overlay\').remove()" style="flex:1;background:transparent;border:1px solid #2a2a2a;border-radius:6px;padding:11px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Cancel</button>'
         +'<button onclick="saveNewSubject()" style="flex:2;background:#c8f230;border:none;border-radius:6px;padding:11px;color:#000;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Subject</button>'
       +'</div>'
     +'</div>';
@@ -923,9 +923,9 @@ function openGradeKey(){
     if(g.group){
       return '<tr><td colspan="2" style="padding:10px 12px 6px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;font-weight:700;">'+g.group+'</td></tr>';
     }
-    return '<tr style="border-bottom:1px solid #1a1a1a;">'
+    return '<tr style="border-bottom:1px solid var(--border);">'
       +'<td style="padding:9px 12px;font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:'+getResultColor(g.symbol)+';white-space:nowrap;width:70px;">'+g.symbol+'</td>'
-      +'<td style="padding:9px 12px;font-size:12px;color:#aaa;">'+g.meaning+'</td>'
+      +'<td style="padding:9px 12px;font-size:12px;color:var(--muted);">'+g.meaning+'</td>'
       +'</tr>';
   }).join('');
 
@@ -934,15 +934,15 @@ function openGradeKey(){
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:flex-end;justify-content:center;';
   overlay.innerHTML =
     '<div style="background:#0a0a0a;border-top:2px solid #c8f230;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;">'
-      +'<div style="padding:18px 18px 12px;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center;">'
+      +'<div style="padding:18px 18px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
         +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:#c8f230;">📋 Grade Key</div>'
-        +'<div style="font-size:10px;color:#666;margin-top:2px;letter-spacing:1px;">All result codes &amp; meanings</div></div>'
-        +'<button onclick="this.closest(\'.gk-overlay\').remove()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:28px;height:28px;color:#666;cursor:pointer;font-size:16px;">×</button>'
+        +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">All result codes &amp; meanings</div></div>'
+        +'<button onclick="this.closest(\'.gk-overlay\').remove()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:28px;height:28px;color:var(--muted);cursor:pointer;font-size:16px;">×</button>'
       +'</div>'
       +'<div style="overflow-y:auto;flex:1;">'
         +'<table style="width:100%;border-collapse:collapse;">'+rows+'</table>'
       +'</div>'
-      +'<div style="padding:12px 16px;border-top:1px solid #1a1a1a;">'
+      +'<div style="padding:12px 16px;border-top:1px solid var(--border);">'
         +'<button onclick="this.closest(\'.gk-overlay\').remove()" style="width:100%;background:#1a2e00;border:1px solid #3a5a00;border-radius:8px;padding:12px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Close</button>'
       +'</div>'
     +'</div>';
@@ -961,7 +961,7 @@ function renderSchoolResults(){
   // Distinct years that exist in the data
   var distinctYears = Array.from(new Set(SCHOOL_SUBJECTS.map(function(s){ return s.year; }))).sort();
   if(distinctYears.length === 0){
-    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#444;font-size:12px;">No subjects yet. Tap <b>+ Add Subject</b>.</div>';
+    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:12px;">No subjects yet. Tap <b>+ Add Subject</b>.</div>';
     return;
   }
   // Make sure active year exists
@@ -1013,8 +1013,8 @@ function renderSchoolResults(){
         +'<div style="height:100%;background:#c8f230;border-radius:4px;width:'+progressPct+'%;transition:width .5s;"></div>'
       +'</div>'
       +'<div style="display:flex;justify-content:space-between;font-size:11px;">'
-        +'<span style="color:#efefef;"><strong style="font-family:\'Syne\',sans-serif;font-size:14px;color:#c8f230;">'+creditsEarned+'</strong> of '+totalCredits+' credits</span>'
-        +'<span style="color:#666;">'+(totalCredits - creditsEarned)+' to go</span>'
+        +'<span style="color:var(--text);"><strong style="font-family:\'Syne\',sans-serif;font-size:14px;color:#c8f230;">'+creditsEarned+'</strong> of '+totalCredits+' credits</span>'
+        +'<span style="color:var(--muted);">'+(totalCredits - creditsEarned)+' to go</span>'
       +'</div>'
     +'</div>'
 
@@ -1024,16 +1024,16 @@ function renderSchoolResults(){
     // Year average card
     +'<div style="background:var(--surface);border:1px solid #2a2a2a;border-radius:10px;padding:14px;margin-bottom:14px;">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
-        +'<span style="font-size:10px;letter-spacing:2px;color:#666;text-transform:uppercase;">Year '+_activeResultsYear+' Average</span>'
+        +'<span style="font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;">Year '+_activeResultsYear+' Average</span>'
         +'<span style="font-size:10px;color:'+(withFinals.length===yearSubs.length?'#c8f230':'#f2c830')+';background:'+(withFinals.length===yearSubs.length?'#1a2e00':'#1a1500')+';padding:3px 10px;border-radius:100px;border:1px solid '+(withFinals.length===yearSubs.length?'#3a5a00':'#4a3a00')+';letter-spacing:1px;">'+withFinals.length+' of '+yearSubs.length+' final</span>'
       +'</div>'
-      +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:42px;color:'+(avgFinal!==null?'#c8f230':'#444')+';letter-spacing:-1px;line-height:1;">'+(avgFinal!==null ? avgFinal : '—')+'<span style="font-size:18px;color:#666;">%</span></div>'
-      +'<div style="font-size:10px;color:#666;margin-top:4px;letter-spacing:1px;">'+(withFinals.length===0?'Awaiting first final mark':'Average of '+withFinals.length+' final results')+'</div>'
+      +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:42px;color:'+(avgFinal!==null?'#c8f230':'#444')+';letter-spacing:-1px;line-height:1;">'+(avgFinal!==null ? avgFinal : '—')+'<span style="font-size:18px;color:var(--muted);">%</span></div>'
+      +'<div style="font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:1px;">'+(withFinals.length===0?'Awaiting first final mark':'Average of '+withFinals.length+' final results')+'</div>'
     +'</div>';
 
   // Subject cards grouped by period
   periodKeys.forEach(function(period){
-    html += '<div style="font-size:10px;letter-spacing:2px;color:#666;text-transform:uppercase;margin:18px 0 10px 4px;">▼ '+period+'</div>';
+    html += '<div style="font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:18px 0 10px 4px;">▼ '+period+'</div>';
     periodGroups[period].forEach(function(sub){
       html += _renderSubjectCard(sub);
     });
@@ -1084,19 +1084,19 @@ function _renderSubjectCard(sub){
     var fpDisp = (fp !== null) ? fp : 'TBD';
     marksHtml =
       '<div style="display:flex;justify-content:space-between;padding:10px 16px;border-top:1px solid #0f0f0f;font-size:13px;align-items:center;">'
-        +'<span style="color:#666;letter-spacing:0.5px;font-size:13px;">Year %</span>'
+        +'<span style="color:var(--muted);letter-spacing:0.5px;font-size:13px;">Year %</span>'
         +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:18px;color:'+phColor+';">'+ympDisp+'</span>'
       +'</div>'
       +'<div style="display:flex;justify-content:space-between;padding:10px 16px;border-top:1px solid #0f0f0f;font-size:13px;align-items:center;">'
-        +'<span style="color:#666;letter-spacing:0.5px;font-size:13px;">Exam %'+(sub.examDate ? '<span style="color:#f2c830;font-size:10px;margin-left:6px;">⏰ Exam '+_fmtExamDate(sub.examDate)+'</span>' : '')+'</span>'
+        +'<span style="color:var(--muted);letter-spacing:0.5px;font-size:13px;">Exam %'+(sub.examDate ? '<span style="color:#f2c830;font-size:10px;margin-left:6px;">⏰ Exam '+_fmtExamDate(sub.examDate)+'</span>' : '')+'</span>'
         +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:18px;color:'+(examDisp==='—'?'#444':phColor)+';">'+examDisp+'</span>'
       +'</div>'
       +'<div style="display:flex;justify-content:space-between;padding:10px 16px;border-top:1px solid #0f0f0f;font-size:13px;align-items:center;background:#0a0a0a;">'
-        +'<span style="color:#666;letter-spacing:0.5px;font-size:13px;">Final %</span>'
+        +'<span style="color:var(--muted);letter-spacing:0.5px;font-size:13px;">Final %</span>'
         +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;color:'+(fp===null?'#444':(sub.isPlaceholder?'#f2c830':'#c8f230'))+';">'+fpDisp+'</span>'
       +'</div>'
       +'<div style="display:flex;justify-content:space-between;padding:10px 16px;border-top:1px solid #0f0f0f;font-size:13px;align-items:center;">'
-        +'<span style="color:#666;letter-spacing:0.5px;font-size:13px;">Result</span>'
+        +'<span style="color:var(--muted);letter-spacing:0.5px;font-size:13px;">Result</span>'
         +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:'+rsltColor+';">'+(rslt ? getResultLabel(rslt) : '—')+(sub.isPlaceholder?' (placeholder)':'')+'</span>'
       +'</div>';
   }
@@ -1127,7 +1127,7 @@ function _renderSubjectCard(sub){
       +'<div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'
         +'<div style="flex:1;min-width:0;">'
           +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;line-height:1.2;margin-bottom:3px;">'+sub.name+'</div>'
-          +'<div style="font-size:10px;color:#666;letter-spacing:1px;margin-bottom:5px;">'+sub.code+' · '+sub.credits+'cr · NQF '+sub.nqfLevel+'</div>'
+          +'<div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:5px;">'+sub.code+' · '+sub.credits+'cr · NQF '+sub.nqfLevel+'</div>'
           +'<span style="display:inline-block;font-size:9px;letter-spacing:1px;color:#888;background:#0f0f0f;padding:3px 8px;border-radius:4px;border:1px solid #2a2a2a;">'+typeIcon+' '+(sub.type==='semester'?'Semester':'Annual')+'</span>'
         +'</div>'
         +badge
@@ -1135,8 +1135,8 @@ function _renderSubjectCard(sub){
       +marksHtml
       +breakdown
       +'<div style="display:flex;border-top:1px dashed #2a2a2a;">'
-        +'<button onclick="openEditSubject(\''+sub.code+'\')" style="flex:1;background:transparent;border:none;padding:10px;color:#666;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">✏️ Edit</button>'
-        +'<button onclick="deleteSubject(\''+sub.code+'\')" style="background:transparent;border:none;border-left:1px dashed #2a2a2a;padding:10px 14px;color:#444;font-family:\'DM Mono\',monospace;font-size:10px;cursor:pointer;">🗑</button>'
+        +'<button onclick="openEditSubject(\''+sub.code+'\')" style="flex:1;background:transparent;border:none;padding:10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">✏️ Edit</button>'
+        +'<button onclick="deleteSubject(\''+sub.code+'\')" style="background:transparent;border:none;border-left:1px dashed #2a2a2a;padding:10px 14px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;cursor:pointer;">🗑</button>'
       +'</div>'
     +'</div>';
 }

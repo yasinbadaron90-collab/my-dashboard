@@ -100,7 +100,7 @@ function _spRenderPocketList(){
 
   var visible = (funds || []).filter(function(f){ return !f._deleted; });
   if(!visible.length){
-    list.innerHTML = '<div style="padding:14px;color:#555;font-size:11px;text-align:center;letter-spacing:1px;">No pockets yet. Create one on the Savings tab.</div>';
+    list.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:11px;text-align:center;letter-spacing:1px;">No pockets yet. Create one on the Savings tab.</div>';
     return;
   }
 

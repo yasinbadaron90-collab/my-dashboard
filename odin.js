@@ -192,7 +192,7 @@ function _renderOdinTabSnapshot(mk){
     tile.onmouseover = function(){ this.style.opacity='0.8'; };
     tile.onmouseout  = function(){ this.style.opacity='1'; };
     tile.addEventListener('click', (function(tab){ return function(){ goToTab(tab); }; })(t.tab));
-    tile.innerHTML = '<div style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">'+t.label+'</div>'
+    tile.innerHTML = '<div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">'+t.label+'</div>'
       +'<div style="font-family:Syne,sans-serif;font-weight:800;font-size:18px;color:'+t.color+';">'+t.value+'</div>';
     container.appendChild(tile);
   });
@@ -236,7 +236,7 @@ function _renderOdinTabActivity(mk){
 
   if(!activity.length){
     var none = document.createElement('div');
-    none.style.cssText = 'font-size:11px;color:#333;padding:8px 0;';
+    none.style.cssText = 'font-size:11px;color:var(--muted2);padding:8px 0;';
     none.textContent = 'No activity this month yet.';
     container.appendChild(none);
     return;
@@ -244,10 +244,10 @@ function _renderOdinTabActivity(mk){
 
   activity.forEach(function(a){
     var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #161616;cursor:pointer;';
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;';
     row.addEventListener('click', (function(tab){ return function(){ goToTab(tab); }; })(a.tab));
-    row.innerHTML = '<div><div style="font-size:12px;color:#efefef;font-family:DM Mono,monospace;">'+a.text+'</div>'
-      +'<div style="font-size:10px;color:#333;margin-top:2px;">'+a.date+'</div></div>'
+    row.innerHTML = '<div><div style="font-size:12px;color:var(--text);font-family:DM Mono,monospace;">'+a.text+'</div>'
+      +'<div style="font-size:10px;color:var(--muted2);margin-top:2px;">'+a.date+'</div></div>'
       +'<span style="font-size:13px;font-weight:700;color:'+a.color+';">'+a.amount+'</span>';
     container.appendChild(row);
   });
@@ -526,7 +526,7 @@ function renderOdinLaunchAlerts(){
     textSpan.style.cssText = 'font-size:12px;color:'+color+';flex:1;font-family:DM Mono,monospace;letter-spacing:0.3px;';
     textSpan.textContent = a.text;
     var arrow = document.createElement('span');
-    arrow.style.cssText = 'color:#333;font-size:16px;';
+    arrow.style.cssText = 'color:var(--muted2);font-size:16px;';
     arrow.textContent = '›';
     d.appendChild(dotSpan);
     d.appendChild(textSpan);
@@ -545,7 +545,7 @@ function renderOdinLaunchAlerts(){
     container.appendChild(extraWrap);
 
     var toggleBtn = document.createElement('button');
-    toggleBtn.style.cssText = 'width:100%;background:none;border:1px solid #2a2a2a;border-radius:8px;padding:8px;color:#555;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;cursor:pointer;margin-top:2px;transition:all .15s;';
+    toggleBtn.style.cssText = 'width:100%;background:none;border:1px solid #2a2a2a;border-radius:8px;padding:8px;color:var(--muted);font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;cursor:pointer;margin-top:2px;transition:all .15s;';
     toggleBtn.textContent = 'View all ('+hiddenAlerts.length+' more)';
     var expanded = false;
     toggleBtn.addEventListener('click', function(){
@@ -598,10 +598,10 @@ function showLaunchMenu(){
     btn.innerHTML =
       '<span style="font-size:28px;line-height:1;flex-shrink:0;">'+item.icon+'</span>'+
       '<div>'+
-        '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:#efefef;margin-bottom:2px;">'+item.label+'</div>'+
-        '<div style="font-size:10px;color:#555;letter-spacing:1px;">'+item.sub+'</div>'+
+        '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:var(--text);margin-bottom:2px;">'+item.label+'</div>'+
+        '<div style="font-size:10px;color:var(--muted);letter-spacing:1px;">'+item.sub+'</div>'+
       '</div>'+
-      '<span style="margin-left:auto;color:#333;font-size:18px;">›</span>';
+      '<span style="margin-left:auto;color:var(--muted2);font-size:18px;">›</span>';
     btn.onclick = function(){
       closeLaunchMenu();
       if(item.tab === 'ai'){ openAIAssistant(); } else { goToTab(item.tab); }

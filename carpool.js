@@ -663,8 +663,8 @@ function _generateStatementsWork(){
           +'<span class="stmt-day">'+b.date+(b.note?' · '+b.note:'')+'</span>'
           +'<span style="display:flex;align-items:center;gap:6px;">'
           +'<span style="color:#7090f0;font-weight:500;">↩ -'+fmtR(b.amount)+' paid</span>'
-          +'<span onclick="openEditBorrowModal(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:#444;font-size:14px;" title="Edit">✏️</span>'
-          +'<span onclick="deleteBorrowEntry(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:#444;font-size:14px;" title="Delete">🗑</span>'
+          +'<span onclick="openEditBorrowModal(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:var(--muted);font-size:14px;" title="Edit">✏️</span>'
+          +'<span onclick="deleteBorrowEntry(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:var(--muted);font-size:14px;" title="Delete">🗑</span>'
           +'</span>'
           +'</div>';
       }
@@ -672,8 +672,8 @@ function _generateStatementsWork(){
         +'<span class="stmt-day">'+b.date+(b.note?' · '+b.note:'')+'</span>'
         +'<span style="display:flex;align-items:center;gap:6px;">'
         +'<span class="stmt-borrow">💸 '+fmtR(b.amount)+(b.paid?' ✓':' ⏳')+'</span>'
-        +'<span onclick="openEditBorrowModal(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:#444;font-size:14px;" title="Edit">✏️</span>'
-        +'<span onclick="deleteBorrowEntry(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:#444;font-size:14px;" title="Delete">🗑</span>'
+        +'<span onclick="openEditBorrowModal(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:var(--muted);font-size:14px;" title="Edit">✏️</span>'
+        +'<span onclick="deleteBorrowEntry(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:var(--muted);font-size:14px;" title="Delete">🗑</span>'
         +'</span>'
         +'</div>';
     }).join('');
@@ -688,14 +688,14 @@ function _generateStatementsWork(){
     // Breakdown footer — always shows trips section; borrow section only if borrows exist
     const breakdownHtml='<div style="padding:8px 12px;border-top:1px solid #1e3a00;background:#0a1500;font-size:10px;display:flex;flex-direction:column;gap:3px;">'
       +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Trips</span><span style="color:#c8f230;">'+fmtR(tripTotal)+'</span></div>'
-      +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Trips Paid</span><span style="color:#efefef;">'+fmtR(tripPaid)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Trips Paid</span><span style="color:var(--text);">'+fmtR(tripPaid)+'</span></div>'
       +(tripOwing>0
         ?'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:2px;"><span style="color:#f2a830;letter-spacing:1px;text-transform:uppercase;">Trips Outstanding</span><span style="color:#f2a830;font-weight:700;">'+fmtR(tripOwing)+'</span></div>'
         :'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:2px;"><span style="color:#c8f230;letter-spacing:1px;text-transform:uppercase;">Trips</span><span style="color:#c8f230;font-weight:700;">All settled ✓</span></div>'
       )
       +(borrowTotal>0
         ?'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:4px;"><span style="color:#6b4fa8;">Borrowed</span><span style="color:#a78bfa;">'+fmtR(borrowTotal)+'</span></div>'
-         +(borrowPaid>0?'<div style="display:flex;justify-content:space-between;"><span style="color:#6b4fa8;">Borrow Paid</span><span style="color:#efefef;">'+fmtR(borrowPaid)+'</span></div>':'')
+         +(borrowPaid>0?'<div style="display:flex;justify-content:space-between;"><span style="color:#6b4fa8;">Borrow Paid</span><span style="color:var(--text);">'+fmtR(borrowPaid)+'</span></div>':'')
          +(borrowOwing>0?'<div style="display:flex;justify-content:space-between;"><span style="color:#a78bfa;letter-spacing:1px;text-transform:uppercase;">Borrow Outstanding</span><span style="color:#a78bfa;font-weight:700;">'+fmtR(borrowOwing)+'</span></div>':'')
         :''
       )
@@ -753,8 +753,8 @@ function _generateStatementsWork(){
   // Grand total card
   const gtCard=document.createElement('div');
   gtCard.style.cssText='background:#111;border:1px solid #2a4a00;border-radius:6px;padding:14px 16px;margin-top:4px;';
-  const gtRows=passengerTotals.map(function(p){return '<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px"><span style="color:#555">'+p.name+'</span><span style="color:#efefef">'+fmtR(p.total)+'</span></div>';}).join('');
-  gtCard.innerHTML='<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#444;margin-bottom:10px">Total — '+from+' to '+to+'</div>'+gtRows+'<div style="border-top:1px solid #2a2a2a;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;"><span style="color:#efefef;font-size:12px;font-weight:500">Grand Total</span><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#c8f230">'+fmtR(grandTotal)+'</span></div>';
+  const gtRows=passengerTotals.map(function(p){return '<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px"><span style="color:var(--muted)">'+p.name+'</span><span style="color:var(--text)">'+fmtR(p.total)+'</span></div>';}).join('');
+  gtCard.innerHTML='<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Total — '+from+' to '+to+'</div>'+gtRows+'<div style="border-top:1px solid #2a2a2a;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;"><span style="color:var(--text);font-size:12px;font-weight:500">Grand Total</span><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#c8f230">'+fmtR(grandTotal)+'</span></div>';
   container.appendChild(gtCard);
 
   document.getElementById('stmtArea').style.display='block';
@@ -769,16 +769,16 @@ function copyStmt(btn, text, passenger, from, to, rows, totalAmt){
   .header{text-align:center;border-bottom:2px solid #c8f230;padding-bottom:16px;margin-bottom:20px;}
   .co{font-size:11px;color:#5a8800;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;}
   .name{font-size:32px;font-weight:700;color:#c8f230;letter-spacing:-1px;}
-  .period{font-size:12px;color:#555;margin-top:4px;}
-  .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1a1a1a;font-size:13px;}
-  .row .day{color:#555;}
+  .period{font-size:12px;color:var(--muted);margin-top:4px;}
+  .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .row .day{color:var(--muted);}
   .row .amt-paid{color:#c8f230;font-weight:700;}
   .row .amt-owing{color:#f2a830;font-weight:700;}
-  .row .amt-absent{color:#333;}
+  .row .amt-absent{color:var(--muted2);}
   .total-bar{display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:2px solid #c8f230;}
   .total-label{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5a8800;}
   .total-amt{font-size:28px;font-weight:700;color:#c8f230;}
-  .footer{text-align:center;margin-top:24px;font-size:10px;color:#333;letter-spacing:2px;}
+  .footer{text-align:center;margin-top:24px;font-size:10px;color:var(--muted2);letter-spacing:2px;}
 </style></head>
 <body>
 <div class="header">
@@ -926,7 +926,7 @@ function openPayDestModal(btn){
   // Summary
   const summaryEl = document.getElementById('payDestSummary');
   summaryEl.innerHTML =
-    '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:16px;color:#efefef;margin-bottom:6px;">'+passenger+' paying '+fmtR(totalOwing)+'</div>'
+    '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:16px;color:var(--text);margin-bottom:6px;">'+passenger+' paying '+fmtR(totalOwing)+'</div>'
     +(tripOwing>0?'<div>🚗 Carpool outstanding: <strong style="color:#f2a830;">'+fmtR(tripOwing)+'</strong></div>':'')
     +(borrowOwing>0?'<div>💸 Borrow outstanding: <strong style="color:#a78bfa;">'+fmtR(borrowOwing)+'</strong></div>':'');
 
@@ -974,8 +974,8 @@ function buildDestOption(value, label, sub, color){
   div.innerHTML =
     '<div style="width:14px;height:14px;border-radius:50%;border:2px solid '+color+';flex-shrink:0;" class="dest-radio"></div>'
     +'<div style="flex:1;">'
-      +'<div style="font-size:12px;color:#efefef;">'+label+'</div>'
-      +'<div style="font-size:10px;color:#555;letter-spacing:0.5px;margin-top:2px;">'+sub+'</div>'
+      +'<div style="font-size:12px;color:var(--text);">'+label+'</div>'
+      +'<div style="font-size:10px;color:var(--muted);letter-spacing:0.5px;margin-top:2px;">'+sub+'</div>'
     +'</div>';
   return div;
 }
@@ -1550,9 +1550,9 @@ function renderReports(){
       // Also show what was deposited in the current period as context
       const deposited = fundDepositedInPeriod(f, months);
       return '<div class="rpt-row" style="grid-template-columns:1.5fr 1fr 1fr 1fr">'
-        + '<span style="color:#888">' + f.emoji + ' ' + f.name + '</span>'
+        + '<span style="color:var(--muted)">' + f.emoji + ' ' + f.name + '</span>'
         + '<span style="color:#c8f230" title="Balance at end of '+period.label+'">' + fmtR(a) + '</span>'
-        + '<span style="color:#666" title="Balance at end of '+prevPeriod.label+'">' + fmtR(b) + '</span>'
+        + '<span style="color:var(--muted)" title="Balance at end of '+prevPeriod.label+'">' + fmtR(b) + '</span>'
         + '<span style="color:' + d.color + ';font-weight:500">' + d.text + (pctStr ? ' <span style="font-size:9px;opacity:.7">('+pctStr+')</span>' : '') + '</span>'
         + '</div>';
     }).join('');
@@ -1566,7 +1566,7 @@ function renderReports(){
     sdEl.textContent = sd.text; sdEl.style.color = sd.color;
     const spEl = document.getElementById('savCmpDeltaPct');
     spEl.textContent = fmtDeltaPct(totalA, totalB); spEl.style.color = sd.color;
-    document.getElementById('rptSavingsCompareRows').innerHTML = compareRows || '<div style="padding:14px;color:#555;font-size:12px">No funds found</div>';
+    document.getElementById('rptSavingsCompareRows').innerHTML = compareRows || '<div style="padding:14px;color:var(--muted);font-size:12px">No funds found</div>';
     document.getElementById('rptTotalSaved').textContent = fmtR(totalA);
     document.getElementById('rptFundCount').textContent = funds.length;
 
@@ -1588,7 +1588,7 @@ function renderReports(){
         displayAmt=fmtR(bal);
         displayPct=(totalIn>0?Math.min(100,(bal/totalIn)*100):0).toFixed(0)+'%';
         displayCol=bal<0?'#f23060':bal<totalIn*0.2?'#f2a830':'#c8f230';
-        return '<div class="rpt-row" style="grid-template-columns:2fr 1fr 1fr"><span style="color:#888">'+f.emoji+' '+f.name+'</span><span style="color:'+displayCol+';font-weight:500">'+displayAmt+'</span><span style="color:#555">'+displayPct+' avail</span></div>';
+        return '<div class="rpt-row" style="grid-template-columns:2fr 1fr 1fr"><span style="color:var(--muted)">'+f.emoji+' '+f.name+'</span><span style="color:'+displayCol+';font-weight:500">'+displayAmt+'</span><span style="color:var(--muted)">'+displayPct+' avail</span></div>';
       } else {
         // Use fundBalanceAt for accurate period balance
         const t = fundBalanceAt(f, months);
@@ -1597,7 +1597,7 @@ function renderReports(){
         const pct = goal > 0 ? Math.min(100,(t/goal)*100).toFixed(0) : '—';
         const col = t===0?'#333':'#c8f230';
         const pctDisplay = goal > 0 ? pct+'%'+(t>=goal?' \uD83C\uDF89':'') : '—';
-        return '<div class="rpt-row" style="grid-template-columns:2fr 1fr 1fr"><span style="color:#888">'+f.emoji+' '+f.name+'</span><span style="color:'+col+';font-weight:500">'+fmtR(t)+'</span><span style="color:#555">'+pctDisplay+'</span></div>';
+        return '<div class="rpt-row" style="grid-template-columns:2fr 1fr 1fr"><span style="color:var(--muted)">'+f.emoji+' '+f.name+'</span><span style="color:'+col+';font-weight:500">'+fmtR(t)+'</span><span style="color:var(--muted)">'+pctDisplay+'</span></div>';
       }
     }).join('');
     document.getElementById('rptTotalSaved').textContent=fmtR(totalSaved);
@@ -1644,9 +1644,9 @@ function renderReports(){
       const d    = fmtDelta(cur - prev);
       const pct  = fmtDeltaPct(cur, prev);
       return '<div class="rpt-row" style="grid-template-columns:1.2fr 1fr 1fr 1fr">'
-        + '<span style="color:#888">' + p + '</span>'
+        + '<span style="color:var(--muted)">' + p + '</span>'
         + '<span style="color:#c8f230">' + fmtR(cur) + '</span>'
-        + '<span style="color:#666">' + fmtR(prev) + '</span>'
+        + '<span style="color:var(--muted)">' + fmtR(prev) + '</span>'
         + '<span style="color:' + d.color + ';font-weight:500">' + d.text + (pct ? ' <span style="font-size:9px;opacity:.7">(' + pct + ')</span>' : '') + '</span>'
         + '</div>';
     }).join('');
@@ -1692,7 +1692,7 @@ function renderReports(){
     document.getElementById('rptCarpoolOwing').textContent=fmtR(cpOwing);
     const carpoolRows=passengers.map(function(p){
       const d=paxData[p];
-      return '<div class="rpt-row" style="grid-template-columns:1.5fr 1fr 1fr 1fr"><span style="color:#888">'+p+'</span><span style="color:#efefef">'+fmtR(d.total)+'</span><span style="color:#c8f230">'+fmtR(d.paid)+'</span><span style="color:#f2a830">'+fmtR(d.owing)+'</span></div>';
+      return '<div class="rpt-row" style="grid-template-columns:1.5fr 1fr 1fr 1fr"><span style="color:var(--muted)">'+p+'</span><span style="color:var(--text)">'+fmtR(d.total)+'</span><span style="color:#c8f230">'+fmtR(d.paid)+'</span><span style="color:#f2a830">'+fmtR(d.owing)+'</span></div>';
     }).join('');
     document.getElementById('rptCarpoolRows').innerHTML=carpoolRows;
   }
@@ -1726,9 +1726,9 @@ function renderReports(){
   document.getElementById('rptCarAvail').textContent = fmtR(balance);
   var carRows = allOutRows.length > 0
     ? allOutRows.slice().sort(function(a,b){ return new Date(a.date)-new Date(b.date); }).map(function(d){
-        return '<div class="rpt-row" style="grid-template-columns:2fr 1fr 1fr"><span style="color:#888">'+d.note+'</span><span style="color:#555">'+d.date+'</span><span style="color:#f23060;font-weight:500">-'+fmtR(d.amount)+'</span></div>';
+        return '<div class="rpt-row" style="grid-template-columns:2fr 1fr 1fr"><span style="color:var(--muted)">'+d.note+'</span><span style="color:var(--muted)">'+d.date+'</span><span style="color:#f23060;font-weight:500">-'+fmtR(d.amount)+'</span></div>';
       }).join('')
-    : '<div style="padding:14px;color:#555;font-size:12px">No expenses logged yet</div>';
+    : '<div style="padding:14px;color:var(--muted);font-size:12px">No expenses logged yet</div>';
   document.getElementById('rptCarRows').innerHTML = carRows;
 }
 
@@ -1829,7 +1829,7 @@ function renderCarpoolChart() {
   const legend = document.getElementById('cpChartLegend');
   if(legend){
     legend.innerHTML = PASSENGER_DATA.map(function(p){
-      return '<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#aaa;"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+(p.color||'#c8f230')+'"></span>'+p.name+'</div>';
+      return '<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+(p.color||'#c8f230')+'"></span>'+p.name+'</div>';
     }).join('');
   }
 

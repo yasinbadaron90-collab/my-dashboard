@@ -133,8 +133,8 @@ function buildCFPDF(months, titleLabel){
   toast.id = 'cfPdfToast';
   toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #3a5a00;border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 24px rgba(0,0,0,.5);min-width:240px;';
   toast.innerHTML = '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:#c8f230;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
-    +'<div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:13px;color:#efefef;">Generating PDF...</div>'
-    +'<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">Cash Flow Report</div></div>';
+    +'<div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:13px;color:var(--text);">Generating PDF...</div>'
+    +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">Cash Flow Report</div></div>';
   if(!document.getElementById('spinStyle')){
     var sp=document.createElement('style');sp.id='spinStyle';
     sp.textContent='@keyframes spin{to{transform:rotate(360deg);}}';
@@ -710,10 +710,10 @@ function renderPassPinRows(){
     const user = entry[1];
     const id = 'pinval_' + pin;
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0d1a10;border:1px solid #1a4028;border-radius:4px;">'
-      + '<span style="font-family:\'DM Mono\',monospace;font-size:11px;color:#efefef;letter-spacing:1px;">'+user.name+'</span>'
+      + '<span style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--text);letter-spacing:1px;">'+user.name+'</span>'
       + '<span style="display:flex;align-items:center;gap:8px;">'
       + '<span id="'+id+'" data-pin="'+pin+'" style="font-family:\'DM Mono\',monospace;font-size:14px;color:#c8f230;letter-spacing:4px;">••••</span>'
-      + '<button onclick="(function(el,btn){if(el.textContent===\'••••\'){el.textContent=el.dataset.pin;btn.textContent=\'Hide\';}else{el.textContent=\'••••\';btn.textContent=\'Show\';}})(document.getElementById(\''+id+'\'),this)" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 7px;color:#888;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">Show</button>'
+      + '<button onclick="(function(el,btn){if(el.textContent===\'••••\'){el.textContent=el.dataset.pin;btn.textContent=\'Hide\';}else{el.textContent=\'••••\';btn.textContent=\'Show\';}})(document.getElementById(\''+id+'\'),this)" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 7px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">Show</button>'
       + '</span>'
       + '</div>';
   }).join('');
@@ -742,11 +742,11 @@ function renderLoginUserRows(){
     const user = entry[1];
     const isMe = user.name === currentUser;
     return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0d1228;border:1px solid #1a2040;border-radius:6px;">'
-      +'<span style="flex:1;font-family:\'DM Mono\',monospace;font-size:12px;color:#efefef;">'+user.name+(isMe?' <span style="font-size:9px;color:#555;">(you)</span>':'')+'</span>'
+      +'<span style="flex:1;font-family:\'DM Mono\',monospace;font-size:12px;color:var(--text);">'+user.name+(isMe?' <span style="font-size:9px;color:var(--muted);">(you)</span>':'')+'</span>'
       +'<span style="font-size:9px;padding:2px 8px;border-radius:100px;background:#1a1a2e;color:'+(roleColors[user.role]||'#888')+';border:1px solid #2a2a4a;letter-spacing:1px;">'+( roleLabels[user.role]||user.role)+'</span>'
       +'<span style="font-family:\'DM Mono\',monospace;font-size:13px;color:#c8f230;letter-spacing:3px;">'+pin+'</span>'
-      +'<button onclick="editLoginUser(\''+pin+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:#888;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">Edit</button>'
-      +(!isMe ? '<button onclick="deleteLoginUser(\''+pin+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:3px 8px;color:#555;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">✕</button>' : '')
+      +'<button onclick="editLoginUser(\''+pin+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">Edit</button>'
+      +(!isMe ? '<button onclick="deleteLoginUser(\''+pin+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">✕</button>' : '')
     +'</div>';
   }).join('');
 }

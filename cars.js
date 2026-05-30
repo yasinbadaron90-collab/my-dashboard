@@ -135,7 +135,7 @@ function renderCars(){
           ctaLabel: '+ Add Car',
           ctaOnclick: 'openAddCarModal()'
         })
-      : '<div style="padding:48px 16px;text-align:center;color:#333;font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">No cars added yet — tap <strong style="color:#f2a830;">+ Add Car</strong> to get started</div>';
+      : '<div style="padding:48px 16px;text-align:center;color:var(--muted);font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">No cars added yet — tap <strong style="color:#f2a830;">+ Add Car</strong> to get started</div>';
   } else {
     container.innerHTML = '';
     cars.forEach(function(car){
@@ -160,7 +160,7 @@ function renderCars(){
       // in a modal via the "All Records" button below.
       var rowsHtml = '';
       if(expenses.length === 0){
-        rowsHtml = '<div style="padding:20px 16px;text-align:center;color:#333;font-size:12px;">No expenses logged yet</div>';
+        rowsHtml = '<div style="padding:20px 16px;text-align:center;color:var(--muted);font-size:12px;">No expenses logged yet</div>';
       } else {
         var sortedExp = expenses.slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
         var SHOW_DEFAULT = 5;
@@ -168,14 +168,14 @@ function renderCars(){
 
         // Renders one expense row — shared between the card preview and modal
         function buildExpRow(e){
-          return '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid #161616;font-size:12px;">'
+          return '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;">'
             +'<div>'
-              +'<div style="color:#ccc;font-size:12px;">'+(e.category||'💡 Other')+'<span style="color:#555;font-size:11px;margin-left:6px;">'+(e.desc||'')+'</span></div>'
-              +'<div style="color:#555;font-size:10px;margin-top:2px;">'+(e.date||'')+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
+              +'<div style="font-size:12px;"><strong style="color:var(--text);font-weight:700;">'+(e.category||'💡 Other')+'</strong><span style="color:var(--muted);font-size:11px;margin-left:6px;">'+(e.desc||'')+'</span></div>'
+              +'<div style="color:var(--muted);font-size:10px;margin-top:2px;">'+(e.date||'')+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
             +'</div>'
             +'<span style="color:#f2a830;font-weight:700;font-size:13px;white-space:nowrap;">R'+Number(e.amt).toLocaleString('en-ZA')+'</span>'
-            +'<span role="button" tabindex="0" aria-label="Edit expense" onclick="openEditExpense(\''+car.id+'\',\''+e.id+'\')" style="cursor:pointer;color:#888;font-size:16px;padding:6px 10px;border-radius:6px;">✏️</span>'
-            +'<span role="button" tabindex="0" aria-label="Delete expense" onclick="deleteExpense(\''+car.id+'\',\''+e.id+'\')" style="cursor:pointer;color:#888;font-size:16px;padding:6px 10px;border-radius:6px;">🗑</span>'
+            +'<span role="button" tabindex="0" aria-label="Edit expense" onclick="openEditExpense(\''+car.id+'\',\''+e.id+'\')" style="cursor:pointer;color:var(--muted);font-size:16px;padding:6px 10px;border-radius:6px;">✏️</span>'
+            +'<span role="button" tabindex="0" aria-label="Delete expense" onclick="deleteExpense(\''+car.id+'\',\''+e.id+'\')" style="cursor:pointer;color:var(--muted);font-size:16px;padding:6px 10px;border-radius:6px;">🗑</span>'
             +'</div>';
         }
 
@@ -183,20 +183,20 @@ function renderCars(){
 
         if(hasMore){
           var moreCount = sortedExp.length - SHOW_DEFAULT;
-          rowsHtml += '<div style="padding:12px 16px;text-align:center;border-top:1px solid #1a1a1a;background:#0a0a0a;">'
+          rowsHtml += '<div style="padding:12px 16px;text-align:center;border-top:1px solid var(--border);background:var(--surface2);">'
             + '<button onclick="openAllRecords(\''+car.id+'\')" '
             +   'style="background:#1a1a00;border:1px solid #f2a830;border-radius:6px;padding:8px 18px;color:#f2a830;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">'
             +   '📋 All Records ('+sortedExp.length+')'
             + '</button>'
-            + '<div style="font-size:9px;color:#555;letter-spacing:1px;margin-top:6px;">+'+moreCount+' more entries</div>'
+            + '<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:6px;">+'+moreCount+' more entries</div>'
             + '</div>';
         } else if(expenses.length > 0){
           // Even if there's no overflow, give users access to the modal in
           // case they want the summary view. Render a quieter button when
           // there's no overflow.
-          rowsHtml += '<div style="padding:10px 16px;text-align:center;border-top:1px solid #1a1a1a;">'
+          rowsHtml += '<div style="padding:10px 16px;text-align:center;border-top:1px solid var(--border);">'
             + '<button onclick="openAllRecords(\''+car.id+'\')" '
-            +   'style="background:none;border:1px solid #333;border-radius:6px;padding:6px 14px;color:#888;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'
+            +   'style="background:none;border:1px solid #333;border-radius:6px;padding:6px 14px;color:var(--muted);font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'
             +   '📋 All Records'
             + '</button>'
             + '</div>';
@@ -209,14 +209,14 @@ function renderCars(){
         // Header
         '<div style="background:#111;padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">'
           +'<div>'
-            +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:17px;color:#efefef;">'+car.name+'</div>'
-            +(car.year||car.note?'<div style="font-size:10px;color:#555;letter-spacing:1px;margin-top:2px;">'+(car.year?car.year+' · ':'')+( car.note||'')+'</div>':'')
+            +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:17px;color:var(--text);">'+car.name+'</div>'
+            +(car.year||car.note?'<div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:2px;">'+(car.year?car.year+' · ':'')+( car.note||'')+'</div>':'')
             +(car.plate?'<div style="font-size:11px;color:#f2a830;letter-spacing:2px;margin-top:4px;font-weight:700;">🔖 '+car.plate+'</div>':'')
-            +(car.vin?'<div style="font-size:9px;color:#444;letter-spacing:1px;margin-top:2px;">VIN: '+car.vin+'</div>':'')
-            +(car.engineNo?'<div style="font-size:9px;color:#444;letter-spacing:1px;margin-top:2px;">Engine: '+car.engineNo+'</div>':'')
+            +(car.vin?'<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px;">VIN: '+car.vin+'</div>':'')
+            +(car.engineNo?'<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px;">Engine: '+car.engineNo+'</div>':'')
           +'</div>'
           +'<div style="text-align:right;">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:2px;">Total Spent</div>'
+            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Total Spent</div>'
             +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:22px;color:#f2a830;">R'+total.toLocaleString('en-ZA')+'</div>'
           +'</div>'
         +'</div>'
@@ -224,24 +224,24 @@ function renderCars(){
         // 4-cell status grid: Last Service | Next Service | Licence Disc | Kilometres
         +'<div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border);">'
           +'<div style="padding:12px 16px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:4px;">Last Service</div>'
-            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#efefef;">'+(lastSvc?formatDisplayDate(lastSvc):'<span style="color:#333;">—</span>')+'</div>'
+            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Last Service</div>'
+            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--text);">'+(lastSvc?formatDisplayDate(lastSvc):'<span style="color:var(--muted2);">—</span>')+'</div>'
             +(car.serviceKm?'<div style="font-size:10px;color:#4a7a00;margin-top:2px;">@ '+svcKmDisplay+'</div>':'')
           +'</div>'
           +'<div style="padding:12px 16px;border-bottom:1px solid var(--border);">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:4px;">Next Service Due</div>'
-            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#c8f230;">'+(nextSvc?formatDisplayDate(nextSvc):'<span style="color:#333;">—</span>')+'</div>'
+            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Next Service Due</div>'
+            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#c8f230;">'+(nextSvc?formatDisplayDate(nextSvc):'<span style="color:var(--muted2);">—</span>')+'</div>'
             +(car.nextServiceKm?'<div style="font-size:10px;color:#5a8800;margin-top:2px;">or '+Number(car.nextServiceKm).toLocaleString('en-ZA')+' km</div>':'')
             +(svcCd?'<div style="margin-top:2px;">'+svcCd+'</div>':'')
           +'</div>'
           +'<div style="padding:12px 16px;border-right:1px solid var(--border);">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:4px;">Licence Disc</div>'
-            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:'+(licExp?'#f2a830':'#333')+'">'+(licExp?formatDisplayDate(licExp):'<span style="color:#333;">—</span>')+'</div>'
+            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Licence Disc</div>'
+            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:'+(licExp?'#f2a830':'var(--muted2)')+'">'+(licExp?formatDisplayDate(licExp):'<span style="color:var(--muted2);">—</span>')+'</div>'
             +(licCd?'<div style="margin-top:2px;">'+licCd+'</div>':'')
           +'</div>'
           +'<div style="padding:12px 16px;">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:4px;">Kilometres</div>'
-            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#efefef;">'+kmDisplay+'</div>'
+            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Kilometres</div>'
+            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--text);">'+kmDisplay+'</div>'
           +'</div>'
         +'</div>'
 
@@ -257,7 +257,7 @@ function renderCars(){
             +'<button onclick="openServiceModal(\''+car.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:7px 14px;color:#8ab820;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">📅 Dates & km</button>'
             +'<button onclick="openEditCarModal(\''+car.id+'\')" style="background:#1a1000;border:1px solid #4a3000;border-radius:6px;padding:7px 14px;color:#888;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">✏️ Edit Car</button>'
             +'<button onclick="exportCarPDF(\''+car.id+'\')" style="background:#0a0a1a;border:1px solid #3a3a7a;border-radius:6px;padding:7px 14px;color:#8888dd;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">📄 Export PDF</button>'
-            +'<button onclick="deleteCar(\''+car.id+'\')" style="margin-left:auto;background:none;border:1px solid #2a1a1a;border-radius:6px;padding:7px 12px;color:#555;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Remove</button>'
+            +'<button onclick="deleteCar(\''+car.id+'\')" style="margin-left:auto;background:none;border:1px solid #2a1a1a;border-radius:6px;padding:7px 12px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Remove</button>'
           +'</div>';
         })()
 
@@ -266,7 +266,7 @@ function renderCars(){
 
         // Expense rows
         +'<div>'
-          +'<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;padding:8px 16px;border-bottom:1px solid #1a1a1a;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;">'
+          +'<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">'
             +'<span>Description</span><span>Amount</span><span></span><span></span>'
           +'</div>'
           +rowsHtml
@@ -320,17 +320,17 @@ function openAllRecords(carId){
   var summaryHtml = ''
     + '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">'
     +   '<div>'
-    +     '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#666;margin-bottom:3px;">Total Spent</div>'
+    +     '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Total Spent</div>'
     +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:22px;color:#f2a830;">R'+totalAmt.toLocaleString('en-ZA',{minimumFractionDigits:0,maximumFractionDigits:2})+'</div>'
-    +     (dateRange ? '<div style="font-size:9px;color:#555;letter-spacing:1px;margin-top:4px;">'+dateRange+'</div>' : '')
+    +     (dateRange ? '<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:4px;">'+dateRange+'</div>' : '')
     +   '</div>'
     +   '<div style="text-align:right;">'
-    +     '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#666;margin-bottom:3px;">Entries</div>'
-    +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:22px;color:#efefef;">'+expenses.length+'</div>'
+    +     '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Entries</div>'
+    +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:22px;color:var(--text);">'+expenses.length+'</div>'
     +   '</div>'
     + '</div>';
   if(topCats.length > 0){
-    summaryHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;border-top:1px solid #1a1a1a;padding-top:10px;">';
+    summaryHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">';
     topCats.forEach(function(c){
       summaryHtml += '<span style="background:#1a1a00;border:1px solid #4a3000;border-radius:100px;padding:4px 10px;font-size:10px;color:#f2a830;letter-spacing:0.5px;">'
         + c.cat + ' · R' + c.amt.toLocaleString('en-ZA',{maximumFractionDigits:0})
@@ -343,18 +343,18 @@ function openAllRecords(carId){
   // ── Full chronological list ──
   var listEl = document.getElementById('allRecordsList');
   if(expenses.length === 0){
-    listEl.innerHTML = '<div style="padding:30px 16px;text-align:center;color:#444;font-size:12px;letter-spacing:1px;">No expenses logged for this car yet.</div>';
+    listEl.innerHTML = '<div style="padding:30px 16px;text-align:center;color:var(--muted);font-size:12px;letter-spacing:1px;">No expenses logged for this car yet.</div>';
   } else {
     var rows = '';
     expenses.forEach(function(e){
-      rows += '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid #161616;font-size:12px;">'
+      rows += '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;">'
         +'<div>'
-          +'<div style="color:#ccc;font-size:12px;">'+(e.category||'💡 Other')+'<span style="color:#555;font-size:11px;margin-left:6px;">'+(e.desc||'')+'</span></div>'
-          +'<div style="color:#555;font-size:10px;margin-top:2px;">'+(e.date||'')+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
+          +'<div style="font-size:12px;"><strong style="color:var(--text);font-weight:700;">'+(e.category||'💡 Other')+'</strong><span style="color:var(--muted);font-size:11px;margin-left:6px;">'+(e.desc||'')+'</span></div>'
+          +'<div style="color:var(--muted);font-size:10px;margin-top:2px;">'+(e.date||'')+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
         +'</div>'
         +'<span style="color:#f2a830;font-weight:700;font-size:13px;white-space:nowrap;">R'+Number(e.amt).toLocaleString('en-ZA')+'</span>'
-        +'<span role="button" tabindex="0" aria-label="Edit expense" onclick="openEditExpense(\''+car.id+'\',\''+e.id+'\');closeModal(\'allRecordsModal\');" style="cursor:pointer;color:#888;font-size:16px;padding:6px 10px;border-radius:6px;">✏️</span>'
-        +'<span role="button" tabindex="0" aria-label="Delete expense" onclick="deleteExpenseFromAllRecords(\''+car.id+'\',\''+e.id+'\')" style="cursor:pointer;color:#888;font-size:16px;padding:6px 10px;border-radius:6px;">🗑</span>'
+        +'<span role="button" tabindex="0" aria-label="Edit expense" onclick="openEditExpense(\''+car.id+'\',\''+e.id+'\');closeModal(\'allRecordsModal\');" style="cursor:pointer;color:var(--muted);font-size:16px;padding:6px 10px;border-radius:6px;">✏️</span>'
+        +'<span role="button" tabindex="0" aria-label="Delete expense" onclick="deleteExpenseFromAllRecords(\''+car.id+'\',\''+e.id+'\')" style="cursor:pointer;color:var(--muted);font-size:16px;padding:6px 10px;border-radius:6px;">🗑</span>'
         +'</div>';
     });
     listEl.innerHTML = rows;
@@ -585,8 +585,8 @@ function buildCarPDF(carId){
   toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #3a5a00;border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 24px rgba(0,0,0,.5);min-width:240px;';
   toast.innerHTML =
     '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:#c8f230;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
-    +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:#efefef;">Generating PDF...</div>'
-    +'<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">'+car.name+'</div></div>';
+    +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:var(--text);">Generating PDF...</div>'
+    +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">'+car.name+'</div></div>';
   if(!document.getElementById('spinStyle')){
     var sp=document.createElement('style');sp.id='spinStyle';
     sp.textContent='@keyframes spin{to{transform:rotate(360deg);}}';
@@ -1255,29 +1255,29 @@ function renderDrivers(){
 
   var rows = drivers.map(function(d){
     var cd = countdownBadge(d.expiry, 'Expires');
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid #161616;flex-wrap:wrap;gap:8px;">'
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;">'
       +'<div>'
-        +'<div style="font-size:13px;color:#efefef;font-weight:700;">'+d.name+'</div>'
-        +(d.idNum?'<div style="font-size:10px;color:#555;letter-spacing:1px;">ID: '+d.idNum+'</div>':'')
+        +'<div style="font-size:13px;color:var(--text);font-weight:700;">'+d.name+'</div>'
+        +(d.idNum?'<div style="font-size:10px;color:var(--muted);letter-spacing:1px;">ID: '+d.idNum+'</div>':'')
       +'</div>'
       +'<div style="text-align:right;">'
-        +'<div style="font-size:12px;color:#f2a830;">'+(d.expiry?formatDisplayDate(d.expiry):'<span style="color:#333;">No date set</span>')+'</div>'
+        +'<div style="font-size:12px;color:#f2a830;">'+(d.expiry?formatDisplayDate(d.expiry):'<span style="color:var(--muted2);">No date set</span>')+'</div>'
         +(cd?'<div>'+cd+'</div>':'')
       +'</div>'
       +'<div style="display:flex;gap:6px;">'
-        +'<button onclick="openEditDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:4px 10px;color:#555;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#444\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'">✏️ Edit</button>'
-        +'<button onclick="deleteDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:4px 10px;color:#555;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">🗑</button>'
+        +'<button onclick="openEditDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:4px 10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#444\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'">✏️ Edit</button>'
+        +'<button onclick="deleteDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:4px 10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">🗑</button>'
       +'</div>'
     +'</div>';
   }).join('');
 
   wrap.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);">'
-      +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:#efefef;">🪪 Driver\'s Licences</div>'
+      +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:var(--text);">🪪 Driver\'s Licences</div>'
       +'<button onclick="openAddDriver()" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:6px 12px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">+ Add Person</button>'
     +'</div>'
     +(drivers.length===0
-      ? '<div style="padding:20px 16px;text-align:center;color:#333;font-size:12px;">No driver licences added yet</div>'
+      ? '<div style="padding:20px 16px;text-align:center;color:var(--muted);font-size:12px;">No driver licences added yet</div>'
       : rows);
 }
 
@@ -1392,9 +1392,9 @@ function checkReminders(){
   banner.style.cssText = 'position:fixed;top:50px;left:0;right:0;z-index:400;background:#0a0a0a;border-bottom:2px solid #f23060;padding:0;';
 
   var rows = alerts.map(function(a){
-    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid #1a1a1a;font-size:11px;letter-spacing:0.5px;">'
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:0.5px;">'
       +'<span style="font-size:16px;flex-shrink:0;">'+a.icon+'</span>'
-      +'<span style="color:#ccc;flex:1;">'+a.msg+'</span>'
+      +'<span style="color:var(--text);flex:1;">'+a.msg+'</span>'
       +'</div>';
   }).join('');
 
