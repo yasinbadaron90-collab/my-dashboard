@@ -132,14 +132,14 @@ function renderFunds(){
     const barLabel = isExpense
       ? (totalIn===0 ? 'No funds added yet' : balance < 0 ? fmtR(Math.abs(balance))+' over budget' : fmtR(balance)+' remaining')
       : (done ? '🎉 Goal reached!' : p.toFixed(0)+'% · '+fmtR(rem)+' to go · '+etaDate(f));
-    const barLabelColor = (isExpense && balance < 0) ? '#f23060' : '#444';
+    const barLabelColor = (isExpense && balance < 0) ? '#f23060' : 'var(--muted)';
 
     // Transaction rows
     const txnRows = [...f.deposits].sort(function(a,b){return new Date(b.date)-new Date(a.date);}).slice(0,5).map(function(d){
       const isOut = d.txnType==='out';
       const amtColor = isOut ? '#f23060' : '#c8f230';
       const prefix = isOut ? '-' : '+';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #161616"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#efefef">'+(d.note||'—')+'</span><span style="font-size:10px;color:#333">'+d.date+'</span></div><span style="font-size:12px;font-weight:500;color:'+amtColor+'">'+prefix+fmtR(d.amount)+'</span></div>';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:var(--text)">'+(d.note||'—')+'</span><span style="font-size:10px;color:var(--muted)">'+d.date+'</span></div><span style="font-size:12px;font-weight:500;color:'+amtColor+'">'+prefix+fmtR(d.amount)+'</span></div>';
     }).join('');
 
     const balColor2 = balance<0?'#f23060':balance<1000?'#f2a830':'#c8f230';
@@ -147,18 +147,18 @@ function renderFunds(){
     const stat1Val = isExpense ? fmtR(balance) : fmtR(total);
     const stat2Label = isExpense ? 'Added' : 'Goal';
     const stat2Val = isExpense ? fmtR(totalIn) : fmtR(goalAmt);
-    const stat2Color = isExpense ? '#c8f230' : '#555';
+    const stat2Color = isExpense ? '#c8f230' : 'var(--muted)';
     const stat3Label = isExpense ? 'Spent' : 'Remaining';
     const stat3Val = isExpense ? fmtR(totalOut) : (done ? '🎉' : fmtR(rem));
     const stat3Color = isExpense ? '#f23060' : (done ? '#c8f230' : '#f2a830');
 
     const bodyHtml = '<div class="fund-body">'
       +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border);margin:-16px -18px 0;padding:0">'
-      +'<div style="padding:12px 14px;border-right:1px solid var(--border)"><div style="font-size:9px;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat1Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+balColor+'">'+stat1Val+'</div></div>'
-      +'<div style="padding:12px 10px;border-right:1px solid var(--border)"><div style="font-size:9px;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat2Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+stat2Color+'">'+stat2Val+'</div></div>'
-      +'<div style="padding:12px 10px"><div style="font-size:9px;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat3Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+stat3Color+'">'+stat3Val+'</div></div>'
+      +'<div style="padding:12px 14px;border-right:1px solid var(--border)"><div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat1Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+balColor+'">'+stat1Val+'</div></div>'
+      +'<div style="padding:12px 10px;border-right:1px solid var(--border)"><div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat2Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+stat2Color+'">'+stat2Val+'</div></div>'
+      +'<div style="padding:12px 10px"><div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat3Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+stat3Color+'">'+stat3Val+'</div></div>'
       +'</div>'
-      +'<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="height:5px;background:#2a2a2a;border-radius:3px;overflow:hidden"><div style="width:'+progPct+'%;height:100%;background:'+progColor+';border-radius:3px;transition:width .5s ease;box-shadow:0 0 8px '+progColor+'55"></div></div><div style="font-size:10px;color:'+barLabelColor+';margin-top:5px;letter-spacing:1px">'+barLabel+'</div></div>'
+      +'<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="height:5px;background:var(--muted2);border-radius:3px;overflow:hidden"><div style="width:'+progPct+'%;height:100%;background:'+progColor+';border-radius:3px;transition:width .5s ease;box-shadow:0 0 8px '+progColor+'55"></div></div><div style="font-size:10px;color:'+barLabelColor+';margin-top:5px;letter-spacing:1px">'+barLabel+'</div></div>'
       // ── Pocket-card action buttons REMOVED 2026-05-23 ──
       // The old +Deposit / +Add Funds / 💸 Use Funds / 💸 Use buttons used the
       // legacy openDeposit / openCarTxn / openUseFunds flow which doesn't carry
