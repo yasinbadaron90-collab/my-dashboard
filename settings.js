@@ -522,8 +522,8 @@ function cfRow(e, type, isRecur){
   // Pocket rows are treated as "tagged" — full brightness.
   var fullBright = (bank || isPocketRow);
   var rowStyle = fullBright ? '' : 'background:#0e0e0e;';
-  var labelStyle = fullBright ? 'color:#efefef;' : 'color:#aaa;';
-  var amtStyle = fullBright ? 'color:'+color+';' : 'color:#666;';
+  var labelStyle = fullBright ? 'color:var(--text);' : 'color:var(--muted);';
+  var amtStyle = fullBright ? 'color:'+color+';' : 'color:var(--muted);';
   return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);'+rowStyle+'">'
     +'<span style="font-size:18px;flex-shrink:0;">'+e.icon+'</span>'
     +'<div style="flex:1;min-width:0;">'
@@ -546,7 +546,7 @@ function cfAutoRow(e){
   return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);opacity:.85;">'
     +'<span style="font-size:18px;flex-shrink:0;">'+e.icon+'</span>'
     +'<div style="flex:1;min-width:0;">'
-      +'<div style="font-size:12px;color:#efefef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+e.label+'</div>'
+      +'<div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+e.label+'</div>'
       +'<div style="font-size:9px;color:#3a5a00;letter-spacing:1px;">'+(sourceLabel[e.source]||'Auto-imported')+'</div>'
     +'</div>'
     +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:'+color+';white-space:nowrap;">'+sign+fmtR(e.amount)+'</span>'
