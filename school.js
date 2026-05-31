@@ -201,7 +201,7 @@ function renderSchool(){
     var icon = TYPE_ICONS[e.type] || '📌';
     var color = SUBJECT_COLORS[e.subject] || '#888';
     html +=
-      '<div style="background:var(--surface);border-left:3px solid '+color+';border-radius:10px;margin-bottom:10px;padding:14px;display:flex;align-items:center;gap:12px;'+(isDone?'opacity:.55;':'')+'">'
+      '<div style="background:var(--surface);border-left:3px solid '+color+';border-radius:10px;margin-bottom:10px;padding:14px;display:flex;align-items:center;gap:12px;'+(isDone?'opacity:.75;':'')+'">'
         +'<button onclick="toggleSchoolDone(\''+e.id+'\')" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:2px solid '+(isDone?'#c8f230':'#333')+';background:'+(isDone?'#c8f230':'transparent')+';color:#000;font-size:14px;cursor:pointer;font-weight:bold;line-height:1;">'+(isDone?'✓':'')+'</button>'
         +'<div style="flex:1;min-width:0;">'
           +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;margin-bottom:3px;'+(isDone?'text-decoration:line-through;':'')+'">'+icon+' '+(e.title||'(no title)')+'</div>'

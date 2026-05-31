@@ -479,7 +479,7 @@ function _showUpdateToast(worker){
       <!-- Month nav + export -->
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <button onclick="cfChangeMonth(-1)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:14px;">◀</button>
-        <span id="cfMonthLabel" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;min-width:120px;text-align:center;"></span>
+        <span id="cfMonthLabel" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;min-width:120px;text-align:center;color:var(--text);"></span>
         <button onclick="cfChangeMonth(1)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:14px;">▶</button>
         <button onclick="exportCFMonthReport()" style="padding:6px 12px;background:#1a1a00;border:1px solid #5a5a00;border-radius:6px;color:#f2c830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;white-space:nowrap;" title="Export this month as PDF">📄 PDF</button>
       </div>
