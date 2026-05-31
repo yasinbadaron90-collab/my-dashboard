@@ -173,8 +173,9 @@ function _showUpdateToast(worker){
   <button class="hbg-btn" onclick="openDrawer()" title="Menu" id="hbgBtn">
     <span></span><span></span><span></span>
   </button>
+  <button class="nav-tab active admin-only" id="navHome" onclick="switchTab('home',this)">🏠 Home</button>
   <button class="nav-tab" id="navSavings" onclick="switchTab('savings',this)">💰 Savings</button>
-  <button class="nav-tab active" id="navCarpool" onclick="switchTab('carpool',this)">🚗 Carpool</button>
+  <button class="nav-tab" id="navCarpool" onclick="switchTab('carpool',this)">🚗 Carpool</button>
   <button class="nav-tab admin-only" id="navOdin" onclick="switchTab('odin',this)">🧠 Odin</button>
   <button class="nav-tab admin-only" id="navCashflow" onclick="switchTab('cashflow',this)">💵 Cash Flow</button>
   <button class="nav-tab admin-only" id="navCars" onclick="switchTab('cars',this)">🔧 Cars</button>
@@ -376,7 +377,7 @@ function _showUpdateToast(worker){
 </div>
 
 <!-- CARPOOL -->
-<div class="page active" id="page-carpool">
+<div class="page" id="page-carpool">
   <div class="cp-layout">
     <!-- LEFT PANE -->
     <div class="cp-left collapsed" id="cpLeftPane">
@@ -2646,6 +2647,12 @@ function _showUpdateToast(worker){
   <script src="school.js"></script>
   <script src="instalments.js"></script>
   <script src="routine.js"></script>
+  <script src="home.js"></script>
+
+<!-- ══ HOME PAGE (Step 10 — landing screen) ══ -->
+<div class="page active admin-only" id="page-home" style="padding:20px 16px 80px;">
+  <div id="homeContent"></div>
+</div>
 
 <!-- ══ ODIN COMMAND CENTRE PAGE ══ -->
 <div class="page admin-only" id="page-odin" style="padding:0 0 80px;">

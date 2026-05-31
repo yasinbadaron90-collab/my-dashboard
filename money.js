@@ -1176,6 +1176,7 @@ function _roleCanAccessTab(tab){
 // (missing function, undefined ref, throw inside a render) doesn't break
 // navigation or prevent sibling renders in the same tab from running.
 function _renderTabSafely(tab){
+  if(tab==='home')       _safeCall(typeof renderHome==='function'?renderHome:null, 'renderHome');
   if(tab==='carpool')    _safeCall(typeof renderCarpool==='function'?renderCarpool:null, 'renderCarpool');
   if(tab==='savings'){
     _safeCall(typeof renderFunds==='function'?renderFunds:null, 'renderFunds');
@@ -1235,6 +1236,8 @@ function switchTab(tab,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('navSavings').classList.remove('active');
   document.getElementById('navCarpool').classList.remove('active');
+  var navHome = document.getElementById('navHome');
+  if(navHome) navHome.classList.remove('active');
   var navCars = document.getElementById('navCars');
   if(navCars) navCars.classList.remove('active');
   var navInst = document.getElementById('navInstalments');
@@ -1247,6 +1250,7 @@ function switchTab(tab,btn){
   if(navCf) navCf.classList.remove('active');
   var navOdin = document.getElementById('navOdin');
   if(navOdin) navOdin.classList.remove('active');
+  if(tab==='home' && navHome) navHome.classList.add('active');
   if(tab==='savings') document.getElementById('navSavings').classList.add('active');
   if(tab==='carpool') document.getElementById('navCarpool').classList.add('active');
   if(tab==='cars' && navCars) navCars.classList.add('active');
@@ -1273,6 +1277,8 @@ function goToTab(tab){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('navSavings').classList.remove('active');
   document.getElementById('navCarpool').classList.remove('active');
+  var navHome = document.getElementById('navHome');
+  if(navHome) navHome.classList.remove('active');
   var navCars = document.getElementById('navCars');
   if(navCars) navCars.classList.remove('active');
   var navInst = document.getElementById('navInstalments');
@@ -1283,6 +1289,7 @@ function goToTab(tab){
   if(navRoutine) navRoutine.classList.remove('active');
   var navCf = document.getElementById('navCashflow');
   if(navCf) navCf.classList.remove('active');
+  if(tab==='home' && navHome) navHome.classList.add('active');
   if(tab==='savings') document.getElementById('navSavings').classList.add('active');
   if(tab==='carpool') document.getElementById('navCarpool').classList.add('active');
   if(tab==='cars' && navCars) navCars.classList.add('active');

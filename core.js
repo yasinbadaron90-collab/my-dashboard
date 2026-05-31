@@ -926,17 +926,17 @@ document.addEventListener('DOMContentLoaded', function(){
 
 function applyRole(){
   if(currentRole==='admin'){
-    // Admin: start on carpool, show both nav tabs
+    // Admin: start on HOME (Step 10 landing), show all nav tabs
     document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-    document.getElementById('page-carpool').classList.add('active');
-    document.getElementById('navCarpool').classList.add('active');
+    document.getElementById('page-home').classList.add('active');
+    var navH = document.getElementById('navHome'); if(navH) navH.classList.add('active');
+    document.getElementById('navCarpool').classList.remove('active');
     document.getElementById('navSavings').classList.remove('active');
-    renderCarpool();
-    // Pre-render the savings-tab cards so when the user navigates over,
-    // they're already correct (no Loading...). Wrapped in try because
-    // these may not be defined yet on edge cases.
-    try { if(typeof renderFunds      === 'function') renderFunds();      } catch(e){}
-    try { if(typeof renderMaintCard  === 'function') renderMaintCard();  } catch(e){}
+    // Render home + pre-render commonly-visited tabs so navigation feels instant
+    try { if(typeof renderHome    === 'function') renderHome();    } catch(e){}
+    try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
+    try { if(typeof renderFunds   === 'function') renderFunds();   } catch(e){}
+    try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
     // Fire reminders after a short delay
     setTimeout(checkReminders, 800);
     // First-run wizard — triggered after createFirstAdmin sets the flag.

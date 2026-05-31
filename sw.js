@@ -17,7 +17,7 @@
 // To force every client to upgrade: bump CACHE_VERSION below.
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'v100';
+const CACHE_VERSION = 'v101';
 const SHELL_CACHE   = 'my-dashboard-shell-' + CACHE_VERSION;
 const CDN_CACHE     = 'my-dashboard-cdn-'   + CACHE_VERSION;
 
@@ -46,6 +46,7 @@ const SHELL_ASSETS = [
   '/my-dashboard/odin_chat.js',
   '/my-dashboard/cars.js',
   '/my-dashboard/school.js',
+  '/my-dashboard/home.js',
   '/my-dashboard/instalments.js',
   '/my-dashboard/routine.js',
   '/my-dashboard/supabase-client.js',
