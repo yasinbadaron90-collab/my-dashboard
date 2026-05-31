@@ -571,7 +571,9 @@ function checkPin(){
       if(currentRole === 'admin' && window.PublicKeyCredential && !lsGet('yb_biometric_registered')){
         setTimeout(offerBiometricRegistration, 800);
       }
-      showLaunchMenu();
+      // v101.1: launch menu replaced by Home page (Step 10). applyRole now
+      // lands admin on page-home directly. Old call removed:
+      // showLaunchMenu();
     },400);
   } else {
     document.getElementById("pinError").textContent="Incorrect PIN. Try again.";
@@ -677,7 +679,9 @@ function loginSuccess(name, role){
     s.style.display = 'none';
     applyRole();
     document.getElementById('drawerLogoutBtn').style.display = 'flex';
-    showLaunchMenu();
+    // v101.1: launch menu replaced by Home page (Step 10). applyRole now
+    // lands admin on page-home directly. Old call removed:
+    // showLaunchMenu();
   }, 400);
 }
 
