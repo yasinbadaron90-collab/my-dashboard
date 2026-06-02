@@ -13,6 +13,71 @@ function saveBorrows(){ lsSet(BORROW_KEY, JSON.stringify(borrowData)); odinRefre
 // the race window where a save could fire on empty `borrowData` before DOM ready.
 try { loadBorrows(); } catch(e){}
 
+// ════════════════════════════════════════════════════════════════════════════
+// v108 ISSUE-3 — Carpool-borrow pocket picker (mirrors money.js _extLend*).
+// When you lend cash to a passenger (David / Lezaun / Shireen), the money has
+// to come OUT of a pocket and the bank tile must stay net 0 via the doorway.
+// Pre-v108 the modal had no picker → bank drifted on every loan.
+// ════════════════════════════════════════════════════════════════════════════
+var _cpLendSelectedPocketId = null;
+
+function _cpLendBalance(f){
+  if(!f) return 0;
+  if(f.isExpense){
+    var tin  = (f.deposits||[]).filter(function(d){return d.txnType==='in';}).reduce(function(s,d){return s+d.amount;},0);
+    var tout = (f.deposits||[]).filter(function(d){return d.txnType==='out'||!d.txnType;}).reduce(function(s,d){return s+d.amount;},0);
+    return tin - tout;
+  }
+  return (typeof fundTotal === 'function') ? fundTotal(f) : 0;
+}
+
+function _cpLendRenderPocketList(){
+  var box = document.getElementById('cpLendPocketPicker');
+  if(!box) return;
+  var list = (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return f && !f._deleted; });
+  if(!_cpLendSelectedPocketId){
+    // Default to Daily if present, else first pocket with positive balance, else first.
+    var daily = list.find(function(f){ return f.name === 'Daily'; });
+    if(daily) _cpLendSelectedPocketId = daily.id;
+    else {
+      var firstWithBal = list.find(function(f){ return _cpLendBalance(f) > 0; });
+      _cpLendSelectedPocketId = firstWithBal ? firstWithBal.id : (list[0] ? list[0].id : null);
+    }
+  }
+  box.innerHTML = '';
+  if(!list.length){
+    box.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:11px;text-align:center;letter-spacing:1px;">No pockets yet. Create one on the Savings tab.</div>';
+    return;
+  }
+  list.forEach(function(f){
+    var bal = _cpLendBalance(f);
+    var isSel = (f.id === _cpLendSelectedPocketId);
+    var balColor = bal <= 0 ? '#555' : '#c8f230';
+    var row = document.createElement('button');
+    row.type = 'button';
+    row.dataset.fundId = f.id;
+    row.onclick = function(){ _cpLendPickPocket(f.id); };
+    row.style.cssText = 'width:100%;text-align:left;background:' + (isSel?'#1a2e00':'#0a0a0a') +
+      ';border:1px solid ' + (isSel?'#5a8800':'#1a1a1a') +
+      ';border-radius:7px;padding:10px 12px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:DM Mono,monospace;';
+    row.innerHTML =
+      '<span style="font-size:18px;">' + (f.emoji||'💰') + '</span>'
+      + '<span style="flex:1;color:' + (isSel?'#c8f230':'#efefef') + ';font-size:13px;">' + f.name + '</span>'
+      + '<span style="color:' + balColor + ';font-size:11px;font-weight:700;">R' + Number(bal).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>';
+    box.appendChild(row);
+  });
+}
+
+function _cpLendPickPocket(id){
+  _cpLendSelectedPocketId = id;
+  _cpLendRenderPocketList();
+}
+
+if(typeof window !== 'undefined'){
+  window._cpLendPickPocket = _cpLendPickPocket;
+  window._cpLendRenderPocketList = _cpLendRenderPocketList;
+}
+
 // ══ LENDING GUARDRAIL ══
 function getLendingSnapshot(){
   var now=new Date();
@@ -90,6 +155,9 @@ function openBorrowModal(){
   document.getElementById('borrowAmt').value='';
   document.getElementById('borrowDate').value=localDateStr(new Date());
   document.getElementById('borrowNote').value='';
+  // v108 — reset + render the pocket picker (mirrors openExternalBorrowModal)
+  _cpLendSelectedPocketId = null;
+  try { _cpLendRenderPocketList(); } catch(e){ console.warn('[v108] picker render failed', e); }
   document.getElementById('borrowModal').classList.add('active');
   setTimeout(updateLendingGuardrail,100);
 }
@@ -101,16 +169,79 @@ function confirmBorrow(){
   const note = document.getElementById('borrowNote').value.trim();
   const account = document.getElementById('borrowAccount').value || 'FNB';
   if(!passenger || isNaN(amount) || amount<=0){ alert('Enter a valid amount.'); return; }
+
+  // ── v108 ISSUE-3 — pocket-first: the lent money leaves a pocket ──────────
+  var pocket = funds.find(function(f){ return f.id === _cpLendSelectedPocketId; });
+  if(!pocket){ alert('Pick which pocket the money comes out of.'); return; }
+  var pocketBal = _cpLendBalance(pocket);
+  if(amount > pocketBal){
+    alert('Only R' + Number(pocketBal).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})
+      + ' available in ' + pocket.name + '. Pick another pocket or a smaller amount.');
+    return;
+  }
+
   if(!borrowData[passenger]) borrowData[passenger]=[];
-  var newEntry = { id: uid(), type:'borrow', amount, date, note, account, paid:false };
+
+  // v108: lendId links the borrow entry ↔ pocket deposit ↔ CF row for the
+  //       hard-block guard + atomic reverse via _lendReverse.
+  var lendId = 'ln_' + uid();
+  var entryId = uid();
+  var newEntry = {
+    id: entryId, type:'borrow', amount, date, note, account, paid:false,
+    originPocket: pocket.id,   // lets repayment auto-suggest the source pocket
+    lendId: lendId
+  };
   borrowData[passenger].push(newEntry);
   saveBorrows();
   // Phase D: sync to cloud
   try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(passenger, newEntry); } catch(e){}
-  // Log as expense in cashflow
-  logBorrowToCashflow(passenger, amount, date, account, 'carpool');
+
+  // 1) Deduct the pocket (money genuinely leaves you)
+  var pocketDepId = uid();
+  pocket.deposits.push({
+    id: pocketDepId,
+    txnType: 'out',
+    amount: amount,
+    date: date,
+    note: '💸 Lent to ' + passenger + (note ? ' · ' + note : ''),
+    lendId: lendId,
+    borrowEntryId: passenger + ':' + entryId
+  });
+  saveFunds();
+
+  // 2) Log as expense in cashflow — stamp cfId + destBank for the reverse path
+  var cfId = logBorrowToCashflow(passenger, amount, date, account, 'carpool', lendId);
+  if(cfId){ newEntry.cfId = cfId; saveBorrows(); }
+
+  // 3) Bank doorway (+amount in, -amount out → net 0). Bank tile unaffected.
+  if(typeof window._adjustBaselineForBank === 'function'){
+    window._adjustBaselineForBank(account, amount);    // doorway IN
+    window._adjustBaselineForBank(account, -amount);   // doorway OUT
+  }
+
+  // 4) Stash the lend record so the hard-block guard + _lendReverse can find it.
+  //    isCarpool:true tells _lendReverse to remove from borrowData (not external).
+  var lendRecs = [];
+  try { lendRecs = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
+  lendRecs.push({
+    id: lendId,
+    isCarpool: true,
+    passenger: passenger,
+    personName: passenger,
+    entryId: entryId,
+    amount: amount,
+    date: date,
+    bank: account,
+    pocketId: pocket.id,
+    pocketDepId: pocketDepId,
+    cfId: cfId,
+    createdAt: new Date().toISOString()
+  });
+  lsSet('yb_lends_v1', JSON.stringify(lendRecs));
+
   closeModal('borrowModal');
   renderCarpool();
+  if(typeof renderBankBalanceCard === 'function') try { renderBankBalanceCard(); } catch(e){}
 }
 
 // ── EDIT BORROW ENTRY ──

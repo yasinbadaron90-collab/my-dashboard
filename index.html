@@ -1881,10 +1881,14 @@ function _showUpdateToast(worker){
     </div>
     <div class="field"><label>Amount (R)</label><input type="number" id="borrowAmt" placeholder="e.g. 100" oninput="updateLendingGuardrail()"/></div>
     <div class="field"><label>Date</label><input type="date" id="borrowDate"/></div>
-    <div class="field"><label>Account (Source of Money)</label>
+    <div class="field"><label>From pocket (money comes out of here)</label>
+      <div id="cpLendPocketPicker" style="background:#080808;border:1px solid #1a1a1a;border-radius:8px;padding:6px;max-height:200px;overflow-y:auto;"></div>
+    </div>
+    <div class="field"><label>Via bank (doorway — returns to R0)</label>
       <select id="borrowAccount" style="width:100%;background:#1a1a1a;border:1px solid #a78bfa;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
         <option value="FNB">🏦 FNB Account</option>
         <option value="TymeBank">🏦 TymeBank Account</option>
+        <option value="Cash">💵 Cash</option>
       </select>
     </div>
     <div class="field"><label>Note (optional)</label><input type="text" id="borrowNote" placeholder="e.g. Lunch money"/></div>

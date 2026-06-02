@@ -217,14 +217,25 @@ function _lendReverse(lendId, opts){
     if(removed > 0) saveCFData(cfData);
   }
 
-  // 3) Remove the borrow entry from the external borrower
-  try {
-    var data = loadExternalBorrows();
-    if(data[rec.key] && data[rec.key].entries){
-      data[rec.key].entries = data[rec.key].entries.filter(function(e){ return e.id !== rec.entryId; });
-      saveExternalBorrows(data);
-    }
-  } catch(e){ console.warn('[lend-reverse] borrow entry remove failed', e); }
+  // 3) Remove the borrow entry — v108: branch on isCarpool flag.
+  //    Carpool borrows live in borrowData (yasin_borrows_v1).
+  //    External lends live in loadExternalBorrows().
+  if(rec.isCarpool){
+    try {
+      if(typeof borrowData !== 'undefined' && rec.passenger && borrowData[rec.passenger]){
+        borrowData[rec.passenger] = borrowData[rec.passenger].filter(function(e){ return e.id !== rec.entryId; });
+        if(typeof saveBorrows === 'function') saveBorrows();
+      }
+    } catch(e){ console.warn('[lend-reverse] carpool borrow remove failed', e); }
+  } else {
+    try {
+      var data = loadExternalBorrows();
+      if(data[rec.key] && data[rec.key].entries){
+        data[rec.key].entries = data[rec.key].entries.filter(function(e){ return e.id !== rec.entryId; });
+        saveExternalBorrows(data);
+      }
+    } catch(e){ console.warn('[lend-reverse] external borrow entry remove failed', e); }
+  }
 
   // 4) Remove the lend record itself
   lendRecs = lendRecs.filter(function(r){ return r.id !== lendId; });
@@ -235,6 +246,7 @@ function _lendReverse(lendId, opts){
   if(!opts.silent){
     try { renderMoneyOwed(); } catch(e){}
     try { renderFunds(); } catch(e){}
+    try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
     try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
     try { if(typeof odinRefreshIfOpen === 'function') odinRefreshIfOpen(); } catch(e){}
   }
