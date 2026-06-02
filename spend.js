@@ -37,7 +37,7 @@ var _spState = {
 };
 
 // ── Open / close ───────────────────────────────────────────────────────
-function openSpend(editingId){
+function openSpend(editingId, prefillData){
   // Reset state
   _spState = {
     editingId: editingId || null,
@@ -45,7 +45,8 @@ function openSpend(editingId){
     label: '',
     date: localDateStr(new Date()),
     pocketId: null,
-    doorway: 'DIRECT'
+    doorway: 'DIRECT',
+    _fromRoutineTaskId: null
   };
 
   // If editing, populate from the existing record
@@ -59,11 +60,22 @@ function openSpend(editingId){
       _spState.pocketId = rec.pocketId;
       _spState.doorway  = rec.doorway || 'DIRECT';
     }
+  } else if(prefillData){
+    // Pre-fill from a routine task tick (or any other caller)
+    if(prefillData.label    != null) _spState.label    = prefillData.label;
+    if(prefillData.amount   != null) _spState.amount   = prefillData.amount;
+    if(prefillData.pocketId != null) _spState.pocketId = prefillData.pocketId;
+    if(prefillData.doorway  != null) _spState.doorway  = prefillData.doorway;
+    if(prefillData._fromRoutineTaskId) _spState._fromRoutineTaskId = prefillData._fromRoutineTaskId;
   }
 
-  // Title
+  // Title — routine-prefilled gets a small hint
   var titleEl = document.getElementById('spModalTitle');
-  if(titleEl) titleEl.textContent = editingId ? '↑ Edit Spend' : '↑ Spend';
+  if(titleEl){
+    if(editingId) titleEl.textContent = '↑ Edit Spend';
+    else if(prefillData && prefillData._fromRoutineTaskId) titleEl.textContent = '↑ Spend (from routine)';
+    else titleEl.textContent = '↑ Spend';
+  }
 
   // Wire visible inputs to state
   var amtEl   = document.getElementById('spAmount');
@@ -349,12 +361,25 @@ function saveSpend(){
   all.push(rec);
   saveSpendData(all);
 
-  // 5) Refresh UI
+  // 5) If this spend was triggered from a routine task tick, mark the task done.
+  //    Routine completion is INDEPENDENT of the spend record — if the user
+  //    later reverses the spend, the task stays marked done (correct: paying
+  //    for a haircut and getting the haircut are separate facts).
+  if(_spState._fromRoutineTaskId){
+    try {
+      if(typeof _routineMarkDoneRaw === 'function'){
+        _routineMarkDoneRaw(_spState._fromRoutineTaskId);
+      }
+    } catch(e){ console.warn('[spend] routine mark-done failed', e); }
+  }
+
+  // 6) Refresh UI
   closeSpend();
   try { renderFunds(); } catch(e){}
   try { if(typeof renderCashFlow === 'function') renderCashFlow(); } catch(e){}
   try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
   try { if(typeof odinRefreshIfOpen === 'function') odinRefreshIfOpen(); } catch(e){}
+  try { if(_spState._fromRoutineTaskId && typeof renderRoutine === 'function') renderRoutine(); } catch(e){}
 
   // Toast
   if(typeof softDeleteToast === 'function'){

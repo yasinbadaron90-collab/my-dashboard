@@ -29,7 +29,8 @@ function getNextDue(task){
   return last;
 }
 
-function markRoutineDone(id){
+// ── Step 11c: mark a task done WITHOUT any prompt (used by saveSpend after a routine-prefilled spend) ──
+function _routineMarkDoneRaw(id){
   var tasks = loadRoutineTasks();
   var t = tasks.find(function(x){ return x.id===id; });
   if(!t) return;
@@ -38,6 +39,90 @@ function markRoutineDone(id){
   saveRoutineTasks(tasks);
   try { if(window.cloudSync && window.cloudSync.routine) window.cloudSync.routine.syncTask(t); } catch(e){}
   renderRoutine();
+}
+
+function markRoutineDone(id){
+  var tasks = loadRoutineTasks();
+  var t = tasks.find(function(x){ return x.id===id; });
+  if(!t) return;
+
+  // Step 11c — if the task has a cost + pocket configured AND the pocket still
+  // exists, offer the user a 3-way choice: log spend / skip spend / cancel.
+  // Anything missing falls through to the original silent mark-done.
+  var hasCost = (t.cost != null) && (Number(t.cost) > 0);
+  var pocket = null;
+  if(hasCost && t.pocketId){
+    try {
+      pocket = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f && f.id === t.pocketId && !f._deleted; });
+    } catch(e){}
+  }
+  if(hasCost && pocket){
+    _routineSpendConfirm(t, pocket);
+    return;
+  }
+
+  // No cost set — original behaviour preserved
+  _routineMarkDoneRaw(id);
+}
+
+// ── Step 11c: the 3-way confirm bubble ──
+function _routineSpendConfirm(task, pocket){
+  // Avoid stacking bubbles if one is already open
+  var existing = document.getElementById('routineSpendConfirmOverlay');
+  if(existing) existing.remove();
+
+  var pocketLabel = (pocket.emoji ? pocket.emoji + ' ' : '') + pocket.name;
+  var amt = Number(task.cost);
+  var amtStr = (typeof fmtR === 'function') ? fmtR(amt) : ('R' + amt);
+
+  var overlay = document.createElement('div');
+  overlay.id = 'routineSpendConfirmOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML =
+    '<div style="background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:22px 22px 18px;max-width:380px;width:100%;">'
+      +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:17px;color:var(--text);margin-bottom:4px;">'+task.emoji+' '+task.name+'</div>'
+      +'<div style="font-size:12px;color:#888;margin-bottom:18px;line-height:1.5;">Mark this done — log a Spend?</div>'
+      +'<div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;padding:14px 16px;">'
+        +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:2px;">Amount</div>'
+        +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:24px;color:#c8f230;">'+amtStr+'</div>'
+        +'<div style="font-size:11px;color:#888;margin-top:2px;">from '+pocketLabel+'</div>'
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">'
+        +'<button id="rsYes" style="background:#1a2e00;border:1px solid #c8f230;border-radius:8px;padding:13px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">✓ Yes — log '+amtStr+' spend</button>'
+        +'<button id="rsNo" style="background:#0a0a0a;border:1px solid #444;border-radius:8px;padding:13px;color:#888;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Just mark done — no spend this time</button>'
+        +'<button id="rsCancel" style="background:none;border:none;padding:6px;color:#555;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;letter-spacing:1px;">Cancel</button>'
+      +'</div>'
+    +'</div>';
+
+  overlay.querySelector('#rsYes').addEventListener('click', function(){
+    overlay.remove();
+    // Open Spend modal pre-filled. saveSpend will mark the task done on success;
+    // closeSpend without saving leaves the task NOT marked done (safe back-out).
+    try {
+      if(typeof openSpend === 'function'){
+        openSpend(null, {
+          label: task.name,
+          amount: amt,
+          pocketId: pocket.id,
+          doorway: 'DIRECT',
+          _fromRoutineTaskId: task.id
+        });
+      } else {
+        alert('Spend not available — falling back to mark-done only.');
+        _routineMarkDoneRaw(task.id);
+      }
+    } catch(e){
+      console.warn('[routine] openSpend failed', e);
+      _routineMarkDoneRaw(task.id);
+    }
+  });
+  overlay.querySelector('#rsNo').addEventListener('click', function(){
+    overlay.remove();
+    _routineMarkDoneRaw(task.id);
+  });
+  overlay.querySelector('#rsCancel').addEventListener('click', function(){ overlay.remove(); });
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
 }
 
 function deleteRoutineTask(id){
@@ -62,6 +147,18 @@ function openAddRoutineTask(editId){
     return '<button onclick="selectRoutineCat(this,\''+c+'\')" data-cat="'+c+'" style="padding:7px 12px;border:1px solid '+(sel?CAT_COLORS[c]:'#2a2a2a')+';border-radius:6px;background:'+(sel?CAT_COLORS[c]+'22':'none')+';color:'+(sel?CAT_COLORS[c]:'#555')+';font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .15s;">'+CAT_ICONS[c]+' '+c+'</button>';
   }).join('');
 
+  // Pocket dropdown options for the "Default pocket" picker (Step 11c)
+  var pocketOpts = '<option value="">— None (no spend) —</option>';
+  try {
+    var visiblePockets = (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return f && !f._deleted; });
+    visiblePockets.forEach(function(f){
+      var sel = existing && existing.pocketId === f.id ? ' selected' : '';
+      var label = (f.emoji ? f.emoji + ' ' : '') + f.name;
+      pocketOpts += '<option value="'+f.id+'"'+sel+'>'+label+'</option>';
+    });
+  } catch(e){ console.warn('[routine] pocket list build failed', e); }
+  var costVal = (existing && existing.cost) ? existing.cost : '';
+
   var overlay = document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:flex-end;justify-content:center;';
   overlay.innerHTML =
@@ -80,6 +177,17 @@ function openAddRoutineTask(editId){
         +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Frequency</label>'
           +'<div id="rtFreqPicker" style="display:flex;flex-wrap:wrap;gap:6px;">'+freqOpts+'</div>'
           +'<input type="hidden" id="rtFreq" value="'+(existing?existing.freq:'monthly')+'"></div>'
+
+        // ── Step 11c: optional Cost + Default Pocket. Both blank = current behaviour (no spend on tick) ──
+        +'<div style="border-top:1px solid #222;padding-top:14px;margin-top:4px;">'
+          +'<label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">💰 Cost per tick (R) <span style="text-transform:none;letter-spacing:0;color:#555;font-size:9px;">— optional</span></label>'
+          +'<input id="rtCost" type="number" min="0" step="0.01" inputmode="decimal" value="'+costVal+'" placeholder="e.g. 44 — leave blank for no spend" style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:10px 12px;color:#efefef;font-family:\'DM Mono\',monospace;font-size:13px;">'
+          +'<div style="font-size:10px;color:#555;margin-top:4px;letter-spacing:0.5px;">When set, ticking ✓ will offer to log a Spend</div>'
+        +'</div>'
+        +'<div>'
+          +'<label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">💰 Default pocket <span style="text-transform:none;letter-spacing:0;color:#555;font-size:9px;">— where the money comes from</span></label>'
+          +'<select id="rtPocket" style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:10px 12px;color:#efefef;font-family:\'DM Mono\',monospace;font-size:13px;">'+pocketOpts+'</select>'
+        +'</div>'
       +'</div>'
       +'<div style="display:flex;gap:8px;padding:12px 20px 20px;">'
         +'<button id="rtSaveBtn" style="flex:1;background:#1a2e00;border:1px solid #3a5a00;border-radius:8px;padding:12px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Save</button>'
@@ -94,12 +202,17 @@ function openAddRoutineTask(editId){
     var cat  = overlay.querySelector('#rtCat').value;
     var freq = overlay.querySelector('#rtFreq').value;
     if(!name) return;
+    // Step 11c — optional cost + pocket
+    var costRaw = (overlay.querySelector('#rtCost') ? overlay.querySelector('#rtCost').value : '').trim();
+    var cost = costRaw ? parseFloat(costRaw) : null;
+    if(cost != null && (!(cost > 0) || !isFinite(cost))) cost = null;
+    var pocketId = (overlay.querySelector('#rtPocket') ? overlay.querySelector('#rtPocket').value : '') || null;
     var tasks = loadRoutineTasks();
     if(existing){
       var t = tasks.find(function(x){ return x.id===editId; });
-      if(t){ t.name=name; t.emoji=emoji; t.category=cat; t.freq=freq; }
+      if(t){ t.name=name; t.emoji=emoji; t.category=cat; t.freq=freq; t.cost=cost; t.pocketId=pocketId; }
     } else {
-      tasks.push({ id:'r'+Date.now(), emoji:emoji, name:name, category:cat, freq:freq, lastDone:null });
+      tasks.push({ id:'r'+Date.now(), emoji:emoji, name:name, category:cat, freq:freq, lastDone:null, cost:cost, pocketId:pocketId });
     }
     saveRoutineTasks(tasks);
     var saved = tasks.find(function(x){ return existing ? x.id===editId : !x.lastDone && x.name===name; });
@@ -203,6 +316,15 @@ function renderRoutine(){
             +'<div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">'
               +'<span style="font-size:9px;background:'+color+'22;border:1px solid '+color+'44;border-radius:100px;padding:1px 7px;color:'+color+';letter-spacing:0.5px;">'+FREQ_LABELS[task.freq].toUpperCase()+'</span>'
               +'<span style="font-size:9px;background:var(--muted2);border-radius:100px;padding:1px 7px;color:var(--muted);letter-spacing:0.5px;">'+CAT_ICONS[task.category]+' '+(task.category||'other')+'</span>'
+              +(function(){
+                // Step 11c — cost badge if task has cost + a still-existing pocket
+                if(task.cost == null || !(Number(task.cost) > 0)) return '';
+                var p = null;
+                try { p = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f && f.id === task.pocketId && !f._deleted; }); } catch(e){}
+                var amtStr = (typeof fmtR === 'function') ? fmtR(Number(task.cost)) : ('R'+task.cost);
+                var pocketBit = p ? ((p.emoji?p.emoji+' ':'') + p.name) : '⚠ pocket missing';
+                return '<span style="font-size:9px;background:#0a1a2e;border:1px solid #3a5a8a;border-radius:100px;padding:1px 7px;color:#5fa0f0;letter-spacing:0.5px;font-weight:700;">'+amtStr+' · '+pocketBit+'</span>';
+              })()
               +badge
             +'</div>'
             +(lastDoneStr?'<div style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;">'+lastDoneStr+'</div>':'')
