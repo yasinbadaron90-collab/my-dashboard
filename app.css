@@ -647,3 +647,84 @@ body.modal-open #fabToggle {
   position:relative;
   top:-1px;
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   STEP 11b — CARS TAB FORM REDESIGN
+   Collapsible groups for Add/Edit Car modal: Basics (open) +
+   Service tracking + Vehicle details (collapsed by default).
+   ════════════════════════════════════════════════════════════════════ */
+.car-form-basics{
+  margin-bottom:14px;
+}
+.car-form-basics-hdr{
+  display:flex;
+  align-items:center;
+  padding:8px 0 10px;
+  margin-bottom:10px;
+  border-bottom:1px solid var(--border);
+}
+.car-form-group-title{
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:13px;
+  color:var(--text);
+  letter-spacing:0.5px;
+}
+.car-form-basics-hdr .info-btn{
+  margin-left:auto;
+}
+
+/* Collapsible sections */
+.car-form-details{
+  margin-bottom:10px;
+  border:1px solid var(--border);
+  border-radius:6px;
+  background:var(--surface2);
+  overflow:hidden;
+}
+.car-form-details > summary{
+  cursor:pointer;
+  padding:11px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:13px;
+  color:var(--text);
+  letter-spacing:0.5px;
+  list-style:none;
+  user-select:none;
+  transition:background .12s;
+}
+.car-form-details > summary:hover{
+  background:var(--surface);
+}
+.car-form-details > summary::-webkit-details-marker{display:none;}
+.car-form-summary-left{
+  display:inline-flex;
+  align-items:center;
+  flex:1;
+}
+.car-form-summary-left .info-btn{
+  margin-left:8px;
+}
+.car-form-details > summary::after{
+  content:'▼';
+  font-size:10px;
+  color:var(--muted);
+  transition:transform .15s;
+  margin-left:10px;
+  flex-shrink:0;
+}
+.car-form-details[open] > summary::after{
+  transform:rotate(180deg);
+}
+.car-form-details-body{
+  padding:12px 14px 14px;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+}
+.car-form-details-body .field:last-child{
+  margin-bottom:0;
+}
