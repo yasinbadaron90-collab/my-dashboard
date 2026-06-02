@@ -203,17 +203,66 @@ function renderCars(){
         }
       }
 
+      // ── Option A card: slim header + 4-cell grid + primary actions + ▼ More ──
+      // Header drops year/note/VIN/engine from card face (still saved, still in modal/PDF).
+      // Pills + expense rows dropped from card face — All Records modal shows them.
+      var today2 = new Date(); today2.setHours(0,0,0,0);
+      var svcDue = nextSvc ? new Date(nextSvc+'T00:00:00') : null;
+      var isOverdue = svcDue && svcDue <= today2;
+      var expCount = expenses.length;
+
+      // Reusable button HTML snippets
+      var btnLogExpense  = '<button onclick="openAddExpense(\''+car.id+'\')" style="flex:1;background:#1a1a00;border:1px solid #f2a830;border-radius:6px;padding:9px 14px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">+ Log Expense</button>';
+      var btnAllRecords  = '<button onclick="openAllRecords(\''+car.id+'\')" style="flex:1;background:#1a0d2a;border:1px solid #6a3aa0;border-radius:6px;padding:9px 14px;color:#a78bfa;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">📋 All Records'+(expCount>0?' ('+expCount+')':'')+'</button>';
+      var btnLogSvcToday = '<button onclick="openLogServiceToday(\''+car.id+'\')" style="flex:1;background:#1a0000;border:2px solid #f23060;border-radius:6px;padding:9px 14px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;animation:pulse-red 1.5s infinite;">✅ Log Service Today</button>';
+      var btnSetSvcDate  = '<button onclick="openRescheduleService(\''+car.id+'\')" style="flex:1;background:#0a1a2e;border:1px solid #3a5a8a;border-radius:6px;padding:9px 14px;color:#5fa0f0;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">📅 Set Service Date</button>';
+      // More-section buttons (full-width, secondary styling)
+      var moreBtn = function(onclick, color, border, text){
+        return '<button onclick="'+onclick+'" style="background:'+border+';border:1px solid '+color+';border-radius:6px;padding:8px 12px;color:'+color+';font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'+text+'</button>';
+      };
+
+      // Primary action row (state-dependent)
+      var primaryRow;
+      if(isOverdue){
+        primaryRow = '<div style="display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);">'
+          + btnLogSvcToday + btnSetSvcDate
+          + '</div>';
+      } else {
+        primaryRow = '<div style="display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);">'
+          + btnLogExpense + btnAllRecords
+          + '</div>';
+      }
+
+      // More section — collapsed by default. Contains everything that isn't primary,
+      // arranged in a clean 2-column grid (or wraps if more buttons).
+      var moreButtonsList = [];
+      if(isOverdue){
+        // When overdue, primary already has urgent buttons. Put Log Expense + All Records here too.
+        moreButtonsList.push(moreBtn('openAddExpense(\''+car.id+'\')',     '#f2a830', '#1a1a00', '+ Log Expense'));
+        moreButtonsList.push(moreBtn('openAllRecords(\''+car.id+'\')',     '#a78bfa', '#1a0d2a', '📋 All Records'+(expCount>0?' ('+expCount+')':'')));
+      } else {
+        moreButtonsList.push(moreBtn('openRescheduleService(\''+car.id+'\')', '#5fa0f0', '#0a1a2e', '📅 Set Service Date'));
+      }
+      moreButtonsList.push(moreBtn('openServiceModal(\''+car.id+'\')',    '#8ab820', '#0d1a00', '📅 Dates &amp; km'));
+      moreButtonsList.push(moreBtn('openEditCarModal(\''+car.id+'\')',    '#888',    '#1a1000', '✏️ Edit Car'));
+      moreButtonsList.push(moreBtn('exportCarPDF(\''+car.id+'\')',        '#8888dd', '#0a0a1a', '📄 Export PDF'));
+      moreButtonsList.push('<button onclick="deleteCar(\''+car.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;padding:8px 12px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Remove</button>');
+
+      var moreSection = '<details class="car-card-more">'
+        + '<summary>▼ More</summary>'
+        + '<div class="car-card-more-body">'
+        +   moreButtonsList.join('')
+        + '</div>'
+        + '</details>';
+
       var card = document.createElement('div');
       card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;';
       card.innerHTML =
-        // Header
-        '<div style="background:#111;padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">'
+        // Slim header — name + plate + total spent only (year/note/VIN/engine moved to modal)
+        '<div style="background:#111;padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
           +'<div>'
             +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:17px;color:var(--text);">'+car.name+'</div>'
-            +(car.year||car.note?'<div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:2px;">'+(car.year?car.year+' · ':'')+( car.note||'')+'</div>':'')
             +(car.plate?'<div style="font-size:11px;color:#f2a830;letter-spacing:2px;margin-top:4px;font-weight:700;">🔖 '+car.plate+'</div>':'')
-            +(car.vin?'<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px;">VIN: '+car.vin+'</div>':'')
-            +(car.engineNo?'<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px;">Engine: '+car.engineNo+'</div>':'')
           +'</div>'
           +'<div style="text-align:right;">'
             +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Total Spent</div>'
@@ -245,32 +294,11 @@ function renderCars(){
           +'</div>'
         +'</div>'
 
-        // Action buttons
-        +(function(){
-          var today2 = new Date(); today2.setHours(0,0,0,0);
-          var svcDue = nextSvc ? new Date(nextSvc+'T00:00:00') : null;
-          var showSvcBtn = svcDue && svcDue <= today2;
-          return '<div style="display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;">'
-            +(showSvcBtn ? '<button onclick="openLogServiceToday(\''+car.id+'\')" style="background:#1a0000;border:2px solid #f23060;border-radius:6px;padding:7px 14px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;animation:pulse-red 1.5s infinite;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">✅ Log Service Today</button>' : '')
-          +(showSvcBtn ? '<button onclick="openRescheduleService(\''+car.id+'\')" style="background:#0a0a1a;border:1px solid #555;border-radius:6px;padding:7px 14px;color:#888;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">📅 Reschedule</button>' : '')
-            +'<button onclick="openAddExpense(\''+car.id+'\')" style="background:#1a1a00;border:1px solid #f2a830;border-radius:6px;padding:7px 14px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">+ Log Expense</button>'
-            +'<button onclick="openServiceModal(\''+car.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:7px 14px;color:#8ab820;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">📅 Dates & km</button>'
-            +'<button onclick="openEditCarModal(\''+car.id+'\')" style="background:#1a1000;border:1px solid #4a3000;border-radius:6px;padding:7px 14px;color:#888;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">✏️ Edit Car</button>'
-            +'<button onclick="exportCarPDF(\''+car.id+'\')" style="background:#0a0a1a;border:1px solid #3a3a7a;border-radius:6px;padding:7px 14px;color:#8888dd;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">📄 Export PDF</button>'
-            +'<button onclick="deleteCar(\''+car.id+'\')" style="margin-left:auto;background:none;border:1px solid #2a1a1a;border-radius:6px;padding:7px 12px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Remove</button>'
-          +'</div>';
-        })()
+        // Primary action row (state-aware)
+        + primaryRow
 
-        // Category pills
-        +(catPills?'<div style="padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border);">'+catPills+'</div>':'')
-
-        // Expense rows
-        +'<div>'
-          +'<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">'
-            +'<span>Description</span><span>Amount</span><span></span><span></span>'
-          +'</div>'
-          +rowsHtml
-        +'</div>';
+        // Collapsible More section
+        + moreSection;
 
       container.appendChild(card);
     });

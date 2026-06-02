@@ -2303,16 +2303,16 @@ function _showUpdateToast(worker){
 <!-- RESCHEDULE SERVICE MODAL -->
 <div class="overlay" id="rescheduleServiceModal">
   <div class="modal">
-    <h2 style="color:var(--muted);">📅 Reschedule Service</h2>
+    <h2 style="color:#5fa0f0;">📅 Set Service Date</h2>
     <div id="rescheduleCarLabel" style="font-family:'Syne',sans-serif;font-size:14px;color:var(--muted);margin-bottom:16px;"></div>
     <input type="hidden" id="rescheduleCarId"/>
-    <div style="background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:#555;letter-spacing:1px;">
-      Mechanic unavailable? Pick a new service date and the countdown will reset.
+    <div style="background:#0a1a2e;border:1px solid #3a5a8a;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:#5fa0f0;letter-spacing:1px;line-height:1.5;">
+      Pick when the next service is scheduled. Works for moving the date earlier (you've booked it sooner) or later (mechanic rescheduled). Countdown updates.
     </div>
-    <div class="field"><label>New Service Date</label><input type="date" id="rescheduleNewDate"/></div>
+    <div class="field"><label>Next Service Date</label><input type="date" id="rescheduleNewDate"/></div>
     <div class="modal-btns">
       <button class="btn ghost" onclick="closeModal('rescheduleServiceModal')">Cancel</button>
-      <button class="btn primary" onclick="confirmRescheduleService()">📅 Reschedule</button>
+      <button class="btn primary" onclick="confirmRescheduleService()">📅 Save Date</button>
     </div>
   </div>
 </div>

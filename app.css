@@ -728,3 +728,67 @@ body.modal-open #fabToggle {
 .car-form-details-body .field:last-child{
   margin-bottom:0;
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   STEP 11b (v106) — CAR CARD ▼ More section (Option A: Collapse it)
+   ════════════════════════════════════════════════════════════════════ */
+.car-card-more{
+  background:var(--surface);
+}
+.car-card-more > summary{
+  cursor:pointer;
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--muted);
+  list-style:none;
+  user-select:none;
+  transition:background .12s,color .12s;
+  border-top:1px solid var(--border);
+}
+.car-card-more > summary:hover{
+  background:var(--surface2);
+  color:var(--text);
+}
+.car-card-more > summary::-webkit-details-marker{display:none;}
+.car-card-more[open] > summary{
+  border-bottom:1px solid var(--border);
+}
+.car-card-more[open] > summary::after{
+  content:' — close';
+  color:var(--muted2);
+  font-size:9px;
+  margin-left:6px;
+}
+.car-card-more-body{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  padding:12px 14px;
+  background:var(--surface2);
+}
+.car-card-more-body > button{
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+/* "Remove" button spans both cols at the bottom — visually separates the
+   destructive action from the safe ones */
+.car-card-more-body > button:last-child{
+  grid-column:1 / -1;
+  margin-top:4px;
+  border-top:1px solid var(--border);
+  padding-top:10px !important;
+  border-radius:0 !important;
+  border:none !important;
+  background:transparent !important;
+}
+.car-card-more-body > button:last-child:hover{
+  color:#c0392b !important;
+}
