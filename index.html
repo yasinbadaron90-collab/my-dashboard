@@ -297,7 +297,7 @@ function _showUpdateToast(worker){
     <div class="odin-insights" id="odinInsights-savings"></div>
   </div>
   <div class="topbar">
-    <h1>MY <span>FUNDS</span></h1>
+    <h1>MY <span>FUNDS</span> <button class="info-btn" onclick="openInfo('My Funds', 'Your savings pockets. Each one holds money for a different purpose — emergency, eid, car, baby, etc.\n\nMoney lives in pockets, not in your bank. When you Spend or Move, the money comes out of a pocket — banks just pass it through.\n\nTap a pocket to see history, edit deposits, or download a statement.')">ⓘ</button></h1>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;min-width:200px;max-width:240px;">
       <!-- Header row with collapse toggle -->
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="toggleBankPanel()" id="bankPanelHdr">
@@ -421,7 +421,7 @@ function _showUpdateToast(worker){
   </div>
       <div class="cp-topbar">
         <button id="reopenPane" onclick="togglePane()" style="display:inline-flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:4px;width:22px;height:36px;cursor:pointer;color:var(--muted);font-size:13px;margin-right:8px;">&#8250;</button>
-        <h1>CAR<span>POOL</span></h1>
+        <h1>CAR<span>POOL</span> <button class="info-btn" onclick="openInfo('Carpool', 'Track who rides with you and what they owe — Lezaun, David, Shireen.\n\nMark trips paid as you receive money. Paid trips drop into your chosen pocket automatically (set when you log payment).\n\nTap a passenger to view their full history or generate a statement to send them.')">ⓘ</button></h1>
         <div class="cp-pills">
           <div class="cp-pill admin-only">Unpaid: <strong id="cpUnpaid">R0</strong></div>
           <div class="cp-pill">This month: <strong id="cpMonthTotal">R0</strong></div>
@@ -475,7 +475,7 @@ function _showUpdateToast(worker){
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
       <div>
-        <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">💵 <span style="color:var(--muted)">CASH FLOW</span></h1>
+        <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">💵 <span style="color:var(--muted)">CASH FLOW</span> <button class="info-btn" onclick="openInfo('Cash Flow', 'Every money movement — in and out — lands here as a timeline.\n\nIncome rows = Money In. Expense rows = Spend. Each row shows which pocket it came from (purple badge) or which bank tagged it (blue badge).\n\nThis is your single source of truth. If a number looks off anywhere else, check here first.')">ⓘ</button></h1>
       </div>
       <!-- Month nav + export -->
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -675,7 +675,7 @@ function _showUpdateToast(worker){
 
     <!-- Header -->
     <div style="margin-bottom:16px;">
-      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">📊 <span style="color:var(--muted)">REPORTS</span></div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">📊 <span style="color:var(--muted)">REPORTS</span> <button class="info-btn" onclick="openInfo('Reports', 'Compare two months side by side or get a snapshot of any period.\n\nGood for spotting trends — am I spending more this month? Did this category grow?\n\nNo data is created here — Reports just reads your existing transactions and arranges them visually.')">ⓘ</button></div>
     </div>
 
     <!-- SMART INSIGHTS -->
@@ -1437,7 +1437,7 @@ function _showUpdateToast(worker){
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;">
       <div>
-        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,34px);letter-spacing:-1px;line-height:1;">🕌 <span style="color:var(--muted)">SALAH</span></div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,34px);letter-spacing:-1px;line-height:1;">🕌 <span style="color:var(--muted)">SALAH</span> <button class="info-btn" onclick="openInfo('Salah', 'Track your daily 5 prayers. Tap a Salah to mark it done.\n\nStreak grows each consecutive day all 5 are marked. Best streak is the longest you have kept it up.\n\nNo penalty for missed days — the streak just resets and you start again. Insha\\\'Allah.')">ⓘ</button></div>
         <div style="font-size:10px;letter-spacing:3px;color:var(--muted);margin-top:4px;text-transform:uppercase;">Lifetime Tracker</div>
       </div>
       <div id="prayerTodayDate" style="font-size:10px;letter-spacing:2px;color:var(--muted);text-align:right;"></div>
@@ -1915,7 +1915,7 @@ function _showUpdateToast(worker){
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
       <div>
-        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🤝 <span style="color:var(--muted)">MONEY OWED</span></div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🤝 <span style="color:var(--muted)">MONEY OWED</span> <button class="info-btn" onclick="openInfo('Money Owed', 'People who owe you money — carpool tabs, personal lends, anything.\n\nTap ↩ Repayment when someone pays you back. Money goes back into a pocket (auto-suggests the one you lent from, but you can pick any).\n\nLent and repaid totals show at the top. Card turns green when settled.')">ⓘ</button></div>
         <div style="font-size:10px;letter-spacing:3px;color:var(--muted);margin-top:4px;text-transform:uppercase;">Everyone who owes you</div>
       </div>
       <button onclick="openExternalBorrowModal()" class="admin-only" style="background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#a78bfa;font-weight:700;">+ Add Person</button>
@@ -2198,7 +2198,7 @@ function _showUpdateToast(worker){
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
       <div>
-        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(22px,5vw,38px);letter-spacing:-1px;line-height:1;">🔧 <span style="color:var(--muted)">CAR SERVICE</span></div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(22px,5vw,38px);letter-spacing:-1px;line-height:1;">🔧 <span style="color:var(--muted)">CAR SERVICE</span> <button class="info-btn" onclick="openInfo('Cars', 'Track every car you own or maintain. Log expenses, services, fuel, anything.\n\nFunded cars deduct from a linked pocket (Toyota → EE90). Record-only cars (someone else pays, like the Getz) log to history only — no money moves.\n\nOdin watches for service-due reminders based on km and last-service date.')">ⓘ</button></div>
         <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">Maintenance logs &amp; expense history</div>
       </div>
       <button onclick="openAddCarModal()" style="background:#f2a830;border:none;border-radius:6px;padding:10px 18px;color:#000;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Add Car</button>
@@ -2427,7 +2427,7 @@ function _showUpdateToast(worker){
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;flex-wrap:wrap;gap:12px;">
       <div>
-        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(22px,5vw,38px);letter-spacing:-1px;line-height:1;">💳 <span style="color:var(--muted)">INSTALMENTS</span></div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(22px,5vw,38px);letter-spacing:-1px;line-height:1;">💳 <span style="color:var(--muted)">INSTALMENTS</span> <button class="info-btn" onclick="openInfo('Instalments', 'Repayment plans you owe — MTN, TFG, anything paid off in months.\n\nMark each month paid as the debit clears. Money comes from a pocket (set per plan, picker on Mark Paid).\n\nAuto-debit plans = bank pulls money on debit day. Revolving accounts = you control when you pay.')">ⓘ</button></div>
         <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">TFG · PayFlex · PayJustNow</div>
       </div>
       <button onclick="openInstModal()" style="background:#c8f230;border:none;border-radius:6px;padding:10px 18px;color:#000;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Add Plan</button>
@@ -2475,7 +2475,7 @@ function _showUpdateToast(worker){
   <div style="max-width:720px;margin:0 auto;">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:10px;">
       <div>
-        <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🎓 School<span style="color:var(--muted);">.</span></h1>
+        <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🎓 School<span style="color:var(--muted);">.</span> <button class="info-btn" onclick="openInfo('School', 'All your subjects, marks, exam dates.\n\nFinal % is calculated automatically — Year Mark × 40% + Exam × 60%. Auto-derives PD / P / F (or you can override with Exe, S, AEG, etc).\n\nMarks are editable any time. Tap a subject to edit Year Mark inputs, Exam %, or notes.')">ⓘ</button></h1>
         <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">2026 Semester</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -2596,7 +2596,7 @@ function _showUpdateToast(worker){
   <div style="max-width:720px;margin:0 auto;">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:10px;">
       <div>
-        <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🔁 Routine<span style="color:var(--muted);">.</span></h1>
+        <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🔁 Routine<span style="color:var(--muted);">.</span> <button class="info-btn" onclick="openInfo('Routine', 'Recurring tasks you want to keep on top of — haircut every 6 weeks, car wash weekly, etc.\n\nTap ✓ to mark done. App tracks last-done date and works out when each task is due next.\n\nCost + pocket support coming soon — for tasks that spend money each time.')">ⓘ</button></h1>
         <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">Recurring Tasks</div>
       </div>
       <div id="routineSummaryPills" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
@@ -2674,7 +2674,7 @@ function _showUpdateToast(worker){
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
       <span style="font-size:28px;">🧠</span>
       <div>
-        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#c8f230;">Odin</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#c8f230;display:inline-flex;align-items:center;">Odin <button class="info-btn" onclick="openInfo('Odin', 'Odin is your watcher — looks across everything in the app and surfaces what needs your attention.\n\nUpcoming debits, services due, money owed to you, deficits — anything Odin spots gets a red, amber, or green alert.\n\nAsk Odin anything by tapping the chat icon — it can answer questions about your own data.')">ⓘ</button></div>
         <div style="font-size:9px;color:#5a8800;letter-spacing:3px;text-transform:uppercase;">Command Centre</div>
       </div>
     </div>
