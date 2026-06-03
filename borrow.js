@@ -287,6 +287,41 @@ function confirmEditBorrow(){
 function deleteBorrowEntry(passenger, entryId){
   var _entry = (borrowData[passenger]||[]).find(function(e){ return e.id === entryId; });
   if(!_entry) return;
+
+  // ── v108-patch1 — carpool lend entries reverse atomically via _lendReverse ─
+  // A pocket-first carpool lend links pocket deposit ↔ CF row ↔ borrow entry
+  // via a lendId. Going through soft-delete + removeFromCF would orphan the
+  // pocket OUT-deposit AND drift the bank baseline. Exact mirror of the
+  // __ext__ branch in deleteBorrowEntryUnified (added in v90).
+  if(_entry.lendId){
+    var _lrec = [];
+    try { _lrec = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
+    var _live = _lrec.find(function(r){ return r.id === _entry.lendId; });
+    if(_live){
+      var _pk = funds.find(function(f){ return f.id === _live.pocketId; });
+      var _pn = _pk ? _pk.name : 'its pocket';
+      var _body = '💸 Lent ' + fmtR(_live.amount) + ' to ' + passenger + ' · ' + _live.date +
+                  '\n\nReversing puts ' + fmtR(_live.amount) + ' back into ' + _pn + ', removes the Cash Flow record, and clears the loan. The bank stays at R0.';
+      if(typeof mihbConfirm === 'function'){
+        mihbConfirm({
+          title: 'Reverse this loan?',
+          body: _body,
+          dangerLabel: '↩ Reverse the whole loan',
+          safeLabel: 'Leave it alone'
+        }, function(go){
+          if(go){
+            _lendReverse(_entry.lendId);
+            if(typeof softDeleteToast === 'function') softDeleteToast({ message:'Loan reversed · '+fmtR(_live.amount)+' back to '+_pn, duration:3000 });
+          }
+        });
+      } else {
+        if(confirm('Reverse this loan?\n\n'+_body)) _lendReverse(_entry.lendId);
+      }
+      return;
+    }
+    // Live lend record gone → orphan → fall through to normal soft-delete below.
+  }
+
   var hasCF = !!_entry.cfId;
   // Build a meaningful label for the toast — use type + amount + person
   var typeLabel = _entry.iOwe ? 'refund-owed' : (_entry.type === 'repay' ? 'repayment' : 'borrow');
