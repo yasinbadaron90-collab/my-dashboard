@@ -288,6 +288,71 @@ function logBorrowToCashflow(personName, amount, date, account, tag, lendId){
 }
 
 // ── ADD MORE BORROW (top-up existing person) ──
+// ════════════════════════════════════════════════════════════════════════════
+// v108b — Add More Borrow pocket picker (mirrors _cpLend* / _extLend*).
+// The "+ More Borrowed" flow on a borrower card tops up an existing person's
+// outstanding loan. Pre-v108b it drifted the bank exactly the same way
+// confirmExternalBorrow did pre-v90: no pocket deduction, no doorway dance,
+// no lendId. Now it does the full pocket-first dance for both branches.
+// ════════════════════════════════════════════════════════════════════════════
+var _amLendSelectedPocketId = null;
+
+function _amLendBalance(f){
+  if(!f) return 0;
+  if(f.isExpense){
+    var tin  = (f.deposits||[]).filter(function(d){return d.txnType==='in';}).reduce(function(s,d){return s+d.amount;},0);
+    var tout = (f.deposits||[]).filter(function(d){return d.txnType==='out'||!d.txnType;}).reduce(function(s,d){return s+d.amount;},0);
+    return tin - tout;
+  }
+  return (typeof fundTotal === 'function') ? fundTotal(f) : 0;
+}
+
+function _amLendRenderPocketList(){
+  var box = document.getElementById('amLendPocketPicker');
+  if(!box) return;
+  var list = (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return f && !f._deleted; });
+  if(!_amLendSelectedPocketId){
+    var daily = list.find(function(f){ return f.name === 'Daily'; });
+    if(daily) _amLendSelectedPocketId = daily.id;
+    else {
+      var firstWithBal = list.find(function(f){ return _amLendBalance(f) > 0; });
+      _amLendSelectedPocketId = firstWithBal ? firstWithBal.id : (list[0] ? list[0].id : null);
+    }
+  }
+  box.innerHTML = '';
+  if(!list.length){
+    box.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:11px;text-align:center;letter-spacing:1px;">No pockets yet. Create one on the Savings tab.</div>';
+    return;
+  }
+  list.forEach(function(f){
+    var bal = _amLendBalance(f);
+    var isSel = (f.id === _amLendSelectedPocketId);
+    var balColor = bal <= 0 ? '#555' : '#c8f230';
+    var row = document.createElement('button');
+    row.type = 'button';
+    row.dataset.fundId = f.id;
+    row.onclick = function(){ _amLendPickPocket(f.id); };
+    row.style.cssText = 'width:100%;text-align:left;background:' + (isSel?'#1a2e00':'#0a0a0a') +
+      ';border:1px solid ' + (isSel?'#5a8800':'#1a1a1a') +
+      ';border-radius:7px;padding:10px 12px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:DM Mono,monospace;';
+    row.innerHTML =
+      '<span style="font-size:18px;">' + (f.emoji||'💰') + '</span>'
+      + '<span style="flex:1;color:' + (isSel?'#c8f230':'#efefef') + ';font-size:13px;">' + f.name + '</span>'
+      + '<span style="color:' + balColor + ';font-size:11px;font-weight:700;">R' + Number(bal).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>';
+    box.appendChild(row);
+  });
+}
+
+function _amLendPickPocket(id){
+  _amLendSelectedPocketId = id;
+  _amLendRenderPocketList();
+}
+
+if(typeof window !== 'undefined'){
+  window._amLendPickPocket = _amLendPickPocket;
+  window._amLendRenderPocketList = _amLendRenderPocketList;
+}
+
 function openAddMoreBorrowModal(key, tag){
   var personName = '';
   var currentTotal = 0;
@@ -312,6 +377,8 @@ function openAddMoreBorrowModal(key, tag){
   document.getElementById('addMoreBorrowDate').value  = localDateStr(new Date());
   document.getElementById('addMoreBorrowNote').value  = '';
   document.getElementById('addMoreBorrowAccount').value = 'FNB';
+  _amLendSelectedPocketId = null;
+  _amLendRenderPocketList();
   document.getElementById('addMoreBorrowModal').classList.add('active');
 }
 
@@ -325,38 +392,117 @@ function confirmAddMoreBorrow(){
   if(!amount || amount <= 0){ alert('Enter a valid amount to add.'); return; }
   var personName = document.getElementById('addMoreBorrowPersonName').textContent;
 
+  // ── v108b — pocket-first: the topped-up money leaves a pocket ──────────────
+  // Same dance as confirmBorrow (carpool) and confirmExternalBorrow (external).
+  // Branches differ only in storage layer + cashflow tag + lendRec shape.
+  var pocket = funds.find(function(f){ return f.id === _amLendSelectedPocketId; });
+  if(!pocket){ alert('Pick which pocket the money comes out of.'); return; }
+  var pocketBal = _amLendBalance(pocket);
+  if(amount > pocketBal){
+    alert('Only R' + Number(pocketBal).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})
+      + ' available in ' + pocket.name + '. Pick another pocket or a smaller amount.');
+    return;
+  }
+
+  var lendId = 'ln_' + uid();
+  var entryId = uid();
+  var cfTag = (tag === 'carpool') ? 'carpool' : 'personal';
+  var lendNotePrefix = (tag === 'carpool') ? '💸 Lent to ' : '🤝 Lent to ';
+
   if(tag === 'carpool'){
     if(!borrowData[key]) borrowData[key] = [];
-    var cpEntry = { id: uid(), type:'borrow', amount: amount, date: date, note: note, account: account, paid: false };
+    var cpEntry = {
+      id: entryId, type:'borrow', amount: amount, date: date, note: note, account: account, paid: false,
+      originPocket: pocket.id,
+      lendId: lendId
+    };
     borrowData[key].push(cpEntry);
-    var cpCfId = logBorrowToCashflow(personName, amount, date, account, tag);
-    if(cpCfId){ cpEntry.cfId = cpCfId; }
     saveBorrows();
-    // Phase D: sync the new passenger borrow entry to cloud.
     try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(key, cpEntry); } catch(e){}
-    renderCarpool();
   } else {
     var extData = loadExternalBorrows();
     if(!extData[key]){ alert('Person not found.'); return; }
     if(!extData[key].borrowerId){
       extData[key].borrowerId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : uid();
     }
-    var extEntry = { id: uid(), type:'borrow', amount: amount, date: date, note: note, account: account };
+    var extEntry = {
+      id: entryId, type:'borrow', amount: amount, date: date, note: note, account: account,
+      originPocket: pocket.id,
+      lendId: lendId
+    };
     extData[key].entries.push(extEntry);
-    var extCfId = logBorrowToCashflow(personName, amount, date, account, tag);
-    if(extCfId){ extEntry.cfId = extCfId; }
     saveExternalBorrows(extData);
-    // Phase D: sync the new external borrow entry to cloud (borrower must exist).
     try {
       if(window.cloudSync && window.cloudSync.externalBorrows){
         window.cloudSync.externalBorrows.upsertBorrower(key, extData[key].name || key, extData[key].borrowerId, false);
         window.cloudSync.externalBorrows.upsertEntry(extData[key].borrowerId, extEntry);
       }
     } catch(e){}
-    renderMoneyOwed();
-    if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){}
   }
+
+  // 1) Deduct the pocket (money genuinely leaves you)
+  var pocketDepId = uid();
+  pocket.deposits.push({
+    id: pocketDepId,
+    txnType: 'out',
+    amount: amount,
+    date: date,
+    note: lendNotePrefix + personName + (note ? ' · ' + note : ''),
+    lendId: lendId,
+    borrowEntryId: key + ':' + entryId
+  });
+  saveFunds();
+
+  // 2) Log as expense in cashflow — stamp cfId + destBank for the reverse path
+  var cfId = logBorrowToCashflow(personName, amount, date, account, cfTag, lendId);
+  if(cfId){
+    if(tag === 'carpool'){
+      var cpList = borrowData[key] || [];
+      var cpRow = cpList.find(function(e){ return e.id === entryId; });
+      if(cpRow){ cpRow.cfId = cfId; saveBorrows(); }
+    } else {
+      var ed2 = loadExternalBorrows();
+      var extRow = (ed2[key] && ed2[key].entries) ? ed2[key].entries.find(function(e){ return e.id === entryId; }) : null;
+      if(extRow){ extRow.cfId = cfId; saveExternalBorrows(ed2); }
+    }
+  }
+
+  // 3) Bank doorway (+amount in, -amount out → net 0). Bank tile unaffected.
+  if(typeof window._adjustBaselineForBank === 'function'){
+    window._adjustBaselineForBank(account, amount);    // doorway IN
+    window._adjustBaselineForBank(account, -amount);   // doorway OUT
+  }
+
+  // 4) Stash the lend record. Shape differs by branch so _lendReverse can route.
+  var lendRecs = [];
+  try { lendRecs = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
+  var rec = {
+    id: lendId,
+    entryId: entryId,
+    amount: amount,
+    date: date,
+    bank: account,
+    pocketId: pocket.id,
+    pocketDepId: pocketDepId,
+    cfId: cfId,
+    createdAt: new Date().toISOString()
+  };
+  if(tag === 'carpool'){
+    rec.isCarpool = true;
+    rec.passenger = key;
+    rec.personName = personName;
+  } else {
+    rec.key = key;
+    rec.personName = personName;
+  }
+  lendRecs.push(rec);
+  lsSet('yb_lends_v1', JSON.stringify(lendRecs));
+
   closeModal('addMoreBorrowModal');
+  if(tag === 'carpool'){ try { renderCarpool(); } catch(e){} }
+  else { try { renderMoneyOwed(); } catch(e){} if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){} }
+  try { renderFunds(); } catch(e){}
+  try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
 
   var old = document.getElementById('borrowAddToast');
   if(old) old.remove();
