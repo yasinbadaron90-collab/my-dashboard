@@ -433,11 +433,45 @@ function confirmEditBorrowUnified(){
     const entries = borrowData[passengerVal] || [];
     const idx = entries.findIndex(function(e){ return e.id === entryId; });
     if(idx === -1) return;
+    var _editingCpEntry = entries[idx];
     entries[idx].amount = amount;
     entries[idx].date   = date;
     entries[idx].note   = note;
     saveBorrows();
-    try { updateLinkedCFEntry(entries[idx].cfId, amount, date, passengerVal); } catch(e){}
+
+    // Sync linked savings deposit (works for v108 pocket-first AND legacy linked)
+    updateSavingsDepositByBorrowId(passengerVal + ':' + entryId, amount, date, note);
+
+    // ── v108c — pocket-first carpool lend: update CF row DIRECTLY without
+    //    touching the bank baseline. Mirrors the external branch's v90 logic.
+    //    The doorway is always net 0, so changing the loan amount must not
+    //    move the bank tile. (updateLinkedCFEntry would re-credit/debit → drift.)
+    if(_editingCpEntry.lendId){
+      try{
+        if(typeof loadCFData === 'function' && _editingCpEntry.cfId){
+          var _cfd2 = loadCFData();
+          Object.keys(_cfd2).forEach(function(mk){
+            ['expenses'].forEach(function(sec){
+              if(_cfd2[mk] && _cfd2[mk][sec]){
+                _cfd2[mk][sec].forEach(function(e){
+                  if(e.id === _editingCpEntry.cfId){ e.amount = amount; if(date) e.date = date; }
+                });
+              }
+            });
+          });
+          if(typeof saveCFData === 'function') saveCFData(_cfd2);
+        }
+        // Keep the lend record's amount in sync for correct future reverse.
+        var _lr2 = []; try { _lr2 = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
+        _lr2.forEach(function(r){ if(r.id === _editingCpEntry.lendId){ r.amount = amount; r.date = date; } });
+        lsSet('yb_lends_v1', JSON.stringify(_lr2));
+      }catch(e){ console.warn('[lend-edit-carpool] cf sync failed', e); }
+    } else {
+      // Legacy non-lend carpool entry (pre-v108) — keep old behaviour.
+      try { updateLinkedCFEntry(entries[idx].cfId, amount, date, passengerVal); } catch(e){}
+    }
+    // Phase D: sync to cloud
+    try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(passengerVal, entries[idx]); } catch(e){}
   }
   closeModal('editBorrowModal');
   renderCarpool();
