@@ -1094,6 +1094,38 @@ function openCfEntryModal(type, editId){
         }
       }
 
+      // ── v108-patch2 — Lend records (carpool + external) ──
+      // Editing the CF line in isolation would let the pocket out-deposit, the
+      // borrow entry, and the bank doorway drift apart. Send the user to
+      // Money Owed where the loan can be reversed atomically via _lendReverse.
+      if(_peekEntry && _peekEntry.lendId){
+        var _lndEditList = [];
+        try{ _lndEditList = JSON.parse(lsGet('yb_lends_v1')||'[]'); }catch(e){}
+        var _lndEditRec = _lndEditList.find(function(r){ return r.id === _peekEntry.lendId; });
+        if(_lndEditRec){
+          var _lndPersonE = _lndEditRec.personName || _lndEditRec.passenger || 'someone';
+          var _lndBodyE =
+            'This line is part of a loan:\n  💸 Lent '+fmtR(_lndEditRec.amount)+' to '+_lndPersonE+' · '+_lndEditRec.date+'\n\n'+
+            'Editing here would only change the Cash Flow line — the pocket and the loan record would stop matching. Manage it on the Money Owed tab instead (edit or reverse from the loan card).';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from Money Owed instead',
+              body:  _lndBodyE,
+              dangerLabel: '🤝 Go to Money Owed',
+              safeLabel:   'Leave it alone'
+            }, function(goEdit){
+              if(goEdit && typeof goToTab === 'function') goToTab('money');
+            });
+          } else {
+            if(confirm('🔒 Edit from Money Owed instead\n\n'+_lndBodyE+'\n\nTap OK to go to Money Owed.\nTap Cancel to leave it alone.')){
+              if(typeof goToTab === 'function') goToTab('money');
+            }
+          }
+          return;
+        }
+        // Orphan → fall through to legacy edit
+      }
+
       // ── Carpool payment guard (2026-05-23) ──
       if(_peekEntry && _peekEntry.carpoolPaymentId){
         var _cpList = [];
@@ -1511,6 +1543,49 @@ function deleteCfEntry(id, type){
         return;
       }
       // No live Spend record → orphan → fall through
+    }
+
+    // ── v108-patch2 — Lend records (carpool + external) ──
+    // The CF "Lent to X" expense is the doorway-tagged side of a pocket-first
+    // loan. Deleting it on its own would orphan the pocket OUT-deposit AND
+    // re-credit the bank via the legacy removeFromCF path → drift. Route
+    // through _lendReverse so the pocket is refunded, the borrow entry is
+    // removed, and the bank baseline stays untouched (forward doorway was 0).
+    if(_peekEntry && _peekEntry.lendId){
+      var _lndDelList = [];
+      try{ _lndDelList = JSON.parse(lsGet('yb_lends_v1')||'[]'); }catch(e){}
+      var _lndDelRec = _lndDelList.find(function(r){ return r.id === _peekEntry.lendId; });
+      if(_lndDelRec){
+        var _lndPersonD = _lndDelRec.personName || _lndDelRec.passenger || 'someone';
+        var _lndPocketD = (typeof funds !== 'undefined') ? funds.find(function(f){ return f.id === _lndDelRec.pocketId; }) : null;
+        var _lndPNameD  = _lndPocketD ? _lndPocketD.name : 'its pocket';
+        var _lndBodyD =
+          'This is part of a loan:\n  💸 Lent '+fmtR(_lndDelRec.amount)+' to '+_lndPersonD+' · '+_lndDelRec.date+'\n\n'+
+          'Reversing puts '+fmtR(_lndDelRec.amount)+' back into '+_lndPNameD+', removes the Cash Flow record, and clears the loan. The bank stays at R0.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Reverse the whole loan?',
+            body:  _lndBodyD,
+            dangerLabel: '↩ Reverse the whole loan',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse && typeof _lendReverse === 'function'){
+              _lendReverse(_peekEntry.lendId);
+              try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Loan reversed · '+fmtR(_lndDelRec.amount)+' back to '+_lndPNameD, duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Reverse the whole loan?\n\n'+_lndBodyD+'\n\nTap OK to reverse the whole loan now.\nTap Cancel to leave it alone.')){
+            if(typeof _lendReverse === 'function') _lendReverse(_peekEntry.lendId);
+          }
+        }
+        return;
+      }
+      // No live lend record → orphan → fall through
     }
 
     // ── Same hard-block guard for Carpool payments (added 2026-05-23) ──
