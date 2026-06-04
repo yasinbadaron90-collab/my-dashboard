@@ -177,14 +177,26 @@ function _renderHomeZone2Alerts(){
   var alertRows = visibleAlerts.map(function(a, i){
     var dotClass = a.level;  // red/amber/green
     var tabName = a.tab || '';
+    // Build action buttons row (only if alert has actions)
+    var actionsHtml = '';
+    if(a.actions && a.actions.length){
+      var btns = a.actions.map(function(act, j){
+        var label = _escHtml(act.label || 'Action');
+        return '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertAction('+i+','+j+')">'+label+'</button>';
+      }).join('');
+      actionsHtml = '<div class="home-alert-actions">'+btns+'</div>';
+    }
     return ''
-      + '<div class="home-alert-row" data-idx="'+i+'" onclick="_homeAlertClick('+i+')">'
-      +   '<div class="home-alert-dot '+dotClass+'"></div>'
-      +   '<div class="home-alert-body">'
-      +     '<div class="home-alert-text">'+_escHtml(a.text||'')+'</div>'
-      +     (tabName ? '<div class="home-alert-meta">'+_escHtml(tabName)+'</div>' : '')
+      + '<div class="home-alert-row" data-idx="'+i+'">'
+      +   '<div class="home-alert-main" onclick="_homeAlertClick('+i+')">'
+      +     '<div class="home-alert-dot '+dotClass+'"></div>'
+      +     '<div class="home-alert-body">'
+      +       '<div class="home-alert-text">'+_escHtml(a.text||'')+'</div>'
+      +       (tabName ? '<div class="home-alert-meta">'+_escHtml(tabName)+'</div>' : '')
+      +     '</div>'
+      +     '<span class="home-alert-chev">›</span>'
       +   '</div>'
-      +   '<span class="home-alert-chev">›</span>'
+      +   actionsHtml
       + '</div>';
   }).join('');
 
@@ -218,6 +230,16 @@ function _homeAlertClick(idx){
     } else if(a.tab){
       goToTab(a.tab);
     }
+  } catch(e){}
+}
+
+function _homeAlertAction(alertIdx, actionIdx){
+  // v111: fire a specific action button on an alert row
+  try {
+    var a = (window._homeAlertsCache||[])[alertIdx];
+    if(!a || !a.actions || !a.actions[actionIdx]) return;
+    var act = a.actions[actionIdx];
+    if(typeof act.fn === 'function') act.fn();
   } catch(e){}
 }
 
