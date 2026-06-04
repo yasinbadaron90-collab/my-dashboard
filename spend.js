@@ -231,14 +231,18 @@ function _spUpdateSaveButton(){
     }
   }
 
-  // Soft warning if pocket would go negative (allowed per Option A, but flag it)
+  // v109 ISSUE-6 — HARD-BLOCK if pocket would go negative.
+  // Pocket-first model: pockets are the source of truth and can't legitimately
+  // hold less than R0. Same rule as the lend chapter. User must (a) pick a
+  // funded pocket, (b) Move money in first, or (c) cancel.
   if(amount > bal){
-    btn.disabled = false;
-    btn.style.cursor = 'pointer';
-    btn.style.opacity = '1';
-    btn.style.background = '#f2a830';
-    btn.style.color = '#000';
-    btn.textContent = '⚠ Pocket short — save anyway · ' + fmtR(amount);
+    btn.disabled = true;
+    btn.style.cursor = 'not-allowed';
+    btn.style.opacity = '.75';
+    btn.style.background = '#3a1414';
+    btn.style.color = '#f23060';
+    btn.style.border = '1px solid #f23060';
+    btn.textContent = '🔒 Only ' + fmtR(bal) + ' in ' + pocket.name + ' — fund it or pick another';
     return;
   }
 
@@ -273,6 +277,33 @@ function saveSpend(){
 
   var pocket = funds.find(function(x){ return x.id === _spState.pocketId; });
   if(!pocket){ alert('Pocket not found.'); return; }
+
+  // v109 ISSUE-6 — defensive hard-block: refuse if pocket would go negative.
+  // The button render also blocks this, but belt-and-braces in case anything
+  // (browser-cached old code, programmatic save, etc) bypasses the button.
+  var _checkBal;
+  if(pocket.isExpense){
+    var _inSum  = (pocket.deposits||[]).filter(function(d){ return d.txnType === 'in'; })
+                                       .reduce(function(s,d){ return s + d.amount; }, 0);
+    var _outSum = (pocket.deposits||[]).filter(function(d){ return d.txnType === 'out' || !d.txnType; })
+                                       .reduce(function(s,d){ return s + d.amount; }, 0);
+    _checkBal = _inSum - _outSum;
+  } else {
+    _checkBal = fundTotal(pocket);
+  }
+  // When editing, the old Spend was already deducted — add it back for the check
+  if(_spState.editingId){
+    var _all = loadSpendData();
+    var _oldRec = _all.find(function(r){ return r.id === _spState.editingId; });
+    if(_oldRec && _oldRec.pocketId === _spState.pocketId){
+      _checkBal += _oldRec.amount;
+    }
+  }
+  if(_spState.amount > _checkBal){
+    alert('Only ' + fmtR(_checkBal) + ' available in ' + pocket.name
+      + '. Pick another pocket or Move money in first.');
+    return;
+  }
 
   // If editing, reverse the old record first (silent — we rebuild now)
   if(_spState.editingId){
