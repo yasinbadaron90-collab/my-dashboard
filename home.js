@@ -141,19 +141,99 @@ function _homeOpenPocket(fundId){
 
 
 // ════════════════════════════════════════════════════════════════════
+// ALERT STATE (snooze + dismiss) — v112
+// ════════════════════════════════════════════════════════════════════
+// Storage: { [alertKey]: { state: 'snoozed'|'dismissed', until: ISO|null } }
+// alertKey = tab + '|' + text. Text-based means amount change = new alert.
+var _ALERT_STATE_KEY = 'yb_alert_state_v1';
+
+function _alertKey(a){
+  return (a.tab || '') + '|' + (a.text || '');
+}
+function _alertLoadState(){
+  try { return JSON.parse(localStorage.getItem(_ALERT_STATE_KEY) || '{}') || {}; }
+  catch(e){ return {}; }
+}
+function _alertSaveState(s){
+  try { localStorage.setItem(_ALERT_STATE_KEY, JSON.stringify(s)); } catch(e){}
+}
+function _alertIsHidden(a, state){
+  var k = _alertKey(a);
+  var s = state[k];
+  if(!s) return false;
+  if(s.state === 'dismissed') return true;
+  if(s.state === 'snoozed' && s.until){
+    if(new Date(s.until) > new Date()) return true;
+    // expired — caller should clean up
+    return false;
+  }
+  return false;
+}
+function _alertSnooze(a, days){
+  var state = _alertLoadState();
+  var until = new Date();
+  until.setDate(until.getDate() + days);
+  state[_alertKey(a)] = { state:'snoozed', until: until.toISOString() };
+  _alertSaveState(state);
+}
+function _alertDismiss(a){
+  var state = _alertLoadState();
+  state[_alertKey(a)] = { state:'dismissed', until:null };
+  _alertSaveState(state);
+}
+function _alertUnsnooze(a){
+  var state = _alertLoadState();
+  delete state[_alertKey(a)];
+  _alertSaveState(state);
+}
+function _alertGarbageCollect(state, currentAlerts){
+  // Lazy cleanup: remove expired snoozes; also drop dismiss/snooze entries
+  // for alerts that no longer appear at all (situation resolved naturally)
+  var now = new Date();
+  var liveKeys = {};
+  currentAlerts.forEach(function(a){ liveKeys[_alertKey(a)] = true; });
+  var changed = false;
+  Object.keys(state).forEach(function(k){
+    var s = state[k];
+    if(s.state === 'snoozed' && s.until && new Date(s.until) <= now){
+      delete state[k]; changed = true;
+    } else if(!liveKeys[k]){
+      // Alert isn't being generated anymore — situation resolved
+      delete state[k]; changed = true;
+    }
+  });
+  if(changed) _alertSaveState(state);
+  return state;
+}
+
+// ════════════════════════════════════════════════════════════════════
 // ZONE 2: NEEDS ATTENTION (Odin alerts)
 // ════════════════════════════════════════════════════════════════════
 function _renderHomeZone2Alerts(){
-  var alerts = [];
+  var allAlerts = [];
   try {
     if(typeof buildOdinLaunchAlerts === 'function'){
-      alerts = buildOdinLaunchAlerts() || [];
+      allAlerts = buildOdinLaunchAlerts() || [];
     }
-  } catch(e){ alerts = []; }
+  } catch(e){ allAlerts = []; }
 
   // Filter to red/amber/green (visible levels)
-  alerts = alerts.filter(function(a){
+  allAlerts = allAlerts.filter(function(a){
     return a && (a.level === 'red' || a.level === 'amber' || a.level === 'green');
+  });
+
+  // v112: filter snoozed/dismissed, count snoozed for footer indicator
+  var state = _alertLoadState();
+  state = _alertGarbageCollect(state, allAlerts);
+  var snoozedCount = 0;
+  var dismissedCount = 0;
+  var alerts = allAlerts.filter(function(a){
+    var s = state[_alertKey(a)];
+    if(s && s.state === 'dismissed'){ dismissedCount++; return false; }
+    if(s && s.state === 'snoozed' && s.until && new Date(s.until) > new Date()){
+      snoozedCount++; return false;
+    }
+    return true;
   });
 
   // "All good" state — no alerts at all
@@ -184,7 +264,19 @@ function _renderHomeZone2Alerts(){
         var label = _escHtml(act.label || 'Action');
         return '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertAction('+i+','+j+')">'+label+'</button>';
       }).join('');
+      // v112: add snooze + dismiss icon buttons after action buttons
+      btns += '<span class="home-alert-spacer"></span>';
+      btns += '<button class="home-alert-mbtn" title="Snooze" onclick="event.stopPropagation();_homeAlertSnoozeOpen('+i+')">😴</button>';
+      btns += '<button class="home-alert-mbtn" title="Dismiss" onclick="event.stopPropagation();_homeAlertDismiss('+i+')">✕</button>';
       actionsHtml = '<div class="home-alert-actions">'+btns+'</div>';
+      // Snooze picker (hidden by default, shown by _homeAlertSnoozeOpen)
+      actionsHtml += '<div class="home-alert-snooze-picker" id="snoozePick_'+i+'" style="display:none;">'
+        + '<span class="home-alert-snooze-lbl">Snooze for:</span>'
+        + '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertSnoozeDo('+i+',1)">1 day</button>'
+        + '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertSnoozeDo('+i+',3)">3 days</button>'
+        + '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertSnoozeDo('+i+',7)">1 week</button>'
+        + '<button class="home-alert-mbtn" onclick="event.stopPropagation();_homeAlertSnoozeCancel('+i+')">✕</button>'
+        + '</div>';
     }
     return ''
       + '<div class="home-alert-row" data-idx="'+i+'">'
@@ -201,10 +293,14 @@ function _renderHomeZone2Alerts(){
   }).join('');
 
   var footRow = '';
+  // v112: snoozed-count indicator (so user knows things are hidden)
+  if(snoozedCount > 0){
+    footRow += '<div class="home-alerts-foot home-alerts-snoozed"><a onclick="_homeAlertWakeAll()">🕓 '+snoozedCount+' snoozed — tap to wake</a></div>';
+  }
   if(hiddenCount > 0){
-    footRow = '<div class="home-alerts-foot"><a onclick="goToTab(\'odin\')">View all ('+hiddenCount+' more) →</a></div>';
+    footRow += '<div class="home-alerts-foot"><a onclick="goToTab(\'odin\')">View all ('+hiddenCount+' more) →</a></div>';
   } else {
-    footRow = '<div class="home-alerts-foot"><a onclick="goToTab(\'odin\')">Open Odin insights →</a></div>';
+    footRow += '<div class="home-alerts-foot"><a onclick="goToTab(\'odin\')">Open Odin insights →</a></div>';
   }
 
   // Stash alerts on window so click handlers can fire their action fn
@@ -241,6 +337,58 @@ function _homeAlertAction(alertIdx, actionIdx){
     var act = a.actions[actionIdx];
     if(typeof act.fn === 'function') act.fn();
   } catch(e){}
+}
+
+// ── v112: Snooze + Dismiss handlers ───────────────────────────────
+function _homeAlertSnoozeOpen(idx){
+  // Show the inline snooze picker for this alert
+  var p = document.getElementById('snoozePick_'+idx);
+  if(p) p.style.display = 'flex';
+}
+function _homeAlertSnoozeCancel(idx){
+  var p = document.getElementById('snoozePick_'+idx);
+  if(p) p.style.display = 'none';
+}
+function _homeAlertSnoozeDo(idx, days){
+  try {
+    var a = (window._homeAlertsCache||[])[idx];
+    if(!a) return;
+    _alertSnooze(a, days);
+    if(typeof renderHome === 'function') renderHome();
+    // Brief feedback toast
+    _homeToast('Snoozed for ' + days + (days===1?' day':' days'));
+  } catch(e){}
+}
+function _homeAlertDismiss(idx){
+  try {
+    var a = (window._homeAlertsCache||[])[idx];
+    if(!a) return;
+    _alertDismiss(a);
+    if(typeof renderHome === 'function') renderHome();
+    _homeToast('Dismissed');
+  } catch(e){}
+}
+function _homeAlertWakeAll(){
+  // Clear all snoozes (keep dismisses — those are deliberate)
+  var state = _alertLoadState();
+  var changed = false;
+  Object.keys(state).forEach(function(k){
+    if(state[k].state === 'snoozed'){ delete state[k]; changed = true; }
+  });
+  if(changed){
+    _alertSaveState(state);
+    if(typeof renderHome === 'function') renderHome();
+    _homeToast('All snoozed alerts woken');
+  }
+}
+function _homeToast(msg){
+  // Lightweight toast — auto-fades after 2s
+  var t = document.createElement('div');
+  t.className = 'home-toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.style.opacity = '0'; }, 1500);
+  setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 2000);
 }
 
 
