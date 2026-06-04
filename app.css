@@ -589,8 +589,8 @@ body.modal-open #fabToggle {
 .home-alert-meta{font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:3px;}
 .home-alert-chev{color:var(--muted);font-size:14px;}
 .home-alert-actions{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px 32px;}
-.home-alert-btn{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.5px;padding:6px 10px;border-radius:4px;cursor:pointer;transition:all .15s;}
-.home-alert-btn:hover{border-color:var(--accent);color:var(--accent);}
+.home-alert-btn{background:transparent;border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.5px;padding:6px 10px;border-radius:4px;cursor:pointer;transition:all .15s;}
+.home-alert-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--surface2);}
 .home-alert-btn:active{transform:scale(0.96);}
 .home-alerts-foot{padding:10px 14px;text-align:center;border-top:1px solid var(--border);}
 .home-alerts-foot a{color:var(--muted);font-size:11px;letter-spacing:1px;cursor:pointer;text-decoration:none;}
