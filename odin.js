@@ -295,7 +295,14 @@ function buildOdinLaunchAlerts(){
     passengers.forEach(function(p){
       var entries = (borrowData&&borrowData[p.name])||[];
       var b=0,r=0;
-      entries.forEach(function(e){ if(e.type==='repay') r+=Number(e.amount||0); else b+=Number(e.amount||0); });
+      // FIX 2026-06-04 (v110b): mirror v80's calcPersonTotals — a borrow
+      // with paid:true (set by Carpool's Mark Paid flow) counts as fully
+      // repaid. Without this, Odin's "owes you" alert fires even after
+      // the borrow has been marked paid via carpool.
+      entries.forEach(function(e){
+        if(e.type==='repay') r+=Number(e.amount||0);
+        else { b+=Number(e.amount||0); if(e.paid) r+=Number(e.amount||0); }
+      });
       var owed = Math.max(0,b-r);
       if(owed>0){
         // Find the latest unpaid borrow entry for delete
@@ -321,7 +328,11 @@ function buildOdinLaunchAlerts(){
     Object.keys(extD).forEach(function(key){
       var p = extD[key];
       var b=0,r=0;
-      (p.entries||[]).forEach(function(e){ if(e.type==='repay') r+=Number(e.amount||0); else b+=Number(e.amount||0); });
+      // FIX 2026-06-04 (v110b): same paid-flag fix as carpool block above
+      (p.entries||[]).forEach(function(e){
+        if(e.type==='repay') r+=Number(e.amount||0);
+        else { b+=Number(e.amount||0); if(e.paid) r+=Number(e.amount||0); }
+      });
       var owed = Math.max(0,b-r);
       if(owed>0){
         var unpaid = (p.entries||[]).filter(function(e){ return e.type!=='repay'; });
