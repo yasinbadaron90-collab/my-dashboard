@@ -1874,9 +1874,7 @@ function _showUpdateToast(worker){
     </div>
     <div class="field"><label>Passenger</label>
       <select id="borrowPassenger" onchange="updateLendingGuardrail()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
-        <option value="David">David</option>
-        <option value="Lezaun">Lezaun</option>
-        <option value="Shireen">Shireen</option>
+        <!-- v109 ISSUE-5: options populated by openBorrowModal() from live PASSENGERS array -->
       </select>
     </div>
     <div class="field"><label>Amount (R)</label><input type="number" id="borrowAmt" placeholder="e.g. 100" oninput="updateLendingGuardrail()"/></div>

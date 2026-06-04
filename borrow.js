@@ -155,6 +155,20 @@ function openBorrowModal(){
   document.getElementById('borrowAmt').value='';
   document.getElementById('borrowDate').value=localDateStr(new Date());
   document.getElementById('borrowNote').value='';
+
+  // v109 ISSUE-5 — populate passenger dropdown from live PASSENGERS array
+  // (mirrors openRepayModal pattern, line 597+). Previously hardcoded to
+  // David/Lezaun/Shireen in index.html — new passengers never showed up.
+  // Refresh globals first in case anything was edited mid-session.
+  try { if(typeof loadPassengers === 'function') loadPassengers(); } catch(e){}
+  var bSel = document.getElementById('borrowPassenger');
+  var pList = (typeof PASSENGERS !== 'undefined' && PASSENGERS.length)
+    ? PASSENGERS
+    : (window.PASSENGERS || ['David','Lezaun','Shireen']);
+  bSel.innerHTML = pList.map(function(p){
+    return '<option value="'+p+'">'+p+'</option>';
+  }).join('');
+
   // v108 — reset + render the pocket picker (mirrors openExternalBorrowModal)
   _cpLendSelectedPocketId = null;
   try { _cpLendRenderPocketList(); } catch(e){ console.warn('[v108] picker render failed', e); }
@@ -1134,12 +1148,12 @@ function odinOpenBorrow(name, isExternal, extKey){
     }
   } else {
     // Open carpool borrow modal pre-selected
-    var bModal = document.getElementById('borrowModal');
-    if(bModal){
-      var bSel = document.getElementById('borrowPassenger');
-      if(bSel){ bSel.value = name; }
-      bModal.classList.add('active');
-    }
+    // v109 ISSUE-5 — must call openBorrowModal() first so the dropdown is
+    // populated from live PASSENGERS, otherwise setting .value silently fails
+    // for any passenger added after first page load.
+    try { openBorrowModal(); } catch(e){ console.warn('[v109] openBorrowModal threw', e); }
+    var bSel = document.getElementById('borrowPassenger');
+    if(bSel){ bSel.value = name; }
   }
 }
 
