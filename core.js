@@ -573,7 +573,6 @@ function checkPin(){
       }
       // v101.1: launch menu replaced by Home page (Step 10). applyRole now
       // lands admin on page-home directly. Old call removed:
-      // showLaunchMenu();
     },400);
   } else {
     document.getElementById("pinError").textContent="Incorrect PIN. Try again.";
@@ -681,7 +680,6 @@ function loginSuccess(name, role){
     document.getElementById('drawerLogoutBtn').style.display = 'flex';
     // v101.1: launch menu replaced by Home page (Step 10). applyRole now
     // lands admin on page-home directly. Old call removed:
-    // showLaunchMenu();
   }, 400);
 }
 
