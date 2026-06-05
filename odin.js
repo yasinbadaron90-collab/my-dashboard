@@ -355,15 +355,57 @@ function buildOdinLaunchAlerts(){
   // ── Instalments due ──
   try{
     var plans = (typeof loadInst==='function') ? loadInst() : [];
+    var nowMonthKey = now.toISOString().slice(0,7); // 'YYYY-MM'
     plans.forEach(function(plan){
-      if(plan.monthToMonth) return;
+      var planId = plan.id;
+
+      // ─── Auto-debit / month-to-month plans (e.g. MTN) — v114 5-day reminder
+      if(plan.planType === 'autoDebit' || plan.monthToMonth){
+        if(!plan.debitDay) return;
+        var paidThisMonth = (plan.paid||[]).some(function(p){
+          return p.date && p.date.slice(0,7) === nowMonthKey;
+        });
+        if(paidThisMonth) return;
+        // Compute this month's debit date (clamp to last day of month)
+        var y = now.getFullYear(), m = now.getMonth();
+        var lastDay = new Date(y, m+1, 0).getDate();
+        var safeDay = Math.min(plan.debitDay, lastDay);
+        var debitDate = new Date(y, m, safeDay);
+        var daysLeft = Math.round((debitDate - now) / 86400000);
+        if(daysLeft >= 0 && daysLeft <= 5){
+          var pocketName = null;
+          if(plan.fundingPocketId && typeof loadFunds === 'function'){
+            try{
+              var pf = (loadFunds()||[]).find(function(f){ return f && f.id === plan.fundingPocketId; });
+              if(pf) pocketName = pf.name;
+            }catch(e){}
+          }
+          var pocketHint = pocketName ? ' — fund '+pocketName : '';
+          var whenStr = daysLeft === 0 ? 'today' : (daysLeft === 1 ? 'tomorrow' : 'in '+daysLeft+' days');
+          var lvl = daysLeft <= 1 ? 'red' : 'amber';
+          alerts.push({
+            level: lvl,
+            text: plan.desc+' ('+fmtR(plan.amt)+') debits '+whenStr+pocketHint,
+            tab: 'instalments',
+            actions: [
+              { label:'Mark Paid', fn: function(){
+                if(typeof openInstM2MPay === 'function'){ openInstM2MPay(planId); }
+                else { goToTab('instalments'); }
+              }},
+              { label:'View', fn: function(){ goToTab('instalments'); } }
+            ]
+          });
+        }
+        return; // skip the fixed-schedule loop for this plan
+      }
+
+      // ─── Fixed-schedule plans (existing behaviour, untouched)
       var paidIdxs = (plan.paid||[]).map(function(p){ return p.index; });
       (plan.dates||[]).forEach(function(ds,i){
         if(paidIdxs.indexOf(i)>-1) return;
         var dueDate = new Date(ds+'T00:00:00');
         var daysLeft = Math.round((dueDate-now)/86400000);
         if(daysLeft>=0 && daysLeft<=14){
-          var planId = plan.id;
           alerts.push({ level:'red', text: plan.desc+' — '+fmtR(plan.amt)+' due in '+daysLeft+' days', tab:'instalments',
             actions:[
               { label:'View', fn: function(){ goToTab('instalments'); } },
