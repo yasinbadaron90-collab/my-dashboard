@@ -2281,7 +2281,7 @@ function _showUpdateToast(worker){
 <!-- RESCHEDULE SERVICE MODAL -->
 <div class="overlay" id="rescheduleServiceModal">
   <div class="modal">
-    <h2 style="color:#5fa0f0;">📅 Set Service Date</h2>
+    <h2 style="color:#5fa0f0;">📅 Set Service Date <button class="info-btn" onclick="openInfo('Set service date', 'Pick when the next service is scheduled. Works for moving it earlier (you\'ve booked it sooner) or later (mechanic rescheduled).\n\nCountdown badge on the car card updates automatically.')">ⓘ</button></h2>
     <div id="rescheduleCarLabel" style="font-family:'Syne',sans-serif;font-size:14px;color:var(--muted);margin-bottom:16px;"></div>
     <input type="hidden" id="rescheduleCarId"/>
     <div style="background:#0a1a2e;border:1px solid #3a5a8a;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:#5fa0f0;letter-spacing:1px;line-height:1.5;">
@@ -2298,7 +2298,7 @@ function _showUpdateToast(worker){
 <!-- LOG SERVICE TODAY MODAL -->
 <div class="overlay" id="logServiceTodayModal">
   <div class="modal">
-    <h2 style="color:#f23060;">✅ Log Service Today</h2>
+    <h2 style="color:#f23060;">✅ Log Service Today <button class="info-btn" onclick="openInfo('Log service today', 'Sets Last Service → Today and clears the overdue warning.\n\nOptionally log the expense at the same time — money comes out of the car\'s linked pocket. Record-only cars (Getz) just log to history.')">ⓘ</button></h2>
     <div id="logServiceCarLabel" style="font-family:'Syne',sans-serif;font-size:14px;color:var(--muted);margin-bottom:16px;"></div>
     <input type="hidden" id="logServiceCarId"/>
     <div style="background:#1a0000;border:1px solid #f23060;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:#f23060;letter-spacing:1px;">
@@ -2395,7 +2395,7 @@ function _showUpdateToast(worker){
 <!-- SERVICE DATE MODAL -->
 <div class="overlay" id="serviceModal">
   <div class="modal">
-    <h2 style="color:#c8f230;">📅 Service & Licence Dates</h2>
+    <h2 style="color:#c8f230;">📅 Service & Licence Dates <button class="info-btn" onclick="openInfo('Service & licence dates', 'Set Last Service Date + km — Next Service auto-calculates (1 year OR +15,000 km, whichever first; 5,000 if carpool/severe usage).\n\nAlso set licence disc expiry date — countdown badge on the car card uses it.')">ⓘ</button></h2>
     <div id="serviceModalCarLabel" style="font-family:'Syne',sans-serif;font-size:14px;color:var(--muted);margin-bottom:16px;"></div>
     <input type="hidden" id="serviceCarId"/>
     <div class="field"><label>Last Service Date</label><input type="date" id="lastServiceDate" oninput="autoCalcNextService()"/></div>
