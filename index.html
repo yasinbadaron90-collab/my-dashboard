@@ -2557,6 +2557,13 @@ function _showUpdateToast(worker){
       <input type="number" id="instDebitDay" placeholder="e.g. 20" min="1" max="31" style="color:#f2c830;font-weight:700;"/>
     </div>
 
+    <!-- v115: optional monthly service / admin fee -->
+    <div class="field">
+      <label>Monthly Service Fee (R) <span style="color:var(--muted);font-size:9px;">— optional, added to each payment (e.g. TFG admin fee)</span></label>
+      <input type="number" id="instServiceFee" placeholder="0" min="0" step="0.01" style="color:#f2a830;font-weight:700;"/>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5;">Leave blank or 0 if there's no extra fee. When set, every Mark Paid logs <em>amount + fee</em> together.</div>
+    </div>
+
     <!-- Step 8 v93: default funding pocket for this plan -->
     <div class="field">
       <label>Default Funding Pocket <span style="color:var(--muted);font-size:9px;">— which pocket pays this plan</span></label>

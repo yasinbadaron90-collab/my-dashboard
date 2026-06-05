@@ -21,6 +21,11 @@ function loadInst(){
         p.fundingPocketId = null;
         changed = true;
       }
+      // v115: optional monthly service / admin fee on top of plan.amt (TFG-style)
+      if(p.serviceFee === undefined){
+        p.serviceFee = 0;
+        changed = true;
+      }
     });
     if(changed){
       try{ lsSet(INST_KEY, JSON.stringify(d)); }catch(e){}
@@ -29,6 +34,11 @@ function loadInst(){
   }catch(e){ return []; }
 }
 function saveInst(d){ lsSet(INST_KEY, JSON.stringify(d)); }
+
+// v115 helper: monthly total = principal + service fee
+function _planMonthlyTotal(plan){
+  return Number(plan.amt||0) + Number(plan.serviceFee||0);
+}
 
 // ── Step 8 v93: pocket helpers (read-only — never write funds here) ──
 function _instLoadFunds(){
@@ -212,6 +222,7 @@ function openInstModal(editId){
     document.getElementById('instFreq').value      = plan.freq || 'monthly';
     document.getElementById('instStartDate').value = (plan.dates && plan.dates[0]) || localDateStr(new Date());
     document.getElementById('instDebitDay').value  = plan.debitDay || '';
+    document.getElementById('instServiceFee').value = (plan.serviceFee && plan.serviceFee > 0) ? plan.serviceFee : '';
     // Store M2M flag so confirmInstalment can preserve it
     document.getElementById('instEditId').dataset.m2m = plan.monthToMonth ? '1' : '';
     // Step 8 v93: load funding pocket
@@ -222,6 +233,7 @@ function openInstModal(editId){
     document.getElementById('instAmt').value       = '';
     document.getElementById('instFreq').value      = 'monthly';
     document.getElementById('instStartDate').value = localDateStr(new Date());
+    document.getElementById('instServiceFee').value = '';
     // Step 8 v93: reset funding pocket dropdown
     _instBuildFundingPocketDropdown('');
   }
@@ -256,6 +268,9 @@ function confirmInstalment(){
   var dates = (num && start) ? buildInstSchedule(start, num, freq) : [];
   // Step 8 v93: read funding pocket from modal
   var fundingPocketId = (document.getElementById('instFundingPocketId')||{}).value || null;
+  // v115: read optional service fee
+  var serviceFee = parseFloat(document.getElementById('instServiceFee').value) || 0;
+  if(serviceFee < 0) serviceFee = 0;
 
   if(editId){
     var idx = plans.findIndex(function(p){ return p.id === editId; });
@@ -274,6 +289,7 @@ function confirmInstalment(){
         monthToMonth: oldPlan.monthToMonth || false,
         planType: oldPlan.planType || (oldPlan.monthToMonth ? 'autoDebit' : 'revolving'),
         fundingPocketId: fundingPocketId,
+        serviceFee: serviceFee,
         dates: dates,
         paid: oldPlan.paid || []
       };
@@ -290,6 +306,7 @@ function confirmInstalment(){
       debitDay: debitDay,
       planType: 'revolving',
       fundingPocketId: fundingPocketId,
+      serviceFee: serviceFee,
       dates: dates,
       paid: []   // array of { index, date, note, cfId, instalmentPayId, depositId, pocketId, amount }
     });
@@ -317,9 +334,13 @@ function openInstPayModal(planId, idx){
   document.getElementById('instPayNote').value   = '';
 
   // Build the info banner (plan + amount + scheduled date)
+  var _fee = Number(plan.serviceFee||0);
+  var _amtHtml = _fee > 0
+    ? '<span style="color:#f2a830;">'+fmtR(_planMonthlyTotal(plan))+'</span> &nbsp;<span style="color:var(--muted);font-size:11px;">(R'+plan.amt+' + R'+_fee+' fee)</span>'
+    : '<span style="color:#f2a830;">'+fmtR(plan.amt)+'</span>';
   document.getElementById('instPayInfo').innerHTML =
     '<strong style="color:#c8f230;">'+plan.desc+'</strong><br>'
-    +'Payment '+(idx+1)+' of '+plan.num+' &nbsp;·&nbsp; <span style="color:#f2a830;">'+fmtR(plan.amt)+'</span><br>'
+    +'Payment '+(idx+1)+' of '+plan.num+' &nbsp;·&nbsp; '+_amtHtml+'<br>'
     +'Scheduled: '+formatDisplayDate(plan.dates[idx]);
 
   // Populate pocket picker (default = plan.fundingPocketId)
@@ -397,11 +418,16 @@ function confirmInstPay(){
 
   if(!plan.paid) plan.paid = [];
 
+  // v115: total = principal + optional service fee
+  var monthlyTotal = _planMonthlyTotal(plan);
+  var fee = Number(plan.serviceFee||0);
+  var feeBreakdown = (fee > 0) ? ' (R'+plan.amt+' + R'+fee+' fee)' : '';
+
   // ── Soft balance check (non-blocking, just confirm) ──
   try{
     var bal = _instPocketBalance(pocket);
-    if(bal < plan.amt){
-      var shortMsg = 'Heads up: '+pocket.name+' only has '+fmtR(bal)+' but the payment is '+fmtR(plan.amt)+' — short by '+fmtR(plan.amt - bal)+'.\n\nContinue anyway? (The pocket balance will go negative — usually a sign to move money in first.)';
+    if(bal < monthlyTotal){
+      var shortMsg = 'Heads up: '+pocket.name+' only has '+fmtR(bal)+' but the payment is '+fmtR(monthlyTotal)+feeBreakdown+' — short by '+fmtR(monthlyTotal - bal)+'.\n\nContinue anyway? (The pocket balance will go negative — usually a sign to move money in first.)';
       if(!confirm(shortMsg)) return;
     }
   }catch(e){}
@@ -415,9 +441,9 @@ function confirmInstPay(){
   var deposit = {
     id: depositId,
     txnType: 'out',
-    amount: plan.amt,
+    amount: monthlyTotal,
     date: date,
-    note: '🛍 ' + payLabel + (note ? ' · ' + note : ''),
+    note: '🛍 ' + payLabel + feeBreakdown + (note ? ' · ' + note : ''),
     cfPosted: true,
     instalmentPayId: instPayId,
     planId: planId
@@ -436,14 +462,14 @@ function confirmInstPay(){
   var cfId = null;
   try{
     cfId = postToCF({
-      label: payLabel,
-      amount: plan.amt,
+      label: payLabel + feeBreakdown,
+      amount: monthlyTotal,
       date: date,
       type: 'expense',
       account: pocket.name,
       sourceType: 'instalment_pay',
       sourceId: planId,
-      note: 'Instalment · from ' + pocket.name + (note ? ' · ' + note : ''),
+      note: 'Instalment'+feeBreakdown+' · from ' + pocket.name + (note ? ' · ' + note : ''),
       instalmentPayId: instPayId,
       planId: planId,
       destPocketId: pocketId
@@ -461,7 +487,8 @@ function confirmInstPay(){
     instalmentPayId: instPayId,
     depositId: depositId,
     pocketId: pocketId,
-    amount: plan.amt
+    amount: monthlyTotal,
+    feeCharged: fee   // v115: capture fee snapshot at time of payment
   };
   if(idx !== -1){
     plan.paid = plan.paid.filter(function(x){ return x.index !== idx; });
@@ -482,7 +509,7 @@ function confirmInstPay(){
   try{ if(typeof odinRefreshIfOpen === 'function') odinRefreshIfOpen(); }catch(e){}
 
   if(typeof softDeleteToast === 'function'){
-    softDeleteToast({ message: 'Paid · '+fmtR(plan.amt)+' from '+pocket.name, duration:2500 });
+    softDeleteToast({ message: 'Paid · '+fmtR(monthlyTotal)+' from '+pocket.name, duration:2500 });
   }
 }
 
@@ -648,16 +675,18 @@ function buildInstCard(plan, isTarget, isCleared){
   var paidCount = paidIdxs.length;
   var isM2M = !!plan.monthToMonth;
   var pct = isM2M ? 0 : Math.round((paidCount / plan.num) * 100);
-  var remAmt = isM2M ? null : (plan.num - paidCount) * plan.amt;
-  var totalPaid = paidCount * plan.amt;
+  var remAmt = isM2M ? null : (plan.num - paidCount) * _planMonthlyTotal(plan);
+  // v115: sum actual paid amounts (each paid record has its own .amount including any fee at time of payment)
+  var totalPaid = (plan.paid||[]).reduce(function(s,p){ return s + (Number(p.amount)||Number(plan.amt)||0); }, 0);
 
   var card = document.createElement('div');
   card.style.cssText = 'background:var(--surface);border:1px solid '+(isCleared?'#2a2a2a':c.border)+';border-radius:10px;overflow:hidden;margin-bottom:14px;'+(isTarget?'box-shadow:0 0 0 2px #c8f23044;':'');
 
   // Header
+  var _feeHint = (plan.serviceFee && plan.serviceFee > 0) ? ' + R'+plan.serviceFee+' fee' : '';
   var subLabel = isM2M
-    ? 'Month to Month · R' + plan.amt + '/month · Debit day ' + (plan.debitDay || '—')
-    : plan.freq.charAt(0).toUpperCase() + plan.freq.slice(1) + ' · ' + plan.num + ' instalments';
+    ? 'Month to Month · R' + plan.amt + _feeHint + '/month · Debit day ' + (plan.debitDay || '—')
+    : plan.freq.charAt(0).toUpperCase() + plan.freq.slice(1) + ' · ' + plan.num + ' instalments' + (_feeHint ? ' · '+_feeHint.substring(3) : '');
 
   var headerHtml =
     '<div style="background:'+c.bg+';padding:14px 16px;border-bottom:1px solid '+c.border+';display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">'
@@ -678,16 +707,22 @@ function buildInstCard(plan, isTarget, isCleared){
     +'</div>';
 
   // Progress bar — skip for month-to-month
+  var _payDisplay = (plan.serviceFee && plan.serviceFee > 0)
+    ? fmtR(_planMonthlyTotal(plan)) + '/payment'
+    : fmtR(plan.amt) + '/payment';
+  var _m2mDebitStr = (plan.serviceFee && plan.serviceFee > 0)
+    ? 'R'+plan.amt+' + R'+plan.serviceFee+' fee debited on the '+( plan.debitDay || '?')+'th'
+    : 'R'+plan.amt+' debited on the '+( plan.debitDay || '?')+'th each month';
   var progHtml = isM2M
     ? '<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;font-size:10px;color:var(--muted);letter-spacing:1px;">'
         +'<span>'+paidCount+' payment'+(paidCount!==1?'s':'')+' logged</span>'
-        +'<span>R'+plan.amt+' debited on the '+( plan.debitDay || '?')+'th each month</span>'
+        +'<span>'+_m2mDebitStr+'</span>'
       +'</div>'
     : '<div style="padding:12px 16px;border-bottom:1px solid var(--border);">'
         +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">'
           +'<span>'+paidCount+' of '+plan.num+' paid</span>'
           +'<span>'+pct+'%</span>'
-          +'<span>'+fmtR(plan.amt)+'/payment</span>'
+          +'<span>'+_payDisplay+'</span>'
         +'</div>'
         +'<div style="height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;">'
         +'<div style="height:100%;width:'+pct+'%;background:'+(isCleared?'#c8f230':c.badge)+';border-radius:3px;transition:width .5s cubic-bezier(.16,1,.3,1);box-shadow:0 0 8px '+(isCleared?'#c8f23044':c.badge+'44')+';"></div>'
@@ -707,17 +742,18 @@ function buildInstCard(plan, isTarget, isCleared){
     rowsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">'
       +'<span style="width:10px;height:10px;border-radius:50%;background:'+(isToday2?'#f2a830':'#333')+';display:inline-block;flex-shrink:0;"></span>'
       +'<div style="flex:1;"><span style="color:var(--muted);font-size:11px;">'+(isToday2?'Today!':nextDue.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}))+'</span></div>'
-      +'<span style="color:#f2c830;font-weight:700;">'+fmtR(plan.amt)+'</span>'
+      +'<span style="color:#f2c830;font-weight:700;">'+fmtR(_planMonthlyTotal(plan))+'</span>'
       +'<button onclick="openInstM2MPay(\''+plan.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 10px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">Mark Paid</button>'
     +'</div>';
     if(plan.paid && plan.paid.length > 0){
       rowsHtml += '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:10px 0 6px;">Payment history</div>';
       var sortedPaid = plan.paid.slice().sort(function(a,b){ return b.date > a.date ? 1 : -1; });
       sortedPaid.slice(0,6).forEach(function(p){
+        var _histAmt = p.amount || plan.amt;
         rowsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">'
           +'<span style="width:10px;height:10px;border-radius:50%;background:#c8f230;display:inline-block;flex-shrink:0;"></span>'
           +'<div style="flex:1;"><span style="color:var(--muted);font-size:10px;">'+p.date+'</span>'+(p.note?'<span style="color:var(--muted);font-size:10px;"> · '+p.note+'</span>':'')+'</div>'
-          +'<span style="color:#c8f230;font-weight:700;">'+fmtR(plan.amt)+'</span>'
+          +'<span style="color:#c8f230;font-weight:700;">'+fmtR(_histAmt)+'</span>'
         +'</div>';
       });
     }
@@ -745,6 +781,7 @@ function buildInstCard(plan, isTarget, isCleared){
         ? '<button onclick="unmarkInstPay(\''+plan.id+'\','+i+')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor=\'#555\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#444\'">Undo</button>'
         : '<button onclick="openInstPayModal(\''+plan.id+'\','+i+')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 10px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">Mark Paid</button>';
 
+      var _rowAmt = isPaid ? (paidEntry && paidEntry.amount ? paidEntry.amount : _planMonthlyTotal(plan)) : _planMonthlyTotal(plan);
       rowsHtml +=
         '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">'
           +statusDot
@@ -753,7 +790,7 @@ function buildInstCard(plan, isTarget, isCleared){
             +'<span style="color:var(--muted);font-size:10px;letter-spacing:0.5px;">'+formatDisplayDate(ds)+'</span>'
             +'<div style="margin-top:1px;">'+label+'</div>'
           +'</div>'
-          +'<span style="color:var(--text);font-weight:700;font-size:13px;white-space:nowrap;">'+fmtR(plan.amt)+'</span>'
+          +'<span style="color:var(--text);font-weight:700;font-size:13px;white-space:nowrap;">'+fmtR(_rowAmt)+'</span>'
           +(!isCleared ? actionBtn : '')
         +'</div>';
     });
@@ -787,7 +824,11 @@ function openInstM2MPay(planId){
   document.getElementById('instPayIndex').value = -1; // -1 = M2M
   document.getElementById('instPayDate').value = localDateStr(new Date());
   document.getElementById('instPayNote').value = '';
-  document.getElementById('instPayInfo').innerHTML = 'Log this month\'s '+plan.provider+' debit of <strong style="color:#f2c830;">'+fmtR(plan.amt)+'</strong>.';
+  var _fee = Number(plan.serviceFee||0);
+  var _amtStr = _fee > 0
+    ? '<strong style="color:#f2c830;">'+fmtR(_planMonthlyTotal(plan))+'</strong> <span style="color:var(--muted);font-size:11px;">(R'+plan.amt+' + R'+_fee+' fee)</span>'
+    : '<strong style="color:#f2c830;">'+fmtR(plan.amt)+'</strong>';
+  document.getElementById('instPayInfo').innerHTML = 'Log this month\'s '+plan.provider+' debit of '+_amtStr+'.';
   _instPopulatePocketPicker(plan);
   document.getElementById('instPayModal').classList.add('active');
 }
