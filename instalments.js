@@ -531,21 +531,33 @@ function _instalmentPayReverse(planId, idx, opts){
   var payEntry = (plan.paid||[]).find(function(x){ return x.index === idx; });
   if(!payEntry) return false;
 
-  // 1) Remove the CF row (if linked)
+  // v116: if this is a settle anchor, gather ALL sibling settle markers (same settleId)
+  // so we can wipe them together. If it's a non-anchor settle marker, find the anchor first
+  // so the cascade still works from any entry point.
+  var settleId = payEntry.settleId || null;
+  var anchorEntry = payEntry;
+  var siblings = [];
+  if(settleId){
+    var settleSiblings = (plan.paid||[]).filter(function(x){ return x.settleId === settleId; });
+    anchorEntry = settleSiblings.find(function(x){ return x.isSettleAnchor; }) || payEntry;
+    siblings = settleSiblings;
+  }
+
+  // 1) Remove the CF row (anchor only — non-anchors don't have cfId)
   try{
-    if(payEntry.cfId && typeof removeFromCF === 'function'){
-      removeFromCF(payEntry.cfId);
+    if(anchorEntry.cfId && typeof removeFromCF === 'function'){
+      removeFromCF(anchorEntry.cfId);
     }
   }catch(e){ console.warn('[instReverse] removeFromCF failed', e); }
 
-  // 2) Remove the pocket deposit (if linked)
+  // 2) Remove the pocket deposit (anchor only — non-anchors don't have depositId)
   try{
-    if(payEntry.depositId && payEntry.pocketId){
+    if(anchorEntry.depositId && anchorEntry.pocketId){
       try{ if(typeof loadFunds === 'function') loadFunds(); }catch(e){}
       if(typeof funds !== 'undefined' && Array.isArray(funds)){
-        var pk = funds.find(function(f){ return f && f.id === payEntry.pocketId; });
+        var pk = funds.find(function(f){ return f && f.id === anchorEntry.pocketId; });
         if(pk && Array.isArray(pk.deposits)){
-          pk.deposits = pk.deposits.filter(function(d){ return d.id !== payEntry.depositId; });
+          pk.deposits = pk.deposits.filter(function(d){ return d.id !== anchorEntry.depositId; });
           try{
             if(typeof saveFunds === 'function'){ saveFunds(); }
             else { lsSet(SK, JSON.stringify(funds)); }
@@ -555,8 +567,12 @@ function _instalmentPayReverse(planId, idx, opts){
     }
   }catch(e){ console.warn('[instReverse] pocket deposit removal failed', e); }
 
-  // 3) Remove the paid entry from the plan
-  plan.paid = (plan.paid||[]).filter(function(x){ return x.index !== idx; });
+  // 3) Remove the paid entry (or ALL sibling settle markers when this was a settle)
+  if(settleId){
+    plan.paid = (plan.paid||[]).filter(function(x){ return x.settleId !== settleId; });
+  } else {
+    plan.paid = (plan.paid||[]).filter(function(x){ return x.index !== idx; });
+  }
   saveInst(plans);
 
   // 4) Refresh UI (skip when silent — caller handles it)
@@ -566,12 +582,207 @@ function _instalmentPayReverse(planId, idx, opts){
     try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
     try{ if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); }catch(e){}
     if(typeof softDeleteToast === 'function'){
-      var amt = payEntry.amount || plan.amt;
-      var pkName = _instPocketLabel(payEntry.pocketId) || 'the pocket';
-      softDeleteToast({ message: 'Reversed · '+fmtR(amt)+' back to '+pkName, duration: 2800 });
+      var amt = anchorEntry.amount || plan.amt;
+      var pkName = _instPocketLabel(anchorEntry.pocketId) || 'the pocket';
+      var msg = settleId
+        ? 'Reversed settlement · '+fmtR(amt)+' back to '+pkName+' · '+siblings.length+' payment'+(siblings.length!==1?'s':'')+' unmarked'
+        : 'Reversed · '+fmtR(amt)+' back to '+pkName;
+      softDeleteToast({ message: msg, duration: 2800 });
     }
   }
   return true;
+}
+
+// v116 ── Settle in Full action (for revolving plans) ─────────────────
+function openInstSettleModal(planId){
+  var plans = loadInst();
+  var plan  = plans.find(function(p){ return p.id === planId; });
+  if(!plan) return;
+  if(plan.monthToMonth){ alert('Settle in Full is for fixed-schedule (revolving) plans only — month-to-month plans don\'t have a closing balance.'); return; }
+
+  var paidIdxs = (plan.paid||[]).map(function(x){ return x.index; });
+  var unpaidIdxs = [];
+  for(var i = 0; i < (plan.num||0); i++){
+    if(paidIdxs.indexOf(i) < 0) unpaidIdxs.push(i);
+  }
+  if(unpaidIdxs.length === 0){ alert('All payments already marked paid — nothing to settle.'); return; }
+
+  // Build info banner — show what's outstanding (principal × remaining + fee × remaining)
+  var perPayment = _planMonthlyTotal(plan);
+  var outstanding = unpaidIdxs.length * perPayment;
+  var feeNote = (plan.serviceFee && plan.serviceFee > 0)
+    ? ' (R'+plan.amt+' principal + R'+plan.serviceFee+' fee × '+unpaidIdxs.length+' remaining)'
+    : ' (R'+plan.amt+' × '+unpaidIdxs.length+' remaining)';
+  document.getElementById('instSettleInfo').innerHTML =
+    '<strong style="color:#c8f230;">'+plan.desc+'</strong><br>'
+    +'<span style="color:var(--muted);">Scheduled outstanding:</span> <span style="color:#f2a830;">'+fmtR(outstanding)+'</span>'+feeNote+'<br>'
+    +'<span style="color:var(--muted);">Marking as settled:</span> '+unpaidIdxs.length+' payment'+(unpaidIdxs.length!==1?'s':'')+' (#'+(unpaidIdxs[0]+1)+'–'+(unpaidIdxs[unpaidIdxs.length-1]+1)+')';
+
+  // Prefill closing balance with scheduled outstanding (user usually overrides with actual)
+  document.getElementById('instSettleAmt').value = outstanding;
+  document.getElementById('instSettleHint').textContent = 'Real closing balance is often less than scheduled (credits, settlement discounts). Type the actual amount you paid.';
+  document.getElementById('instSettleDate').value = localDateStr(new Date());
+  document.getElementById('instSettleNote').value = '';
+  document.getElementById('instSettlePlanId').value = planId;
+
+  // Reuse the pay pocket picker logic but target settle dropdown
+  _instPopulateSettlePocketPicker(plan);
+  document.getElementById('instSettleModal').classList.add('active');
+}
+
+function _instPopulateSettlePocketPicker(plan){
+  var sel = document.getElementById('instSettlePocketId');
+  if(!sel) return;
+  var funds = _instLoadFunds();
+  sel.innerHTML = '';
+  var optBlank = document.createElement('option');
+  optBlank.value = '';
+  optBlank.textContent = '— Pick a pocket —';
+  sel.appendChild(optBlank);
+  funds.forEach(function(p){
+    if(!p || !p.id) return;
+    var bal = _instPocketBalance(p);
+    var opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name + '  ·  ' + fmtR(bal);
+    sel.appendChild(opt);
+  });
+  if(plan && plan.fundingPocketId){
+    sel.value = plan.fundingPocketId;
+  } else {
+    sel.value = '';
+  }
+}
+
+function confirmInstSettle(){
+  var planId  = document.getElementById('instSettlePlanId').value;
+  var amount  = parseFloat(document.getElementById('instSettleAmt').value);
+  var pocketId = document.getElementById('instSettlePocketId').value;
+  var date    = document.getElementById('instSettleDate').value || localDateStr(new Date());
+  var note    = document.getElementById('instSettleNote').value.trim();
+
+  if(!planId){ alert('Plan not found — close and reopen the modal.'); return; }
+  if(!amount || amount <= 0){ alert('Please enter the actual closing balance amount.'); return; }
+  if(!pocketId){ alert('Please pick a pocket.'); return; }
+
+  var plans = loadInst();
+  var plan  = plans.find(function(p){ return p.id === planId; });
+  if(!plan) return;
+
+  // Find unpaid indexes
+  var paidIdxs = (plan.paid||[]).map(function(x){ return x.index; });
+  var unpaidIdxs = [];
+  for(var i = 0; i < (plan.num||0); i++){
+    if(paidIdxs.indexOf(i) < 0) unpaidIdxs.push(i);
+  }
+  if(unpaidIdxs.length === 0){ alert('Nothing left to settle.'); return; }
+
+  // Locate the pocket
+  try{ if(typeof loadFunds === 'function') loadFunds(); }catch(e){}
+  var pocket = (typeof funds !== 'undefined' && Array.isArray(funds))
+    ? funds.find(function(f){ return f && f.id === pocketId; })
+    : null;
+  if(!pocket){ alert('Pocket not found.'); return; }
+
+  // Soft balance check (consistent with markPayment)
+  try{
+    var bal = _instPocketBalance(pocket);
+    if(bal < amount){
+      var shortMsg = 'Heads up: '+pocket.name+' only has '+fmtR(bal)+' but the settlement is '+fmtR(amount)+' — short by '+fmtR(amount - bal)+'.\n\nContinue anyway? (The pocket balance will go negative — usually a sign to move money in first.)';
+      if(!confirm(shortMsg)) return;
+    }
+  }catch(e){}
+
+  // ── Generate IDs ──
+  var settleId    = uid();
+  var anchorInstPayId = uid();
+  var depositId   = uid();
+  var settleLabel = plan.desc + ' — Settle in Full ('+unpaidIdxs.length+' payment'+(unpaidIdxs.length!==1?'s':'')+')';
+
+  // 1) ONE pocket deposit for the actual amount
+  var deposit = {
+    id: depositId,
+    txnType: 'out',
+    amount: amount,
+    date: date,
+    note: '🎯 ' + settleLabel + (note ? ' · ' + note : ''),
+    cfPosted: true,
+    instalmentPayId: anchorInstPayId,
+    planId: planId,
+    settleId: settleId
+  };
+  pocket.deposits = pocket.deposits || [];
+  pocket.deposits.push(deposit);
+  try{
+    if(typeof saveFunds === 'function'){ saveFunds(); }
+    else { lsSet(SK, JSON.stringify(funds)); }
+  }catch(e){ console.warn('[settle] saveFunds failed', e); }
+
+  // 2) ONE CF row for the actual amount
+  var cfId = null;
+  try{
+    cfId = postToCF({
+      label: settleLabel,
+      amount: amount,
+      date: date,
+      type: 'expense',
+      account: pocket.name,
+      sourceType: 'instalment_pay',
+      sourceId: planId,
+      note: '🎯 Settled in full · '+unpaidIdxs.length+' payment'+(unpaidIdxs.length!==1?'s':'')+' closed · from ' + pocket.name + (note ? ' · ' + note : ''),
+      instalmentPayId: anchorInstPayId,
+      planId: planId,
+      destPocketId: pocketId,
+      settleId: settleId
+    });
+  }catch(e){ console.warn('[settle] postToCF failed', e); }
+
+  // 3) Mark every unpaid slot as settled — first is the anchor with all the money IDs,
+  //    rest are placeholders (amount:0) that link back via settleId.
+  if(!plan.paid) plan.paid = [];
+  unpaidIdxs.forEach(function(idx, n){
+    if(n === 0){
+      plan.paid.push({
+        index: idx,
+        date: date,
+        note: note,
+        cfId: cfId,
+        instalmentPayId: anchorInstPayId,
+        depositId: depositId,
+        pocketId: pocketId,
+        amount: amount,
+        settleId: settleId,
+        isSettleAnchor: true
+      });
+    } else {
+      plan.paid.push({
+        index: idx,
+        date: date,
+        note: '',
+        cfId: null,
+        instalmentPayId: null,
+        depositId: null,
+        pocketId: pocketId,
+        amount: 0,
+        settleId: settleId,
+        isSettleAnchor: false
+      });
+    }
+  });
+
+  // Remember this pocket as the default for future payments on this plan
+  plan.fundingPocketId = pocketId;
+  saveInst(plans);
+
+  closeModal('instSettleModal');
+  try{ renderInst(); }catch(e){}
+  try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+  try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+  try{ if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); }catch(e){}
+
+  if(typeof softDeleteToast === 'function'){
+    softDeleteToast({ message: '🎯 Settled · '+fmtR(amount)+' from '+pocket.name+' · '+unpaidIdxs.length+' payment'+(unpaidIdxs.length!==1?'s':'')+' closed', duration:3000 });
+  }
 }
 
 // ── Snowball: skip M2M plans, focus on fixed-term ones ──
@@ -765,8 +976,11 @@ function buildInstCard(plan, isTarget, isCleared){
       var isOverdue = !isPaid && dDate < now2;
       var isToday   = !isPaid && dDate.getTime() === now2.getTime();
 
+      var isSettled = isPaid && paidEntry && paidEntry.settleId;
       var statusDot = isPaid
-        ? '<span style="width:10px;height:10px;border-radius:50%;background:#c8f230;display:inline-block;flex-shrink:0;"></span>'
+        ? (isSettled
+            ? '<span style="width:10px;height:10px;border-radius:50%;background:#c890ff;display:inline-block;flex-shrink:0;" title="Settled in full"></span>'
+            : '<span style="width:10px;height:10px;border-radius:50%;background:#c8f230;display:inline-block;flex-shrink:0;"></span>')
         : (isOverdue
             ? '<span style="width:10px;height:10px;border-radius:50%;background:#f23060;display:inline-block;flex-shrink:0;"></span>'
             : (isToday
@@ -774,14 +988,30 @@ function buildInstCard(plan, isTarget, isCleared){
                 : '<span style="width:10px;height:10px;border-radius:50%;border:2px solid #333;display:inline-block;flex-shrink:0;"></span>'));
 
       var label = isPaid
-        ? '<span style="color:#c8f230;">✓ Paid</span>'+(paidEntry&&paidEntry.date?' <span style="color:var(--muted);font-size:10px;">'+paidEntry.date+'</span>':'')+(paidEntry&&paidEntry.note?' · <span style="color:var(--muted);font-size:10px;">'+paidEntry.note+'</span>':'')
+        ? (isSettled
+            ? '<span style="color:#c890ff;">🎯 Settled in full</span>'+(paidEntry.date?' <span style="color:var(--muted);font-size:10px;">'+paidEntry.date+'</span>':'')+(paidEntry.note?' · <span style="color:var(--muted);font-size:10px;">'+paidEntry.note+'</span>':'')
+            : '<span style="color:#c8f230;">✓ Paid</span>'+(paidEntry&&paidEntry.date?' <span style="color:var(--muted);font-size:10px;">'+paidEntry.date+'</span>':'')+(paidEntry&&paidEntry.note?' · <span style="color:var(--muted);font-size:10px;">'+paidEntry.note+'</span>':''))
         : (isOverdue ? '<span style="color:#f23060;">Overdue</span>' : (isToday ? '<span style="color:#f2a830;">Due today!</span>' : '<span style="color:var(--muted);">'+formatDisplayDate(ds)+'</span>'));
 
       var actionBtn = isPaid
-        ? '<button onclick="unmarkInstPay(\''+plan.id+'\','+i+')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor=\'#555\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#444\'">Undo</button>'
+        ? '<button onclick="unmarkInstPay(\''+plan.id+'\','+i+')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor=\'#555\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#444\'" title="'+(isSettled?'Reverse the whole settlement':'Unmark this payment')+'">Undo</button>'
         : '<button onclick="openInstPayModal(\''+plan.id+'\','+i+')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 10px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">Mark Paid</button>';
 
-      var _rowAmt = isPaid ? (paidEntry && paidEntry.amount ? paidEntry.amount : _planMonthlyTotal(plan)) : _planMonthlyTotal(plan);
+      // Display amount: anchor shows the real paid amount; non-anchor settle rows show a dash
+      var _rowAmt;
+      if(isSettled && paidEntry.isSettleAnchor){
+        _rowAmt = paidEntry.amount;
+      } else if(isSettled){
+        _rowAmt = null; // non-anchor → display "—"
+      } else if(isPaid){
+        _rowAmt = paidEntry.amount || _planMonthlyTotal(plan);
+      } else {
+        _rowAmt = _planMonthlyTotal(plan);
+      }
+      var _rowAmtHtml = (_rowAmt === null)
+        ? '<span style="color:var(--muted2);font-weight:400;font-size:13px;white-space:nowrap;" title="Covered by settlement above">—</span>'
+        : '<span style="color:var(--text);font-weight:700;font-size:13px;white-space:nowrap;">'+fmtR(_rowAmt)+'</span>';
+
       rowsHtml +=
         '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">'
           +statusDot
@@ -790,7 +1020,7 @@ function buildInstCard(plan, isTarget, isCleared){
             +'<span style="color:var(--muted);font-size:10px;letter-spacing:0.5px;">'+formatDisplayDate(ds)+'</span>'
             +'<div style="margin-top:1px;">'+label+'</div>'
           +'</div>'
-          +'<span style="color:var(--text);font-weight:700;font-size:13px;white-space:nowrap;">'+fmtR(_rowAmt)+'</span>'
+          +_rowAmtHtml
           +(!isCleared ? actionBtn : '')
         +'</div>';
     });
@@ -798,9 +1028,16 @@ function buildInstCard(plan, isTarget, isCleared){
   rowsHtml += '</div>';
 
   // Action buttons
+  // v116: Settle in Full button — only for revolving plans with at least one unpaid scheduled payment
+  var canSettle = !isCleared && !isM2M && plan.num && (paidIdxs.length < plan.num);
+  var settleBtnHtml = canSettle
+    ? '<button onclick="openInstSettleModal(\''+plan.id+'\')" style="background:#1a0d24;border:1px solid #4a2a6a;border-radius:6px;padding:7px 14px;color:#c890ff;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">🎯 Settle</button>'
+    : '';
+
   var actionsHtml = !isCleared
-    ? '<div style="display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border);">'
+    ? '<div style="display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border);flex-wrap:wrap;">'
         +'<button onclick="openInstModal(\''+plan.id+'\')" style="background:#1a1a00;border:1px solid #3a3a00;border-radius:6px;padding:7px 14px;color:#888;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">✏️ Edit</button>'
+        +settleBtnHtml
         +'<button onclick="deleteInstPlan(\''+plan.id+'\')" style="margin-left:auto;background:none;border:1px solid #2a1a1a;border-radius:6px;padding:7px 12px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Remove</button>'
       +'</div>'
     : '<div style="display:flex;justify-content:flex-end;padding:10px 16px;border-top:1px solid var(--border);">'

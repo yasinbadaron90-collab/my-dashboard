@@ -2607,6 +2607,36 @@ function _showUpdateToast(worker){
   </div>
 </div>
 
+<!-- v116: SETTLE IN FULL MODAL -->
+<div class="overlay" id="instSettleModal">
+  <div class="modal">
+    <h2 style="color:#c8f230;">🎯 Settle in Full <button class="info-btn" onclick="openInfo('Settle in full', 'For revolving accounts (TFG, etc.) — when you go to the store and pay the closing balance to clear it out completely.\n\nEnter the actual amount you paid. All remaining scheduled payments get marked as settled in one go, and ONE Cash Flow row logs the real spend.\n\nThis avoids the over-reporting that happens when you mark 5 × R20 payments individually but actually paid R80.')">ⓘ</button></h2>
+    <div id="instSettleInfo" style="background:#0d1a00;border:1px solid #2a4a00;border-radius:6px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#8ab820;line-height:1.7;"></div>
+
+    <div class="field">
+      <label style="color:#c8f230;">Closing balance paid (R)</label>
+      <input type="number" id="instSettleAmt" min="0" step="0.01" placeholder="e.g. 80.87" style="color:#c8f230;font-weight:700;font-size:16px;"/>
+      <div id="instSettleHint" style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5;"></div>
+    </div>
+
+    <div class="field">
+      <label style="color:#c890ff;">Pay from pocket</label>
+      <select id="instSettlePocketId" style="width:100%;background:#1a1024;border:1px solid #3a2a5a;color:#c890ff;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;font-weight:700;">
+        <option value="">— Pick a pocket —</option>
+      </select>
+    </div>
+
+    <div class="field"><label>Settle Date</label><input type="date" id="instSettleDate"/></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="instSettleNote" placeholder="e.g. Settled at TFG store"/></div>
+    <input type="hidden" id="instSettlePlanId"/>
+
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('instSettleModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmInstSettle()" style="background:#c8f230;">Settle in Full 🎯</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- ── ROUTINE TAB ── -->
 <div class="page admin-only" id="page-routine" style="padding:20px 16px 80px;">
