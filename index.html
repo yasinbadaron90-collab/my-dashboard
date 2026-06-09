@@ -3179,5 +3179,53 @@ function _showUpdateToast(worker){
     bodyObs.observe(document.body, { childList:true, subtree:true });
   })();
   </script>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- ADVISORIES — Phase 1 (v118a) modals                       -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="overlay" id="advisoryListModal" style="z-index:850;">
+  <div class="modal" style="max-width:440px;max-height:92vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div>
+        <h2 id="advisoryListTitle" style="color:#f23060;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin:0;">⚠️ Advisories</h2>
+        <div id="advisoryListSub" style="font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:1px;">—</div>
+      </div>
+      <button class="info-btn" onclick="openInfo('Workshop advisories', 'A running list of things a workshop has flagged on this car — partner parts to replace, things to watch, future jobs. Stays open until you mark it resolved or a later invoice proves it fixed.\n\n🔴 Action = needs doing soon (fires Odin alert)\n🟠 Watch = monitor, address by next service\n🔵 FYI = informational note\n\nDetail view + Book/Note/Snooze/Resolve actions land in the next build (v118b).')">ⓘ</button>
+    </div>
+    <div id="advisoryListTabs" style="display:flex;gap:4px;margin:14px 0 12px;align-items:center;"></div>
+    <div id="advisoryListBody" style="min-height:60px;"></div>
+    <div class="modal-btns" style="margin-top:14px;">
+      <button class="btn ghost" onclick="closeModal('advisoryListModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="addAdvisoryModal" style="z-index:860;">
+  <div class="modal" style="max-width:440px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <h2 style="color:#c8f230;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin:0;">⊕ Add Advisory</h2>
+      <button class="info-btn" onclick="openInfo('Add an advisory', 'Log something a workshop or you yourself want to track on this car.\n\nFlag it as 🔴 Action (urgent, surfaces as Odin alert), 🟠 Watch (monitor), or 🔵 FYI (just a note).\n\nThe source field is free text — type where the note came from (e.g. invoice number, workshop name). When the scanner ships in Phase 3, this auto-fills from the invoice.')">ⓘ</button>
+    </div>
+    <div id="addAdvisoryCarLabel" style="font-family:'Syne',sans-serif;font-size:13px;color:var(--muted);margin-bottom:14px;"></div>
+
+    <div class="field" style="margin-bottom:10px;">
+      <label>Severity</label>
+      <div id="addAdvisorySeverityPills" style="margin-top:6px;"></div>
+    </div>
+
+    <div class="field"><label>What was flagged?</label><textarea id="addAdvisoryText" rows="2" style="width:100%;padding:10px;background:#0d0d0d;border:1px solid #2a2a2a;color:#efefef;border-radius:6px;font-family:'DM Mono',monospace;font-size:12px;resize:vertical;" placeholder="e.g. Driver-side CV joint replace within 3 months"></textarea></div>
+
+    <div class="field"><label>Source (optional)</label><input type="text" id="addAdvisorySource" placeholder="e.g. Goch &amp; Cooper invoice / mechanic note"/></div>
+
+    <div class="field"><label>Date flagged</label><input type="date" id="addAdvisoryDate"/></div>
+
+    <div class="modal-btns" style="margin-top:18px;">
+      <button class="btn ghost" onclick="closeModal('addAdvisoryModal')">Cancel</button>
+      <button class="btn primary" onclick="saveAdvisory()">Save Advisory</button>
+    </div>
+  </div>
+</div>
+
+<script src="advisories.js"></script>
 </body>
 </html>

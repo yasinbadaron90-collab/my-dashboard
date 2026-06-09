@@ -246,6 +246,9 @@ function renderCars(){
       moreButtonsList.push(moreBtn('openServiceModal(\''+car.id+'\')',    '#8ab820', '#0d1a00', '📅 Dates &amp; km'));
       moreButtonsList.push(moreBtn('openEditCarModal(\''+car.id+'\')',    '#888',    '#1a1000', '✏️ Edit Car'));
       moreButtonsList.push(moreBtn('exportCarPDF(\''+car.id+'\')',        '#8888dd', '#0a0a1a', '📄 Export PDF'));
+      if(typeof renderAdvisoryMoreButton === 'function'){
+        moreButtonsList.push(renderAdvisoryMoreButton(car));
+      }
       moreButtonsList.push('<button onclick="deleteCar(\''+car.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;padding:8px 12px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Remove</button>');
 
       var moreSection = '<details class="car-card-more">'
@@ -262,7 +265,8 @@ function renderCars(){
         '<div style="background:#111;padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
           +'<div>'
             +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:17px;color:var(--text);">'+car.name+'</div>'
-            +(car.plate?'<div style="font-size:11px;color:#f2a830;letter-spacing:2px;margin-top:4px;font-weight:700;">🔖 '+car.plate+'</div>':'')
+            +(car.plate?'<div style="font-size:11px;color:#f2a830;letter-spacing:2px;margin-top:4px;font-weight:700;display:inline-block;">🔖 '+car.plate+'</div>':'')
+            +(typeof renderAdvisoryBadge==='function' ? renderAdvisoryBadge(car) : '')
           +'</div>'
           +'<div style="text-align:right;">'
             +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Total Spent</div>'
