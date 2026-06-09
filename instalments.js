@@ -423,12 +423,12 @@ function confirmInstPay(){
   var fee = Number(plan.serviceFee||0);
   var feeBreakdown = (fee > 0) ? ' (R'+plan.amt+' + R'+fee+' fee)' : '';
 
-  // ── Soft balance check (non-blocking, just confirm) ──
+  // ── v117: HARD-BLOCK on pocket short (mirrors v109 spend hard-block) ──
   try{
     var bal = _instPocketBalance(pocket);
     if(bal < monthlyTotal){
-      var shortMsg = 'Heads up: '+pocket.name+' only has '+fmtR(bal)+' but the payment is '+fmtR(monthlyTotal)+feeBreakdown+' — short by '+fmtR(monthlyTotal - bal)+'.\n\nContinue anyway? (The pocket balance will go negative — usually a sign to move money in first.)';
-      if(!confirm(shortMsg)) return;
+      alert('🔒 '+pocket.name+' only has '+fmtR(bal)+' — payment is '+fmtR(monthlyTotal)+feeBreakdown+' (short by '+fmtR(monthlyTotal - bal)+').\n\nFund the pocket first (Money In or 🔄 Move from another pocket), then try again.');
+      return;
     }
   }catch(e){}
 
@@ -684,12 +684,12 @@ function confirmInstSettle(){
     : null;
   if(!pocket){ alert('Pocket not found.'); return; }
 
-  // Soft balance check (consistent with markPayment)
+  // v117: HARD-BLOCK on pocket short (mirrors v109 spend hard-block, never lets pocket go negative)
   try{
     var bal = _instPocketBalance(pocket);
     if(bal < amount){
-      var shortMsg = 'Heads up: '+pocket.name+' only has '+fmtR(bal)+' but the settlement is '+fmtR(amount)+' — short by '+fmtR(amount - bal)+'.\n\nContinue anyway? (The pocket balance will go negative — usually a sign to move money in first.)';
-      if(!confirm(shortMsg)) return;
+      alert('🔒 '+pocket.name+' only has '+fmtR(bal)+' — settlement is '+fmtR(amount)+' (short by '+fmtR(amount - bal)+').\n\nFund the pocket first (Money In or 🔄 Move from another pocket), then try again.');
+      return;
     }
   }catch(e){}
 
