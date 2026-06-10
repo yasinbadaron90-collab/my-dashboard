@@ -1702,6 +1702,23 @@ function _showUpdateToast(worker){
       <div id="pinChangeStatus" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:14px;letter-spacing:1px;"></div>
     </div>
 
+    <!-- ANTHROPIC API KEY — used by Bank Feed Companion to read PDFs + photos -->
+    <div style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
+        <span style="font-size:22px;line-height:1;">🏦</span>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;margin-bottom:3px;">Bank Feed AI Key</div>
+          <div style="font-size:10px;color:#3a6a1a;line-height:1.6;">Your Anthropic API key — lets Bank Feed read your statement photos and PDFs. Stored only on this device, never sent anywhere except Anthropic's API. Get one free at <span style="color:#8ab820;">console.anthropic.com</span></div>
+        </div>
+      </div>
+      <input type="password" id="bfApiKeyInput" placeholder="sk-ant-api03-..." style="width:100%;background:#0d1a0d;border:1px solid #2a4a1a;color:#efefef;font-family:'DM Mono',monospace;font-size:12px;padding:10px 12px;border-radius:4px;outline:none;margin-bottom:8px;"/>
+      <div style="display:flex;gap:8px;">
+        <button onclick="bfSaveApiKey()" style="flex:1;padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Key</button>
+        <button onclick="bfClearApiKey()" style="padding:10px 14px;background:none;border:1px solid #2a2a2a;border-radius:6px;color:#555;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Clear</button>
+      </div>
+      <div id="bfApiKeyStatus" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:14px;letter-spacing:1px;"></div>
+    </div>
+
     <!-- CARPOOL TARIFF — configurable rates that drive the carpool grid dropdown.
          When fuel prices change, just update the numbers here. Existing entries
          keep their original rate (because the actual amount is stored on each

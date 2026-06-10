@@ -695,6 +695,8 @@ function openSettings(){
     }
   }
   document.getElementById('settingsModal').classList.add('active');
+  // Pre-fill Bank Feed API key field
+  try { if(typeof bfPreFillKeyInput === 'function') bfPreFillKeyInput(); } catch(e){}
   // Refresh cloud sync status panel (added in Supabase migration)
   try { if(typeof refreshCloudSyncStatus === 'function') refreshCloudSyncStatus(); } catch(e){}
   // Refresh Google Drive export/import timestamps

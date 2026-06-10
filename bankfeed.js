@@ -196,10 +196,41 @@ function _bfAnimateProgress(){
   return iv;
 }
 
+// ── API key helpers ───────────────────────────────────────────────────────────
+var BF_KEY_STORAGE = 'yb_bf_api_key_v1';
+function bfGetApiKey(){ return lsGet(BF_KEY_STORAGE) || ''; }
+function bfSaveApiKey(){
+  var val = (document.getElementById('bfApiKeyInput').value||'').trim();
+  if(!val){ alert('Paste your API key first.'); return; }
+  if(!val.startsWith('sk-ant-')){ alert('That doesn\'t look like an Anthropic key — should start with sk-ant-'); return; }
+  lsSet(BF_KEY_STORAGE, val);
+  document.getElementById('bfApiKeyStatus').textContent = '✓ Key saved';
+  document.getElementById('bfApiKeyStatus').style.color = '#c8f230';
+  setTimeout(function(){ document.getElementById('bfApiKeyStatus').textContent = ''; }, 2000);
+}
+function bfClearApiKey(){
+  lsSet(BF_KEY_STORAGE, '');
+  document.getElementById('bfApiKeyInput').value = '';
+  document.getElementById('bfApiKeyStatus').textContent = 'Key cleared';
+  document.getElementById('bfApiKeyStatus').style.color = '#888';
+}
+// Pre-fill the input when settings opens
+function bfPreFillKeyInput(){
+  var inp = document.getElementById('bfApiKeyInput');
+  if(inp){ var k = bfGetApiKey(); if(k) inp.value = k; }
+}
+
 // ── Call Claude API to extract transactions ───────────────────────────────────
 function _bfCallAI(){
-  var iv = _bfAnimateProgress();
+  var apiKey = bfGetApiKey();
+  if(!apiKey){
+    _bf.step = 'upload';
+    _bfRender();
+    alert('No API key set. Go to Settings → Bank Feed AI Key and paste your Anthropic key first.');
+    return;
+  }
 
+  var iv = _bfAnimateProgress();
   var isPDF = _bf.mimeType === 'application/pdf';
   var isSnap = _bf.mode === 'snap';
 
@@ -237,7 +268,13 @@ function _bfCallAI(){
 
   fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'anthropic-beta': 'pdfs-2024-09-25'
+    },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
@@ -250,6 +287,20 @@ function _bfCallAI(){
     clearInterval(iv);
     var fill = document.getElementById('bfProgFill');
     if(fill) fill.style.width = '100%';
+
+    // Check for API errors
+    if(data.error){
+      console.error('BankFeed API error:', data.error);
+      _bf.step = 'upload';
+      _bfRender();
+      var msg = data.error.message || 'API error';
+      if(msg.includes('api_key') || msg.includes('auth') || msg.includes('invalid x-api-key')){
+        alert('Invalid API key. Go to Settings → Bank Feed AI Key and check your key.');
+      } else {
+        alert('Could not read the statement: ' + msg);
+      }
+      return;
+    }
 
     var raw = '';
     if(data.content && data.content.length){
