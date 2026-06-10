@@ -483,6 +483,7 @@ function _showUpdateToast(worker){
         <span id="cfMonthLabel" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;min-width:120px;text-align:center;color:var(--text);"></span>
         <button onclick="cfChangeMonth(1)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:14px;">▶</button>
         <button onclick="exportCFMonthReport()" style="padding:6px 12px;background:#1a1a00;border:1px solid #5a5a00;border-radius:6px;color:#f2c830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;white-space:nowrap;" title="Export this month as PDF">📄 PDF</button>
+        <button onclick="openBankFeed('snap')" style="padding:6px 12px;background:#0d1a00;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;white-space:nowrap;" title="Import bank statement">🏦 Bank Feed</button>
       </div>
     </div>
 
@@ -3227,5 +3228,28 @@ function _showUpdateToast(worker){
 </div>
 
 <script src="advisories.js"></script>
+<script src="bankfeed.js"></script>
+
+<!-- ══ BANK FEED COMPANION MODAL ══ -->
+<div class="overlay" id="bankFeedModal">
+  <div class="modal" style="max-width:460px;padding:0;overflow:hidden;">
+    <!-- Header bar with mode toggle + close -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--surface2);">
+      <div style="display:flex;gap:8px;">
+        <button onclick="openBankFeed('snap')" id="bfTabSnap"
+          style="padding:6px 12px;border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;border:1px solid var(--accent);background:#0d1a00;color:var(--accent);">
+          📸 Snap Now
+        </button>
+        <button onclick="openBankFeed('monthly')" id="bfTabMonthly"
+          style="padding:6px 12px;border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">
+          📄 Monthly PDF
+        </button>
+      </div>
+      <button onclick="closeBankFeed()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <!-- Dynamic content -->
+    <div id="bankFeedContent" style="padding:20px;max-height:75vh;overflow-y:auto;"></div>
+  </div>
+</div>
 </body>
 </html>

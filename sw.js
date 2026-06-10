@@ -17,7 +17,7 @@
 // To force every client to upgrade: bump CACHE_VERSION below.
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'v118a';
+const CACHE_VERSION = 'v119';
 const SHELL_CACHE   = 'my-dashboard-shell-' + CACHE_VERSION;
 const CDN_CACHE     = 'my-dashboard-cdn-'   + CACHE_VERSION;
 
@@ -56,6 +56,7 @@ const SHELL_ASSETS = [
   '/my-dashboard/spend.js',
   '/my-dashboard/move.js',
   '/my-dashboard/advisories.js',
+  '/my-dashboard/bankfeed.js',
   '/my-dashboard/manifest.json'
 ];
 
