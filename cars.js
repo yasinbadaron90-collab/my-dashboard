@@ -1417,6 +1417,12 @@ function checkReminders(){
 
   if(alerts.length === 0) return;
 
+  // Check if dismissed today — don't nag again until tomorrow
+  var dismissKey = 'yb_reminder_dismissed_v1';
+  var dismissed = lsGet(dismissKey) || '';
+  var todayStr = today.toISOString().split('T')[0];
+  if(dismissed === todayStr) return;
+
   var old = document.getElementById('reminderBanner');
   if(old) old.remove();
 
@@ -1434,7 +1440,7 @@ function checkReminders(){
   banner.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#1a0000;border-bottom:1px solid #3a0000;">'
       +'<span style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#f23060;font-weight:700;">⚠ '+alerts.length+' Reminder'+(alerts.length>1?'s':'')+'</span>'
-      +'<button onclick="document.getElementById(\'reminderBanner\').remove()" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#f23060;font-size:11px;padding:3px 10px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">Dismiss</button>'
+      +'<button onclick="lsSet(\'yb_reminder_dismissed_v1\', new Date().toISOString().split(\'T\')[0]); document.getElementById(\'reminderBanner\').remove()" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#f23060;font-size:11px;padding:3px 10px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">Dismiss</button>'
     +'</div>'
     +rows;
 
