@@ -865,3 +865,36 @@ body.modal-open #fabToggle {
 .bf-date-box{flex:1;background:#111;border:1px solid #333;border-radius:6px;padding:10px;text-align:center;cursor:pointer;}
 .bf-date-label{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;}
 .bf-date-val{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;}
+
+/* ══ ODIN INVOICE SCANNER ══ */
+.scan-hdr{margin-bottom:16px;}
+.scan-title{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.5px;}
+.scan-sub{font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:3px;}
+.scan-section-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:14px;}
+.scan-info-box{background:#0d1a00;border:1px solid #2a4a00;border-radius:8px;padding:12px 14px;font-size:11px;color:#8ab820;line-height:1.6;margin-bottom:10px;}
+.scan-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.scan-upload-opt{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px 12px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.scan-opt-primary{border-color:var(--accent);background:#0d1a00;}
+.scan-upload-icon{font-size:26px;}
+.scan-upload-name{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;}
+.scan-upload-hint{font-size:10px;color:var(--muted);}
+.scan-btn-primary{background:var(--accent);border:none;border-radius:8px;padding:13px;width:100%;color:#000;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;margin-bottom:8px;}
+.scan-btn-ghost{background:none;border:1px solid var(--border);border-radius:8px;padding:11px;width:100%;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-bottom:6px;}
+.scan-line-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid #1a1a1a;gap:10px;}
+.scan-line-row:last-of-type{border-bottom:none;}
+.scan-line-greyed{opacity:0.45;}
+.scan-line-credit{background:#0d0800;border-radius:6px;padding:8px 10px;margin-bottom:4px;}
+.scan-line-left{flex:1;}
+.scan-line-desc{font-size:12px;color:var(--text);}
+.scan-line-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.scan-line-amt{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;}
+.scan-toggle-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:4px;cursor:pointer;border:1px solid;}
+.scan-toggle-on{background:#1a2e00;border-color:#3a5a00;color:#c8f230;}
+.scan-toggle-off{background:#1a1a1a;border-color:#333;color:#555;}
+.scan-badge{font-size:9px;letter-spacing:1px;padding:2px 8px;border-radius:100px;text-transform:uppercase;}
+.scan-badge-orange{background:#2e1a00;color:#f2a830;border:1px solid #5a3a00;}
+.scan-badge-grey{background:#1a1a1a;color:#555;border:1px solid #333;}
+.scan-badge-blue{background:#050a1a;color:#7090f0;border:1px solid #1a2040;}
+.scan-reconcile{font-size:11px;padding:10px 14px;border-radius:8px;margin-bottom:12px;line-height:1.6;}
+.scan-reconcile-ok{background:#0d1a00;border:1px solid #2a4a00;color:#8ab820;}
+.scan-reconcile-warn{background:#1a0800;border:1px solid #5a3000;color:#f2a830;}

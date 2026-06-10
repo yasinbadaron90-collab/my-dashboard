@@ -249,6 +249,7 @@ function renderCars(){
       if(typeof renderAdvisoryMoreButton === 'function'){
         moreButtonsList.push(renderAdvisoryMoreButton(car));
       }
+      moreButtonsList.push(moreBtn('openOdinScanner(\''+car.id+'\')', '#c8f230', '#0d1a00', '🧾 Scan Invoice'));
       moreButtonsList.push('<button onclick="deleteCar(\''+car.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;padding:8px 12px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Remove</button>');
 
       var moreSection = '<details class="car-card-more">'

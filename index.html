@@ -3246,8 +3246,19 @@ function _showUpdateToast(worker){
 
 <script src="advisories.js"></script>
 <script src="bankfeed.js"></script>
+<script src="odin-scanner.js"></script>
 
-<!-- ══ BANK FEED COMPANION MODAL ══ -->
+<!-- ══ ODIN INVOICE SCANNER MODAL ══ -->
+<div class="overlay" id="odinScannerModal">
+  <div class="modal" style="max-width:460px;padding:0;overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);background:var(--surface2);">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:#c8f230;">🧾 Odin · Invoice Scanner</div>
+      <button onclick="closeOdinScanner()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div id="odinScannerContent" style="padding:20px;max-height:75vh;overflow-y:auto;"></div>
+  </div>
+</div>
+</body>
 <div class="overlay" id="bankFeedModal">
   <div class="modal" style="max-width:460px;padding:0;overflow:hidden;">
     <!-- Header bar with mode toggle + close -->
