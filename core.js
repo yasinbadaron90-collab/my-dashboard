@@ -685,28 +685,18 @@ function loginSuccess(name, role){
 
 // ── Called on page load — check if biometric is registered ──
 function initBiometricLogin(){
-  // Cloud-aware boot. PIN/biometric UI was removed in the Supabase migration;
-  // only the email/password form exists on the login screen now. If the user
-  // has a persisted Supabase session (autoRefreshToken kept it alive), skip
-  // the login screen and drop them straight into the app.
-  if(typeof window.sbReady === 'undefined') return;
-  Promise.resolve(window.sbReady).then(async function(){
-    if(!window.sb) return;
-    try {
-      var sess = await window.sb.auth.getSession();
-      var user = sess && sess.data && sess.data.session && sess.data.session.user;
-      if(!user) return;
-      // Wait for householdId to populate (loadHouseholdId is async in supabase-client.js)
-      var tries = 0;
-      while((!window.sbAuth || !window.sbAuth.householdId) && tries < 30){
-        await new Promise(function(r){ setTimeout(r, 100); });
-        tries++;
-      }
-      if(!window.sbAuth || !window.sbAuth.householdId) return;
-      var displayName = (user.email || 'User').split('@')[0];
-      loginSuccess(displayName, 'admin');
-    } catch(e){ console.warn('cloud auto-login failed', e); }
-  });
+  // Supabase removed — use PIN login directly.
+  // Show PIN section, hide email section.
+  var emailSection = document.getElementById('emailLoginSection');
+  if(emailSection) emailSection.style.display = 'none';
+  var pinSection = document.getElementById('pinSection');
+  if(pinSection) pinSection.style.display = 'block';
+  var bio = document.getElementById('biometricSection');
+  if(bio) bio.style.display = '';
+  // If first run (no PINs set), show setup screen
+  if(!hasCompletedSetup()){
+    if(typeof showFirstRunSetup === 'function') showFirstRunSetup();
+  }
 }
 
 // ── First-run setup screen ──────────────────────────────────────────────
