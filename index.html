@@ -1620,28 +1620,7 @@ function _showUpdateToast(worker){
       <div style="font-size:9px;color:#1a2a50;margin-top:10px;letter-spacing:1px;line-height:1.5;">File: <code style="color:#2a4080;background:#0a1020;padding:1px 4px;border-radius:2px;">YBDashboard_Latest.json</code> — always overwrite same file in Drive.</div>
     </div>
 
-    <!-- CLOUD SYNC (Supabase) -->
-    <div style="background:#1a0030;border:1px solid #4020a0;border-radius:8px;padding:16px 18px;margin-bottom:12px;" id="cloudSyncPanel">
-      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
-        <span style="font-size:22px;line-height:1;">☁️</span>
-        <div style="flex:1;">
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#a070f0;margin-bottom:3px;">Cloud Sync</div>
-          <div style="font-size:10px;color:#6040a0;line-height:1.6;">Sync your data to Supabase so it's available on every device. <span style="color:#a070f0;">Your wife and any other linked users see live updates.</span></div>
-        </div>
-      </div>
-      <div style="display:flex;font-size:9px;color:#6040a0;letter-spacing:1px;margin-bottom:12px;flex-direction:column;gap:3px;">
-        <span id="cloudSyncStatus">Status: checking…</span>
-        <span id="cloudSyncLast">Last sync: never</span>
-        <span id="cloudSyncQueue">Queue: 0 pending</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-        <button onclick="cloudUploadAll()" id="cloudUploadBtn" style="padding:10px;background:#200840;border:1px solid #4020a0;border-radius:6px;color:#a070f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">⬆ Upload to Cloud</button>
-        <button onclick="cloudPullAll()" id="cloudPullBtn" style="padding:10px;background:#200840;border:1px solid #4020a0;border-radius:6px;color:#a070f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">⬇ Pull from Cloud</button>
-      </div>
-      <div id="cloudSyncMsg" style="font-size:10px;color:#a070f0;letter-spacing:1px;min-height:14px;text-align:center;margin-top:8px;"></div>
-      <button onclick="forceReloadApp()" style="margin-top:10px;width:100%;padding:9px;background:#1a0030;border:1px solid #4020a0;border-radius:6px;color:#a070f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-weight:600;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">↻ Force Reload (get latest version)</button>
-      <div style="font-size:9px;color:#3a2070;margin-top:8px;letter-spacing:1px;line-height:1.5;">⚠ <b style="color:#6040a0">Upload</b> pushes your current device data to the cloud. <b style="color:#6040a0">Pull</b> overwrites local data with what's in the cloud. Use Upload for the first time on a new device.</div>
-    </div>
+    <!-- Supabase removed — using Firebase -->
 
     <!-- BACKUP -->
     <div style="background:#0d1a00;border:1px solid #2a4a00;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
@@ -2712,8 +2691,7 @@ function _showUpdateToast(worker){
   </div>
 </div>
   <!-- App modules — load order matters -->
-  <script src="supabase-client.js"></script>
-  <script src="cloud-sync.js"></script>
+  <!-- supabase-client.js and cloud-sync.js removed — using firebase-sync.js -->
   <script src="core.js"></script>
   <script src="db.js"></script>
   <script src="passengers.js"></script>
