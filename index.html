@@ -151,19 +151,51 @@ function _showUpdateToast(worker){
   <div style="font-family:Syne,sans-serif;font-weight:800;font-size:28px;color:var(--text);letter-spacing:-1px;margin-bottom:4px;">My Dashboard</div>
   <div style="font-size:11px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:32px;" id="loginSubtitle">Sign in to continue</div>
 
-  <!-- ══ EMAIL / PASSWORD LOGIN ══ -->
-  <div id="emailLoginSection" style="width:100%;max-width:340px;">
-    <div style="margin-bottom:14px;">
-      <div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Email</div>
-      <input type="email" id="loginEmail" autocomplete="email" placeholder="you@example.com" style="width:100%;background:#111;border:1px solid #2a2a2a;border-radius:6px;color:#efefef;padding:12px 12px;font-family:'DM Mono',monospace;font-size:13px;outline:none;box-sizing:border-box;"/>
+  <!-- ══ EMAIL / PASSWORD LOGIN (hidden - Supabase removed) ══ -->
+  <div id="emailLoginSection" style="display:none;width:100%;max-width:340px;">
+    <input type="email" id="loginEmail" autocomplete="email" placeholder="you@example.com" style="display:none;"/>
+    <input type="password" id="loginPassword" style="display:none;"/>
+    <div id="loginError" style="display:none;"></div>
+    <div id="loginStatus" style="display:none;"></div>
+  </div>
+
+  <!-- ══ PIN LOGIN ══ -->
+  <div id="pinSection" style="width:100%;max-width:300px;">
+    <div style="display:flex;gap:16px;justify-content:center;margin-bottom:16px;" id="pinDots">
+      <div style="width:16px;height:16px;border-radius:50%;border:2px solid #333;transition:all .15s;" id="dot0"></div>
+      <div style="width:16px;height:16px;border-radius:50%;border:2px solid #333;transition:all .15s;" id="dot1"></div>
+      <div style="width:16px;height:16px;border-radius:50%;border:2px solid #333;transition:all .15s;" id="dot2"></div>
+      <div style="width:16px;height:16px;border-radius:50%;border:2px solid #333;transition:all .15s;" id="dot3"></div>
     </div>
-    <div style="margin-bottom:8px;">
-      <div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Password</div>
-      <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••" style="width:100%;background:#111;border:1px solid #2a2a2a;border-radius:6px;color:#efefef;padding:12px 12px;font-family:'DM Mono',monospace;font-size:13px;outline:none;box-sizing:border-box;"/>
+    <div id="pinError" style="font-size:12px;color:#f23060;letter-spacing:1px;margin-bottom:16px;min-height:18px;text-align:center;"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;">
+      <button onclick="pinPress(1)" class="pin-btn">1</button>
+      <button onclick="pinPress(2)" class="pin-btn">2</button>
+      <button onclick="pinPress(3)" class="pin-btn">3</button>
+      <button onclick="pinPress(4)" class="pin-btn">4</button>
+      <button onclick="pinPress(5)" class="pin-btn">5</button>
+      <button onclick="pinPress(6)" class="pin-btn">6</button>
+      <button onclick="pinPress(7)" class="pin-btn">7</button>
+      <button onclick="pinPress(8)" class="pin-btn">8</button>
+      <button onclick="pinPress(9)" class="pin-btn">9</button>
+      <div></div>
+      <button onclick="pinPress(0)" class="pin-btn">0</button>
+      <button onclick="pinDel()" class="pin-btn" style="font-size:20px;">&#9003;</button>
     </div>
-    <div id="loginError" style="font-size:11px;color:#f23060;letter-spacing:1px;min-height:16px;margin:8px 0 12px;text-align:center;"></div>
-    <button onclick="cloudSignIn()" id="loginBtn" style="width:100%;padding:13px;background:#c8f230;border:none;border-radius:6px;color:#000;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">Sign In</button>
-    <div id="loginStatus" style="font-size:10px;color:var(--muted);letter-spacing:1px;text-align:center;margin-top:14px;min-height:14px;"></div>
+  </div>
+
+  <!-- ══ BIOMETRIC ══ -->
+  <div id="biometricSection" style="margin-top:16px;text-align:center;display:none;">
+    <button onclick="tryBiometric()" style="background:none;border:1px solid #333;border-radius:8px;padding:10px 20px;color:#888;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Use Fingerprint</button>
+  </div>
+
+  <!-- ══ FIRST RUN SETUP ══ -->
+  <div id="firstRunSection" style="display:none;width:100%;max-width:300px;">
+    <div style="font-size:11px;color:#888;text-align:center;margin-bottom:20px;letter-spacing:1px;line-height:1.6;">First time here. Create a 4-digit PIN to secure your dashboard.</div>
+    <input type="tel" id="firstRunPin" maxlength="4" placeholder="Choose a PIN" style="width:100%;background:#111;border:1px solid #2a2a2a;border-radius:6px;color:#efefef;padding:12px;font-family:'DM Mono',monospace;font-size:18px;letter-spacing:8px;text-align:center;outline:none;margin-bottom:10px;"/>
+    <input type="tel" id="firstRunPin2" maxlength="4" placeholder="Confirm PIN" style="width:100%;background:#111;border:1px solid #2a2a2a;border-radius:6px;color:#efefef;padding:12px;font-family:'DM Mono',monospace;font-size:18px;letter-spacing:8px;text-align:center;outline:none;margin-bottom:10px;"/>
+    <div id="firstRunError" style="font-size:11px;color:#f23060;text-align:center;min-height:16px;margin-bottom:10px;"></div>
+    <button onclick="createFirstAdmin()" style="width:100%;padding:13px;background:#c8f230;border:none;border-radius:6px;color:#000;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">Create PIN</button>
   </div>
 
   <div style="margin-top:32px;font-size:10px;color:#2a2a2a;letter-spacing:1px;">YB Dashboard</div>
