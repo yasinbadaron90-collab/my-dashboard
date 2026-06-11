@@ -1017,10 +1017,10 @@ function applyRole(){
 }
 
 function logout(){
-  // Sign out of Supabase too (fire and forget)
+  // Sign out of Firebase Google auth
   try {
-    if(window.sbSignOut) window.sbSignOut().catch(function(e){ console.warn('cloud signOut', e); });
-  } catch(e){ console.warn('cloud signOut threw', e); }
+    if(window._fb && window._fb.auth) window._fb.auth.signOut().catch(function(e){ console.warn('Firebase signOut', e); });
+  } catch(e){ console.warn('Firebase signOut threw', e); }
 
   currentRole = 'guest';
   currentUser = null;
@@ -1034,6 +1034,11 @@ function logout(){
   var le = document.getElementById('loginError'); if(le) le.textContent = '';
   var ls = document.getElementById('loginStatus'); if(ls) ls.textContent = '';
   document.getElementById('drawerLogoutBtn').style.display = 'none';
+  // Show Google login section, hide PIN
+  var gSection = document.getElementById('googleLoginSection');
+  var pinSect  = document.getElementById('pinSection');
+  if(gSection) gSection.style.display = 'block';
+  if(pinSect)  pinSect.style.display  = 'none';
   // Restore hamburger button
   var hbg = document.getElementById('hbgBtn');
   if(hbg) hbg.style.display = '';

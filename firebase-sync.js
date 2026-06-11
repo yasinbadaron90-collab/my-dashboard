@@ -113,8 +113,7 @@ function _fbStart(){
     _fb.db   = firebase.firestore();
     _fb.auth = firebase.auth();
 
-    // Sign in anonymously — user doesn't need to create an account
-    // Data is tied to their anonymous UID, persistent across sessions on same device
+        // Google Sign-In auth state listener
     _fb.auth.onAuthStateChanged(function(user){
       if(user){
         _fb.uid   = user.uid;
@@ -122,19 +121,69 @@ function _fbStart(){
         _fbUpdateStatus('synced');
         _fbPullAll(); // pull latest from cloud on startup
         _fbPatchLsSet(); // intercept lsSet calls
-        console.log('[Firebase] Ready, uid:', _fb.uid);
+        // Show user name in settings if available
+        var nameEl = document.getElementById('fbUserName');
+        if(nameEl) nameEl.textContent = user.displayName || user.email || 'Signed in';
+        // Hide Google login section, show app
+        var gSection = document.getElementById('googleLoginSection');
+        if(gSection) gSection.style.display = 'none';
+        console.log('[Firebase] Ready, uid:', _fb.uid, 'name:', user.displayName);
       } else {
-        // Sign in anonymously
-        _fb.auth.signInAnonymously().catch(function(e){
-          console.warn('[Firebase] Auth failed:', e);
-          _fbUpdateStatus('error');
-        });
+        // Not signed in — show Google login button on login screen
+        _fbUpdateStatus('offline');
+        var gSection = document.getElementById('googleLoginSection');
+        if(gSection) gSection.style.display = 'block';
+      }
+    });
       }
     });
   } catch(e){
     console.warn('[Firebase] Init failed:', e);
     _fbUpdateStatus('error');
   }
+}
+
+
+
+// ── Google Sign-In ────────────────────────────────────────────────────────────
+function fbSignInWithGoogle(){
+  if(!_fb.auth){
+    alert('Firebase not ready yet. Please wait a moment and try again.');
+    return;
+  }
+  var provider = new firebase.auth.GoogleAuthProvider();
+  _fb.auth.signInWithPopup(provider).catch(function(e){
+    console.warn('[Firebase] Google sign-in failed:', e);
+    var msg = e.code === 'auth/popup-blocked'
+      ? 'Popup blocked. Please allow popups for this site and try again.'
+      : 'Sign-in failed: ' + e.message;
+    var errEl = document.getElementById('googleLoginError');
+    if(errEl) errEl.textContent = msg;
+  });
+}
+
+// ── Sign Out ──────────────────────────────────────────────────────────────────
+function fbSignOut(){
+  if(!_fb.auth) return;
+  if(!confirm('Sign out? Your data is safely backed up in Firebase.')) return;
+  _fb.auth.signOut().then(function(){
+    _fb.uid   = null;
+    _fb.ready = false;
+    _fbUpdateStatus('offline');
+    // Show login screen again
+    var screen = document.getElementById('loginScreen');
+    if(screen){
+      screen.style.display = 'flex';
+      screen.style.opacity = '1';
+    }
+    // Hide PIN, show Google section
+    var pinSection = document.getElementById('pinSection');
+    var gSection   = document.getElementById('googleLoginSection');
+    var bioSection = document.getElementById('biometricSection');
+    if(pinSection) pinSection.style.display = 'none';
+    if(gSection)   gSection.style.display   = 'block';
+    if(bioSection) bioSection.style.display = 'none';
+  });
 }
 
 // ── Patch lsSet to also write to Firestore ────────────────────────────────────

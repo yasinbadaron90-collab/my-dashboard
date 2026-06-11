@@ -159,6 +159,22 @@ function _showUpdateToast(worker){
     <div id="loginStatus" style="display:none;"></div>
   </div>
 
+
+  <!-- ══ GOOGLE SIGN-IN ══ -->
+  <div id="googleLoginSection" style="width:100%;max-width:300px;margin-bottom:24px;display:none;">
+    <button onclick="fbSignInWithGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 20px;background:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;color:#333;font-weight:500;transition:opacity .15s;" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+      Sign in with Google
+    </button>
+    <div id="googleLoginError" style="font-size:11px;color:#f23060;text-align:center;margin-top:8px;min-height:16px;"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin:20px 0;">
+      <div style="flex:1;height:1px;background:#222;"></div>
+      <span style="font-size:10px;color:#444;letter-spacing:2px;">OR</span>
+      <div style="flex:1;height:1px;background:#222;"></div>
+    </div>
+    <div style="font-size:10px;color:#444;text-align:center;letter-spacing:1px;">Enter PIN if already signed in</div>
+  </div>
+
   <!-- ══ PIN LOGIN ══ -->
   <div id="pinSection" style="width:100%;max-width:300px;">
     <div style="display:flex;gap:16px;justify-content:center;margin-bottom:16px;" id="pinDots">
@@ -199,6 +215,17 @@ function _showUpdateToast(worker){
   </div>
 
   <div style="margin-top:32px;font-size:10px;color:#2a2a2a;letter-spacing:1px;">YB Dashboard</div>
+<script>
+// Show Google sign-in section after 1.5s if Firebase hasn't signed in yet
+setTimeout(function(){
+  var gSection = document.getElementById('googleLoginSection');
+  var screen   = document.getElementById('loginScreen');
+  if(gSection && screen && screen.style.display !== 'none'){
+    gSection.style.display = 'block';
+  }
+}, 1500);
+</script>
+
 </div>
 
 <nav class="nav">
@@ -1743,10 +1770,12 @@ function _showUpdateToast(worker){
         <span style="font-size:10px;letter-spacing:1px;color:#555;">Status</span>
         <span id="fbSyncStatus" style="font-size:11px;color:#555;">⚫ Offline</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
         <button onclick="fbPushAll()" style="padding:10px;background:#0a0a1a;border:1px solid #1a1a3a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">☁️ Push to Cloud</button>
         <button onclick="fbPullAll()" style="padding:10px;background:#0a0a1a;border:1px solid #1a1a3a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">📥 Pull from Cloud</button>
       </div>
+      <div id="fbUserName" style="font-size:11px;color:#5090f0;text-align:center;margin-bottom:6px;min-height:14px;"></div>
+      <button onclick="if(window._fb&&window._fb.auth){if(confirm('Sign out of Google?')){window._fb.auth.signOut();logout();}}" style="width:100%;padding:10px;background:#2e0a0a;color:#f23060;border:1px solid #5a1a1a;border-radius:6px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">⏻ Sign Out of Google</button>
     </div>
 
     <!-- CARPOOL TARIFF — configurable rates that drive the carpool grid dropdown.
