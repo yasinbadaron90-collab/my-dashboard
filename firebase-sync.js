@@ -113,7 +113,18 @@ function _fbStart(){
     _fb.db   = firebase.firestore();
     _fb.auth = firebase.auth();
 
-        // Google Sign-In auth state listener
+        // Handle redirect result (called after returning from Google sign-in page)
+    _fb.auth.getRedirectResult().then(function(result){
+      if(result && result.user){
+        console.log('[Firebase] Redirect sign-in successful:', result.user.displayName);
+      }
+    }).catch(function(e){
+      console.warn('[Firebase] Redirect result error:', e);
+      var errEl = document.getElementById('googleLoginError');
+      if(errEl && e.message) errEl.textContent = 'Sign-in failed: ' + e.message;
+    });
+
+    // Google Sign-In auth state listener
     _fb.auth.onAuthStateChanged(function(user){
       if(user){
         _fb.uid   = user.uid;
@@ -124,9 +135,14 @@ function _fbStart(){
         // Show user name in settings if available
         var nameEl = document.getElementById('fbUserName');
         if(nameEl) nameEl.textContent = user.displayName || user.email || 'Signed in';
-        // Hide Google login section, show app
+        // Hide Google login section
         var gSection = document.getElementById('googleLoginSection');
         if(gSection) gSection.style.display = 'none';
+        // Show PIN section so user can enter their PIN to access the app
+        var pinSect = document.getElementById('pinSection');
+        var bioSect = document.getElementById('biometricSection');
+        if(pinSect) pinSect.style.display = 'block';
+        if(bioSect && window.biometricSupported && window.biometricSupported()) bioSect.style.display = 'block';
         console.log('[Firebase] Ready, uid:', _fb.uid, 'name:', user.displayName);
       } else {
         // Not signed in — show Google login button on login screen
@@ -152,13 +168,11 @@ function fbSignInWithGoogle(){
     return;
   }
   var provider = new firebase.auth.GoogleAuthProvider();
-  _fb.auth.signInWithPopup(provider).catch(function(e){
+  // Use redirect (not popup) — popups are blocked in PWA/standalone mode
+  _fb.auth.signInWithRedirect(provider).catch(function(e){
     console.warn('[Firebase] Google sign-in failed:', e);
-    var msg = e.code === 'auth/popup-blocked'
-      ? 'Popup blocked. Please allow popups for this site and try again.'
-      : 'Sign-in failed: ' + e.message;
     var errEl = document.getElementById('googleLoginError');
-    if(errEl) errEl.textContent = msg;
+    if(errEl) errEl.textContent = 'Sign-in failed: ' + e.message;
   });
 }
 
