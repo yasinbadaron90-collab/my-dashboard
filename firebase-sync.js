@@ -33,17 +33,35 @@ var FB_CONFIG = {
 
 // ── Keys to sync ──────────────────────────────────────────────────────────────
 var FB_SYNC_KEYS = [
-  'funds',
+  // Savings/pockets
+  'yasin_funds_v16',
+  // Cash Flow
   'yb_cashflow_v1',
+  // Carpool
   'yasin_carpool_v4',
-  'yb_borrows_v1',
-  'yb_ext_borrows_v1',
-  'cars',
-  'yb_instalments_v1',
+  // Borrowing
+  'yasin_borrows_v1',
+  'yb_external_borrows_v1',
+  // Cars
+  'yasin_cars_v1',
+  // Instalments
+  'yasin_instalments_v1',
+  // School
   'yb_school_results_v2',
+  'yasin_school_results_v1',
+  // Prayer
+  'yasin_prayer_v1',
+  // Passengers
+  'yb_passengers_v1',
+  // Routine (try both formats)
   'yb_routine_v1',
-  'yb_prayer_v1',
-  'passengers',
+  'routine',
+  // Priority Rules (try both formats)
+  'priorityRules',
+  'yb_priority_rules_v1',
+  // Settings
+  'yb_maint_settings_v1',
+  // New pocket-first flows
   'yb_moneyin_v1',
   'yb_spend_v1',
   'yb_moves_v1',
@@ -51,9 +69,7 @@ var FB_SYNC_KEYS = [
   'yb_repayments_v1',
   'yb_carpool_payments_v1',
   'yb_bankfeed_merchants_v1',
-  'yb_alert_state_v1',
-  'priorityRules',
-  'maintSettings'
+  'yb_alert_state_v1'
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
