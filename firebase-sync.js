@@ -135,22 +135,14 @@ function _fbStart(){
         // Show user name in settings if available
         var nameEl = document.getElementById('fbUserName');
         if(nameEl) nameEl.textContent = user.displayName || user.email || 'Signed in';
-        // Hide Google login section
-        var gSection = document.getElementById('googleLoginSection');
-        if(gSection) gSection.style.display = 'none';
-        // Show PIN section so user can enter their PIN to access the app
-        var pinSect = document.getElementById('pinSection');
-        var bioSect = document.getElementById('biometricSection');
-        if(pinSect) pinSect.style.display = 'block';
-        if(bioSect && window.biometricSupported && window.biometricSupported()) bioSect.style.display = 'block';
         console.log('[Firebase] Ready, uid:', _fb.uid, 'name:', user.displayName);
+        // Google Sign-In is the only auth — go straight into the app as admin
+        if(typeof loginSuccess === 'function') loginSuccess(user.displayName || user.email || 'User', 'admin');
       } else {
-        // Not signed in — show Google login button on login screen
+        // Not signed in — make sure login screen is visible
         _fbUpdateStatus('offline');
-        var gSection = document.getElementById('googleLoginSection');
-        if(gSection) gSection.style.display = 'block';
-      }
-    });
+        var screen = document.getElementById('loginScreen');
+        if(screen){ screen.style.display = 'flex'; screen.style.opacity = '1'; }
       }
     });
   } catch(e){
