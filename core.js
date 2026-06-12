@@ -560,71 +560,7 @@ function checkPin(){
   }
 }
 
-// ══ CLOUD SIGN-IN (Supabase email/password) ══
-// Replaces the legacy PIN flow as the primary login mechanism. The PIN
-// functions above are kept for backwards compatibility with any module
-// that still references them, but the login screen UI now shows the
-// email/password form (id="emailLoginSection") instead of the PIN keypad.
-async function cloudSignIn(){
-  var emailEl = document.getElementById('loginEmail');
-  var passEl  = document.getElementById('loginPassword');
-  var errEl   = document.getElementById('loginError');
-  var statEl  = document.getElementById('loginStatus');
-  var btn     = document.getElementById('loginBtn');
-  if(!emailEl || !passEl) return;
-  var email = (emailEl.value || '').trim();
-  var pass  = passEl.value || '';
-  if(errEl) errEl.textContent = '';
-  if(!email || !pass){
-    if(errEl) errEl.textContent = 'Email and password required';
-    return;
-  }
-  if(btn){ btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Signing in…'; }
-  if(statEl) statEl.textContent = 'Connecting to cloud…';
-  try {
-    if(typeof window.sbReady !== 'undefined') await window.sbReady;
-    if(!window.sb) throw new Error('Cloud unavailable. Check your connection.');
-    await window.sbSignIn(email, pass);
-    // Wait briefly for the auth listener to populate householdId
-    var tries = 0;
-    while((!window.sbAuth || !window.sbAuth.householdId) && tries < 20){
-      await new Promise(function(r){ setTimeout(r, 100); });
-      tries++;
-    }
-    if(!window.sbAuth || !window.sbAuth.householdId){
-      throw new Error('Signed in, but no household linked to this account. Contact admin.');
-    }
-    // Use the email local-part as the display name for now
-    var displayName = email.split('@')[0] || 'User';
-    if(passEl) passEl.value = '';
-    if(statEl) statEl.textContent = 'Signed in. Loading…';
-    loginSuccess(displayName, 'admin');
-  } catch(e){
-    console.warn('[cloudSignIn]', e);
-    if(errEl) errEl.textContent = (e && e.message) ? e.message : 'Sign-in failed';
-    if(statEl) statEl.textContent = '';
-  } finally {
-    if(btn){ btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Sign In'; }
-  }
-}
 
-// Enter key submits the cloud login form
-document.addEventListener('keydown', function(e){
-  if(e.key !== 'Enter') return;
-  var screen = document.getElementById('loginScreen');
-  if(!screen || screen.style.display === 'none') return;
-  var emailLogin = document.getElementById('emailLoginSection');
-  if(!emailLogin) return;
-  // Only fire if focus is inside the email/password form
-  var ae = document.activeElement;
-  if(ae && (ae.id === 'loginEmail' || ae.id === 'loginPassword')){
-    e.preventDefault();
-    cloudSignIn();
-  }
-});
-
-// Expose globally so the inline onclick="cloudSignIn()" handler can find it
-window.cloudSignIn = cloudSignIn;
 const BIOMETRIC_KEY = 'yb_biometric_registered';
 const BIOMETRIC_CRED_KEY = 'yb_biometric_credid';
 const RP_ID = 'yasinbadaron90-collab.github.io';
