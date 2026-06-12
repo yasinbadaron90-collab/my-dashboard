@@ -517,15 +517,6 @@ function loadPINS(){
 }
 function savePINS(pins){ lsSet(PIN_STORE_KEY, JSON.stringify(pins)); }
 
-// Has the user completed first-run setup? True if at least one PIN exists.
-function isFirstRun(){
-  try {
-    var saved = JSON.parse(lsGet(PIN_STORE_KEY));
-    if(!saved) return true;
-    return Object.keys(saved).length === 0;
-  } catch(e){ return true; }
-}
-
 // Create the first admin account from the setup screen. Validates the PIN
 // and name, persists, and returns true on success. Caller handles the UI
 // transition (closing the setup screen, showing the wizard).
@@ -684,88 +675,29 @@ function loginSuccess(name, role){
 }
 
 // ── Called on page load — check if biometric is registered ──
-// NOTE: dead code from old PIN system, no longer called (Google Sign-In only now).
-// hasCompletedSetup stub kept so this doesn't throw if ever referenced.
-function hasCompletedSetup(){ return true; }
 function initBiometricLogin(){
-  // Supabase removed — use PIN login directly.
-  // Show PIN section, hide email section.
-  var emailSection = document.getElementById('emailLoginSection');
-  if(emailSection) emailSection.style.display = 'none';
-  var pinSection = document.getElementById('pinSection');
-  if(pinSection) pinSection.style.display = 'block';
-  var bio = document.getElementById('biometricSection');
-  if(bio) bio.style.display = '';
-  // If first run (no PINs set), show setup screen
-  if(!hasCompletedSetup()){
-    if(typeof showFirstRunSetup === 'function') showFirstRunSetup();
-  }
-}
-
-// ── First-run setup screen ──────────────────────────────────────────────
-function showFirstRunSetup(){
-  // Hide the PIN/biometric sections, show the setup section
-  var bio = document.getElementById('biometricSection'); if(bio) bio.style.display = 'none';
-  var pin = document.getElementById('pinSection');       if(pin) pin.style.display = 'none';
-  var setup = document.getElementById('firstRunSection');
-  if(setup) setup.style.display = 'block';
-  var sub = document.getElementById('loginSubtitle');
-  if(sub) sub.textContent = 'Create your account to get started';
-  // Reset the entry state
-  pinEntry = '';
-  updateSetupDots();
-  var nameEl = document.getElementById('frName');
-  if(nameEl) setTimeout(function(){ nameEl.focus(); }, 200);
-}
-
-// PIN entry buttons used during first-run setup. They share the same pinEntry
-// variable as the regular PIN flow; we just rebind the visual dots and
-// completion handler.
-function setupPinPress(n){
-  if(pinEntry.length >= 4) return;
-  pinEntry += String(n);
-  updateSetupDots();
-  if(pinEntry.length === 4){
-    // Don't auto-submit — wait for the Create button so the user has a chance
-    // to type their name first.
-  }
-}
-function setupPinDel(){
-  pinEntry = pinEntry.slice(0, -1);
-  updateSetupDots();
-  var err = document.getElementById('frError'); if(err) err.textContent = '';
-}
-function updateSetupDots(){
-  for(var i=0; i<4; i++){
-    var d = document.getElementById('frDot'+i);
-    if(!d) continue;
-    if(i < pinEntry.length){ d.style.background = '#c8f230'; d.style.borderColor = '#c8f230'; }
-    else { d.style.background = 'transparent'; d.style.borderColor = '#333'; }
-  }
-}
-
-// Submit handler for the "Create Account" button.
-function submitFirstRunSetup(){
-  var nameEl = document.getElementById('frName');
-  var errEl  = document.getElementById('frError');
-  var name = nameEl ? nameEl.value.trim() : '';
-  if(!name){
-    if(errEl) errEl.textContent = 'Please enter your name.';
-    if(nameEl) nameEl.focus();
-    return;
-  }
-  if(pinEntry.length !== 4){
-    if(errEl) errEl.textContent = 'Please enter a 4-digit PIN.';
-    return;
-  }
-  var result = createFirstAdmin(name, pinEntry);
-  if(!result.ok){
-    if(errEl) errEl.textContent = result.error;
-    return;
-  }
-  // Success — log them in directly, no need to re-enter the PIN.
-  if(errEl) errEl.textContent = '';
-  loginSuccess(name, 'admin');
+  // Cloud-aware boot. PIN/biometric UI was removed in the Supabase migration;
+  // only the email/password form exists on the login screen now. If the user
+  // has a persisted Supabase session (autoRefreshToken kept it alive), skip
+  // the login screen and drop them straight into the app.
+  if(typeof window.sbReady === 'undefined') return;
+  Promise.resolve(window.sbReady).then(async function(){
+    if(!window.sb) return;
+    try {
+      var sess = await window.sb.auth.getSession();
+      var user = sess && sess.data && sess.data.session && sess.data.session.user;
+      if(!user) return;
+      // Wait for householdId to populate (loadHouseholdId is async in supabase-client.js)
+      var tries = 0;
+      while((!window.sbAuth || !window.sbAuth.householdId) && tries < 30){
+        await new Promise(function(r){ setTimeout(r, 100); });
+        tries++;
+      }
+      if(!window.sbAuth || !window.sbAuth.householdId) return;
+      var displayName = (user.email || 'User').split('@')[0];
+      loginSuccess(displayName, 'admin');
+    } catch(e){ console.warn('cloud auto-login failed', e); }
+  });
 }
 
 // ── Trigger fingerprint authentication ──
@@ -915,7 +847,7 @@ document.addEventListener('DOMContentLoaded', function(){
   try { if(typeof loadCP       === 'function') loadCP();       } catch(e){}
   try { if(typeof loadFunds    === 'function') loadFunds();    } catch(e){}
   try { if(typeof loadBorrows  === 'function') loadBorrows();  } catch(e){}
-  // Old PIN-era init removed — login is now Google Sign-In only (handled in firebase-sync.js)
+  initBiometricLogin();
 });
 
 
@@ -1020,10 +952,10 @@ function applyRole(){
 }
 
 function logout(){
-  // Sign out of Firebase Google auth
+  // Sign out of Supabase too (fire and forget)
   try {
-    if(window._fb && window._fb.auth) window._fb.auth.signOut().catch(function(e){ console.warn('Firebase signOut', e); });
-  } catch(e){ console.warn('Firebase signOut threw', e); }
+    if(window.sbSignOut) window.sbSignOut().catch(function(e){ console.warn('cloud signOut', e); });
+  } catch(e){ console.warn('cloud signOut threw', e); }
 
   currentRole = 'guest';
   currentUser = null;
@@ -1037,11 +969,6 @@ function logout(){
   var le = document.getElementById('loginError'); if(le) le.textContent = '';
   var ls = document.getElementById('loginStatus'); if(ls) ls.textContent = '';
   document.getElementById('drawerLogoutBtn').style.display = 'none';
-  // Show Google login section, hide PIN
-  var gSection = document.getElementById('googleLoginSection');
-  var pinSect  = document.getElementById('pinSection');
-  if(gSection) gSection.style.display = 'block';
-  if(pinSect)  pinSect.style.display  = 'none';
   // Restore hamburger button
   var hbg = document.getElementById('hbgBtn');
   if(hbg) hbg.style.display = '';

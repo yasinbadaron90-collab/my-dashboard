@@ -1228,42 +1228,6 @@ function confirmUseFunds(){
 
 // ══ CARPOOL ══
 
-// ══ MOVE TO SAVINGS — entry point from Cash Flow "+ Move" button ═════════
-// Opens a fund picker showing all active (non-expense) savings funds. When
-// the user taps one, we hand off to the standard openDeposit() modal which
-// has the From-bank picker baked in.
-function openMoveToSavings(){
-  var list = document.getElementById('moveToSavingsList');
-  if(!list) return;
-  // `funds` is the module-scoped array in this file (declared with `let` at top).
-  var activeFunds = (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return !f._deleted; });
-  if(!activeFunds.length){
-    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;letter-spacing:1px;">No savings funds yet. Create one on the Savings tab first.</div>';
-  } else {
-    list.innerHTML = activeFunds.map(function(f){
-      var saved = (typeof fundTotal === 'function') ? fundTotal(f) : 0;
-      var goal  = f.goal || 0;
-      var pct   = goal > 0 ? Math.min(100, Math.round((saved/goal)*100)) : 0;
-      return '<button onclick="_moveToSavingsPick(\''+f.id+'\')" '
-        + 'style="width:100%;text-align:left;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:12px;font-family:DM Mono,monospace;">'
-        + '<span style="font-size:22px;flex-shrink:0;">'+(f.emoji||'💰')+'</span>'
-        + '<div style="flex:1;min-width:0;">'
-        +   '<div style="font-size:13px;color:var(--text);font-family:Syne,sans-serif;font-weight:700;">'+f.name+'</div>'
-        +   '<div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:2px;">'+fmtR(saved)+(goal?' / '+fmtR(goal)+' · '+pct+'%':'')+'</div>'
-        + '</div>'
-        + '<span style="color:#c8f230;font-size:18px;">→</span>'
-        + '</button>';
-    }).join('');
-  }
-  document.getElementById('moveToSavingsModal').classList.add('active');
-}
-
-function _moveToSavingsPick(fundId){
-  closeModal('moveToSavingsModal');
-  // Open the standard deposit modal — it has amount + From-bank + date + note.
-  openDeposit(fundId);
-}
-
 // ══ DEADLINE BACKFILL MODAL ══════════════════════════════════════════════
 // On Savings tab load, scan for non-expense funds without a `deadline`. If
 // any exist, surface a one-shot modal asking the user to pick a date for
