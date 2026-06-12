@@ -392,7 +392,7 @@ function _scanRenderAdvisories(){
   }).join('');
 
   return '<div class="scan-hdr">'
-    +'<div class="scan-title">'+advs.length+' workshop note'+(advs.length>1?'s':'')</div>'
+    +'<div class="scan-title">'+advs.length+' workshop note'+(advs.length>1?'s':'')+'</div>'
     +'<div class="scan-sub">Review severity — these pin to the car card</div>'
     +'</div>'
     +'<div class="scan-info-box">🔧 These are the mechanic\'s recommendations. Adjust severity if needed, remove any that aren\'t relevant.</div>'
