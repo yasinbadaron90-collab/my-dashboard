@@ -659,29 +659,22 @@ function loginSuccess(name, role){
 }
 
 // ── Called on page load — check if biometric is registered ──
+// NOTE: dead code from old PIN system, no longer called (Google Sign-In only now).
+// hasCompletedSetup stub kept so this doesn't throw if ever referenced.
+function hasCompletedSetup(){ return true; }
 function initBiometricLogin(){
-  // Cloud-aware boot. PIN/biometric UI was removed in the Supabase migration;
-  // only the email/password form exists on the login screen now. If the user
-  // has a persisted Supabase session (autoRefreshToken kept it alive), skip
-  // the login screen and drop them straight into the app.
-  if(typeof window.sbReady === 'undefined') return;
-  Promise.resolve(window.sbReady).then(async function(){
-    if(!window.sb) return;
-    try {
-      var sess = await window.sb.auth.getSession();
-      var user = sess && sess.data && sess.data.session && sess.data.session.user;
-      if(!user) return;
-      // Wait for householdId to populate (loadHouseholdId is async in supabase-client.js)
-      var tries = 0;
-      while((!window.sbAuth || !window.sbAuth.householdId) && tries < 30){
-        await new Promise(function(r){ setTimeout(r, 100); });
-        tries++;
-      }
-      if(!window.sbAuth || !window.sbAuth.householdId) return;
-      var displayName = (user.email || 'User').split('@')[0];
-      loginSuccess(displayName, 'admin');
-    } catch(e){ console.warn('cloud auto-login failed', e); }
-  });
+  // Supabase removed — use PIN login directly.
+  // Show PIN section, hide email section.
+  var emailSection = document.getElementById('emailLoginSection');
+  if(emailSection) emailSection.style.display = 'none';
+  var pinSection = document.getElementById('pinSection');
+  if(pinSection) pinSection.style.display = 'block';
+  var bio = document.getElementById('biometricSection');
+  if(bio) bio.style.display = '';
+  // If first run (no PINs set), show setup screen
+  if(!hasCompletedSetup()){
+    if(typeof showFirstRunSetup === 'function') showFirstRunSetup();
+  }
 }
 
 // ── Trigger fingerprint authentication ──
@@ -831,7 +824,7 @@ document.addEventListener('DOMContentLoaded', function(){
   try { if(typeof loadCP       === 'function') loadCP();       } catch(e){}
   try { if(typeof loadFunds    === 'function') loadFunds();    } catch(e){}
   try { if(typeof loadBorrows  === 'function') loadBorrows();  } catch(e){}
-  initBiometricLogin();
+  // Old PIN-era init removed — login is now Google Sign-In only (handled in firebase-sync.js)
 });
 
 
@@ -936,10 +929,10 @@ function applyRole(){
 }
 
 function logout(){
-  // Sign out of Supabase too (fire and forget)
+  // Sign out of Firebase Google auth
   try {
-    if(window.sbSignOut) window.sbSignOut().catch(function(e){ console.warn('cloud signOut', e); });
-  } catch(e){ console.warn('cloud signOut threw', e); }
+    if(window._fb && window._fb.auth) window._fb.auth.signOut().catch(function(e){ console.warn('Firebase signOut', e); });
+  } catch(e){ console.warn('Firebase signOut threw', e); }
 
   currentRole = 'guest';
   currentUser = null;
@@ -953,6 +946,11 @@ function logout(){
   var le = document.getElementById('loginError'); if(le) le.textContent = '';
   var ls = document.getElementById('loginStatus'); if(ls) ls.textContent = '';
   document.getElementById('drawerLogoutBtn').style.display = 'none';
+  // Show Google login section, hide PIN
+  var gSection = document.getElementById('googleLoginSection');
+  var pinSect  = document.getElementById('pinSection');
+  if(gSection) gSection.style.display = 'block';
+  if(pinSect)  pinSect.style.display  = 'none';
   // Restore hamburger button
   var hbg = document.getElementById('hbgBtn');
   if(hbg) hbg.style.display = '';
