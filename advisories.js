@@ -194,6 +194,9 @@
       if(a.status === 'resolved'){
         statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;letter-spacing:1px;margin-top:6px;'
           + 'background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;">✓ Resolved '+_fmtDate(a.resolvedAt)+'</span>';
+      } else if(_isSnoozed(a)){
+        statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;letter-spacing:1px;margin-top:6px;'
+          + 'background:#1a1a3a;color:#a8a8ff;border:1px solid #3a3a5a;">😴 Snoozed until '+_fmtDate(a.snoozeUntil)+'</span>';
       } else if(a.bookedFor){
         statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;letter-spacing:1px;margin-top:6px;'
           + 'background:#1a2e3a;color:#30c8f2;border:1px solid #1e4a5a;">📅 Booked for '+_fmtDate(a.bookedFor)+'</span>';
@@ -212,7 +215,7 @@
         + (a.source ? '<div style="font-size:10px;color:#666;font-style:italic;">'+_escape(a.source)+'</div>' : '')
         + statusPill
         + '<div style="margin-top:8px;display:flex;gap:6px;">'
-        +   '<button onclick="_advisoryDetailComing(\''+a.id+'\')" '
+        +   '<button onclick="openAdvisoryDetail(\''+a.id+'\')" '
         +     'style="background:transparent;border:1px solid #2a2a2a;color:#888;padding:5px 10px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Open</button>'
         +   '<button onclick="deleteAdvisory(\''+a.id+'\')" '
         +     'style="background:transparent;border:1px solid #2a1a1a;color:#666;padding:5px 10px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-left:auto;">Delete</button>'
@@ -221,8 +224,219 @@
     }).join('');
   }
 
-  function _advisoryDetailComing(advId){
-    alert('Detail view + actions ship in v118b (next).\n\nFor now this list is the entry point. Delete works for cleanup, Add works to populate.');
+  // ── Detail view (v118b) ──────────────────────────────────────
+
+  var _detailAdvId = null;
+
+  function _sevMeta(sev){
+    if(sev === 'red')   return { emoji:'🔴', label:'Action needed', color:'#f23060', bg:'#3a0a0a', border:'#5a0e0e', dot:'#f23060' };
+    if(sev === 'amber') return { emoji:'🟠', label:'Watch',         color:'#f2a830', bg:'#3a2a00', border:'#5a3a00', dot:'#f2a830' };
+    return                      { emoji:'🔵', label:'FYI',           color:'#30c8f2', bg:'#0a2030', border:'#1e4a5a', dot:'#30c8f2' };
+  }
+
+  function _isSnoozed(a){
+    return a.snoozeUntil && a.snoozeUntil >= new Date().toISOString().split('T')[0];
+  }
+
+  function _advStatusPill(a){
+    if(a.status === 'resolved'){
+      return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:10px;letter-spacing:2px;'
+        + 'background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;">✓ RESOLVED · '+_fmtDate(a.resolvedAt)+'</span>';
+    }
+    if(_isSnoozed(a)){
+      return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:10px;letter-spacing:2px;'
+        + 'background:#1a1a3a;color:#a8a8ff;border:1px solid #3a3a5a;">😴 SNOOZED UNTIL '+_fmtDate(a.snoozeUntil)+'</span>';
+    }
+    if(a.bookedFor){
+      return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:10px;letter-spacing:2px;'
+        + 'background:#1a2e3a;color:#30c8f2;border:1px solid #1e4a5a;">📅 BOOKED FOR '+_fmtDate(a.bookedFor)+'</span>';
+    }
+    return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:10px;letter-spacing:2px;'
+      + 'background:#3a0a0a;color:#f23060;border:1px solid #5a0e0e;">OPEN</span>';
+  }
+
+  function _resolveLabel(a){
+    if(a.resolvedBy === 'invoice') return 'Fixed — '+(a.resolvedReason||'linked invoice');
+    if(a.resolvedBy === 'diy')     return 'Fixed myself (DIY)'+(a.resolvedReason ? ' — '+a.resolvedReason : '');
+    if(a.resolvedBy === 'false')   return 'False alarm / not an issue'+(a.resolvedReason ? ' — '+a.resolvedReason : '');
+    return 'Resolved';
+  }
+
+  function _buildTimeline(a){
+    var items = [];
+    items.push({ date: a.flaggedDate, icon:'🚩', text:'Flagged'+(a.source ? ' by '+a.source : '') });
+    (a.notes||[]).forEach(function(n){
+      items.push({ date: n.date, icon:'📝', text: n.text });
+    });
+    if(a.bookedFor){
+      items.push({ date: a.bookedAt || a.flaggedDate, icon:'📅', text:'Booked for '+_fmtDate(a.bookedFor)+(a.bookedNote ? ' — '+a.bookedNote : '') });
+    }
+    if(a.status === 'resolved'){
+      items.push({ date: a.resolvedAt, icon:'✓', text: _resolveLabel(a) });
+    }
+    items.sort(function(x,y){ return (x.date||'').localeCompare(y.date||''); });
+    return items.map(function(it){
+      return '<div style="display:flex;gap:10px;margin-bottom:10px;font-size:12px;">'
+        + '<div style="flex-shrink:0;width:18px;text-align:center;">'+it.icon+'</div>'
+        + '<div style="flex:1;"><div style="font-size:10px;color:#666;margin-bottom:2px;">'+_fmtDate(it.date)+'</div>'
+        + '<div style="color:#ccc;line-height:1.4;">'+_escape(it.text)+'</div></div>'
+        + '</div>';
+    }).join('');
+  }
+
+  function openAdvisoryDetail(advId){
+    var car = _findCar(_advListCarId);
+    if(!car) return;
+    var adv = (car.advisories||[]).find(function(a){ return a.id === advId; });
+    if(!adv){ alert('Advisory not found.'); return; }
+    _detailAdvId = advId;
+    _renderAdvisoryDetail();
+    var ov = document.getElementById('advisoryDetailModal');
+    if(ov) ov.classList.add('active');
+  }
+
+  function _renderAdvisoryDetail(){
+    var car = _findCar(_advListCarId);
+    if(!car) return;
+    var adv = (car.advisories||[]).find(function(a){ return a.id === _detailAdvId; });
+    if(!adv) return;
+    var sm = _sevMeta(adv.severity);
+
+    var sevRow = document.getElementById('advDetailSevRow');
+    if(sevRow){
+      sevRow.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+sm.dot+';margin-right:8px;vertical-align:middle;"></span>'
+        + '<span style="font-size:11px;letter-spacing:2px;color:'+sm.color+';font-weight:700;">'+sm.emoji+' '+sm.label.toUpperCase()+'</span>'
+        + '<span style="float:right;font-size:11px;color:#666;">'+_fmtDate(adv.flaggedDate)+'</span>';
+    }
+    var textEl = document.getElementById('advDetailText');
+    if(textEl) textEl.textContent = adv.text;
+    var srcEl = document.getElementById('advDetailSource');
+    if(srcEl) srcEl.textContent = adv.source || '';
+    var pillEl = document.getElementById('advDetailStatus');
+    if(pillEl) pillEl.innerHTML = _advStatusPill(adv);
+    var tlEl = document.getElementById('advDetailTimeline');
+    if(tlEl) tlEl.innerHTML = _buildTimeline(adv);
+
+    // hide all popups on re-render
+    ['advPopupBooked','advPopupNote','advPopupSnooze','advPopupResolve'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.classList.remove('show');
+    });
+
+    // hide actions once resolved
+    var actionsEl = document.getElementById('advDetailActions');
+    if(actionsEl) actionsEl.style.display = (adv.status === 'resolved') ? 'none' : 'grid';
+
+    // pre-fill booked fields
+    var bd = document.getElementById('advBookedDate');
+    if(bd) bd.value = adv.bookedFor || new Date().toISOString().split('T')[0];
+    var bn = document.getElementById('advBookedNote');
+    if(bn) bn.value = adv.bookedNote || '';
+
+    // populate invoice picker from this car's real expenses
+    var sel = document.getElementById('advResolveInvoice');
+    if(sel){
+      var exps = (car.expenses||[]).slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+      sel.innerHTML = exps.length
+        ? exps.map(function(e){
+            return '<option value="'+_escape(e.id)+'">'+_escape(e.desc||e.category||'Expense')+' — R'+e.amt+' — '+_fmtDate(e.date)+'</option>';
+          }).join('')
+        : '<option value="">(no expenses logged on this car)</option>';
+    }
+  }
+
+  function _advTogglePopup(name){
+    var ids = { booked:'advPopupBooked', note:'advPopupNote', snooze:'advPopupSnooze', resolve:'advPopupResolve' };
+    Object.keys(ids).forEach(function(k){
+      var el = document.getElementById(ids[k]);
+      if(!el) return;
+      if(k === name) el.classList.toggle('show');
+      else el.classList.remove('show');
+    });
+  }
+
+  function _advResolveReasonChanged(){
+    var v = document.getElementById('advResolveReason').value;
+    var row = document.getElementById('advResolveInvoiceRow');
+    if(row) row.style.display = (v === 'invoice') ? 'block' : 'none';
+  }
+
+  function saveAdvBookedFor(){
+    var car = _findCar(_advListCarId);
+    var adv = car && (car.advisories||[]).find(function(a){ return a.id === _detailAdvId; });
+    if(!adv) return;
+    var date = document.getElementById('advBookedDate').value;
+    var note = (document.getElementById('advBookedNote').value||'').trim();
+    if(!date){ alert('Pick a date.'); return; }
+    adv.bookedFor = date;
+    adv.bookedNote = note;
+    adv.bookedAt = new Date().toISOString().split('T')[0];
+    adv.snoozeUntil = null; // booking supersedes a snooze
+    _saveCar(car);
+    _renderAdvisoryDetail();
+    _renderAdvisoryList();
+    if(typeof renderCars === 'function') renderCars();
+  }
+
+  function saveAdvNote(){
+    var car = _findCar(_advListCarId);
+    var adv = car && (car.advisories||[]).find(function(a){ return a.id === _detailAdvId; });
+    if(!adv) return;
+    var text = (document.getElementById('advNoteText').value||'').trim();
+    if(!text){ alert('Write a note first.'); return; }
+    if(!Array.isArray(adv.notes)) adv.notes = [];
+    adv.notes.push({ date: new Date().toISOString().split('T')[0], text: text });
+    document.getElementById('advNoteText').value = '';
+    _saveCar(car);
+    _renderAdvisoryDetail();
+    _renderAdvisoryList();
+  }
+
+  function saveAdvSnooze(){
+    var car = _findCar(_advListCarId);
+    var adv = car && (car.advisories||[]).find(function(a){ return a.id === _detailAdvId; });
+    if(!adv) return;
+    var days = parseInt(document.getElementById('advSnoozeSelect').value, 10);
+    var d = new Date();
+    d.setDate(d.getDate() + days);
+    adv.snoozeUntil = d.toISOString().split('T')[0];
+    if(!Array.isArray(adv.notes)) adv.notes = [];
+    adv.notes.push({ date: new Date().toISOString().split('T')[0], text: '😴 Snoozed '+days+' day'+(days>1?'s':'')+' (until '+_fmtDate(adv.snoozeUntil)+')' });
+    _saveCar(car);
+    _renderAdvisoryDetail();
+    _renderAdvisoryList();
+    if(typeof renderCars === 'function') renderCars();
+  }
+
+  function saveAdvResolve(){
+    var car = _findCar(_advListCarId);
+    var adv = car && (car.advisories||[]).find(function(a){ return a.id === _detailAdvId; });
+    if(!adv) return;
+    var reason = document.getElementById('advResolveReason').value;
+    if(!reason){ alert('Choose how it was resolved.'); return; }
+
+    var resolvedReason = '';
+    if(reason === 'invoice'){
+      var sel = document.getElementById('advResolveInvoice');
+      var expId = sel.value;
+      if(!expId){ alert('Pick the expense it was fixed under.'); return; }
+      adv.resolvedByInvoiceId = expId;
+      var exp = (car.expenses||[]).find(function(e){ return e.id === expId; });
+      resolvedReason = exp ? (exp.desc||exp.category||'')+' — R'+exp.amt+' — '+_fmtDate(exp.date) : 'linked invoice';
+    } else {
+      adv.resolvedByInvoiceId = null;
+      resolvedReason = (document.getElementById('advResolveExtra').value||'').trim();
+    }
+
+    adv.status = 'resolved';
+    adv.resolvedAt = new Date().toISOString().split('T')[0];
+    adv.resolvedBy = reason;
+    adv.resolvedReason = resolvedReason;
+    adv.snoozeUntil = null;
+    _saveCar(car);
+    _renderAdvisoryDetail();
+    _renderAdvisoryList();
+    if(typeof renderCars === 'function') renderCars();
   }
 
   function deleteAdvisory(advId){
@@ -338,6 +552,12 @@
   window.deleteAdvisory         = deleteAdvisory;
   window._setAdvListFilter      = _setAdvListFilter;
   window._selectSeverity        = _selectSeverity;
-  window._advisoryDetailComing  = _advisoryDetailComing;
+  window.openAdvisoryDetail     = openAdvisoryDetail;
+  window._advTogglePopup        = _advTogglePopup;
+  window._advResolveReasonChanged = _advResolveReasonChanged;
+  window.saveAdvBookedFor       = saveAdvBookedFor;
+  window.saveAdvNote            = saveAdvNote;
+  window.saveAdvSnooze          = saveAdvSnooze;
+  window.saveAdvResolve         = saveAdvResolve;
 
 })();
