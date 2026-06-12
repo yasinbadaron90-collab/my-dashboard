@@ -163,16 +163,30 @@ function _fbStart(){
 
 // ── Google Sign-In ────────────────────────────────────────────────────────────
 function fbSignInWithGoogle(){
+  var errEl = document.getElementById('googleLoginError');
+  var statusEl = document.getElementById('googleLoginStatus');
+  if(errEl) errEl.textContent = '';
   if(!_fb.auth){
-    alert('Firebase not ready yet. Please wait a moment and try again.');
+    if(errEl) errEl.textContent = 'Firebase not ready yet. Please wait and try again.';
     return;
   }
   var provider = new firebase.auth.GoogleAuthProvider();
-  // Use redirect (not popup) — popups are blocked in PWA/standalone mode
-  _fb.auth.signInWithRedirect(provider).catch(function(e){
-    console.warn('[Firebase] Google sign-in failed:', e);
-    var errEl = document.getElementById('googleLoginError');
-    if(errEl) errEl.textContent = 'Sign-in failed: ' + e.message;
+  if(statusEl) statusEl.textContent = 'Opening Google sign-in...';
+  _fb.auth.signInWithPopup(provider).then(function(result){
+    if(statusEl) statusEl.textContent = '';
+  }).catch(function(e){
+    console.warn('[Firebase] Popup sign-in failed:', e.code, e.message);
+    // Fallback to redirect for popup-blocked or unsupported cases
+    if(e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment' || e.code === 'auth/cancelled-popup-request'){
+      if(statusEl) statusEl.textContent = 'Redirecting to Google...';
+      _fb.auth.signInWithRedirect(provider).catch(function(e2){
+        if(errEl) errEl.textContent = 'Sign-in failed: ' + e2.code + ' — ' + e2.message;
+        if(statusEl) statusEl.textContent = '';
+      });
+    } else {
+      if(errEl) errEl.textContent = 'Sign-in failed: ' + e.code + ' — ' + e.message;
+      if(statusEl) statusEl.textContent = '';
+    }
   });
 }
 
