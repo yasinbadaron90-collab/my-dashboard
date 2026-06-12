@@ -684,6 +684,9 @@ function loginSuccess(name, role){
 }
 
 // ── Called on page load — check if biometric is registered ──
+// NOTE: dead code from old PIN system, no longer called (Google Sign-In only now).
+// hasCompletedSetup stub kept so this doesn't throw if ever referenced.
+function hasCompletedSetup(){ return true; }
 function initBiometricLogin(){
   // Supabase removed — use PIN login directly.
   // Show PIN section, hide email section.
@@ -912,7 +915,7 @@ document.addEventListener('DOMContentLoaded', function(){
   try { if(typeof loadCP       === 'function') loadCP();       } catch(e){}
   try { if(typeof loadFunds    === 'function') loadFunds();    } catch(e){}
   try { if(typeof loadBorrows  === 'function') loadBorrows();  } catch(e){}
-  initBiometricLogin();
+  // Old PIN-era init removed — login is now Google Sign-In only (handled in firebase-sync.js)
 });
 
 
