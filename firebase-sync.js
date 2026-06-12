@@ -163,9 +163,11 @@ function fbSignInWithGoogle(){
     return;
   }
   var provider = new firebase.auth.GoogleAuthProvider();
-  if(statusEl) statusEl.textContent = 'Redirecting to Google...';
-  _fb.auth.signInWithRedirect(provider).catch(function(e){
-    console.warn('[Firebase] Redirect sign-in failed:', e.code, e.message);
+  if(statusEl) statusEl.textContent = 'Opening Google sign-in...';
+  _fb.auth.signInWithPopup(provider).then(function(result){
+    if(statusEl) statusEl.textContent = '';
+  }).catch(function(e){
+    console.warn('[Firebase] Popup sign-in failed:', e.code, e.message);
     if(errEl) errEl.textContent = 'Sign-in failed: ' + e.code + ' — ' + e.message;
     if(statusEl) statusEl.textContent = '';
   });
