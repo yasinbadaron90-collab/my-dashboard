@@ -517,22 +517,6 @@ function loadPINS(){
 }
 function savePINS(pins){ lsSet(PIN_STORE_KEY, JSON.stringify(pins)); }
 
-// Create the first admin account from the setup screen. Validates the PIN
-// and name, persists, and returns true on success. Caller handles the UI
-// transition (closing the setup screen, showing the wizard).
-function createFirstAdmin(name, pin){
-  if(!name || !name.trim()) return { ok:false, error:'Name is required.' };
-  if(!/^\d{4}$/.test(pin || '')) return { ok:false, error:'PIN must be exactly 4 digits.' };
-  var trimmed = name.trim().slice(0, 30);
-  var newPins = {};
-  newPins[pin] = { role:'admin', name: trimmed };
-  savePINS(newPins);
-  PINS = newPins;
-  // Mark first-run as complete so the wizard knows to fire on next applyRole().
-  lsSet('yb_first_run_pending_wizard', '1');
-  return { ok:true };
-}
-
 let PINS = loadPINS();
 let currentRole = 'guest';
 let currentUser = null;
