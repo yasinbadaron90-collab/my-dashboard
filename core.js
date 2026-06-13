@@ -1,4 +1,4 @@
-// Core: storage, keys, auth, PIN, biometric, launch menu, drawer, theme
+// Core: storage, keys, auth, PIN, launch menu, drawer, theme
 
 /* My Dashboard V34 — Application Logic */
 /* Auto-extracted from single-file HTML */
@@ -542,10 +542,6 @@ function checkPin(){
       s.style.display="none";
       applyRole();
       document.getElementById('drawerLogoutBtn').style.display = 'flex';
-      // After successful PIN login, offer to register biometric if admin
-      if(currentRole === 'admin' && window.PublicKeyCredential && !lsGet('yb_biometric_registered')){
-        setTimeout(offerBiometricRegistration, 800);
-      }
       // v101.1: launch menu replaced by Home page (Step 10). applyRole now
       // lands admin on page-home directly. Old call removed:
     },400);
@@ -561,20 +557,6 @@ function checkPin(){
 }
 
 
-const BIOMETRIC_KEY = 'yb_biometric_registered';
-const BIOMETRIC_CRED_KEY = 'yb_biometric_credid';
-const RP_ID = 'yasinbadaron90-collab.github.io';
-const RP_NAME = 'YB Dashboard';
-
-function biometricSupported(){
-  return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create);
-}
-
-function showPinFallback(){
-  document.getElementById('biometricSection').style.display = 'none';
-  document.getElementById('pinSection').style.display = 'block';
-  document.getElementById('loginSubtitle').textContent = 'Enter PIN to continue';
-}
 
 function loginSuccess(name, role){
   currentRole = role;
@@ -594,163 +576,6 @@ function loginSuccess(name, role){
   }, 400);
 }
 
-// ── Called on page load — check if biometric is registered ──
-// NOTE: dead code from old PIN system, no longer called (Google Sign-In only now).
-// hasCompletedSetup stub kept so this doesn't throw if ever referenced.
-function hasCompletedSetup(){ return true; }
-function initBiometricLogin(){
-  // Supabase removed — use PIN login directly.
-  // Show PIN section, hide email section.
-  var emailSection = document.getElementById('emailLoginSection');
-  if(emailSection) emailSection.style.display = 'none';
-  var pinSection = document.getElementById('pinSection');
-  if(pinSection) pinSection.style.display = 'block';
-  var bio = document.getElementById('biometricSection');
-  if(bio) bio.style.display = '';
-  // If first run (no PINs set), show setup screen
-  if(!hasCompletedSetup()){
-    if(typeof showFirstRunSetup === 'function') showFirstRunSetup();
-  }
-}
-
-// ── Trigger fingerprint authentication ──
-async function biometricLogin(){
-  const statusEl = document.getElementById('biometricStatus');
-  const btn = document.getElementById('biometricBtn');
-  if(statusEl) statusEl.textContent = 'Scanning…';
-  if(btn){ btn.style.borderColor = '#f2a830'; btn.style.background = '#1a1200'; }
-
-  try {
-    const credIdB64 = lsGet(BIOMETRIC_CRED_KEY);
-    if(!credIdB64){ showPinFallback(); return; }
-
-    // Decode stored credential ID
-    const credIdBytes = Uint8Array.from(atob(credIdB64), function(c){ return c.charCodeAt(0); });
-
-    const challenge = new Uint8Array(32);
-    crypto.getRandomValues(challenge);
-
-    const assertion = await navigator.credentials.get({
-      publicKey: {
-        challenge,
-        rpId: RP_ID,
-        allowCredentials: [{ id: credIdBytes, type: 'public-key' }],
-        userVerification: 'required',
-        timeout: 60000
-      }
-    });
-
-    if(assertion){
-      if(statusEl) statusEl.textContent = '✓ Unlocked!';
-      if(btn){ btn.style.borderColor = '#c8f230'; btn.style.background = '#0d1a00'; }
-      setTimeout(function(){
-        loginSuccess('Yasin', 'admin');
-      }, 300);
-    }
-  } catch(err){
-    if(err.name === 'NotAllowedError'){
-      if(statusEl) statusEl.textContent = 'Cancelled — try again';
-    } else {
-      if(statusEl) statusEl.textContent = 'Biometric failed — use PIN';
-      setTimeout(showPinFallback, 1500);
-    }
-    if(btn){ btn.style.borderColor = '#f23060'; btn.style.background = '#1a0505'; }
-    setTimeout(function(){
-      if(btn){ btn.style.borderColor = '#c8f230'; btn.style.background = '#0d1a00'; }
-      if(statusEl) statusEl.textContent = 'Touch to unlock';
-    }, 2000);
-  }
-}
-
-// ── Register biometric — called after first successful PIN login ──
-async function registerBiometric(){
-  if(!biometricSupported()){
-    alert('Your browser does not support biometric authentication.');
-    return;
-  }
-  try {
-    const challenge = new Uint8Array(32);
-    crypto.getRandomValues(challenge);
-    const userId = new Uint8Array(16);
-    crypto.getRandomValues(userId);
-
-    const credential = await navigator.credentials.create({
-      publicKey: {
-        challenge,
-        rp: { id: RP_ID, name: RP_NAME },
-        user: { id: userId, name: 'yasin', displayName: 'Yasin' },
-        pubKeyCredParams: [
-          { alg: -7, type: 'public-key' },   // ES256
-          { alg: -257, type: 'public-key' }  // RS256
-        ],
-        authenticatorSelection: {
-          authenticatorAttachment: 'platform',
-          userVerification: 'required',
-          residentKey: 'preferred'
-        },
-        timeout: 60000,
-        attestation: 'none'
-      }
-    });
-
-    if(credential){
-      // Store credential ID as base64
-      const credIdArr = new Uint8Array(credential.rawId);
-      const credIdB64 = btoa(String.fromCharCode.apply(null, credIdArr));
-      lsSet(BIOMETRIC_CRED_KEY, credIdB64);
-      lsSet(BIOMETRIC_KEY, 'true');
-      return true;
-    }
-  } catch(err){
-    console.warn('Biometric registration failed:', err);
-    return false;
-  }
-}
-
-// ── Offer to register biometric after first admin PIN login ──
-function offerBiometricRegistration(){
-  if(!biometricSupported()) return;
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9998;display:flex;align-items:center;justify-content:center;padding:24px;';
-  overlay.innerHTML =
-    '<div style="background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">'
-    +'<div style="font-size:48px;margin-bottom:16px;">👆</div>'
-    +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:var(--text);margin-bottom:8px;">Enable Fingerprint Login?</div>'
-    +'<div style="font-size:11px;color:var(--muted);letter-spacing:0.5px;line-height:1.7;margin-bottom:24px;">Skip the PIN next time — just touch your fingerprint sensor to unlock your dashboard instantly.</div>'
-    +'<button onclick="confirmBiometricSetup(this.parentElement.parentElement)" style="width:100%;padding:14px;background:#c8f230;border:none;border-radius:8px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;margin-bottom:10px;">👆 Enable Fingerprint</button>'
-    +'<button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:12px;background:none;border:1px solid #2a2a2a;border-radius:8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Not Now</button>'
-    +'</div>';
-  document.body.appendChild(overlay);
-}
-
-async function confirmBiometricSetup(overlay){
-  const btn = overlay.querySelector('button');
-  if(btn){ btn.textContent = '⏳ Scanning…'; btn.disabled = true; }
-  const success = await registerBiometric();
-  if(overlay) overlay.remove();
-  if(success){
-    // Show success toast
-    const toast = document.createElement('div');
-    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d1a00;border:1px solid #c8f230;border-radius:8px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#c8f230;letter-spacing:1px;white-space:nowrap;';
-    toast.textContent = '✓ Fingerprint registered! Use it next time you open the app.';
-    document.body.appendChild(toast);
-    setTimeout(function(){ toast.remove(); }, 4000);
-  } else {
-    alert('Fingerprint setup failed. You can try again from Settings.');
-  }
-}
-
-// ── Remove biometric (for Settings) ──
-function removeBiometric(){
-  if(!confirm('Remove fingerprint login? You\'ll need your PIN to log in again.')) return;
-  try{ localStorage.removeItem(BIOMETRIC_KEY); }catch(e){}
-  try{ localStorage.removeItem(BIOMETRIC_CRED_KEY); }catch(e){}
-  lsSet(BIOMETRIC_KEY, null);
-  lsSet(BIOMETRIC_CRED_KEY, null);
-  alert('Fingerprint removed. PIN login will be used next time.');
-}
-
-// ── Run on page load ──
 document.addEventListener('DOMContentLoaded', function(){
   // Load all persisted in-memory state into globals before anything renders or saves.
   // Modules that hold their data in a top-level variable (cpData, funds, borrowData)

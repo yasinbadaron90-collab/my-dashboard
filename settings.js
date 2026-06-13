@@ -760,30 +760,6 @@ function restoreData(input){
   reader.readAsText(file);
 }
 
-function changePin(){
-  const newPin = document.getElementById('pinNew').value.trim();
-  const confirmPin = document.getElementById('pinConfirm').value.trim();
-  const status = document.getElementById('pinChangeStatus');
-  if(!/^\d{4}$/.test(newPin)){ status.style.color='#f23060'; status.textContent='✕ PIN must be exactly 4 digits.'; return; }
-  if(newPin !== confirmPin){ status.style.color='#f23060'; status.textContent='✕ PINs do not match.'; return; }
-  if(PINS[newPin] && PINS[newPin].name !== currentUser){
-    status.style.color='#f23060'; status.textContent='✕ That PIN is already used by ' + PINS[newPin].name + '.'; return;
-  }
-  // Find and update the current user's old PIN entry
-  const oldPin = Object.keys(PINS).find(function(p){ return PINS[p].name === currentUser; });
-  if(oldPin && oldPin !== newPin){
-    PINS[newPin] = PINS[oldPin];
-    delete PINS[oldPin];
-  } else if(!oldPin){
-    PINS[newPin] = { role: 'admin', name: currentUser };
-  }
-  savePINS(PINS);
-  status.style.color='#c8f230';
-  status.textContent='✓ PIN updated and saved permanently.';
-  document.getElementById('pinNew').value='';
-  document.getElementById('pinConfirm').value='';
-}
-
 function clearAllData(){
   if(!confirm('⚠ This will delete ALL data — savings funds, carpool, borrows, fuel, prayer. Maintenance card stays. Are you sure?')) return;
   if(!confirm('Last chance — download a backup first? Press Cancel to go back, OK to delete everything.')) return;

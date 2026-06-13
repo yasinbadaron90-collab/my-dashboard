@@ -669,31 +669,10 @@ function localDateTimeStr(d){
 // ══ SETTINGS ══
 function openSettings(){
   document.getElementById('restoreStatus').textContent='';
-  document.getElementById('pinChangeStatus').textContent='';
-  document.getElementById('pinNew').value='';
-  document.getElementById('pinConfirm').value='';
   document.getElementById('passPinStatus') && (document.getElementById('passPinStatus').textContent='');
   renderPassengerRows();
-  renderLoginUserRows();
   // Populate the carpool tariff inputs with current saved values
   if(typeof populateCarpoolTariffInputs === 'function') try { populateCarpoolTariffInputs(); } catch(e){}
-  // Biometric status
-  const bioStatus = document.getElementById('biometricSettingsStatus');
-  const bioBtn = document.getElementById('biometricSettingsBtn');
-  if(bioStatus && bioBtn){
-    const registered = lsGet(BIOMETRIC_KEY) === 'true';
-    const supported = biometricSupported();
-    if(!supported){
-      bioStatus.textContent = 'Not supported on this browser/device.';
-      bioBtn.innerHTML = '';
-    } else if(registered){
-      bioStatus.textContent = 'Fingerprint is registered and active.';
-      bioBtn.innerHTML = '<button onclick="removeBiometric()" style="width:100%;padding:10px;background:#1a0a0a;border:1px solid #3a1010;border-radius:6px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">🗑 Remove Fingerprint</button>';
-    } else {
-      bioStatus.textContent = 'Not set up yet. Register your fingerprint to skip the PIN.';
-      bioBtn.innerHTML = '<button onclick="confirmBiometricSetup(this.closest(\'[style]\'))" style="width:100%;padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">👆 Register Fingerprint</button>';
-    }
-  }
   document.getElementById('settingsModal').classList.add('active');
   // Pre-fill Bank Feed API key field
   try { if(typeof bfPreFillKeyInput === 'function') bfPreFillKeyInput(); } catch(e){}
@@ -729,96 +708,6 @@ function renderPassOptList(){
   container.innerHTML = PASSENGER_DATA.map(function(p){
     return '<div class="pass-opt selected" data-name="'+p.name+'" onclick="togglePassOpt(this)"><span>'+p.name+'</span><span class="chk">✓</span></div>';
   }).join('');
-}
-
-// ══ LOGIN USER MANAGEMENT ══
-var lumSelRole = 'user';
-
-function renderLoginUserRows(){
-  const container = document.getElementById('loginUserRows');
-  if(!container) return;
-  const roleLabels = { admin:'Admin', user:'Passenger', carservice:'Car Service' };
-  const roleColors = { admin:'#c8f230', user:'#7090f0', carservice:'#f2a830' };
-  container.innerHTML = Object.entries(PINS).map(function(entry){
-    const pin = entry[0];
-    const user = entry[1];
-    const isMe = user.name === currentUser;
-    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0d1228;border:1px solid #1a2040;border-radius:6px;">'
-      +'<span style="flex:1;font-family:\'DM Mono\',monospace;font-size:12px;color:var(--text);">'+user.name+(isMe?' <span style="font-size:9px;color:var(--muted);">(you)</span>':'')+'</span>'
-      +'<span style="font-size:9px;padding:2px 8px;border-radius:100px;background:#1a1a2e;color:'+(roleColors[user.role]||'#888')+';border:1px solid #2a2a4a;letter-spacing:1px;">'+( roleLabels[user.role]||user.role)+'</span>'
-      +'<span style="font-family:\'DM Mono\',monospace;font-size:13px;color:#c8f230;letter-spacing:3px;">'+pin+'</span>'
-      +'<button onclick="editLoginUser(\''+pin+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">Edit</button>'
-      +(!isMe ? '<button onclick="deleteLoginUser(\''+pin+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">✕</button>' : '')
-    +'</div>';
-  }).join('');
-}
-
-function setLumRole(role, btn){
-  lumSelRole = role;
-  document.getElementById('lumRole').value = role;
-  ['user','admin','carservice'].forEach(function(r){
-    const b = document.getElementById('lumRole'+r.charAt(0).toUpperCase()+r.slice(1));
-    if(!b) return;
-    if(r === role){
-      b.style.borderColor = '#c8f230'; b.style.background = '#1a2e00'; b.style.color = '#c8f230';
-    } else {
-      b.style.borderColor = 'var(--border)'; b.style.background = 'none'; b.style.color = 'var(--muted)';
-    }
-  });
-}
-
-function addLoginUser(){
-  lumSelRole = 'user';
-  document.getElementById('loginUserModalTitle').textContent = '🔐 Add Login User';
-  document.getElementById('lumName').value = '';
-  document.getElementById('lumPin').value = '';
-  document.getElementById('lumOldPin').value = '';
-  document.getElementById('lumStatus').textContent = '';
-  setLumRole('user', null);
-  document.getElementById('loginUserModal').classList.add('active');
-}
-
-function editLoginUser(pin){
-  const user = PINS[pin];
-  if(!user) return;
-  lumSelRole = user.role;
-  document.getElementById('loginUserModalTitle').textContent = '✏️ Edit Login User';
-  document.getElementById('lumName').value = user.name;
-  document.getElementById('lumPin').value = pin;
-  document.getElementById('lumOldPin').value = pin;
-  document.getElementById('lumStatus').textContent = '';
-  setLumRole(user.role, null);
-  document.getElementById('loginUserModal').classList.add('active');
-}
-
-function saveLoginUser(){
-  const name = document.getElementById('lumName').value.trim();
-  const pin = document.getElementById('lumPin').value.trim();
-  const oldPin = document.getElementById('lumOldPin').value.trim();
-  const role = document.getElementById('lumRole').value || 'user';
-  const status = document.getElementById('lumStatus');
-
-  if(!name){ status.style.color='#f23060'; status.textContent='Enter a name.'; return; }
-  if(!/^\d{4}$/.test(pin)){ status.style.color='#f23060'; status.textContent='PIN must be exactly 4 digits.'; return; }
-  if(PINS[pin] && pin !== oldPin){
-    status.style.color='#f23060'; status.textContent='That PIN is already used by '+PINS[pin].name+'.'; return;
-  }
-  if(oldPin && oldPin !== pin) delete PINS[oldPin];
-  PINS[pin] = { role, name };
-  savePINS(PINS);
-  closeModal('loginUserModal');
-  renderLoginUserRows();
-  showBackupReminder('Login users updated');
-}
-
-function deleteLoginUser(pin){
-  const user = PINS[pin];
-  if(!user) return;
-  if(user.name === currentUser){ alert('You can\'t delete your own login.'); return; }
-  if(!confirm('Remove login access for '+user.name+'? Their data stays, they just can\'t log in.')) return;
-  delete PINS[pin];
-  savePINS(PINS);
-  renderLoginUserRows();
 }
 
 // ══ CASH FLOW ══

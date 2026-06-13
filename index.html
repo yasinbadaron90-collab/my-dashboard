@@ -1666,35 +1666,6 @@ function _showUpdateToast(worker){
       <div id="restoreStatus" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:14px;letter-spacing:1px;"></div>
     </div>
 
-    <!-- BIOMETRIC -->
-    <div style="background:#0a1a0e;border:1px solid #1a4028;border-radius:8px;padding:16px 18px;margin-bottom:12px;" id="biometricSettingsSection">
-      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
-        <span style="font-size:22px;line-height:1;">👆</span>
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;margin-bottom:3px;">Fingerprint Login</div>
-          <div id="biometricSettingsStatus" style="font-size:10px;color:#3a6040;line-height:1.6;">Loading…</div>
-        </div>
-      </div>
-      <div id="biometricSettingsBtn"></div>
-    </div>
-
-    <!-- CHANGE PIN -->
-    <div style="background:#0a0e1a;border:1px solid #1a2040;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
-      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
-        <span style="font-size:22px;line-height:1;">🔑</span>
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#7090f0;margin-bottom:3px;">Change PIN</div>
-          <div style="font-size:10px;color:#3a4a80;line-height:1.6;">Update your dashboard access PIN. Current PIN is required.</div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-        <input type="password" id="pinNew" maxlength="4" placeholder="New PIN (4 digits)" style="background:#0d1228;border:1px solid #1a2040;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;border-radius:4px;outline:none;"/>
-        <input type="password" id="pinConfirm" maxlength="4" placeholder="Confirm PIN" style="background:#0d1228;border:1px solid #1a2040;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;border-radius:4px;outline:none;"/>
-      </div>
-      <button onclick="changePin()" style="width:100%;padding:10px;background:#0d1228;border:1px solid #1a2040;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🔑 Update PIN</button>
-      <div id="pinChangeStatus" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:14px;letter-spacing:1px;"></div>
-    </div>
-
     <!-- ANTHROPIC API KEY — used by Bank Feed Companion to read PDFs + photos -->
     <div style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
       <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
@@ -1780,21 +1751,6 @@ function _showUpdateToast(worker){
       <div id="passengerRows" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
-    <!-- MANAGE LOGIN USERS -->
-    <div style="background:#0a0e1a;border:1px solid #1a2040;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;">
-        <div style="display:flex;align-items:flex-start;gap:12px;">
-          <span style="font-size:22px;line-height:1;">🔐</span>
-          <div>
-            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#7090f0;margin-bottom:3px;">Login Users</div>
-            <div style="font-size:10px;color:#3a4a80;line-height:1.6;">People who can log in — PIN, name & role. Separate from passengers.</div>
-          </div>
-        </div>
-        <button onclick="addLoginUser()" style="flex-shrink:0;padding:6px 12px;background:#0d1228;border:1px solid #2a3a6a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;white-space:nowrap;">+ Add</button>
-      </div>
-      <div id="loginUserRows" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-
     <!-- CLEAR DATA -->
     <div style="background:#1a0a0a;border:1px solid #3a1010;border-radius:8px;padding:16px 18px;">
       <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
@@ -1826,30 +1782,6 @@ function _showUpdateToast(worker){
     <div class="modal-btns">
       <button class="btn ghost" onclick="closeModal('passengerModal')">Cancel</button>
       <button class="btn primary" onclick="savePassenger()">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- LOGIN USER EDIT MODAL -->
-<div class="overlay" id="loginUserModal">
-  <div class="modal" style="max-width:360px;">
-    <h2 id="loginUserModalTitle" style="color:#7090f0;">🔐 Add Login User</h2>
-    <div class="field"><label>Name</label><input type="text" id="lumName" placeholder="e.g. Reza"/></div>
-    <div class="field"><label>PIN (4 digits)</label><input type="password" id="lumPin" maxlength="4" placeholder="e.g. 5678"/></div>
-    <div class="field">
-      <label>Role</label>
-      <div style="display:flex;gap:8px;margin-top:4px;">
-        <button type="button" id="lumRoleUser" onclick="setLumRole('user',this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border:1px solid #c8f230;background:#1a2e00;color:#c8f230;">Passenger</button>
-        <button type="button" id="lumRoleAdmin" onclick="setLumRole('admin',this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">Admin</button>
-        <button type="button" id="lumRoleCarservice" onclick="setLumRole('carservice',this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">Service</button>
-      </div>
-    </div>
-    <input type="hidden" id="lumRole" value="user"/>
-    <input type="hidden" id="lumOldPin"/>
-    <div id="lumStatus" style="font-size:10px;min-height:14px;margin-top:4px;letter-spacing:1px;"></div>
-    <div class="modal-btns">
-      <button class="btn ghost" onclick="closeModal('loginUserModal')">Cancel</button>
-      <button class="btn primary" onclick="saveLoginUser()">Save</button>
     </div>
   </div>
 </div>
