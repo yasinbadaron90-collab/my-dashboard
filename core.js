@@ -504,8 +504,7 @@ const EXTERNAL_BORROW_KEY= 'yb_external_borrows_v1';
 })();
 
 
-const PIN_STORE_KEY      = 'yb_pins'; // kept in seedMem only — no longer used for auth
-
+// Auth state — set by loginSuccess (Google Sign-In via firebase-sync.js)
 let currentRole = 'guest';
 let currentUser = null;
 
