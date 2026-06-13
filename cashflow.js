@@ -682,25 +682,6 @@ function openSettings(){
   try { if(typeof refreshDriveStatus === 'function') refreshDriveStatus(); } catch(e){}
 }
 
-function renderPassPinRows(){
-  const container = document.getElementById('passPinRows');
-  if(!container) return;
-  const passengers = Object.entries(PINS).filter(function(e){ return e[1].role==='user' || e[1].role==='carservice'; });
-  container.innerHTML = passengers.map(function(entry){
-    const pin = entry[0];
-    const user = entry[1];
-    const id = 'pinval_' + pin;
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0d1a10;border:1px solid #1a4028;border-radius:4px;">'
-      + '<span style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--text);letter-spacing:1px;">'+user.name+'</span>'
-      + '<span style="display:flex;align-items:center;gap:8px;">'
-      + '<span id="'+id+'" data-pin="'+pin+'" style="font-family:\'DM Mono\',monospace;font-size:14px;color:#c8f230;letter-spacing:4px;">••••</span>'
-      + '<button onclick="(function(el,btn){if(el.textContent===\'••••\'){el.textContent=el.dataset.pin;btn.textContent=\'Hide\';}else{el.textContent=\'••••\';btn.textContent=\'Show\';}})(document.getElementById(\''+id+'\'),this)" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 7px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">Show</button>'
-      + '</span>'
-      + '</div>';
-  }).join('');
-}
-
-
 function renderPassOptList(){
   // Re-render the statement pane passenger checkboxes dynamically
   const container = document.querySelector('.pane-body .field:last-of-type > div');

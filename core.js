@@ -504,59 +504,10 @@ const EXTERNAL_BORROW_KEY= 'yb_external_borrows_v1';
 })();
 
 
-// PINs are intentionally empty by default. On first launch (no PINs in
-// localStorage) the app shows a setup screen where the user creates the first
-// admin account. Existing installations keep their saved PINs unchanged.
-const PIN_DEFAULTS = {};
+const PIN_STORE_KEY      = 'yb_pins'; // kept in seedMem only — no longer used for auth
 
-function loadPINS(){
-  try {
-    const saved = JSON.parse(lsGet(PIN_STORE_KEY));
-    return saved || PIN_DEFAULTS;
-  } catch(e){ return PIN_DEFAULTS; }
-}
-function savePINS(pins){ lsSet(PIN_STORE_KEY, JSON.stringify(pins)); }
-
-let PINS = loadPINS();
 let currentRole = 'guest';
 let currentUser = null;
-let pinEntry = "";
-
-function pinPress(n){if(pinEntry.length>=4)return;pinEntry+=String(n);updateDots();if(pinEntry.length===4)setTimeout(checkPin,150);}
-function pinDel(){pinEntry=pinEntry.slice(0,-1);updateDots();document.getElementById("pinError").textContent="";}
-function updateDots(){for(let i=0;i<4;i++){const d=document.getElementById("dot"+i);if(i<pinEntry.length){d.style.background="#c8f230";d.style.borderColor="#c8f230";}else{d.style.background="transparent";d.style.borderColor="#333";}}}
-document.addEventListener('keydown',function(e){
-  const screen=document.getElementById('loginScreen');
-  if(!screen||screen.style.display==='none')return;
-  if(e.key>='0'&&e.key<='9'){pinPress(parseInt(e.key));}
-  else if(e.key==='Backspace'){pinDel();}
-});
-function checkPin(){
-  const match = PINS[pinEntry];
-  if(match){
-    currentRole = match.role;
-    currentUser = match.name;
-    const s=document.getElementById("loginScreen");
-    s.style.opacity="0";
-    setTimeout(function(){
-      s.style.display="none";
-      applyRole();
-      document.getElementById('drawerLogoutBtn').style.display = 'flex';
-      // v101.1: launch menu replaced by Home page (Step 10). applyRole now
-      // lands admin on page-home directly. Old call removed:
-    },400);
-  } else {
-    document.getElementById("pinError").textContent="Incorrect PIN. Try again.";
-    pinEntry="";updateDots();
-    const dots=document.getElementById("pinDots");
-    dots.style.transition="transform 0.1s";
-    dots.style.transform="translateX(10px)";
-    setTimeout(function(){dots.style.transform="translateX(-10px)";},100);
-    setTimeout(function(){dots.style.transform="translateX(0)";},200);
-  }
-}
-
-
 
 function loginSuccess(name, role){
   currentRole = role;
@@ -697,21 +648,12 @@ function logout(){
 
   currentRole = 'guest';
   currentUser = null;
-  pinEntry = '';
-  if(typeof updateDots === 'function'){ try { updateDots(); } catch(e){} }
-  var pinErr = document.getElementById('pinError');
-  if(pinErr) pinErr.textContent = '';
   // Clear cloud login form
   var em = document.getElementById('loginEmail'); if(em) em.value = '';
   var pw = document.getElementById('loginPassword'); if(pw) pw.value = '';
   var le = document.getElementById('loginError'); if(le) le.textContent = '';
   var ls = document.getElementById('loginStatus'); if(ls) ls.textContent = '';
   document.getElementById('drawerLogoutBtn').style.display = 'none';
-  // Show Google login section, hide PIN
-  var gSection = document.getElementById('googleLoginSection');
-  var pinSect  = document.getElementById('pinSection');
-  if(gSection) gSection.style.display = 'block';
-  if(pinSect)  pinSect.style.display  = 'none';
   // Restore hamburger button
   var hbg = document.getElementById('hbgBtn');
   if(hbg) hbg.style.display = '';

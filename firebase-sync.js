@@ -187,13 +187,6 @@ function fbSignOut(){
       screen.style.display = 'flex';
       screen.style.opacity = '1';
     }
-    // Hide PIN, show Google section
-    var pinSection = document.getElementById('pinSection');
-    var gSection   = document.getElementById('googleLoginSection');
-    var bioSection = document.getElementById('biometricSection');
-    if(pinSection) pinSection.style.display = 'none';
-    if(gSection)   gSection.style.display   = 'block';
-    if(bioSection) bioSection.style.display = 'none';
   });
 }
 
