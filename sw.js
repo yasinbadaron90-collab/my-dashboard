@@ -17,7 +17,7 @@
 // To force every client to upgrade: bump CACHE_VERSION below.
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'v134a';
+const CACHE_VERSION = 'v135';
 const SHELL_CACHE   = 'my-dashboard-shell-' + CACHE_VERSION;
 const CDN_CACHE     = 'my-dashboard-cdn-'   + CACHE_VERSION;
 
@@ -31,7 +31,6 @@ const SHELL_ASSETS = [
   '/my-dashboard/index.html',
   '/my-dashboard/app.css',
   '/my-dashboard/core.js',
-  '/my-dashboard/db.js',
   '/my-dashboard/passengers.js',
   '/my-dashboard/money.js',
   '/my-dashboard/odin.js',
@@ -40,7 +39,6 @@ const SHELL_ASSETS = [
   '/my-dashboard/cashflow.js',
   '/my-dashboard/settings.js',
   '/my-dashboard/borrow.js',
-  '/my-dashboard/sync.js',
   '/my-dashboard/prayer.js',
   '/my-dashboard/maint.js',
   '/my-dashboard/odin_chat.js',
@@ -50,8 +48,6 @@ const SHELL_ASSETS = [
   '/my-dashboard/info.js',
   '/my-dashboard/instalments.js',
   '/my-dashboard/routine.js',
-  '/my-dashboard/supabase-client.js',
-  '/my-dashboard/cloud-sync.js',
   '/my-dashboard/moneyin.js',
   '/my-dashboard/spend.js',
   '/my-dashboard/move.js',
