@@ -799,3 +799,19 @@ function renderOdinInsights(tabId){
     return '<div class="odin-insight-card '+i.cls+'">'+i.text+'</div>';
   }).join('');
 }
+
+// ── Odin panel toggle (Savings/Carpool/Cash Flow/Money Owed/Cars bars) ──
+function toggleOdinPanel(tabId){
+  var panel = document.getElementById('odinPanel-'+tabId);
+  var chev  = document.getElementById('odinChev-'+tabId);
+  var sub   = document.getElementById('odinSub-'+tabId);
+  if(!panel) return;
+  var opening = !panel.classList.contains('open');
+  panel.classList.toggle('open', opening);
+  if(chev) chev.classList.toggle('open', opening);
+  if(sub) sub.textContent = opening ? 'Tap to close' : 'Tap to open';
+  if(opening){
+    try{ renderOdinInsights(tabId); }catch(e){ console.warn('renderOdinInsights error', e); }
+  }
+}
+window.toggleOdinPanel = toggleOdinPanel;
