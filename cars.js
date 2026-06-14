@@ -1415,6 +1415,29 @@ function checkReminders(){
     });
   }catch(e){}
 
+  // School events - webinars, assignments, quizzes, exams
+  try{
+    var schoolEvents = JSON.parse(lsGet('yasin_school_events_v1')||'[]');
+    var schoolDone = JSON.parse(lsGet('yasin_school_done_v1')||'[]');
+    var typeIcons2 = { webinar:'📡', assignment:'📝', quiz:'🧪', exam:'📋' };
+    schoolEvents.forEach(function(ev){
+      if(!ev.date) return;
+      if(schoolDone.indexOf(ev.id) > -1) return;
+      var diff3 = daysUntil(ev.date);
+      if(diff3 === null || diff3 < 0 || diff3 > 7) return;
+      var icon2 = typeIcons2[ev.type] || '📅';
+      var label2 = ev.title || ev.type || 'Event';
+      var subj2 = ev.subject || ev.subjects || '';
+      var timeStr2 = ev.time ? ' · ' + ev.time : '';
+      var level2 = diff3 <= 2 ? 'red' : 'amber';
+      var msg2;
+      if(diff3 === 0) msg2 = subj2 + ' <strong style="color:#f23060;">' + label2 + ' is TODAY</strong>' + timeStr2;
+      else if(diff3 === 1) msg2 = subj2 + ' ' + label2 + ' is <strong style="color:#f23060;">TOMORROW</strong>' + timeStr2;
+      else msg2 = subj2 + ' ' + label2 + ' in <strong style="color:#f2a830;">' + diff3 + ' days</strong> (' + ev.date + ')' + timeStr2;
+      alerts.push({ icon: icon2, msg: msg2, level: level2 });
+    });
+  }catch(e){}
+
   if(alerts.length === 0) return;
 
   // Check if snoozed/dismissed — stored value is a date string; hide until that date passes
