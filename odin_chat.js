@@ -311,6 +311,11 @@ function odinChat(text){
     +'Speak in Yasin\'s voice — direct, no waffle. Use R for South African Rand. '
     +'If Yasin asks about affordability, use pocket balances (not bank baselines which are normally R0). '
     +'The pocket-first model means money lives in pockets; banks are just doorways.\n\n'
+    +'CAR OWNERSHIP (important context):\n'
+    +'- Toyota Corolla CAA 643-241 = YASIN\'S car (his daily driver), funded from Ee90 pocket\n'
+    +'- Kia Picanto CAA 189-565 = NURJAHAN\'S car (Yasin\'s wife), also funded from Ee90 pocket\n'
+    +'- Hyundai Getz CAA 353-290 = MOTHER-IN-LAW\'S car, Nurjahan pays for it, record-only in app (no pocket deduction ever)\n'
+    +'- Ee90 _KiA picaNto pocket = funds both Yasin\'s Toyota AND Nurjahan\'s Kia (the pocket name is misleading — ignore it)\n\n'
     +'LIVE DATA:\n'+_odinBuildContext();
 
   var messages = _odinHistory.slice(); // include current user message
