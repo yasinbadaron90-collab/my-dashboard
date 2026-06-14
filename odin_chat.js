@@ -183,6 +183,10 @@ function _odinBuildContext(){
   return ctx.join('\n');
 }
 
+// ── Cloudflare Worker proxy URL (replaces direct Anthropic call to avoid CORS)
+// After deploying cf-worker.js to Cloudflare, paste your worker URL here:
+var ODIN_PROXY_URL = 'https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev';
+
 // ── Main chat handler ─────────────────────────────────────────────────────────
 function odinChat(text){
   if(!text || !text.trim()) return;
@@ -193,7 +197,12 @@ function odinChat(text){
   var apiKey = (typeof bfGetApiKey === 'function') ? bfGetApiKey() : lsGet('yb_bf_api_key_v1')||'';
   if(!apiKey){
     appendOdinMsg('user', escHtml(text));
-    appendOdinMsg('assistant', '🔑 No API key set.<br><br>Go to <b>Settings → Bank Feed AI Key</b> and paste your Anthropic API key. Get one free at <a href="https://console.anthropic.com" target="_blank" style="color:#c8f230;">console.anthropic.com</a>');
+    appendOdinMsg('assistant', '🔑 No API key set.<br><br>Go to <b>Settings → Bank Feed AI Key</b> and paste your Anthropic API key. Get one free at <a href="https://console.anthropic.com" target="_blank" style="color:#c8f230;">console.anthropic.com</a><br><br>Also make sure the Cloudflare Worker is deployed and <b>ODIN_PROXY_URL</b> is set in odin_chat.js.');
+    return;
+  }
+  if(!ODIN_PROXY_URL || ODIN_PROXY_URL.includes('YOUR-WORKER')){
+    appendOdinMsg('user', escHtml(text));
+    appendOdinMsg('assistant', '⚙️ Proxy not configured yet.<br><br>Deploy <b>cf-worker.js</b> to Cloudflare Workers, then paste your worker URL into <b>ODIN_PROXY_URL</b> in odin_chat.js.');
     return;
   }
 
@@ -221,9 +230,12 @@ function odinChat(text){
 
   var messages = _odinHistory.slice(); // include current user message
 
-  fetch('https://api.anthropic.com/v1/messages', {
+  fetch(ODIN_PROXY_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': apiKey
+    },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
