@@ -266,9 +266,16 @@ function _bfCallAI(){
     { type: 'text', text: userText }
   ];
 
-  fetch('https://api.anthropic.com/v1/messages', {
+  var proxyUrl = (typeof ODIN_PROXY_URL !== 'undefined' && ODIN_PROXY_URL && !ODIN_PROXY_URL.includes('YOUR-WORKER'))
+    ? ODIN_PROXY_URL : null;
+
+  fetch(proxyUrl || 'https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: {
+    headers: proxyUrl ? {
+      'Content-Type': 'application/json',
+      'X-Api-Key': apiKey,
+      'X-Anthropic-Beta': 'pdfs-2024-09-25'
+    } : {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
