@@ -4,18 +4,63 @@
 //   odinChat(text)      odinChatAsk(text)    appendOdinMsg(role, html)
 
 // ── Conversation history (session-only) ──────────────────────────────────────
-var _odinHistory = [];  // [{role:'user'|'assistant', content:'...'}]
+var _odinHistory = [];  // [{role:'user'|'assistant', content:'...', html:'...'}]
+
+// -- Save chat history to Firestore --
+function _odinSaveHistory(){
+  try{
+    if(!window._fb || !_fb.db || !_fb.uid) return;
+    var toSave = _odinHistory.slice(-20); // last 20 turns only
+    _fb.db.collection('users').doc(_fb.uid)
+      .collection('odin_chat').doc('history')
+      .set({ turns: toSave, updatedAt: new Date().toISOString() })
+      .catch(function(e){ console.warn('[Odin] save history failed', e); });
+  }catch(e){}
+}
+
+// -- Load chat history from Firestore --
+function _odinLoadHistory(){
+  try{
+    if(!window._fb || !_fb.db || !_fb.uid) return;
+    _fb.db.collection('users').doc(_fb.uid)
+      .collection('odin_chat').doc('history')
+      .get().then(function(doc){
+        if(!doc.exists) return;
+        var data = doc.data();
+        if(!data || !data.turns || !data.turns.length) return;
+        _odinHistory = data.turns;
+        // Render the bubbles
+        var msgs = document.getElementById('aiMessages');
+        if(!msgs) return;
+        var empty = document.getElementById('aiEmptyState');
+        if(empty) empty.remove();
+        _odinHistory.forEach(function(t){
+          appendOdinMsg(t.role, t.html || escHtml(t.content));
+        });
+      }).catch(function(e){ console.warn('[Odin] load history failed', e); });
+  }catch(e){}
+}
 
 // ── Open / close / clear ─────────────────────────────────────────────────────
+var _odinLoaded = false;
 function openAIAssistant(){
   document.getElementById('aiOverlay').classList.add('open');
   setTimeout(function(){ var el=document.getElementById('aiInput'); if(el) el.focus(); }, 300);
+  if(!_odinLoaded){ _odinLoaded = true; _odinLoadHistory(); }
 }
 function closeAIAssistant(){
   document.getElementById('aiOverlay').classList.remove('open');
 }
 function clearAIChat(){
   _odinHistory = [];
+  _odinLoaded = false;
+  try{
+    if(window._fb && _fb.db && _fb.uid){
+      _fb.db.collection('users').doc(_fb.uid)
+        .collection('odin_chat').doc('history')
+        .delete().catch(function(){});
+    }
+  }catch(e){}
   var msgs = document.getElementById('aiMessages');
   if(msgs) msgs.innerHTML = '<div class="ai-empty" id="aiEmptyState">'
     +'<div class="ai-empty-icon">🧠</div>'
@@ -376,10 +421,17 @@ function odinChat(text){
       .replace(/\n/g,'<br>');
 
     appendOdinMsg('assistant', html);
-    _odinHistory.push({role:'assistant', content:reply});
+    // Store html on the user message too (already pushed without html)
+    if(_odinHistory.length > 0 && _odinHistory[_odinHistory.length-1].role === 'user'){
+      _odinHistory[_odinHistory.length-1].html = escHtml(_odinHistory[_odinHistory.length-1].content);
+    }
+    _odinHistory.push({role:'assistant', content:reply, html:html});
 
     // Keep history at max 20 turns (40 entries) to avoid token bloat
     if(_odinHistory.length > 40) _odinHistory = _odinHistory.slice(-40);
+
+    // Save to Firestore
+    _odinSaveHistory();
 
   }).catch(function(err){
     var el = document.getElementById(thinkId);
