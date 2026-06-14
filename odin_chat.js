@@ -184,7 +184,7 @@ function _odinBuildContext(){
           +(c.lastServiceType?' ('+c.lastServiceType+')':'')
           +(c.serviceKm?' | interval '+c.serviceKm+'km':'')
           +(kmToService!=null?' | '+kmToService+'km until next service':'')
-          +(c.nextServiceDate?' | next service due '+c.nextServiceDate:''));
+          +(c.nextService?' | next service due '+c.nextService:''));
         if(openAdv.length){
           ctx.push('  Open advisories:');
           openAdv.forEach(function(a){
@@ -197,10 +197,22 @@ function _odinBuildContext(){
         if(expenses.length){
           ctx.push('  Recent expenses:');
           expenses.forEach(function(e){
-            ctx.push('  - '+e.date+' R'+e.amount+' '+e.description);
+            // field names: desc (not description), amt (not amount)
+            ctx.push('  - '+(e.date||'?')+' R'+(e.amt||e.amount||0)+' '+(e.desc||e.description||e.category||''));
           });
         }
       });
+    }
+  }catch(e){}
+
+  // ── ODIN ALERTS (service reminders, upcoming debits etc) ──
+  try{
+    if(typeof buildOdinLaunchAlerts === 'function'){
+      var alerts = buildOdinLaunchAlerts();
+      if(alerts && alerts.length){
+        ctx.push('\n--- ACTIVE ODIN ALERTS ---');
+        alerts.forEach(function(a){ ctx.push('['+a.level.toUpperCase()+'] '+a.text); });
+      }
     }
   }catch(e){}
 
