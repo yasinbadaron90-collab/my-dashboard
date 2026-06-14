@@ -1082,3 +1082,12 @@ async function hardResetServiceWorker(){
   }
 }
 window.hardResetServiceWorker = hardResetServiceWorker;
+
+// ── Clear All Reminder Snoozes ──
+function clearAllSnoozes(){
+  lsSet('yb_reminder_dismissed_v1', '');
+  lsSet('yb_school_reminder_dismissed_v1', '');
+  if(typeof checkReminders === 'function') checkReminders();
+  alert('All snoozes cleared — reminders will show again.');
+}
+window.clearAllSnoozes = clearAllSnoozes;

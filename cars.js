@@ -1415,6 +1415,8 @@ function checkReminders(){
     });
   }catch(e){}
 
+  var schoolAlerts = [];
+
   // School events - webinars, assignments, quizzes, exams
   try{
     var schoolEvents = JSON.parse(lsGet('yasin_school_events_v1')||'[]');
@@ -1434,17 +1436,26 @@ function checkReminders(){
       if(diff3 === 0) msg2 = subj2 + ' <strong style="color:#f23060;">' + label2 + ' is TODAY</strong>' + timeStr2;
       else if(diff3 === 1) msg2 = subj2 + ' ' + label2 + ' is <strong style="color:#f23060;">TOMORROW</strong>' + timeStr2;
       else msg2 = subj2 + ' ' + label2 + ' in <strong style="color:#f2a830;">' + diff3 + ' days</strong> (' + ev.date + ')' + timeStr2;
-      alerts.push({ icon: icon2, msg: msg2, level: level2 });
+      schoolAlerts.push({ icon: icon2, msg: msg2, level: level2 });
     });
   }catch(e){}
 
-  if(alerts.length === 0) return;
-
-  // Check if snoozed/dismissed — stored value is a date string; hide until that date passes
-  var dismissKey = 'yb_reminder_dismissed_v1';
-  var dismissed = lsGet(dismissKey) || '';
   var todayStr = today.toISOString().split('T')[0];
-  if(dismissed && dismissed >= todayStr) return;
+
+  // Separate snooze keys for cars vs school
+  var carDismissed = lsGet('yb_reminder_dismissed_v1') || '';
+  var schoolDismissed = lsGet('yb_school_reminder_dismissed_v1') || '';
+
+  var visibleAlerts = [];
+  if(!carDismissed || carDismissed < todayStr) visibleAlerts = visibleAlerts.concat(alerts);
+  if(!schoolDismissed || schoolDismissed < todayStr) visibleAlerts = visibleAlerts.concat(schoolAlerts);
+
+  if(visibleAlerts.length === 0) return;
+
+  // Determine which types are visible for snooze label
+  var hasCars = alerts.length > 0 && (!carDismissed || carDismissed < todayStr);
+  var hasSchool = schoolAlerts.length > 0 && (!schoolDismissed || schoolDismissed < todayStr);
+  var totalCount = visibleAlerts.length;
 
   var old = document.getElementById('reminderBanner');
   if(old) old.remove();
@@ -1453,7 +1464,7 @@ function checkReminders(){
   banner.id = 'reminderBanner';
   banner.style.cssText = 'position:fixed;top:50px;left:0;right:0;z-index:400;background:#0a0a0a;border-bottom:2px solid #f23060;padding:0;';
 
-  var rows = alerts.map(function(a){
+  var rows = visibleAlerts.map(function(a){
     return '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:0.5px;">'
       +'<span style="font-size:16px;flex-shrink:0;">'+a.icon+'</span>'
       +'<span style="color:var(--text);flex:1;">'+a.msg+'</span>'
@@ -1462,19 +1473,33 @@ function checkReminders(){
 
   function _reminderSnooze(days){
     var d = new Date(); d.setDate(d.getDate()+days);
-    lsSet('yb_reminder_dismissed_v1', d.toISOString().split('T')[0]);
+    var until = d.toISOString().split('T')[0];
+    if(hasCars) lsSet('yb_reminder_dismissed_v1', until);
+    if(hasSchool) lsSet('yb_school_reminder_dismissed_v1', until);
     var b = document.getElementById('reminderBanner'); if(b) b.remove();
   }
+  function _reminderSnoozeCars(days){
+    var d = new Date(); d.setDate(d.getDate()+days);
+    lsSet('yb_reminder_dismissed_v1', d.toISOString().split('T')[0]);
+    checkReminders();
+  }
+  function _reminderSnoozeSchool(days){
+    var d = new Date(); d.setDate(d.getDate()+days);
+    lsSet('yb_school_reminder_dismissed_v1', d.toISOString().split('T')[0]);
+    checkReminders();
+  }
   window._reminderSnooze = _reminderSnooze;
+  window._reminderSnoozeCars = _reminderSnoozeCars;
+  window._reminderSnoozeSchool = _reminderSnoozeSchool;
 
   banner.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#1a0000;border-bottom:1px solid #3a0000;flex-wrap:wrap;gap:6px;">'
-      +'<span style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#f23060;font-weight:700;">⚠ '+alerts.length+' Reminder'+(alerts.length>1?'s':'')+'</span>'
+      +'<span style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#f23060;font-weight:700;">⚠ '+totalCount+' Reminder'+(totalCount>1?'s':'')+'</span>'
       +'<div style="display:flex;gap:6px;align-items:center;">'
         +'<button onclick="_reminderSnooze(1)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:10px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">😴 1 day</button>'
         +'<button onclick="_reminderSnooze(3)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:10px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">3 days</button>'
         +'<button onclick="_reminderSnooze(7)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:10px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">1 week</button>'
-        +'<button onclick="lsSet(\'yb_reminder_dismissed_v1\', new Date().toISOString().split(\'T\')[0]); document.getElementById(\'reminderBanner\').remove()" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#f23060;font-size:11px;padding:3px 10px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">✕ today</button>'
+        +'<button onclick="_reminderSnooze(0)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#f23060;font-size:11px;padding:3px 10px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">✕ today</button>'
       +'</div>'
     +'</div>'
     +rows;
