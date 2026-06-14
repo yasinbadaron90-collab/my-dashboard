@@ -100,14 +100,23 @@ function _odinBuildContext(){
   try{
     var cf = JSON.parse(lsGet('yb_cashflow_v1')||'[]');
     if(cf.length){
-      var now = new Date();
-      var mk = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-      var thisMo = cf.filter(function(e){return (e.date||'').startsWith(mk);});
-      var inc=0,exp=0;
-      thisMo.forEach(function(e){ if(e.type==='income') inc+=e.amount; else exp+=e.amount; });
-      ctx.push('\n--- CASH FLOW ---');
-      ctx.push('This month ('+mk+'): income R'+inc.toFixed(2)+', expenses R'+exp.toFixed(2)+', net R'+(inc-exp).toFixed(2));
-      ctx.push('Last 20 entries:');
+      // Per-month totals
+      var monthMap = {};
+      cf.forEach(function(e){
+        var mk = (e.date||'').slice(0,7);
+        if(!mk) return;
+        if(!monthMap[mk]) monthMap[mk] = {income:0, expenses:0, entries:[]};
+        if(e.type==='income') monthMap[mk].income += e.amount;
+        else monthMap[mk].expenses += e.amount;
+        monthMap[mk].entries.push(e);
+      });
+      ctx.push('\n--- CASH FLOW (monthly breakdown) ---');
+      Object.keys(monthMap).sort().forEach(function(mk){
+        var mo = monthMap[mk];
+        var net = mo.income - mo.expenses;
+        ctx.push(mk+': income R'+mo.income.toFixed(2)+', expenses R'+mo.expenses.toFixed(2)+', net '+(net>=0?'+':'')+net.toFixed(2));
+      });
+      ctx.push('\nLast 20 entries:');
       cf.slice(-20).forEach(function(e){
         ctx.push('  '+(e.type==='income'?'+':'-')+'R'+e.amount+' '+e.label+' '+e.date+(e.account?' ['+e.account+']':''));
       });
