@@ -1417,11 +1417,11 @@ function checkReminders(){
 
   if(alerts.length === 0) return;
 
-  // Check if dismissed today — don't nag again until tomorrow
+  // Check if snoozed/dismissed — stored value is a date string; hide until that date passes
   var dismissKey = 'yb_reminder_dismissed_v1';
   var dismissed = lsGet(dismissKey) || '';
   var todayStr = today.toISOString().split('T')[0];
-  if(dismissed === todayStr) return;
+  if(dismissed && dismissed >= todayStr) return;
 
   var old = document.getElementById('reminderBanner');
   if(old) old.remove();
