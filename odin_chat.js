@@ -241,6 +241,29 @@ function _odinBuildContext(){
     }
   }catch(e){}
 
+  // -- SCHOOL EVENTS / SCHEDULE --
+  try{
+    var schoolEvents = JSON.parse(lsGet('yasin_school_events_v1')||'[]');
+    var schoolDone = JSON.parse(lsGet('yasin_school_done_v1')||'[]');
+    var today2 = new Date(); today2.setHours(0,0,0,0);
+    var upcoming = schoolEvents.filter(function(ev){
+      if(!ev.date) return false;
+      var d = new Date(ev.date+'T00:00:00');
+      return d >= today2;
+    }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+    if(upcoming.length){
+      ctx.push('\n--- SCHOOL SCHEDULE (upcoming events) ---');
+      upcoming.forEach(function(ev){
+        var done = schoolDone.indexOf(ev.id) > -1;
+        var doneStr = done ? ' [DONE]' : '';
+        var timeStr = ev.time ? ' at '+ev.time : '';
+        var subj = ev.subject || ev.subjects || '';
+        var label = ev.title || ev.type || 'Event';
+        ctx.push((ev.type||'event').toUpperCase()+': '+label+' - '+subj+' - '+ev.date+timeStr+doneStr);
+      });
+    }
+  }catch(e){}
+
   // ── PRAYER ──
   try{
     var prayer = JSON.parse(lsGet('yb_prayer_v1')||'{}');
