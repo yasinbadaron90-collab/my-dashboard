@@ -65,55 +65,67 @@ function _odinBuildContext(){
   ctx.push('Today: '+today);
   ctx.push('User: Yasin Badaron (admin)');
 
-  // Pockets / savings
+  // ── POCKETS / SAVINGS ──
   try{
     var funds = JSON.parse(lsGet('yasin_funds_v16')||'[]');
     if(funds.length){
       ctx.push('\n--- POCKETS / SAVINGS ---');
       funds.forEach(function(f){
-        var total = (f.deposits||[]).reduce(function(s,d){
-          if(f.isExpense){
-            return d.txnType==='in' ? s+d.amount : s-d.amount;
-          }
-          return s+d.amount;
+        var bal = (f.deposits||[]).reduce(function(s,d){
+          return f.isExpense ? (d.txnType==='in'?s+d.amount:s-d.amount) : s+d.amount;
         },0);
-        ctx.push(f.emoji+' '+f.name+': R'+total.toFixed(2)+(f.goal?' (goal R'+f.goal+')':'')+(f.isExpense?' [expense fund]':''));
+        ctx.push(f.emoji+' '+f.name+': R'+bal.toFixed(2)
+          +(f.goal?' (goal R'+f.goal+')':'')
+          +(f.isExpense?' [expense fund]':'')
+          +(f.weekly&&!f.isExpense?' saving R'+f.weekly+(f.targetType==='monthly'?'/mo':'/wk'):''));
+        // last 5 transactions
+        var recent=(f.deposits||[]).slice(-5);
+        recent.forEach(function(d){
+          var sign=f.isExpense?(d.txnType==='out'?'-':'+'):'+';
+          ctx.push('  '+d.date+' '+sign+'R'+d.amount+(d.note?' ('+d.note+')':''));
+        });
       });
     }
   }catch(e){}
 
-  // Bank baselines
+  // ── BANK BASELINES ──
   try{
     var recon = JSON.parse(lsGet('yb_recon_balances_v1')||'{}');
-    ctx.push('\n--- BANK BASELINES (doorway model — normally R0) ---');
+    ctx.push('\n--- BANK BASELINES (pocket-first model — normally R0) ---');
     ctx.push('FNB: R'+(recon.fnb||0)+', TymeBank: R'+(recon.tyme||0)+', Cash: R'+(recon.cash||0));
-    ctx.push('Note: pockets are source of truth. Banks are doorways only and should normally show R0.');
+    ctx.push('Pockets = source of truth. Banks = doorways only.');
   }catch(e){}
 
-  // Cash flow (last 30 entries)
+  // ── CASH FLOW ──
   try{
     var cf = JSON.parse(lsGet('yb_cashflow_v1')||'[]');
     if(cf.length){
-      ctx.push('\n--- RECENT CASH FLOW (last 20 entries) ---');
+      var now = new Date();
+      var mk = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+      var thisMo = cf.filter(function(e){return (e.date||'').startsWith(mk);});
+      var inc=0,exp=0;
+      thisMo.forEach(function(e){ if(e.type==='income') inc+=e.amount; else exp+=e.amount; });
+      ctx.push('\n--- CASH FLOW ---');
+      ctx.push('This month ('+mk+'): income R'+inc.toFixed(2)+', expenses R'+exp.toFixed(2)+', net R'+(inc-exp).toFixed(2));
+      ctx.push('Last 20 entries:');
       cf.slice(-20).forEach(function(e){
-        var prefix = e.type==='income'?'+':'-';
-        ctx.push(e.date+' '+prefix+'R'+e.amount+' '+e.label+(e.account?' ['+e.account+']':''));
+        ctx.push('  '+(e.type==='income'?'+':'-')+'R'+e.amount+' '+e.label+' '+e.date+(e.account?' ['+e.account+']':''));
       });
     }
   }catch(e){}
 
-  // Carpool — who owes, grand total
+  // ── CARPOOL ──
   try{
     var cpData = JSON.parse(lsGet('yasin_carpool_v4')||'{}');
     var grandTotal=0, unpaid=0;
-    var paxTotals = {};
+    var paxTotals={};
+    var pax = (typeof loadPassengers==='function'&&loadPassengers()) ? loadPassengers().map(function(p){return p.name;}) : ['David','Lezaun','Shireen'];
     Object.values(cpData).forEach(function(month){
       Object.values(month).forEach(function(day){
         if(typeof day!=='object') return;
-        ['David','Lezaun','Shireen'].forEach(function(p){
+        pax.forEach(function(p){
           if(!day[p]||typeof day[p]!=='object') return;
-          var amt=day[p].amt||0;
-          var paid=day[p].paid||false;
+          var amt=day[p].amt||0, paid=day[p].paid||false;
           grandTotal+=amt;
           if(!paid&&amt>0) unpaid+=amt;
           if(!paxTotals[p]) paxTotals[p]={total:0,owing:0};
@@ -123,59 +135,111 @@ function _odinBuildContext(){
       });
     });
     ctx.push('\n--- CARPOOL ---');
-    ctx.push('Grand total earned: R'+grandTotal.toFixed(2)+', Outstanding: R'+unpaid.toFixed(2));
+    ctx.push('All time earned: R'+grandTotal.toFixed(2)+', Outstanding: R'+unpaid.toFixed(2));
     Object.keys(paxTotals).forEach(function(p){
-      ctx.push(p+': total R'+paxTotals[p].total.toFixed(2)+', owes R'+paxTotals[p].owing.toFixed(2));
+      ctx.push(p+': total R'+paxTotals[p].total.toFixed(2)+', currently owes R'+paxTotals[p].owing.toFixed(2));
     });
   }catch(e){}
 
-  // Borrowed / Money Owed
+  // ── MONEY OWED (BORROWED) ──
   try{
     var borrows = JSON.parse(lsGet('yb_borrow_data_v1')||'[]');
-    if(borrows.length){
-      ctx.push('\n--- MONEY OWED (BORROWED) ---');
-      borrows.forEach(function(b){
-        if(b.paid) return;
-        var repaid=(b.entries||[]).filter(function(e){return e.type==='repay';}).reduce(function(s,e){return s+e.amount;},0);
-        ctx.push(b.name+' owes R'+((b.amount||0)-repaid).toFixed(2)+' (originally R'+(b.amount||0)+')');
-      });
-    }
+    var active = borrows.filter(function(b){return !b.paid;});
+    ctx.push('\n--- MONEY OWED ---');
+    if(!active.length){ ctx.push('No active loans.'); }
+    else{ active.forEach(function(b){
+      var repaid=(b.entries||[]).filter(function(e){return e.type==='repay';}).reduce(function(s,e){return s+e.amount;},0);
+      ctx.push(b.name+' owes R'+((b.amount||0)-repaid).toFixed(2)+' (lent R'+(b.amount||0)+', repaid R'+repaid.toFixed(2)+')'+(b.reason?' for '+b.reason:''));
+    });}
   }catch(e){}
 
-  // Instalments
+  // ── INSTALMENTS ──
   try{
     var inst = JSON.parse(lsGet('yb_instalments_v1')||'[]');
     if(inst.length){
       ctx.push('\n--- INSTALMENTS ---');
       inst.forEach(function(p){
-        var paidMonths=(p.paid||[]).length;
-        var total=p.months||0;
-        ctx.push(p.name+': R'+p.amt+'/month, '+paidMonths+'/'+total+' paid, debit day '+p.debitDay+(p.serviceFee?' (+R'+p.serviceFee+' fee)':''));
+        var paidMo=(p.paid||[]).length, total=p.months||0;
+        var remaining=total-paidMo;
+        ctx.push(p.name+': R'+p.amt+(p.serviceFee?'+R'+p.serviceFee+' fee':'')+'/month'
+          +', debit day '+p.debitDay
+          +', '+paidMo+'/'+total+' paid, '+remaining+' months remaining'
+          +(p.fundingPocketId?' funded from pocket '+p.fundingPocketId:''));
       });
     }
   }catch(e){}
 
-  // Cars
+  // ── CARS ──
   try{
-    var cars = JSON.parse(lsGet('yb_cars_v2')||'[]');
+    var cars = JSON.parse(lsGet('yasin_cars_v1')||'[]');
     if(cars.length){
       ctx.push('\n--- CARS ---');
       cars.forEach(function(c){
-        var openAdv=(c.advisories||[]).filter(function(a){return a.status==='open';}).length;
-        ctx.push((c.name||'Car')+' ('+c.plate+'): '+c.km+'km'+
-          (c.lastServiceDate?' last service '+c.lastServiceDate:'')+(openAdv?' — '+openAdv+' open advisor'+(openAdv!==1?'ies':'y'):''));
+        var openAdv=(c.advisories||[]).filter(function(a){return a.status==='open';});
+        var nextServiceKm = (c.lastServiceKm&&c.serviceKm) ? (Number(c.lastServiceKm)+Number(c.serviceKm)) : null;
+        var kmToService = (nextServiceKm&&c.km) ? nextServiceKm-Number(c.km) : null;
+        ctx.push((c.name||'Car')+' ('+c.plate+')'
+          +': '+c.km+'km'
+          +(c.lastServiceDate?' | last service '+c.lastServiceDate+' at '+c.lastServiceKm+'km':'')
+          +(c.lastServiceType?' ('+c.lastServiceType+')':'')
+          +(c.serviceKm?' | interval '+c.serviceKm+'km':'')
+          +(kmToService!=null?' | '+kmToService+'km until next service':'')
+          +(c.nextServiceDate?' | next service due '+c.nextServiceDate:''));
+        if(openAdv.length){
+          ctx.push('  Open advisories:');
+          openAdv.forEach(function(a){
+            ctx.push('  - ['+a.severity.toUpperCase()+'] '+a.text
+              +(a.source?' ('+a.source+')':'')
+              +(a.bookedFor?' — booked for '+a.bookedFor:''));
+          });
+        }
+        var expenses=(c.expenses||[]).slice(-10);
+        if(expenses.length){
+          ctx.push('  Recent expenses:');
+          expenses.forEach(function(e){
+            ctx.push('  - '+e.date+' R'+e.amount+' '+e.description);
+          });
+        }
       });
     }
   }catch(e){}
 
-  // School
+  // ── SCHOOL ──
   try{
     var subjects = JSON.parse(lsGet('yasin_school_results_v2')||'[]');
     if(subjects.length){
       ctx.push('\n--- SCHOOL (BCom General, final year 2026) ---');
+      var byYear={};
       subjects.forEach(function(s){
-        var final = s.examPct!=null&&s.yearPct!=null ? Math.round(s.yearPct*0.4+s.examPct*0.6) : null;
-        ctx.push(s.code+' '+s.name+': '+s.result+(final!=null?' ('+final+'%)':'')+(s.examDate?' exam '+s.examDate:''));
+        var y=s.year||'Unknown';
+        if(!byYear[y]) byYear[y]=[];
+        var final=s.examPct!=null&&s.yearPct!=null?Math.round(s.yearPct*0.4+s.examPct*0.6):null;
+        byYear[y].push(s.code+' '+s.name+': '+s.result+(final!=null?' ('+final+'%)':'')+(s.examDate?' — exam '+s.examDate:'')+(s.isPlaceholder?' [placeholder]':''));
+      });
+      Object.keys(byYear).sort().forEach(function(y){
+        ctx.push('Year '+y+':');
+        byYear[y].forEach(function(line){ ctx.push('  '+line); });
+      });
+    }
+  }catch(e){}
+
+  // ── PRAYER ──
+  try{
+    var prayer = JSON.parse(lsGet('yb_prayer_v1')||'{}');
+    var streak = prayer.streak||0;
+    var best = prayer.bestStreak||0;
+    ctx.push('\n--- PRAYER ---');
+    ctx.push('Current streak: '+streak+' days, best: '+best+' days');
+  }catch(e){}
+
+  // ── ROUTINE ──
+  try{
+    var tasks = JSON.parse(lsGet('yb_routine_v1')||'[]');
+    if(tasks.length){
+      ctx.push('\n--- ROUTINE TASKS ---');
+      tasks.forEach(function(t){
+        var due = t.lastDone ? 'last done '+t.lastDone : 'never done';
+        ctx.push(t.name+' ('+t.frequency+'): '+due+(t.cost?' R'+t.cost+' each':''));
       });
     }
   }catch(e){}
