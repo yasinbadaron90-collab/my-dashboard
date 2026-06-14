@@ -185,7 +185,7 @@ function _odinBuildContext(){
 
 // ── Cloudflare Worker proxy URL (replaces direct Anthropic call to avoid CORS)
 // After deploying cf-worker.js to Cloudflare, paste your worker URL here:
-var ODIN_PROXY_URL = 'https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev';
+var ODIN_PROXY_URL = 'https://wispy-thunder-bc04.yasin-badaron90.workers.dev';
 
 // ── Main chat handler ─────────────────────────────────────────────────────────
 function odinChat(text){
