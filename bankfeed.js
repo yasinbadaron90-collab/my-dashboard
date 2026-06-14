@@ -60,17 +60,16 @@ function openBankFeed(mode){
   _bf.assignments = {};
   _bf.step = 'upload';
 
-  // Default date range: 13th of last month to 12th of this month (monthly mode)
+  // Default date range: 12th of last month to 12th of this month (FNB cycle)
   var now = new Date();
   var y = now.getFullYear();
   var m = now.getMonth(); // 0-based
-  var thisMonth13 = new Date(y, m, 13);
-  if(now < thisMonth13){
-    // we haven't hit the 13th yet — range is prev month 13 → this month 12
-    var from = new Date(y, m-1, 13);
+  var thisMonth12 = new Date(y, m, 12);
+  if(now <= thisMonth12){
+    var from = new Date(y, m-1, 12);
     var to   = new Date(y, m, 12);
   } else {
-    var from = new Date(y, m, 13);
+    var from = new Date(y, m, 12);
     var to   = new Date(y, m+1, 12);
   }
   _bf.dateFrom = from.toISOString().split('T')[0];
@@ -78,6 +77,19 @@ function openBankFeed(mode){
 
   _bfRender();
   document.getElementById('bankFeedModal').classList.add('active');
+
+  // Update tab button highlight
+  var snapBtn = document.getElementById('bfTabSnap');
+  var monthBtn = document.getElementById('bfTabMonthly');
+  if(snapBtn && monthBtn){
+    if(_bf.mode === 'snap'){
+      snapBtn.style.background = '#0d1a00'; snapBtn.style.color = 'var(--accent)'; snapBtn.style.borderColor = 'var(--accent)';
+      monthBtn.style.background = 'none'; monthBtn.style.color = 'var(--muted)'; monthBtn.style.borderColor = 'var(--border)';
+    } else {
+      monthBtn.style.background = '#0d1a00'; monthBtn.style.color = 'var(--accent)'; monthBtn.style.borderColor = 'var(--accent)';
+      snapBtn.style.background = 'none'; snapBtn.style.color = 'var(--muted)'; snapBtn.style.borderColor = 'var(--border)';
+    }
+  }
 }
 
 function closeBankFeed(){
@@ -283,8 +295,8 @@ function _bfCallAI(){
       'anthropic-beta': 'pdfs-2024-09-25'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
       system: systemPrompt,
       messages: [{ role: 'user', content: messageContent }]
     })
