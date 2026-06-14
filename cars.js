@@ -1437,10 +1437,22 @@ function checkReminders(){
       +'</div>';
   }).join('');
 
+  function _reminderSnooze(days){
+    var d = new Date(); d.setDate(d.getDate()+days);
+    lsSet('yb_reminder_dismissed_v1', d.toISOString().split('T')[0]);
+    var b = document.getElementById('reminderBanner'); if(b) b.remove();
+  }
+  window._reminderSnooze = _reminderSnooze;
+
   banner.innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#1a0000;border-bottom:1px solid #3a0000;">'
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#1a0000;border-bottom:1px solid #3a0000;flex-wrap:wrap;gap:6px;">'
       +'<span style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#f23060;font-weight:700;">⚠ '+alerts.length+' Reminder'+(alerts.length>1?'s':'')+'</span>'
-      +'<button onclick="lsSet(\'yb_reminder_dismissed_v1\', new Date().toISOString().split(\'T\')[0]); document.getElementById(\'reminderBanner\').remove()" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#f23060;font-size:11px;padding:3px 10px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">Dismiss</button>'
+      +'<div style="display:flex;gap:6px;align-items:center;">'
+        +'<button onclick="_reminderSnooze(1)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:10px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">😴 1 day</button>'
+        +'<button onclick="_reminderSnooze(3)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:10px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">3 days</button>'
+        +'<button onclick="_reminderSnooze(7)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:10px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">1 week</button>'
+        +'<button onclick="lsSet(\'yb_reminder_dismissed_v1\', new Date().toISOString().split(\'T\')[0]); document.getElementById(\'reminderBanner\').remove()" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#f23060;font-size:11px;padding:3px 10px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">✕ today</button>'
+      +'</div>'
     +'</div>'
     +rows;
 

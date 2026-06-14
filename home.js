@@ -259,25 +259,25 @@ function _renderHomeZone2Alerts(){
     var tabName = a.tab || '';
     // Build action buttons row (only if alert has actions)
     var actionsHtml = '';
+    var btns = '';
     if(a.actions && a.actions.length){
-      var btns = a.actions.map(function(act, j){
+      btns = a.actions.map(function(act, j){
         var label = _escHtml(act.label || 'Action');
         return '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertAction('+i+','+j+')">'+label+'</button>';
       }).join('');
-      // v112: add snooze + dismiss icon buttons after action buttons
-      btns += '<span class="home-alert-spacer"></span>';
-      btns += '<button class="home-alert-mbtn" title="Snooze" onclick="event.stopPropagation();_homeAlertSnoozeOpen('+i+')">😴</button>';
-      btns += '<button class="home-alert-mbtn" title="Dismiss" onclick="event.stopPropagation();_homeAlertDismiss('+i+')">✕</button>';
-      actionsHtml = '<div class="home-alert-actions">'+btns+'</div>';
-      // Snooze picker (hidden by default, shown by _homeAlertSnoozeOpen)
-      actionsHtml += '<div class="home-alert-snooze-picker" id="snoozePick_'+i+'" style="display:none;">'
-        + '<span class="home-alert-snooze-lbl">Snooze for:</span>'
-        + '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertSnoozeDo('+i+',1)">1 day</button>'
-        + '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertSnoozeDo('+i+',3)">3 days</button>'
-        + '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertSnoozeDo('+i+',7)">1 week</button>'
-        + '<button class="home-alert-mbtn" onclick="event.stopPropagation();_homeAlertSnoozeCancel('+i+')">✕</button>'
-        + '</div>';
     }
+    // Always show snooze + dismiss
+    btns += '<span class="home-alert-spacer"></span>';
+    btns += '<button class="home-alert-mbtn" title="Snooze" onclick="event.stopPropagation();_homeAlertSnoozeOpen('+i+')">😴</button>';
+    btns += '<button class="home-alert-mbtn" title="Dismiss" onclick="event.stopPropagation();_homeAlertDismiss('+i+')">✕</button>';
+    actionsHtml = '<div class="home-alert-actions">'+btns+'</div>';
+    actionsHtml += '<div class="home-alert-snooze-picker" id="snoozePick_'+i+'" style="display:none;">'
+      + '<span class="home-alert-snooze-lbl">Snooze for:</span>'
+      + '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertSnoozeDo('+i+',1)">1 day</button>'
+      + '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertSnoozeDo('+i+',3)">3 days</button>'
+      + '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertSnoozeDo('+i+',7)">1 week</button>'
+      + '<button class="home-alert-mbtn" onclick="event.stopPropagation();_homeAlertSnoozeCancel('+i+')">✕</button>'
+      + '</div>';
     return ''
       + '<div class="home-alert-row" data-idx="'+i+'">'
       +   '<div class="home-alert-main" onclick="_homeAlertClick('+i+')">'
