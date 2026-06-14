@@ -98,27 +98,24 @@ function _odinBuildContext(){
 
   // ── CASH FLOW ──
   try{
-    var cf = JSON.parse(lsGet('yb_cashflow_v1')||'[]');
-    if(cf.length){
-      // Per-month totals
-      var monthMap = {};
-      cf.forEach(function(e){
-        var mk = (e.date||'').slice(0,7);
-        if(!mk) return;
-        if(!monthMap[mk]) monthMap[mk] = {income:0, expenses:0, entries:[]};
-        if(e.type==='income') monthMap[mk].income += e.amount;
-        else monthMap[mk].expenses += e.amount;
-        monthMap[mk].entries.push(e);
-      });
+    var cfData = JSON.parse(lsGet('yb_cashflow_v1')||'{}');
+    var cfKeys = Object.keys(cfData).sort();
+    if(cfKeys.length){
       ctx.push('\n--- CASH FLOW (monthly breakdown) ---');
-      Object.keys(monthMap).sort().forEach(function(mk){
-        var mo = monthMap[mk];
-        var net = mo.income - mo.expenses;
-        ctx.push(mk+': income R'+mo.income.toFixed(2)+', expenses R'+mo.expenses.toFixed(2)+', net '+(net>=0?'+':'')+net.toFixed(2));
-      });
-      ctx.push('\nLast 20 entries:');
-      cf.slice(-20).forEach(function(e){
-        ctx.push('  '+(e.type==='income'?'+':'-')+'R'+e.amount+' '+e.label+' '+e.date+(e.account?' ['+e.account+']':''));
+      cfKeys.forEach(function(mk){
+        var mo = cfData[mk];
+        var inc = (mo.income||[]).reduce(function(s,e){return s+(e.amount||0);},0);
+        var exp = (mo.expenses||[]).reduce(function(s,e){return s+(e.amount||0);},0);
+        var net = inc - exp;
+        ctx.push(mk+': income R'+inc.toFixed(2)+', expenses R'+exp.toFixed(2)+', net '+(net>=0?'+':'')+net.toFixed(2));
+        // Show income entries
+        (mo.income||[]).forEach(function(e){
+          ctx.push('  +R'+e.amount+' '+e.label+' '+e.date+(e.account?' ['+e.account+']':''));
+        });
+        // Show expense entries (non-savings-allocation)
+        (mo.expenses||[]).forEach(function(e){
+          ctx.push('  -R'+e.amount+' '+e.label+' '+e.date+(e.account?' ['+e.account+']':''));
+        });
       });
     }
   }catch(e){}
