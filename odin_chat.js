@@ -72,7 +72,8 @@ function _odinBuildContext(){
       ctx.push('\n--- POCKETS / SAVINGS ---');
       funds.forEach(function(f){
         var bal = (f.deposits||[]).reduce(function(s,d){
-          return f.isExpense ? (d.txnType==='in'?s+d.amount:s-d.amount) : s+d.amount;
+          if(f.isExpense) return d.txnType==='in' ? s+d.amount : s-d.amount;
+          return d.txnType==='out' ? s-d.amount : s+d.amount;
         },0);
         ctx.push(f.emoji+' '+f.name+': R'+bal.toFixed(2)
           +(f.goal?' (goal R'+f.goal+')':'')
