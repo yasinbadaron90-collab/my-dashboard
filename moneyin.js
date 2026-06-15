@@ -21,9 +21,17 @@ const MONEYIN_KEY = 'yb_moneyin_v1';
 function ensureDailyPocket(){
   if(!Array.isArray(funds)) return null;
   var existing = funds.find(function(f){
-    return f.name && /^daily$/i.test(f.name.trim());
+    return f.name && /^daily$/i.test(f.name.trim()) && !f._deleted;
   });
   if(existing) return existing;
+
+  // Don't auto-create if the user already has their own spending pockets —
+  // they may have renamed Daily to something else (e.g. "date night spenD").
+  // Only auto-create if there are NO non-expense, non-deleted pockets at all.
+  var hasOwnPockets = funds.some(function(f){
+    return !f._deleted && !f.isExpense;
+  });
+  if(hasOwnPockets) return null;
 
   var daily = {
     id: uid(),

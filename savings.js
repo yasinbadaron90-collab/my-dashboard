@@ -285,7 +285,7 @@ function renderBankStrip(){
     return;
   }
 
-  funds.forEach(function(f, i){
+  funds.filter(function(f){ return !f._deleted; }).forEach(function(f, i){
     const tracked = getFundTrackedBal(f);
     const bal = manuals[f.id] !== undefined ? manuals[f.id] : tracked;
     const hasManual = manuals[f.id] !== undefined;
