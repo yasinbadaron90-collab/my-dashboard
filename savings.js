@@ -5,15 +5,15 @@ const EMOJIS=['🚗','🏠','🎉','💊','📚','✈️','👶','🛒','💎','
 const COLORS=['#c8f230','#f23060','#30c8f2','#f2a830','#a830f2','#30f2a8','#f230c8','#ffffff'];
 let funds=[],editingId=null,depositingId=null,selEmoji='💰',selColor='#c8f230';
 
-function loadFunds(){
+function loadFunds(){ 
   try{funds=JSON.parse(lsGet(SK)||'[]');}catch(e){funds=[];}
 }
-function saveFunds(){lsSet(SK,JSON.stringify(funds)); odinRefreshIfOpen();}
+function saveFunds(){lsSet(SK,JSON.stringify(funds)); window.funds=funds; odinRefreshIfOpen();}
 
 // ── Eager load on script parse ─────────────────────────────────────────────
 // Also called from core.js DOMContentLoaded, but parsing this here removes
 // the race window where a save could fire on empty `funds` before DOM ready.
-try { loadFunds(); } catch(e){}
+try { loadFunds(); window.funds=funds; } catch(e){}
 
 // ── fundTotal: sum all deposits for a fund ──
 function fundTotal(f){
