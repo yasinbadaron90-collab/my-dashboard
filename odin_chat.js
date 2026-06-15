@@ -396,7 +396,7 @@ function odinChat(text){
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: systemPrompt,
-      messages: messages
+      messages: messages.map(function(m){ return {role:m.role, content:m.content}; })
     })
   }).then(function(res){ return res.json(); }).then(function(data){
     var el = document.getElementById(thinkId);
