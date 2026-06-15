@@ -503,7 +503,7 @@ function cfRow(e, type, isRecur){
   // sourceType='car_expense' with the pocket name in `account`. Instalment
   // payments (revolving + autoDebit-no-staging) carry sourceType='instalment_pay'.
   // All three render as a purple pocket badge instead of "— Untagged".
-  var isPocketRow = (e && (e.sourceType === 'pocket_spend' || e.sourceType === 'car_expense' || e.sourceType === 'instalment_pay') && e.account && !bank);
+  var isPocketRow = (e && (e.sourceType === 'pocket_spend' || e.sourceType === 'car_expense' || e.sourceType === 'instalment_pay' || e.sourceType === 'bankfeed_spend') && e.account && !bank);
   if(isPocketRow){
     bankHtml = '<span style="color:#c890ff;background:#1a0a26;border:1px solid #6a3aa0;border-radius:3px;padding:1px 6px;letter-spacing:0.5px;">'
              + String(e.account).replace(/</g,'&lt;').replace(/>/g,'&gt;')
