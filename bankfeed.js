@@ -519,7 +519,11 @@ function _bfRenderConfirm(){
 // ── STEP 5: Approve & log ─────────────────────────────────────────────────────
 function bfApproveAll(){
   var txns = _bf.transactions;
-  var funds = window.funds || [];
+  // Reload from storage and re-sync window.funds so the push below goes to
+  // the exact same array that saveFunds() will write to disk.
+  if(typeof loadFunds === 'function') loadFunds();
+  if(typeof funds !== 'undefined') window.funds = funds;
+  var bfFunds = window.funds || [];
   var memory = bfLoadMerchants();
   var logged = 0;
 
@@ -528,7 +532,7 @@ function bfApproveAll(){
     if(!pktId || pktId === 'skip') return;
     if(t.type !== 'debit') return; // credits handled separately later
 
-    var pkt = funds.find(function(f){ return f.id === pktId; });
+    var pkt = bfFunds.find(function(f){ return f.id === pktId; });
     if(!pkt) return;
 
     // Hard-block: re-check balance (mirrors v109 spend guard)
