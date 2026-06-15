@@ -637,3 +637,36 @@ function bfEditDate(which){
 function _bfEsc(s){
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+// ── _bfEntryReverse ──────────────────────────────────────────────────────────
+// Atomically reverses a Bank Feed logged entry:
+//   1. Removes the pocket OUT-deposit (matched by bankfeedId)
+//   2. Removes the CF expense row (matched by bankfeedId)
+// Called by cashflow.js hard-block guard when user taps ✕ on a BF CF row.
+function _bfEntryReverse(bankfeedId, pocketId, amount){
+  if(!bankfeedId) return;
+
+  // 1. Remove pocket deposit
+  if(typeof loadFunds === 'function') loadFunds();
+  if(typeof funds !== 'undefined') window.funds = funds;
+  var bfFunds = window.funds || [];
+  var pkt = pocketId ? bfFunds.find(function(f){ return f.id === pocketId; }) : null;
+  if(pkt && pkt.deposits){
+    pkt.deposits = pkt.deposits.filter(function(d){ return d.bankfeedId !== bankfeedId; });
+    if(typeof saveFunds === 'function') saveFunds();
+  }
+
+  // 2. Remove CF row
+  try{
+    var cfRaw = lsGet('yb_cashflow_v1');
+    var cfAll = cfRaw ? JSON.parse(cfRaw) : {};
+    Object.keys(cfAll).forEach(function(mk){
+      ['income','expenses'].forEach(function(sec){
+        if(cfAll[mk] && cfAll[mk][sec]){
+          cfAll[mk][sec] = cfAll[mk][sec].filter(function(e){ return e.bankfeedId !== bankfeedId; });
+        }
+      });
+    });
+    lsSet('yb_cashflow_v1', JSON.stringify(cfAll));
+  }catch(e){ console.error('_bfEntryReverse CF remove failed', e); }
+}

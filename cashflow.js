@@ -1417,6 +1417,43 @@ function deleteCfEntry(id, type){
       // No live Spend record → orphan → fall through
     }
 
+    // ── Bank Feed records (bankfeedId guard, 2026-06-15) ──
+    // A Bank Feed CF row is the mirror of a pocket deposit (txnType:'out').
+    // Deleting just the CF row leaves the pocket deducted with no record.
+    // Reverse atomically via _bfEntryReverse which removes both sides.
+    if(_peekEntry && _peekEntry.bankfeedId){
+      var _bfPocket = null;
+      if(typeof funds !== 'undefined' && _peekEntry.destPocketId){
+        _bfPocket = funds.find(function(f){ return f.id === _peekEntry.destPocketId; });
+      }
+      var _bfPName = _bfPocket ? _bfPocket.name : 'the pocket';
+      var _bfBody =
+        'This was logged by Bank Feed from your bank statement.\n\n'+
+        'Deleting just this line would leave '+_bfPName+' still deducted by '+fmtR(_peekEntry.amount)+'. Reverse it instead — that returns the money to '+_bfPName+' cleanly.';
+      if(typeof mihbConfirm === 'function'){
+        mihbConfirm({
+          title: '🔒 Can\'t delete it here',
+          body:  _bfBody,
+          dangerLabel: '↩ Reverse the Bank Feed entry',
+          safeLabel:   'Leave it alone'
+        }, function(goReverse){
+          if(goReverse && typeof _bfEntryReverse === 'function'){
+            _bfEntryReverse(_peekEntry.bankfeedId, _peekEntry.destPocketId, _peekEntry.amount);
+            try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+            try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+            if(typeof softDeleteToast === 'function'){
+              softDeleteToast({ message:'Bank Feed entry reversed · '+fmtR(_peekEntry.amount)+' back to '+_bfPName, duration:3000 });
+            }
+          }
+        });
+      } else {
+        if(confirm('🔒 Can\'t delete it here\n\n'+_bfBody+'\n\nTap OK to reverse now.\nTap Cancel to leave it alone.')){
+          if(typeof _bfEntryReverse === 'function') _bfEntryReverse(_peekEntry.bankfeedId, _peekEntry.destPocketId, _peekEntry.amount);
+        }
+      }
+      return;
+    }
+
     // ── v108-patch2 — Lend records (carpool + external) ──
     // The CF "Lent to X" expense is the doorway-tagged side of a pocket-first
     // loan. Deleting it on its own would orphan the pocket OUT-deposit AND
