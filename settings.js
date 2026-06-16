@@ -778,130 +778,6 @@ function clearAllData(){
   location.reload();
 }
 
-// ══ BORROW FEATURE ══
-
-// =====================================================================
-// CLOUD SYNC handlers (Supabase) — Phase B1
-// =====================================================================
-function refreshCloudSyncStatus(){
-  if(!window.cloudSync) return;
-  var s = window.cloudSync.status();
-  var statusEl = document.getElementById('cloudSyncStatus');
-  var lastEl   = document.getElementById('cloudSyncLast');
-  var queueEl  = document.getElementById('cloudSyncQueue');
-  var upBtn    = document.getElementById('cloudUploadBtn');
-  var pullBtn  = document.getElementById('cloudPullBtn');
-  if(statusEl){
-    var bits = [];
-    bits.push(s.signedIn ? '✓ signed in' : '✗ not signed in');
-    bits.push(s.online   ? '✓ online'    : '✗ offline');
-    statusEl.textContent = 'Status: ' + bits.join(' · ');
-  }
-  if(lastEl){
-    var syncTs = s.lastSync;
-    var syncD = syncTs ? new Date(syncTs) : null;
-    if(syncD && !isNaN(syncD.getTime())){
-      lastEl.textContent = 'Last sync: ' + syncD.toLocaleDateString('en-ZA') + ' ' + syncD.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'});
-    } else {
-      lastEl.textContent = 'Last sync: never';
-    }
-  }
-  if(queueEl) queueEl.textContent = 'Queue: ' + s.queueSize + ' pending';
-  var ready = s.signedIn && s.online;
-  if(upBtn){   upBtn.disabled   = !ready; upBtn.style.opacity   = ready ? '1' : '0.4'; upBtn.style.cursor   = ready ? 'pointer' : 'not-allowed'; }
-  if(pullBtn){ pullBtn.disabled = !ready; pullBtn.style.opacity = ready ? '1' : '0.4'; pullBtn.style.cursor = ready ? 'pointer' : 'not-allowed'; }
-}
-
-async function cloudUploadAll(){
-  var msg = document.getElementById('cloudSyncMsg');
-  if(!window.cloudSync){ if(msg) msg.textContent = 'Cloud sync not loaded.'; return; }
-  if(!confirm('Upload all current data to the cloud? This overwrites whatever is in the cloud right now.')) return;
-  // Self-heal school events before uploading
-  try {
-    var SCHOOL_KEY = 'yasin_school_events_v1';
-    var evRaw = localStorage.getItem(SCHOOL_KEY);
-    if(evRaw){
-      var evArr = JSON.parse(evRaw);
-      var evSeen = {};
-      var evClean = evArr.filter(function(e){
-        var k=(e.date||'')+'|'+(e.type||'')+'|'+(e.title||'')+'|'+(e.time||'');
-        if(evSeen[k]) return false; evSeen[k]=true; return true;
-      });
-      if(evClean.length !== evArr.length){
-        localStorage.setItem(SCHOOL_KEY, JSON.stringify(evClean));
-        console.log('[upload] School dedup: '+evArr.length+' -> '+evClean.length);
-      }
-    }
-  } catch(ex){ console.warn('school dedup error', ex); }
-  if(msg) msg.textContent = 'Uploading…';
-  try {
-    var res = await window.cloudSync.uploadAllLocal();
-    if(!res.ok){
-      if(msg) msg.textContent = 'Upload failed: ' + (res.reason || 'unknown');
-    } else {
-      var parts = [];
-      for(var name in res.results){
-        var r = res.results[name];
-        if(r && r.ok){
-          var cnt = r.count != null ? r.count
-            : r.subjects != null ? r.subjects
-            : r.entries != null ? (r.borrowers||0)+'+'+r.entries
-            : r.events != null ? r.events
-            : 0;
-          parts.push(name + ': ' + cnt);
-        } else parts.push(name + ': ✗ ' + (r && r.error || 'failed'));
-      }
-      if(msg) msg.textContent = '✓ Uploaded — ' + parts.join(', ');
-    }
-  } catch(e){
-    console.warn('cloudUploadAll', e);
-    if(msg) msg.textContent = 'Upload error: ' + (e && e.message || e);
-  }
-  refreshCloudSyncStatus();
-}
-
-async function cloudPullAll(){
-  var msg = document.getElementById('cloudSyncMsg');
-  if(!window.cloudSync){ if(msg) msg.textContent = 'Cloud sync not loaded.'; return; }
-  if(!confirm('Pull cloud data and overwrite local data on this device? Anything you changed locally and didn\'t upload will be lost.')) return;
-  if(msg) msg.textContent = 'Pulling…';
-  try {
-    var res = await window.cloudSync.pullAll();
-    if(!res.ok){
-      if(msg) msg.textContent = 'Pull failed: ' + (res.reason || 'unknown');
-    } else {
-      var parts = [];
-      for(var name in res.results){
-        var r = res.results[name];
-        if(r && r.ok){
-          var cnt = r.count != null ? r.count
-            : r.subjects != null ? r.subjects
-            : r.entries != null ? (r.borrowers||0)+'+'+r.entries
-            : r.events != null ? r.events
-            : 0;
-          parts.push(name + ': ' + cnt);
-        } else parts.push(name + ': ✗ ' + (r && r.error || 'failed'));
-      }
-      if(msg) msg.textContent = '✓ Pulled — ' + parts.join(', ');
-    }
-  } catch(e){
-    console.warn('cloudPullAll', e);
-    if(msg) msg.textContent = 'Pull error: ' + (e && e.message || e);
-  }
-  refreshCloudSyncStatus();
-}
-
-// Live status updates from cloud-sync engine
-if(window.cloudSync && typeof window.cloudSync.onStatusChange === 'function'){
-  window.cloudSync.onStatusChange(function(){
-    try { refreshCloudSyncStatus(); } catch(e){}
-  });
-}
-
-window.refreshCloudSyncStatus = refreshCloudSyncStatus;
-window.cloudUploadAll = cloudUploadAll;
-window.cloudPullAll   = cloudPullAll;
-
 // Force reload — nukes the service worker cache, then hard-reloads.
 // Used when you've pushed a new version to GitHub and don't want to wait
 // for the auto-detect "Update ready" toast.
@@ -947,8 +823,6 @@ function toggleMaintCardVisibility(){
   // Quick label update so the user sees the change reflected in the drawer
   var label = document.getElementById('maintCardToggleLabel');
   if(label) label.textContent = next ? 'Hide Maintenance Card' : 'Show Maintenance Card';
-  // Phase H: sync across devices
-  try { if(window.cloudSync && window.cloudSync.settings) window.cloudSync.settings.push(); } catch(e){}
 }
 
 function applyMaintCardVisibility(){

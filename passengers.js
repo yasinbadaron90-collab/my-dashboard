@@ -197,17 +197,6 @@ function savePassenger(){
   savePassengers(list);
   refreshPassengerGlobals();
 
-  // ── CLOUD SYNC: queue this passenger for upload ─────────────────────
-  // Find the saved record (may be a new one, may be edited)
-  try {
-    if(window.cloudSync && window.cloudSync.passengers){
-      var saved = list.find(function(x){
-        return editId ? (x.id === editId) : (x.name === name);
-      });
-      if(saved) window.cloudSync.passengers.upsert(saved);
-    }
-  } catch(e){ console.warn('[savePassenger] cloud queue failed', e); }
-
   closeModal('passengerModal');
   renderPassengerRows();
 
@@ -235,13 +224,6 @@ function deletePassenger(id){
   refreshPassengerGlobals();
   renderPassengerRows();
 
-  // ── CLOUD SYNC: queue soft-delete (writes deleted_at to Supabase) ───
-  try {
-    if(window.cloudSync && window.cloudSync.passengers){
-      window.cloudSync.passengers.upsert(p);
-    }
-  } catch(e){ console.warn('[deletePassenger] cloud queue failed', e); }
-
   try { if(typeof renderPassOptList === 'function') renderPassOptList(); } catch(e){}
   try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
 
@@ -253,12 +235,6 @@ function deletePassenger(id){
       if(ent){ delete ent._deleted; savePassengers(l); }
       refreshPassengerGlobals();
       renderPassengerRows();
-      // Cloud sync: clear deleted_at by re-upserting the un-flagged record
-      try {
-        if(ent && window.cloudSync && window.cloudSync.passengers){
-          window.cloudSync.passengers.upsert(ent);
-        }
-      } catch(e){ console.warn('[undoDelete] cloud queue failed', e); }
       try { if(typeof renderPassOptList === 'function') renderPassOptList(); } catch(e){}
       try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
     },
@@ -267,9 +243,6 @@ function deletePassenger(id){
       var newList = l.filter(function(x){ return x.id !== id; });
       savePassengers(newList);
       refreshPassengerGlobals();
-      // Cloud sync already has deleted_at set from the soft-delete; the
-      // record stays in Supabase as a tombstone. (We don't hard-delete
-      // because that would orphan historical carpool_entries.)
     }
   });
 }
