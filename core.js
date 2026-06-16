@@ -697,8 +697,6 @@ function toggleTheme(){
   lsSet('yasin_theme_light', isLight ? '1' : '0');
   var lbl = document.getElementById('themeLabel');
   if(lbl) lbl.textContent = isLight ? 'Dark Mode' : 'Light Mode';
-  // Phase H: sync theme across devices
-  try { if(window.cloudSync && window.cloudSync.settings) window.cloudSync.settings.push(); } catch(e){}
 }
 (function initTheme(){
   var saved = lsGet('yasin_theme_light');

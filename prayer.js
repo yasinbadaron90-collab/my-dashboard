@@ -255,8 +255,6 @@ function togglePrayer(key){
   if(data[dateStr][key] === undefined) data[dateStr][key] = 0;
   data[dateStr][key] = data[dateStr][key] === 1 ? 0 : 1;
   savePrayerData(data);
-  // Sync this day to Supabase
-  try { if(window.cloudSync && window.cloudSync.prayer) window.cloudSync.prayer.syncDay(dateStr); } catch(e){}
   // Re-render just the today grid (fast, times already cached)
   renderTodayGrid(data, dateStr);
   // Re-run stats + heatmap

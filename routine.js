@@ -37,7 +37,6 @@ function _routineMarkDoneRaw(id){
   var today = new Date();
   t.lastDone = today.toISOString().slice(0,10);
   saveRoutineTasks(tasks);
-  try { if(window.cloudSync && window.cloudSync.routine) window.cloudSync.routine.syncTask(t); } catch(e){}
   renderRoutine();
 }
 
@@ -129,7 +128,6 @@ function deleteRoutineTask(id){
   var tasks = loadRoutineTasks();
   tasks = tasks.filter(function(x){ return x.id!==id; });
   saveRoutineTasks(tasks);
-  try { if(window.cloudSync && window.cloudSync.routine) window.cloudSync.routine.deleteTask(id); } catch(e){}
   renderRoutine();
 }
 
@@ -215,8 +213,6 @@ function openAddRoutineTask(editId){
       tasks.push({ id:'r'+Date.now(), emoji:emoji, name:name, category:cat, freq:freq, lastDone:null, cost:cost, pocketId:pocketId });
     }
     saveRoutineTasks(tasks);
-    var saved = tasks.find(function(x){ return existing ? x.id===editId : !x.lastDone && x.name===name; });
-    try { if(window.cloudSync && window.cloudSync.routine && saved) window.cloudSync.routine.syncTask(saved); } catch(e){}
     overlay.remove();
     renderRoutine();
   });
@@ -413,8 +409,6 @@ function savePriorityRules(rules){
   if(typeof _odinOpenTab !== 'undefined' && _odinOpenTab) try{ renderOdinInsights(_odinOpenTab); }catch(e){}
   var am = document.getElementById('allocateModal');
   if(am && am.classList.contains('active')) try{ recalcAllocation(); }catch(e){}
-  // Phase H: sync rules across devices
-  try { if(window.cloudSync && window.cloudSync.settings) window.cloudSync.settings.push(); } catch(e){}
 }
 
 function getActivePriorities(){

@@ -124,12 +124,6 @@ function toggleSchoolDone(id){
   var idx = done.indexOf(id);
   if(idx > -1) done.splice(idx,1); else done.push(id);
   saveSchoolDone(done);
-  try {
-    if(window.cloudSync && window.cloudSync.school){
-      var ev = loadSchoolEvents().find(function(e){ return e.id === id; });
-      if(ev) window.cloudSync.school.upsertEvent(ev, done.indexOf(id) > -1);
-    }
-  } catch(e){}
   renderSchool();
 }
 
@@ -158,7 +152,6 @@ function deleteSchoolEvent(id){
   SCHOOL_DATA = events;
   var done = getSchoolDone().filter(function(d){ return d !== id; });
   saveSchoolDone(done);
-  try { if(window.cloudSync && window.cloudSync.school) window.cloudSync.school.removeEvent(id); } catch(e){}
   renderSchool();
 }
 
@@ -775,13 +768,6 @@ function saveEditedSubject(){
   var snap = _readEditInputs();
   Object.assign(SCHOOL_SUBJECTS[idx], snap);
   saveSchoolSubjects(SCHOOL_SUBJECTS);
-
-  // Optional future cloud sync — preserved for compatibility
-  try {
-    if(window.cloudSync && window.cloudSync.school){
-      // Skip cloud during local-only era — could be re-enabled when Firebase lands
-    }
-  } catch(e){}
 
   // Close modal
   var ov = document.querySelector('.school-edit-overlay');
