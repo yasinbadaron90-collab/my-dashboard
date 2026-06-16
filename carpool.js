@@ -101,41 +101,6 @@ function loadCP(){
 }
 function saveCP(){lsSet(CPK,JSON.stringify(cpData)); syncWindowCp(); try{odinRefreshIfOpen();}catch(e){} }
 
-// ── CLOUD SYNC HELPERS ──
-// Queue a carpool entry for upload to Supabase. Called by every mutation
-// point in this file (setTripSelect, setNote, mark-paid, auto-fill).
-// No-op if cloud sync isn't loaded or the user isn't signed in.
-function _cloudQueueDayPassenger(ds, passengerName){
-  try {
-    if(!window.cloudSync || !window.cloudSync.carpool) return;
-    var mk = ds.slice(0,7);
-    var day = (cpData[mk] && cpData[mk][ds]) ? cpData[mk][ds] : null;
-    var entry = day && day[passengerName] ? day[passengerName] : { amt: 0, paid: false };
-    window.cloudSync.carpool.upsert(
-      ds,
-      passengerName,
-      typeof entry.amt === 'number' ? entry.amt : (parseFloat(entry.amt) || 0),
-      !!entry.paid,
-      day && day.notes ? day.notes : null
-    );
-  } catch(e){ console.warn('[cloud queue] day mutation failed', e); }
-}
-
-// Queue every passenger on a given day (used when notes change or after a bulk fill)
-function _cloudQueueDayAll(ds){
-  try {
-    if(!window.cloudSync || !window.cloudSync.carpool) return;
-    var mk = ds.slice(0,7);
-    var day = (cpData[mk] && cpData[mk][ds]) ? cpData[mk][ds] : null;
-    if(!day) return;
-    var list = (window.PASSENGER_DATA || []);
-    for(var i=0;i<list.length;i++){
-      var name = list[i].name;
-      if(day[name] !== undefined) _cloudQueueDayPassenger(ds, name);
-    }
-  } catch(e){ console.warn('[cloud queue] day-all failed', e); }
-}
-
 // ── Eager load on script parse ─────────────────────────────────────────────
 // loadCP() is also called from DOMContentLoaded in core.js, but that runs
 // AFTER all scripts parse and can leave a small race window where a save
@@ -256,9 +221,6 @@ function autoFillMonth(){
     d.setDate(d.getDate()+1);
   }
   saveCP();
-  // Cloud-sync each newly created day. We do this AFTER saveCP so the
-  // local store is the source of truth even if cloud sync queues fail.
-  _filledDates.forEach(function(ds){ _cloudQueueDayAll(ds); });
   renderCarpool();
   if(filled>0){ alert('Auto-filled '+filled+' weekdays using each passenger\'s default trip amount. Tap ✓ to mark paid, or adjust any amounts!'); }
   else alert('All weekdays already have entries for this month!');
@@ -480,7 +442,6 @@ function setTripSelect(sel){
   }
   styleSelect(sel, val);
   saveCP();
-  _cloudQueueDayPassenger(ds, p);
   renderCarpool();
 }
 
@@ -490,10 +451,6 @@ function setNote(inp){
   const ds=inp.getAttribute('data-date');
   getDay(ds).notes=inp.value;
   saveCP();
-  // Notes are a property of the day, not a passenger. Re-queue all
-  // passengers on this day so the notes column gets the latest value
-  // (notes are stored on each carpool_entries row in Supabase).
-  _cloudQueueDayAll(ds);
 }
 
 // CAR FUND TRANSACTIONS
@@ -1032,8 +989,6 @@ function confirmPayDest(){
         });
       });
       saveCP();
-      // Cloud-sync each affected day for THIS passenger
-      _markedDates.forEach(function(ds){ _cloudQueueDayPassenger(ds, passenger); });
     }
   }
 
@@ -1267,10 +1222,6 @@ function _carpoolPaymentReverse(cpPmtId, opts){
       }
     });
     if(typeof saveCP === 'function') saveCP();
-    // Cloud-sync the un-marked days
-    if(typeof _cloudQueueDayPassenger === 'function'){
-      rec.paidDates.forEach(function(ds){ _cloudQueueDayPassenger(ds, rec.passenger); });
-    }
   }
 
   // 2. Un-mark the borrows
