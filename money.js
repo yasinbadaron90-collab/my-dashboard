@@ -150,14 +150,6 @@ function confirmExternalBorrow(){
   });
   lsSet('yb_lends_v1', JSON.stringify(lendRecs));
 
-  // Phase D: sync borrower (if new or rename) and the new entry to cloud
-  try {
-    if(window.cloudSync && window.cloudSync.externalBorrows){
-      if(isNew) window.cloudSync.externalBorrows.upsertBorrower(key, name, data[key].borrowerId, false);
-      window.cloudSync.externalBorrows.upsertEntry(data[key].borrowerId, newEntry);
-    }
-  } catch(e){}
-
   closeModal('externalBorrowModal');
   renderMoneyOwed();
   try { renderFunds(); } catch(e){}
@@ -418,7 +410,6 @@ function confirmAddMoreBorrow(){
     };
     borrowData[key].push(cpEntry);
     saveBorrows();
-    try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(key, cpEntry); } catch(e){}
   } else {
     var extData = loadExternalBorrows();
     if(!extData[key]){ alert('Person not found.'); return; }
@@ -432,12 +423,6 @@ function confirmAddMoreBorrow(){
     };
     extData[key].entries.push(extEntry);
     saveExternalBorrows(extData);
-    try {
-      if(window.cloudSync && window.cloudSync.externalBorrows){
-        window.cloudSync.externalBorrows.upsertBorrower(key, extData[key].name || key, extData[key].borrowerId, false);
-        window.cloudSync.externalBorrows.upsertEntry(extData[key].borrowerId, extEntry);
-      }
-    } catch(e){}
   }
 
   // 1) Deduct the pocket (money genuinely leaves you)
@@ -699,13 +684,6 @@ function confirmExternalRepay(){
   };
   data[key].entries.push(repayEntry);
   saveExternalBorrows(data);
-  // Phase D: sync this repay to cloud
-  try {
-    if(window.cloudSync && window.cloudSync.externalBorrows){
-      window.cloudSync.externalBorrows.upsertBorrower(key, personName, data[key].borrowerId, false);
-      window.cloudSync.externalBorrows.upsertEntry(data[key].borrowerId, repayEntry);
-    }
-  } catch(e){}
 
   // 5. Bank doorway (+amount in, -amount out → net 0)
   if(typeof window._adjustBaselineForBank === 'function'){
@@ -1579,8 +1557,6 @@ function confirmIOwePayBack(){
           arr[idx].note = (arr[idx].note||'') + ' (R'+amt.toFixed(2)+' partial '+date+')';
         }
         if(typeof saveBorrows === 'function') saveBorrows();
-        // Phase D: sync updated entry to cloud
-        try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(pending.key, arr[idx]); } catch(e){}
       }
     } else if(pending.store === 'external'){
       var extD = loadExternalBorrows();
@@ -1597,12 +1573,6 @@ function confirmIOwePayBack(){
             person.entries[idx2].note = (person.entries[idx2].note||'') + ' (R'+amt.toFixed(2)+' partial '+date+')';
           }
           saveExternalBorrows(extD);
-          // Phase D: sync updated external entry to cloud
-          try {
-            if(window.cloudSync && window.cloudSync.externalBorrows && person.borrowerId){
-              window.cloudSync.externalBorrows.upsertEntry(person.borrowerId, person.entries[idx2]);
-            }
-          } catch(e){}
         }
       }
     }

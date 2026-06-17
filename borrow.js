@@ -207,8 +207,6 @@ function confirmBorrow(){
   };
   borrowData[passenger].push(newEntry);
   saveBorrows();
-  // Phase D: sync to cloud
-  try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(passenger, newEntry); } catch(e){}
 
   // 1) Deduct the pocket (money genuinely leaves you)
   var pocketDepId = uid();
@@ -289,8 +287,6 @@ function confirmEditBorrow(){
   // Keep the linked Cash Flow expense in sync (amount/date) + adjust the
   // bank tile by the difference. No-op if this entry has no cfId.
   try { updateLinkedCFEntry(entries[idx].cfId, amount, date, passenger); } catch(e){}
-  // Phase D: sync to cloud
-  try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(passenger, entries[idx]); } catch(e){}
   closeModal('editBorrowModal');
   renderCarpool();
   renderMoneyOwed();
@@ -345,8 +341,6 @@ function deleteBorrowEntry(passenger, entryId){
   // we leave alone for now — purge handler removes both at the same time.
   _entry._deleted = true;
   saveBorrows();
-  // Phase D: mirror soft-delete to cloud as deleted_at timestamp.
-  try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(passenger, _entry); } catch(e){}
   renderCarpool();
   renderMoneyOwed();
   if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){}
@@ -360,8 +354,6 @@ function deleteBorrowEntry(passenger, entryId){
       if(e){
         delete e._deleted;
         saveBorrows();
-        // Re-sync the un-deleted entry to cloud.
-        try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(passenger, e); } catch(_e){}
       }
       renderCarpool();
       renderMoneyOwed();
@@ -484,8 +476,6 @@ function confirmEditBorrowUnified(){
       // Legacy non-lend carpool entry (pre-v108) — keep old behaviour.
       try { updateLinkedCFEntry(entries[idx].cfId, amount, date, passengerVal); } catch(e){}
     }
-    // Phase D: sync to cloud
-    try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(passengerVal, entries[idx]); } catch(e){}
   }
   closeModal('editBorrowModal');
   renderCarpool();
@@ -789,8 +779,6 @@ function confirmRepay(){
   };
   borrowData[passenger].push(repayEntry);
   saveBorrows();
-  // Phase D: sync to cloud
-  try { if(window.cloudSync && window.cloudSync.borrows) window.cloudSync.borrows.upsert(passenger, repayEntry); } catch(e){}
 
   // 5. Bank doorway (+amount in, -amount out → net 0)
   if(typeof window._adjustBaselineForBank === 'function'){
