@@ -214,8 +214,8 @@ function _scanCallAI(){
       'anthropic-beta': 'pdfs-2024-09-25'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
       system: systemPrompt,
       messages: [{ role: 'user', content: messageContent }]
     })
