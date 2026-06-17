@@ -24,7 +24,7 @@ function countdownBadge(dateStr, label){
 function calcNextService(car){
   // If nextService date is manually set, use it as source of truth
   if(car.nextService){
-    var now0 = new Date();
+    var now0 = new Date(); now0.setHours(0,0,0,0);
     var svcDate0 = new Date(car.nextService+'T00:00:00');
     var days0 = Math.round((svcDate0-now0)/86400000);
     return { daysUntilNext: days0, kmUntilNext: null, nextType: car.lastServiceType||'Minor',
@@ -45,7 +45,7 @@ function calcNextService(car){
   var result = { minorDue:null, majorDue:null, nextType:'Minor', daysUntilNext:null, kmUntilNext:null, reason:'' };
   if(!lastDate && !lastKm) return result;
 
-  var now = new Date();
+  var now = new Date(); now.setHours(0,0,0,0);
 
   // Minor service: 6 months OR minorKmInterval km — whichever first
   var minorByDate = null, minorByKm = null;
@@ -1465,9 +1465,9 @@ function checkReminders(){
   banner.style.cssText = 'position:fixed;top:50px;left:0;right:0;z-index:400;background:#0a0a0a;border-bottom:2px solid #f23060;padding:0;';
 
   var rows = visibleAlerts.map(function(a){
-    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:0.5px;">'
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid #2a2a2a;font-size:11px;letter-spacing:0.5px;">'
       +'<span style="font-size:16px;flex-shrink:0;">'+a.icon+'</span>'
-      +'<span style="color:var(--text);flex:1;">'+a.msg+'</span>'
+      +'<span style="color:#efefef;flex:1;">'+a.msg+'</span>'
       +'</div>';
   }).join('');
 
