@@ -4,7 +4,8 @@
 //   odinChat(text)      odinChatAsk(text)    appendOdinMsg(role, html)
 
 // ── Conversation history (session-only) ──────────────────────────────────────
-var _odinHistory = [];  // [{role:'user'|'assistant', content:'...', html:'...'}]
+var _odinHistory = [];  // [{role:'user'|'assistant', content:'...', html:'...', turnId:'...'}]
+var _odinTurnSeq = 0;  // monotonic counter — gives each live assistant turn a unique ID
 
 // -- Save chat history to Firestore --
 function _odinSaveHistory(){
@@ -29,16 +30,57 @@ function _odinLoadHistory(){
         var data = doc.data();
         if(!data || !data.turns || !data.turns.length) return;
         _odinHistory = data.turns;
-        // Render the bubbles
+        // Render the bubbles — replayed history does NOT get feedback buttons
         var msgs = document.getElementById('aiMessages');
         if(!msgs) return;
         var empty = document.getElementById('aiEmptyState');
         if(empty) empty.remove();
         _odinHistory.forEach(function(t){
-          appendOdinMsg(t.role, t.html || escHtml(t.content));
+          appendOdinMsg(t.role, t.html || escHtml(t.content), false, null);
         });
       }).catch(function(e){ console.warn('[Odin] load history failed', e); });
   }catch(e){}
+}
+
+// -- Save 👍/👎 feedback to Firestore — never wiped by CLEAR, separate collection --
+function _odinSaveFeedback(turnId, userMsg, odinReply, rating, correction){
+  try{
+    if(!window._fb || !_fb.db || !_fb.uid) return;
+    var record = {
+      ts:         new Date().toISOString(),
+      turnId:     turnId,
+      userMsg:    userMsg   || '',
+      odinReply:  odinReply || '',
+      rating:     rating,             // 'good' | 'bad'
+      correction: correction || null
+    };
+    _fb.db.collection('users').doc(_fb.uid)
+      .collection('odin_feedback').add(record)
+      .catch(function(e){ console.warn('[Odin] feedback save failed', e); });
+  }catch(e){}
+}
+
+// Helper: find the user message that preceded a given assistant turnId
+function _odinGetLastUserMsg(turnId){
+  for(var i = _odinHistory.length - 1; i >= 0; i--){
+    if(_odinHistory[i].role === 'assistant' && _odinHistory[i].turnId === turnId){
+      // The user message is the one before it
+      if(i > 0 && _odinHistory[i-1].role === 'user'){
+        return _odinHistory[i-1].content || '';
+      }
+    }
+  }
+  return '';
+}
+
+// Helper: find the assistant reply for a given turnId
+function _odinGetReplyByTurnId(turnId){
+  for(var i = 0; i < _odinHistory.length; i++){
+    if(_odinHistory[i].role === 'assistant' && _odinHistory[i].turnId === turnId){
+      return _odinHistory[i].content || '';
+    }
+  }
+  return '';
 }
 
 // ── Open / close / clear ─────────────────────────────────────────────────────
@@ -53,6 +95,7 @@ function closeAIAssistant(){
 }
 function clearAIChat(){
   _odinHistory = [];
+  _odinTurnSeq = 0;
   _odinLoaded = false;
   try{
     if(window._fb && _fb.db && _fb.uid){
@@ -70,7 +113,8 @@ function clearAIChat(){
 }
 
 // ── Message bubble render ─────────────────────────────────────────────────────
-function appendOdinMsg(role, html){
+// showFeedback = true only for NEW live assistant replies, not replayed history
+function appendOdinMsg(role, html, showFeedback, turnId){
   var empty = document.getElementById('aiEmptyState');
   if(empty) empty.remove();
   var msgs = document.getElementById('aiMessages');
@@ -93,8 +137,72 @@ function appendOdinMsg(role, html){
     +'font-size:12px;line-height:1.6;word-break:break-word;white-space:normal;overflow-wrap:break-word;font-family:"DM Mono",monospace;';
   bubble.innerHTML = html;
 
+  // Column wrapper so we can stack bubble + feedback row vertically
+  var col = document.createElement('div');
+  col.style.cssText = 'display:flex;flex-direction:column;align-items:'
+    +(role==='user'?'flex-end':'flex-start')+';flex:1;min-width:0;';
+  col.appendChild(bubble);
+
+  // 👍/👎 row — only on live assistant replies in the current session
+  if(role === 'assistant' && showFeedback && turnId){
+    var fbRow = document.createElement('div');
+    fbRow.id = 'fb-'+turnId;
+    fbRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:4px;padding-left:2px;flex-wrap:wrap;';
+
+    var btnUp = document.createElement('button');
+    btnUp.textContent = '👍';
+    btnUp.title = 'Good answer';
+    btnUp.style.cssText = 'background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 8px;font-size:12px;cursor:pointer;color:#555;transition:all .15s;';
+
+    var btnDown = document.createElement('button');
+    btnDown.textContent = '👎';
+    btnDown.title = 'Wrong or misleading';
+    btnDown.style.cssText = 'background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 8px;font-size:12px;cursor:pointer;color:#555;transition:all .15s;';
+
+    btnUp.onclick = function(){
+      if(btnUp.dataset.rated) return;
+      btnUp.dataset.rated = '1';
+      btnUp.style.cssText  = 'background:#0d1a00;border:1px solid #5a8800;border-radius:4px;padding:2px 8px;font-size:12px;cursor:default;color:#c8f230;';
+      btnDown.style.display = 'none';
+      _odinSaveFeedback(turnId, _odinGetLastUserMsg(turnId), _odinGetReplyByTurnId(turnId), 'good', null);
+    };
+
+    btnDown.onclick = function(){
+      if(btnDown.dataset.rated) return;
+      btnDown.dataset.rated = '1';
+      btnDown.style.cssText = 'background:#1a0000;border:1px solid #f23060;border-radius:4px;padding:2px 8px;font-size:12px;cursor:default;color:#f23060;';
+      btnUp.style.display = 'none';
+      // Show inline correction input
+      var corrRow = document.createElement('div');
+      corrRow.style.cssText = 'display:flex;gap:6px;margin-top:5px;align-items:center;width:100%;';
+      var inp = document.createElement('input');
+      inp.type = 'text';
+      inp.placeholder = 'What was wrong? (optional)';
+      inp.style.cssText = 'flex:1;background:#1a0000;border:1px solid #5a1010;border-radius:4px;padding:5px 8px;'
+        +'font-family:"DM Mono",monospace;font-size:11px;color:#efefef;outline:none;min-width:0;';
+      var sendBtn = document.createElement('button');
+      sendBtn.textContent = 'Send';
+      sendBtn.style.cssText = 'background:#2e0000;border:1px solid #f23060;border-radius:4px;'
+        +'padding:5px 10px;font-family:"DM Mono",monospace;font-size:10px;color:#f23060;cursor:pointer;white-space:nowrap;';
+      sendBtn.onclick = function(){
+        var corr = inp.value.trim() || null;
+        _odinSaveFeedback(turnId, _odinGetLastUserMsg(turnId), _odinGetReplyByTurnId(turnId), 'bad', corr);
+        corrRow.innerHTML = '<span style="font-size:10px;color:#f23060;letter-spacing:1px;">✓ Flagged — thanks</span>';
+      };
+      inp.onkeydown = function(e){ if(e.key==='Enter') sendBtn.click(); };
+      corrRow.appendChild(inp);
+      corrRow.appendChild(sendBtn);
+      fbRow.appendChild(corrRow);
+      setTimeout(function(){ inp.focus(); }, 50);
+    };
+
+    fbRow.appendChild(btnUp);
+    fbRow.appendChild(btnDown);
+    col.appendChild(fbRow);
+  }
+
   wrap.appendChild(avatar);
-  wrap.appendChild(bubble);
+  wrap.appendChild(col);
   msgs.appendChild(wrap);
   msgs.scrollTop = msgs.scrollHeight;
 }
@@ -179,154 +287,122 @@ function _odinBuildContext(){
           if(!day[p]||typeof day[p]!=='object') return;
           var amt=day[p].amt||0, paid=day[p].paid||false;
           grandTotal+=amt;
-          if(!paid&&amt>0) unpaid+=amt;
-          if(!paxTotals[p]) paxTotals[p]={total:0,owing:0};
+          if(!paxTotals[p]) paxTotals[p]={total:0,paid:0,owing:0};
           paxTotals[p].total+=amt;
-          if(!paid&&amt>0) paxTotals[p].owing+=amt;
+          if(paid) paxTotals[p].paid+=amt;
+          else if(amt>0){ paxTotals[p].owing+=amt; unpaid+=amt; }
         });
       });
     });
     ctx.push('\n--- CARPOOL ---');
-    ctx.push('All time earned: R'+grandTotal.toFixed(2)+', Outstanding: R'+unpaid.toFixed(2));
-    Object.keys(paxTotals).forEach(function(p){
-      ctx.push(p+': total R'+paxTotals[p].total.toFixed(2)+', currently owes R'+paxTotals[p].owing.toFixed(2));
+    ctx.push('Grand total all time: R'+grandTotal+', Outstanding: R'+unpaid);
+    pax.forEach(function(p){
+      var t=paxTotals[p]||{total:0,paid:0,owing:0};
+      ctx.push(p+': total R'+t.total+', paid R'+t.paid+', OWES R'+t.owing);
     });
   }catch(e){}
 
-  // ── MONEY OWED (BORROWED) ──
+  // ── MONEY OWED ──
   try{
-    var borrows = JSON.parse(lsGet('yb_borrow_data_v1')||'[]');
-    var active = borrows.filter(function(b){return !b.paid;});
-    ctx.push('\n--- MONEY OWED ---');
-    if(!active.length){ ctx.push('No active loans.'); }
-    else{ active.forEach(function(b){
-      var repaid=(b.entries||[]).filter(function(e){return e.type==='repay';}).reduce(function(s,e){return s+e.amount;},0);
-      ctx.push(b.name+' owes R'+((b.amount||0)-repaid).toFixed(2)+' (lent R'+(b.amount||0)+', repaid R'+repaid.toFixed(2)+')'+(b.reason?' for '+b.reason:''));
-    });}
+    var borrows  = JSON.parse(lsGet('yasin_borrows_v1')||'[]');
+    var extBorrows = JSON.parse(lsGet('yb_external_borrows_v1')||'[]');
+    var allBorrows = borrows.concat(extBorrows);
+    if(allBorrows.length){
+      ctx.push('\n--- MONEY OWED TO YOU ---');
+      allBorrows.forEach(function(b){
+        var repaid = (b.repayments||[]).reduce(function(s,r){return s+(r.amount||0);},0);
+        var owing  = (b.amount||0) - repaid;
+        if(!b.paid && owing > 0){
+          ctx.push(b.passenger+' owes R'+owing+' (lent R'+b.amount+' on '+b.date+', repaid R'+repaid+'): '+(b.note||''));
+        }
+      });
+    }
   }catch(e){}
 
   // ── INSTALMENTS ──
   try{
-    var inst = JSON.parse(lsGet('yb_instalments_v1')||'[]');
-    if(inst.length){
+    var instData = JSON.parse(lsGet('yb_instalments_v1')||'[]');
+    if(instData.length){
       ctx.push('\n--- INSTALMENTS ---');
-      inst.forEach(function(p){
-        var paidMo=(p.paid||[]).length, total=p.months||0;
-        var remaining=total-paidMo;
-        ctx.push(p.name+': R'+p.amt+(p.serviceFee?'+R'+p.serviceFee+' fee':'')+'/month'
-          +', debit day '+p.debitDay
-          +', '+paidMo+'/'+total+' paid, '+remaining+' months remaining'
-          +(p.fundingPocketId?' funded from pocket '+p.fundingPocketId:''));
+      instData.forEach(function(p){
+        var paidCount = (p.paid||[]).length;
+        var totalMonths = p.months||0;
+        ctx.push(p.desc+' ('+p.provider+'): R'+p.amt+'/mo, '+paidCount+'/'+totalMonths+' paid, debit day '+p.debitDay+(p.settled?' [SETTLED]':''));
       });
     }
   }catch(e){}
 
   // ── CARS ──
   try{
-    var cars = JSON.parse(lsGet('yasin_cars_v1')||'[]');
+    var cars = JSON.parse(lsGet('yb_cars_v1')||'[]');
     if(cars.length){
       ctx.push('\n--- CARS ---');
       cars.forEach(function(c){
-        var openAdv=(c.advisories||[]).filter(function(a){return a.status==='open';});
-        var nextServiceKm = (c.lastServiceKm&&c.serviceKm) ? (Number(c.lastServiceKm)+Number(c.serviceKm)) : null;
-        var kmToService = (nextServiceKm&&c.km) ? nextServiceKm-Number(c.km) : null;
-        ctx.push((c.name||'Car')+' ('+c.plate+')'
-          +': '+c.km+'km'
-          +(c.lastServiceDate?' | last service '+c.lastServiceDate+' at '+c.lastServiceKm+'km':'')
-          +(c.lastServiceType?' ('+c.lastServiceType+')':'')
-          +(c.serviceKm?' | interval '+c.serviceKm+'km':'')
-          +(kmToService!=null?' | '+kmToService+'km until next service':'')
-          +(c.nextService?' | next service due '+c.nextService:''));
-        if(openAdv.length){
-          ctx.push('  Open advisories:');
-          openAdv.forEach(function(a){
-            ctx.push('  - ['+a.severity.toUpperCase()+'] '+a.text
-              +(a.source?' ('+a.source+')':'')
-              +(a.bookedFor?' — booked for '+a.bookedFor:''));
-          });
-        }
-        var expenses=(c.expenses||[]).slice(-10);
-        if(expenses.length){
-          ctx.push('  Recent expenses:');
-          expenses.forEach(function(e){
-            // field names: desc (not description), amt (not amount)
-            ctx.push('  - '+(e.date||'?')+' R'+(e.amt||e.amount||0)+' '+(e.desc||e.description||e.category||''));
-          });
-        }
+        var spent = (c.expenses||[]).reduce(function(s,e){return s+(e.amt||0);},0);
+        var advOpen = (c.advisories||[]).filter(function(a){return a.status==='open';}).length;
+        ctx.push(c.name+(c.plate?' ('+c.plate+')':'')+': '+c.km+'km, last svc '+c.lastServiceDate+', total spent R'+spent+(advOpen?' ⚠️ '+advOpen+' open advisory':''));
+        (c.advisories||[]).filter(function(a){return a.status==='open';}).forEach(function(a){
+          ctx.push('  advisory ['+a.severity+']: '+a.text);
+        });
       });
     }
   }catch(e){}
 
-  // ── ODIN ALERTS (service reminders, upcoming debits etc) ──
+  // ── ODIN ALERTS ──
   try{
     if(typeof buildOdinLaunchAlerts === 'function'){
       var alerts = buildOdinLaunchAlerts();
       if(alerts && alerts.length){
         ctx.push('\n--- ACTIVE ODIN ALERTS ---');
-        alerts.forEach(function(a){ ctx.push('['+a.level.toUpperCase()+'] '+a.text); });
+        alerts.forEach(function(a){
+          var clean = (a.msg||'').replace(/<[^>]+>/g,'');
+          ctx.push('['+a.level.toUpperCase()+'] '+a.icon+' '+clean);
+        });
       }
     }
   }catch(e){}
 
   // ── SCHOOL ──
   try{
-    var subjects = JSON.parse(lsGet('yasin_school_results_v2')||'[]');
-    if(subjects.length){
-      ctx.push('\n--- SCHOOL (BCom General, final year 2026) ---');
-      var byYear={};
-      subjects.forEach(function(s){
-        var y=s.year||'Unknown';
-        if(!byYear[y]) byYear[y]=[];
-        var final=s.examPct!=null&&s.yearPct!=null?Math.round(s.yearPct*0.4+s.examPct*0.6):null;
-        byYear[y].push(s.code+' '+s.name+': '+s.result+(final!=null?' ('+final+'%)':'')+(s.examDate?' — exam '+s.examDate:'')+(s.isPlaceholder?' [placeholder]':''));
-      });
-      Object.keys(byYear).sort().forEach(function(y){
-        ctx.push('Year '+y+':');
-        byYear[y].forEach(function(line){ ctx.push('  '+line); });
+    var subjects = JSON.parse(lsGet('yb_school_results_v2')||'{}');
+    var subArr = Object.values(subjects);
+    if(subArr.length){
+      ctx.push('\n--- SCHOOL SUBJECTS ---');
+      subArr.forEach(function(s){
+        var final = s.result || (s.exam != null && s.yearPct != null
+          ? Math.round(s.yearPct*0.4 + s.exam*0.6)+'%' : 'in progress');
+        ctx.push(s.code+' '+s.name+' (Year '+s.year+'): '+final+(s.examDate?' exam '+s.examDate:''));
       });
     }
-  }catch(e){}
-
-  // -- SCHOOL EVENTS / SCHEDULE --
-  try{
-    var schoolEvents = JSON.parse(lsGet('yasin_school_events_v1')||'[]');
-    var schoolDone = JSON.parse(lsGet('yasin_school_done_v1')||'[]');
-    var today2 = new Date(); today2.setHours(0,0,0,0);
-    var upcoming = schoolEvents.filter(function(ev){
-      if(!ev.date) return false;
-      var d = new Date(ev.date+'T00:00:00');
-      return d >= today2;
-    }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+    // School events
+    var events = JSON.parse(lsGet('yasin_school_events_v1')||'[]');
+    var today2 = new Date().toISOString().split('T')[0];
+    var upcoming = events.filter(function(e){ return e.date >= today2; })
+      .sort(function(a,b){ return a.date.localeCompare(b.date); }).slice(0,8);
     if(upcoming.length){
-      ctx.push('\n--- SCHOOL SCHEDULE (upcoming events) ---');
-      upcoming.forEach(function(ev){
-        var done = schoolDone.indexOf(ev.id) > -1;
-        var doneStr = done ? ' [DONE]' : '';
-        var timeStr = ev.time ? ' at '+ev.time : '';
-        var subj = ev.subject || ev.subjects || '';
-        var label = ev.title || ev.type || 'Event';
-        ctx.push((ev.type||'event').toUpperCase()+': '+label+' - '+subj+' - '+ev.date+timeStr+doneStr);
+      ctx.push('\n--- UPCOMING SCHOOL EVENTS ---');
+      upcoming.forEach(function(e){
+        ctx.push(e.date+(e.time?' '+e.time:'')+' — '+e.title+(e.subject?' ('+e.subject+')':''));
       });
     }
   }catch(e){}
 
   // ── PRAYER ──
   try{
-    var prayer = JSON.parse(lsGet('yb_prayer_v1')||'{}');
-    var streak = prayer.streak||0;
-    var best = prayer.bestStreak||0;
-    ctx.push('\n--- PRAYER ---');
-    ctx.push('Current streak: '+streak+' days, best: '+best+' days');
+    var prayData = JSON.parse(lsGet('yasin_prayer_v1')||'{}');
+    if(prayData.streak != null){
+      ctx.push('\n--- PRAYER ---');
+      ctx.push('Current streak: '+prayData.streak+' days');
+    }
   }catch(e){}
 
   // ── ROUTINE ──
   try{
-    var tasks = JSON.parse(lsGet('yb_routine_v1')||'[]');
-    if(tasks.length){
+    var routTasks = JSON.parse(lsGet('yasin_routine_v1')||'[]');
+    if(routTasks.length){
       ctx.push('\n--- ROUTINE TASKS ---');
-      tasks.forEach(function(t){
-        var due = t.lastDone ? 'last done '+t.lastDone : 'never done';
-        ctx.push(t.name+' ('+t.frequency+'): '+due+(t.cost?' R'+t.cost+' each':''));
+      routTasks.forEach(function(t){
+        ctx.push(t.name+': last done '+(t.lastDone||'never')+(t.cost?' costs R'+t.cost:''));
       });
     }
   }catch(e){}
@@ -334,49 +410,44 @@ function _odinBuildContext(){
   return ctx.join('\n');
 }
 
-// ── Cloudflare Worker proxy URL (replaces direct Anthropic call to avoid CORS)
-// After deploying cf-worker.js to Cloudflare, paste your worker URL here:
+// ── Cloudflare Worker proxy URL ───────────────────────────────────────────────
 var ODIN_PROXY_URL = 'https://wispy-thunder-bc04.yasin-badaron90.workers.dev';
 
-// ── Main chat handler ─────────────────────────────────────────────────────────
-function odinChat(text){
-  if(!text || !text.trim()) return;
-  var input = document.getElementById('aiInput');
-  if(input) input.value = '';
+// ── Send a message ────────────────────────────────────────────────────────────
+function odinChat(userText){
+  if(!userText || !userText.trim()) return;
+  userText = userText.trim();
 
-  // Check API key
-  var apiKey = (typeof bfGetApiKey === 'function') ? bfGetApiKey() : lsGet('yb_bf_api_key_v1')||'';
+  var apiKey = typeof bfGetApiKey === 'function' ? bfGetApiKey() : '';
   if(!apiKey){
-    appendOdinMsg('user', escHtml(text));
-    appendOdinMsg('assistant', '🔑 No API key set.<br><br>Go to <b>Settings → Bank Feed AI Key</b> and paste your Anthropic API key. Get one free at <a href="https://console.anthropic.com" target="_blank" style="color:#c8f230;">console.anthropic.com</a><br><br>Also make sure the Cloudflare Worker is deployed and <b>ODIN_PROXY_URL</b> is set in odin_chat.js.');
-    return;
-  }
-  if(!ODIN_PROXY_URL || ODIN_PROXY_URL.includes('YOUR-WORKER')){
-    appendOdinMsg('user', escHtml(text));
-    appendOdinMsg('assistant', '⚙️ Proxy not configured yet.<br><br>Deploy <b>cf-worker.js</b> to Cloudflare Workers, then paste your worker URL into <b>ODIN_PROXY_URL</b> in odin_chat.js.');
+    appendOdinMsg('assistant', '⚠️ No API key set. Go to <b>Settings → Bank Feed AI Key</b> and paste your Anthropic key.', false, null);
     return;
   }
 
-  appendOdinMsg('user', escHtml(text));
-  _odinHistory.push({role:'user', content:text});
+  // Render user bubble
+  appendOdinMsg('user', escHtml(userText), false, null);
+  _odinHistory.push({role:'user', content:userText, html:escHtml(userText)});
 
   // Thinking indicator
-  var msgs = document.getElementById('aiMessages');
-  var thinkId = 'odin_think_'+Date.now();
-  var thinkWrap = document.createElement('div');
-  thinkWrap.id = thinkId;
-  thinkWrap.style.cssText = 'display:flex;gap:8px;margin-bottom:12px;align-items:flex-start;';
-  thinkWrap.innerHTML = '<div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;background:#111;border:1px solid #2a2a2a;">🧠</div>'
-    +'<div style="padding:10px 14px;border-radius:12px 12px 12px 2px;background:#111;border:1px solid #2a2a2a;color:#5a8800;font-size:12px;font-family:DM Mono,monospace;">thinking...</div>';
-  if(msgs){ msgs.appendChild(thinkWrap); msgs.scrollTop = msgs.scrollHeight; }
+  var thinkId = 'think-'+Date.now();
+  appendOdinMsg('assistant', '<span id="'+thinkId+'" style="color:#555;font-style:italic;font-size:11px;">🧠 thinking...</span>', false, null);
 
-  var systemPrompt = 'You are Odin, a sharp and direct personal finance assistant built into Yasin\'s dashboard app (My Dashboard V34). '
-    +'You have full access to Yasin\'s live financial data shown below. '
-    +'Be concise — this is a mobile app. Use short paragraphs. Use bold for key numbers. '
-    +'Never pad responses. If you don\'t know something, say so. '
-    +'Speak in Yasin\'s voice — direct, no waffle. Use R for South African Rand. '
-    +'If Yasin asks about affordability, use pocket balances (not bank baselines which are normally R0). '
-    +'The pocket-first model means money lives in pockets; banks are just doorways.\n\n'
+  var systemPrompt = 'You are Odin — the financial co-pilot for Yasin Badaron\'s personal dashboard. '
+    +'You are embedded inside his PWA. You read his real financial data and help him make decisions.\n\n'
+    +'PERSONALITY:\n'
+    +'- Direct, clear, no waffle\n'
+    +'- Use numbers — always cite actual amounts from his data\n'
+    +'- Friendly but professional\n'
+    +'- South African context (ZAR, FNB, TymeBank, SARS, carpool culture)\n\n'
+    +'POCKET-FIRST MODEL:\n'
+    +'- Money lives in pockets, not bank accounts\n'
+    +'- Bank accounts are doorways (normally R0)\n'
+    +'- Never suggest spending from a bank account directly\n'
+    +'- Always reference which pocket money should come from\n\n'
+    +'ACCURACY:\n'
+    +'- Only state facts from the data below — never invent balances or transactions\n'
+    +'- If you\'re unsure, say so\n'
+    +'- When summarising debt, include both carpool AND personal loans per person\n\n'
     +'CAR OWNERSHIP (important context):\n'
     +'- Toyota Corolla CAA 643-241 = YASIN\'S car (his daily driver), funded from Ee90 pocket\n'
     +'- Kia Picanto CAA 189-565 = NURJAHAN\'S car (Yasin\'s wife), also funded from Ee90 pocket\n'
@@ -384,7 +455,7 @@ function odinChat(text){
     +'- Ee90 _KiA picaNto pocket = funds both Yasin\'s Toyota AND Nurjahan\'s Kia (the pocket name is misleading — ignore it)\n\n'
     +'LIVE DATA:\n'+_odinBuildContext();
 
-  var messages = _odinHistory.slice(); // include current user message
+  var messages = _odinHistory.slice();
 
   fetch(ODIN_PROXY_URL, {
     method: 'POST',
@@ -403,7 +474,7 @@ function odinChat(text){
     if(el) el.remove();
 
     if(data.error){
-      appendOdinMsg('assistant', '❌ API error: '+escHtml(data.error.message||JSON.stringify(data.error)));
+      appendOdinMsg('assistant', '❌ API error: '+escHtml(data.error.message||JSON.stringify(data.error)), false, null);
       _odinHistory.pop(); // remove the failed user message
       return;
     }
@@ -420,12 +491,17 @@ function odinChat(text){
       .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
       .replace(/\n/g,'<br>');
 
-    appendOdinMsg('assistant', html);
+    // Assign a unique turn ID so feedback buttons can reference this specific reply
+    var turnId = 'turn-'+(++_odinTurnSeq)+'-'+Date.now();
+
+    // Render assistant bubble WITH feedback buttons (live reply = showFeedback true)
+    appendOdinMsg('assistant', html, true, turnId);
+
     // Store html on the user message too (already pushed without html)
     if(_odinHistory.length > 0 && _odinHistory[_odinHistory.length-1].role === 'user'){
       _odinHistory[_odinHistory.length-1].html = escHtml(_odinHistory[_odinHistory.length-1].content);
     }
-    _odinHistory.push({role:'assistant', content:reply, html:html});
+    _odinHistory.push({role:'assistant', content:reply, html:html, turnId:turnId});
 
     // Keep history at max 20 turns (40 entries) to avoid token bloat
     if(_odinHistory.length > 40) _odinHistory = _odinHistory.slice(-40);
@@ -436,7 +512,7 @@ function odinChat(text){
   }).catch(function(err){
     var el = document.getElementById(thinkId);
     if(el) el.remove();
-    appendOdinMsg('assistant', '❌ Network error: '+escHtml(String(err))+'<br><br>Check your connection and try again.');
+    appendOdinMsg('assistant', '❌ Network error: '+escHtml(String(err))+'<br><br>Check your connection and try again.', false, null);
     _odinHistory.pop();
   });
 }
