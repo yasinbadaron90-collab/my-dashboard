@@ -1402,8 +1402,26 @@ function checkReminders(){
     var plans = JSON.parse(lsGet(INST_KEY)||'[]');
     var nowM = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
     plans.forEach(function(p){
+      // Auto-debit / month-to-month plans (e.g. MTN) — debitDay based, no fixed dates[]
+      if(p.planType === 'autoDebit' || p.monthToMonth){
+        if(!p.debitDay) return;
+        var paidM2M = (p.paid||[]).some(function(x){ return x.date && x.date.slice(0,7) === nowM; });
+        if(paidM2M) return;
+        var yM2M = today.getFullYear(), mM2M = today.getMonth();
+        var lastDayM2M = new Date(yM2M, mM2M+1, 0).getDate();
+        var debitDate = new Date(yM2M, mM2M, Math.min(p.debitDay, lastDayM2M));
+        var diffM2M = Math.round((debitDate - today)/86400000);
+        if(diffM2M < 0){
+          alerts.push({ icon:'💳', msg: p.desc+' ('+p.provider+') payment '+fmtR(p.amt)+' is <strong style="color:#f23060;">OVERDUE</strong>', level:'red' });
+        } else if(diffM2M <= 5){
+          var lvlM2M = diffM2M <= 1 ? 'red' : 'amber';
+          var whenM2M = diffM2M === 0 ? 'TODAY' : (diffM2M === 1 ? 'TOMORROW' : 'in '+diffM2M+' days');
+          alerts.push({ icon:'💳', msg: p.desc+' ('+p.provider+') payment '+fmtR(p.amt)+' debits <strong style="color:'+(lvlM2M==='red'?'#f23060':'#f2a830')+';">'+whenM2M+'</strong>', level: lvlM2M });
+        }
+        return;
+      }
       var paidIdxs = (p.paid||[]).map(function(x){ return x.index; });
-      p.dates.forEach(function(ds, i){
+      (p.dates||[]).forEach(function(ds, i){
         if(paidIdxs.indexOf(i) > -1) return;
         var diff2 = daysUntil(ds);
         if(diff2 !== null && diff2 >= 0 && diff2 <= 7){
