@@ -139,7 +139,7 @@ function renderFunds(){
       const isOut = d.txnType==='out';
       const amtColor = isOut ? '#f23060' : '#c8f230';
       const prefix = isOut ? '-' : '+';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:var(--text)">'+(d.note||'—')+'</span><span style="font-size:10px;color:var(--muted)">'+d.date+'</span></div><span style="font-size:12px;font-weight:500;color:'+amtColor+'">'+prefix+fmtR(d.amount)+'</span></div>';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)"><div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;"><span style="font-size:11px;color:var(--text)">'+(d.note||'—')+'</span><span style="font-size:10px;color:var(--muted)">'+d.date+'</span></div><span style="font-size:12px;font-weight:500;color:'+amtColor+';flex-shrink:0;white-space:nowrap;margin-left:8px;">'+prefix+fmtR(d.amount)+'</span></div>';
     }).join('');
 
     const balColor2 = balance<0?'#f23060':balance<1000?'#f2a830':'#c8f230';

@@ -519,6 +519,25 @@ function buildOdinLaunchAlerts(){
     }
   } catch(e){}
 
+  // ── Data integrity: negative balance on a savings pocket ──
+  // Expense-tracker pockets are allowed to go "over budget" (negative) by
+  // design — that's already surfaced on the Savings card itself. A regular
+  // savings/goal pocket going negative shouldn't happen given the existing
+  // hard-blocks on withdrawals, so this is a safety-net check only.
+  try{
+    if(typeof loadFunds === 'function') loadFunds();
+    (funds||[]).filter(function(f){ return !f._deleted && !f.isExpense; }).forEach(function(f){
+      var bal = (typeof fundTotal === 'function') ? fundTotal(f) : 0;
+      if(bal < 0){
+        alerts.push({ level:'red',
+          text: f.emoji+' '+f.name+' is negative ('+fmtR(bal)+') — shouldn\'t be possible, worth checking',
+          tab:'savings',
+          actions:[{ label:'Go to Savings', fn: function(){ goToTab('savings'); } }]
+        });
+      }
+    });
+  } catch(e){}
+
   return alerts;
 }
 
