@@ -434,12 +434,24 @@ function _scanApproveAll(){
   setTimeout(function(){
     openAddExpense(_scanner.carId);
 
-    // Fill description — combine all included line items
+    // Fill description — combine all included line items so the full
+    // itemized breakdown is preserved on the record. Previously this
+    // collapsed to "Workshop · N items" for multi-line invoices, losing
+    // exactly the detail a scan is supposed to capture. Now every line
+    // and its amount is kept, so the entry tells its own story later —
+    // same level of detail as a manually-typed full breakdown.
     var descEl = document.getElementById('expenseDesc');
     if(descEl){
-      var desc = includedLines.length === 1
-        ? includedLines[0].desc
-        : (_scanner.workshopName || 'Workshop service') + ' · ' + includedLines.length + ' items';
+      var desc;
+      if(includedLines.length === 1){
+        desc = includedLines[0].desc;
+      } else {
+        var itemsStr = includedLines.map(function(l){
+          var amt = Number(l.amount || 0).toFixed(2);
+          return l.isCredit ? (l.desc + ' (credit) -R' + amt) : (l.desc + ' - R' + amt);
+        }).join(' · ');
+        desc = (_scanner.workshopName ? _scanner.workshopName + ' · ' : '') + itemsStr;
+      }
       descEl.value = desc;
     }
 
