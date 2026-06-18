@@ -254,7 +254,7 @@ function _renderOdinTabActivity(mk){
 // ══ ODIN LAUNCH ALERTS ══
 function buildOdinLaunchAlerts(){
   var alerts = [];
-  var now = new Date();
+  var now = new Date(); now.setHours(0,0,0,0);
   var mk = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
 
   // ── Car service ──

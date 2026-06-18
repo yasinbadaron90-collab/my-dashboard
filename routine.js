@@ -744,7 +744,7 @@ function renderOdinInsights(tabId){
           }
         } else if(car.nextService){
           // Fallback: manually set nextService date
-          var now3 = new Date();
+          var now3 = new Date(); now3.setHours(0,0,0,0);
           var svcDate = new Date(car.nextService+'T00:00:00');
           var daysLeft = Math.round((svcDate-now3)/86400000);
           var cls = daysLeft < 30 ? 'urgent' : daysLeft < 90 ? '' : 'good';
