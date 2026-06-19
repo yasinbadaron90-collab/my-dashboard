@@ -471,19 +471,23 @@ function odinChat(userText){
 
   var messages = _odinHistory.slice();
 
-  fetch(ODIN_PROXY_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Api-Key': apiKey
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: messages.map(function(m){ return {role:m.role, content:m.content}; })
-    })
-  }).then(function(res){ return res.json(); }).then(function(data){
+  function _odinFetch(retrying){
+    var controller = new AbortController();
+    var timer = setTimeout(function(){ controller.abort(); }, 30000);
+    fetch(ODIN_PROXY_URL, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': apiKey
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: messages.map(function(m){ return {role:m.role, content:m.content}; })
+      })
+    }).then(function(res){ clearTimeout(timer); return res.json(); }).then(function(data){
     var el = document.getElementById(thinkId);
     if(el) el.remove();
 
@@ -523,13 +527,24 @@ function odinChat(userText){
     // Save to Firestore
     _odinSaveHistory();
 
+
   }).catch(function(err){
+    clearTimeout(timer);
+    if(!retrying){ setTimeout(function(){ _odinFetch(true); }, 2000); return; }
     var el = document.getElementById(thinkId);
     if(el) el.remove();
-    appendOdinMsg('assistant', '❌ Network error: '+escHtml(String(err))+'<br><br>Check your connection and try again.', false, null);
+    appendOdinMsg('assistant', '❌ Network error — retried once. Check your connection and try again.', false, null);
     _odinHistory.pop();
   });
+  }
+  _odinFetch(false);
 }
+
+
+
+
+
+
 
 // ── Called from school.js / odin.js to pre-fill and send a question ──────────
 function odinChatAsk(question){
