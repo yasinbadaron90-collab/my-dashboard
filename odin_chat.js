@@ -412,7 +412,7 @@ function _odinBuildContext(){
 
   // ── ROUTINE ──
   try{
-    var routTasks = JSON.parse(lsGet('yasin_routine_v1')||'[]');
+    var routTasks = JSON.parse(lsGet('yb_routine_v1')||'[]');
     if(routTasks.length){
       ctx.push('\n--- ROUTINE TASKS ---');
       routTasks.forEach(function(t){
