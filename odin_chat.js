@@ -300,6 +300,20 @@ function _odinBuildContext(){
       var t=paxTotals[p]||{total:0,paid:0,owing:0};
       ctx.push(p+': total R'+t.total+', paid R'+t.paid+', OWES R'+t.owing);
     });
+    // Individual trip detail — last 2 months
+    var monthKeys = Object.keys(cpData).sort().slice(-2);
+    monthKeys.forEach(function(mk){
+      var month = cpData[mk];
+      Object.keys(month).sort().forEach(function(ds){
+        var day = month[ds];
+        if(typeof day !== 'object') return;
+        pax.forEach(function(p){
+          if(!day[p]||typeof day[p]!=='object') return;
+          var amt=day[p].amt||0, paid=day[p].paid||false;
+          if(amt > 0) ctx.push('Trip '+ds+' '+p+': R'+amt+(paid?' PAID':' UNPAID')+(day.notes?' ('+day.notes+')':''));
+        });
+      });
+    });
   }catch(e){}
 
   // ── MONEY OWED ──
