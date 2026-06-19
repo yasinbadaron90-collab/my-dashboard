@@ -421,6 +421,39 @@ function _odinBuildContext(){
     }
   }catch(e){}
 
+  // ── SPEND CATEGORIES ──
+  try{
+    var spends = JSON.parse(lsGet('yb_spend_v1')||'[]');
+    if(spends.length){
+      var nowD  = new Date();
+      var thisMk = nowD.toISOString().slice(0,7);
+      var prevD  = new Date(nowD.getFullYear(), nowD.getMonth()-1, 1);
+      var prevMk = prevD.toISOString().slice(0,7);
+      var catIds = ['Food','Fuel','Kids','Car','Personal','Home','School','Social','Other'];
+      var thisCats = {}, prevCats = {}, thisUntagged=0, prevUntagged=0;
+      catIds.forEach(function(c){ thisCats[c]=0; prevCats[c]=0; });
+      spends.forEach(function(s){
+        var mk = (s.date||'').slice(0,7);
+        if(mk === thisMk){
+          if(s.category && thisCats[s.category]!=null) thisCats[s.category]+=(s.amount||0);
+          else thisUntagged+=(s.amount||0);
+        } else if(mk === prevMk){
+          if(s.category && prevCats[s.category]!=null) prevCats[s.category]+=(s.amount||0);
+          else prevUntagged+=(s.amount||0);
+        }
+      });
+      ctx.push('\n--- SPEND BY CATEGORY ---');
+      ctx.push('This month ('+thisMk+') vs last ('+prevMk+'):');
+      catIds.forEach(function(c){
+        var cur=thisCats[c], prev=prevCats[c];
+        if(cur===0 && prev===0) return;
+        var chg = prev>0 ? Math.round((cur-prev)/prev*100) : null;
+        ctx.push('  '+c+': R'+cur.toFixed(2)+(prev>0?' (prev R'+prev.toFixed(2)+', '+(chg>=0?'+':'')+chg+'%)':''));
+      });
+      if(thisUntagged>0) ctx.push('  Untagged: R'+thisUntagged.toFixed(2));
+    }
+  }catch(e){}
+
   return ctx.join('\n');
 }
 

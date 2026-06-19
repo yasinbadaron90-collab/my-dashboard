@@ -33,8 +33,47 @@ var _spState = {
   label: '',
   date: '',
   pocketId: null,
-  doorway: 'DIRECT'   // 'FNB' | 'TymeBank' | 'Cash' | 'DIRECT'
+  doorway: 'DIRECT',   // 'FNB' | 'TymeBank' | 'Cash' | 'DIRECT'
+  category: null       // 'Food' | 'Fuel' | 'Kids' | 'Car' | 'Personal' | 'Home' | 'School' | 'Social' | 'Other'
 };
+
+// ── Spend category definitions ─────────────────────────────────────────
+var SP_CATEGORIES = [
+  { id:'Food',     icon:'🍕', label:'Food'     },
+  { id:'Fuel',     icon:'⛽', label:'Fuel'     },
+  { id:'Kids',     icon:'👶', label:'Kids'     },
+  { id:'Car',      icon:'🚗', label:'Car'      },
+  { id:'Personal', icon:'💈', label:'Personal' },
+  { id:'Home',     icon:'🏠', label:'Home'     },
+  { id:'School',   icon:'📚', label:'School'   },
+  { id:'Social',   icon:'🎉', label:'Social'   },
+  { id:'Other',    icon:'📦', label:'Other'    }
+];
+
+// ── Merchant→category memory ───────────────────────────────────────────
+var SP_MERCHANT_CAT_KEY = 'yb_spend_merchant_cats_v1';
+function _spLoadMerchantCats(){ try{ return JSON.parse(lsGet(SP_MERCHANT_CAT_KEY)||'{}'); }catch(e){ return {}; } }
+function _spSaveMerchantCat(label, cat){
+  var m = _spLoadMerchantCats();
+  // Normalise: lowercase, strip amounts/numbers for better matching
+  var key = (label||'').toLowerCase().replace(/r\d+[\d,.]*/g,'').trim().slice(0,40);
+  if(key) m[key] = cat;
+  lsSet(SP_MERCHANT_CAT_KEY, JSON.stringify(m));
+}
+function _spSuggestCat(label){
+  var m = _spLoadMerchantCats();
+  var key = (label||'').toLowerCase().replace(/r\d+[\d,.]*/g,'').trim().slice(0,40);
+  if(m[key]) return { cat: m[key], fromMemory: true };
+  // Simple keyword fallback
+  var lc = label.toLowerCase();
+  if(/pizza|kfc|maccies|spur|roman|bread|nandos|hungry|food|eat|coffee|cafe|vida|pick.?n|checkers|woolies|shoprite|spar|dischem.*food/i.test(lc)) return { cat:'Food', fromMemory:false };
+  if(/astron|engen|caltex|shell|bp|total|petrol|fuel|garage/i.test(lc)) return { cat:'Fuel', fromMemory:false };
+  if(/napp|formula|purity|baby|diapers|pep.*kid|toys/i.test(lc)) return { cat:'Kids', fromMemory:false };
+  if(/motor|autozone|midas|car|toyota|kia|tyre|wheel|panel|spray/i.test(lc)) return { cat:'Car', fromMemory:false };
+  if(/hair|barber|cut|salon|razor|shave/i.test(lc)) return { cat:'Personal', fromMemory:false };
+  if(/zuma|clean|mop|wash|domestic|paint|plumb|electric/i.test(lc)) return { cat:'Home', fromMemory:false };
+  return null;
+}
 
 // ── Open / close ───────────────────────────────────────────────────────
 function openSpend(editingId, prefillData){
@@ -59,6 +98,7 @@ function openSpend(editingId, prefillData){
       _spState.date     = rec.date;
       _spState.pocketId = rec.pocketId;
       _spState.doorway  = rec.doorway || 'DIRECT';
+      _spState.category = rec.category || null;
     }
   } else if(prefillData){
     // Pre-fill from a routine task tick (or any other caller)
@@ -85,9 +125,10 @@ function openSpend(editingId, prefillData){
   if(lblEl)  lblEl.value  = _spState.label;
   if(dateEl) dateEl.value = _spState.date;
 
-  // Render pocket list + doorway buttons
+  // Render pocket list + doorway buttons + category grid
   _spRenderPocketList();
   _spSetDoorway(_spState.doorway);
+  _spRenderCategoryGrid(null);
   _spUpdateSaveButton();
 
   // Show modal
@@ -175,7 +216,32 @@ function _spSetDoorway(d){
 // ── Header-edit handlers ───────────────────────────────────────────────
 function _spOnLabelEdit(){
   _spState.label = (document.getElementById('spLabel').value || '').trim();
+  // Auto-suggest category from merchant memory / keywords
+  if(!_spState.category && _spState.label.length > 2){
+    var suggestion = _spSuggestCat(_spState.label);
+    if(suggestion){
+      _spState.category = suggestion.cat;
+      _spRenderCategoryGrid(suggestion.fromMemory ? suggestion.cat : null);
+    }
+  }
   _spUpdateSaveButton();
+}
+function _spSetCategory(cat){
+  _spState.category = cat;
+  _spRenderCategoryGrid(null);
+}
+function _spRenderCategoryGrid(suggestedCat){
+  var el = document.getElementById('spCategoryGrid');
+  if(!el) return;
+  el.innerHTML = SP_CATEGORIES.map(function(c){
+    var isSelected = _spState.category === c.id;
+    var isSuggested = suggestedCat === c.id;
+    var style = isSelected
+      ? 'border-color:#c8f230;background:#1a2e00;color:#c8f230;'
+      : 'border-color:#222;background:#111;color:#555;';
+    var badge = isSuggested ? '<span style="position:absolute;top:-6px;right:-6px;font-size:10px;">🧠</span>' : '';
+    return '<button type="button" onclick="_spSetCategory(\''+c.id+'\')" style="position:relative;padding:9px 4px;border-radius:6px;border:1px solid;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:.5px;cursor:pointer;transition:all .15s;'+style+'">'+badge+'<span style="font-size:16px;display:block;margin-bottom:3px;">'+c.icon+'</span>'+c.label+'</button>';
+  }).join('');
 }
 function _spOnAmountEdit(){
   var v = parseFloat(document.getElementById('spAmount').value);
@@ -355,6 +421,7 @@ function saveSpend(){
       sourceCardName: pocket.name,
       note: 'Spend · from ' + pocket.name + (bankForCF ? ' via ' + bankForCF : ' (direct)'),
       spendId: spId,
+      category: _spState.category || null,
       createdAt: new Date().toISOString()
     };
     if(bankForCF) cfRec.destBank = bankForCF;
@@ -387,10 +454,16 @@ function saveSpend(){
     doorway: doorway,
     depositId: depositId,
     cfId: cfId,
+    category: _spState.category || null,
     createdAt: new Date().toISOString()
   };
   all.push(rec);
   saveSpendData(all);
+
+  // Save merchant→category memory for next time
+  if(_spState.category && _spState.label){
+    try{ _spSaveMerchantCat(_spState.label, _spState.category); }catch(e){}
+  }
 
   // 5) If this spend was triggered from a routine task tick, mark the task done.
   //    Routine completion is INDEPENDENT of the spend record — if the user

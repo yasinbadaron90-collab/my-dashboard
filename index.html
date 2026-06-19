@@ -3029,6 +3029,12 @@ function _showUpdateToast(worker){
       <div style="font-size:10px;color:var(--muted);margin-top:6px;letter-spacing:.5px;">Direct = straight from pocket, bank not touched.</div>
     </div>
 
+    <!-- Category picker -->
+    <div class="field">
+      <label>Category <span style="color:#555;font-size:10px;">(optional)</span></label>
+      <div id="spCategoryGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;"></div>
+    </div>
+
     <button id="spSaveBtn" onclick="saveSpend()" disabled
             style="width:100%;padding:14px;background:#2a2a2a;color:#888;border:none;border-radius:8px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:700;cursor:not-allowed;opacity:.45;margin-top:6px;">
       🔒 Enter what it was for
