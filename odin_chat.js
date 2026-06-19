@@ -369,7 +369,7 @@ function _odinBuildContext(){
       if(alerts && alerts.length){
         ctx.push('\n--- ACTIVE ODIN ALERTS ---');
         alerts.forEach(function(a){
-          var clean = (a.msg||'').replace(/<[^>]+>/g,'');
+          var clean = (a.text||a.msg||'').replace(/<[^>]+>/g,'');
           ctx.push('['+a.level.toUpperCase()+'] '+a.icon+' '+clean);
         });
       }
