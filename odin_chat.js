@@ -355,6 +355,11 @@ function _odinBuildContext(){
         var spent = (c.expenses||[]).reduce(function(s,e){return s+(e.amt||0);},0);
         var advOpen = (c.advisories||[]).filter(function(a){return a.status==='open';}).length;
         ctx.push(c.name+(c.plate?' ('+c.plate+')':'')+': '+c.km+'km, last svc '+c.lastServiceDate+', total spent R'+spent+(advOpen?' ⚠️ '+advOpen+' open advisory':''));
+        // Individual expense entries (same as what Reports tab shows)
+        var recentExp = (c.expenses||[]).slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');}).slice(0,20);
+        recentExp.forEach(function(e){
+          ctx.push('  car expense '+e.date+': R'+(e.amt||0)+' — '+(e.desc||'no description'));
+        });
         (c.advisories||[]).filter(function(a){return a.status==='open';}).forEach(function(a){
           ctx.push('  advisory ['+a.severity+']: '+a.text);
         });
@@ -500,6 +505,9 @@ function odinChat(userText){
     +'- Kia Picanto CAA 189-565 = NURJAHAN\'S car (Yasin\'s wife), also funded from Ee90 pocket\n'
     +'- Hyundai Getz CAA 353-290 = MOTHER-IN-LAW\'S car, Nurjahan pays for it, record-only in app (no pocket deduction ever)\n'
     +'- Ee90 _KiA picaNto pocket = funds both Yasin\'s Toyota AND Nurjahan\'s Kia (the pocket name is misleading — ignore it)\n\n'
+    +'REPORTS TAB:\n'
+    +'- The Reports tab has no separate storage — it aggregates Savings + Carpool + Cash Flow data\n'
+    +'- You already have all that data in LIVE DATA below, so answer any reports question directly\n\n'
     +'LIVE DATA:\n'+_odinBuildContext();
 
   var messages = _odinHistory.slice();
