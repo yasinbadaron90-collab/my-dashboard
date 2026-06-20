@@ -360,7 +360,7 @@ function _odinBuildContext(){
       cars.forEach(function(c){
         var spent = (c.expenses||[]).reduce(function(s,e){return s+(e.amt||0);},0);
         var advOpen = (c.advisories||[]).filter(function(a){return a.status==='open';}).length;
-        ctx.push(c.name+(c.plate?' ('+c.plate+')':'')+': '+c.km+'km, last svc '+c.lastServiceDate+', total spent R'+spent+(advOpen?' ⚠️ '+advOpen+' open advisory':''));
+        ctx.push(c.name+(c.plate?' ('+c.plate+')':'')+': '+(c.kilometers||c.km||'unknown')+'km, last svc '+c.lastServiceDate+', total spent R'+spent+(advOpen?' ⚠️ '+advOpen+' open advisory':''));
         // Individual expense entries (same as what Reports tab shows)
         var recentExp = (c.expenses||[]).slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');}).slice(0,20);
         recentExp.forEach(function(e){
