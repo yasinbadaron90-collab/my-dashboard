@@ -318,9 +318,15 @@ function _odinBuildContext(){
 
   // ── MONEY OWED ──
   try{
-    var borrows  = JSON.parse(lsGet('yasin_borrows_v1')||'[]');
+    // yasin_borrows_v1 is stored as {passengerName: [entries]} object
+    var borrowsRaw = JSON.parse(lsGet('yasin_borrows_v1')||'{}');
     var extBorrows = JSON.parse(lsGet('yb_external_borrows_v1')||'[]');
-    var allBorrows = borrows.concat(extBorrows);
+    // Flatten the object into a single array
+    var carpoolBorrows = [];
+    Object.keys(borrowsRaw).forEach(function(p){
+      (borrowsRaw[p]||[]).forEach(function(b){ carpoolBorrows.push(Object.assign({passenger:p},b)); });
+    });
+    var allBorrows = carpoolBorrows.concat(extBorrows);
     if(allBorrows.length){
       ctx.push('\n--- MONEY OWED TO YOU ---');
       allBorrows.forEach(function(b){
@@ -456,6 +462,80 @@ function _odinBuildContext(){
         ctx.push('  '+c+': R'+cur.toFixed(2)+(prev>0?' (prev R'+prev.toFixed(2)+', '+(chg>=0?'+':'')+chg+'%)':''));
       });
       if(thisUntagged>0) ctx.push('  Untagged: R'+thisUntagged.toFixed(2));
+    }
+  }catch(e){}
+
+  // ── LENDS (new pocket-first records) ──
+  try{
+    var lends = JSON.parse(lsGet('yb_lends_v1')||'[]');
+    if(lends.length){
+      ctx.push('\n--- LEND RECORDS (yb_lends_v1) ---');
+      lends.forEach(function(l){
+        ctx.push(l.passenger+' lent R'+l.amount+' on '+l.date+(l.note?' ('+l.note+')':'')+(l.originPocket?' from pocket '+l.originPocket:'')+' [lendId:'+l.id+']');
+      });
+    }
+  }catch(e){}
+
+  // ── REPAYMENTS ──
+  try{
+    var repays = JSON.parse(lsGet('yb_repayments_v1')||'[]');
+    if(repays.length){
+      ctx.push('\n--- REPAYMENT RECORDS ---');
+      repays.forEach(function(r){
+        ctx.push(r.passenger+' repaid R'+r.amount+' on '+r.date+(r.bank?' via '+r.bank:'')+' into pocket '+r.pocketId);
+      });
+    }
+  }catch(e){}
+
+  // ── POCKET-TO-POCKET MOVES ──
+  try{
+    var moves = JSON.parse(lsGet('yb_moves_v1')||'[]');
+    if(moves.length){
+      ctx.push('\n--- POCKET MOVES ---');
+      moves.slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');}).slice(0,20).forEach(function(m){
+        ctx.push(m.date+': R'+m.amount+' moved from pocket '+m.fromPocketId+' → '+m.toPocketId+(m.note?' ('+m.note+')':''));
+      });
+    }
+  }catch(e){}
+
+  // ── CARPOOL PAYMENT RECORDS ──
+  try{
+    var cpPmts = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]');
+    if(cpPmts.length){
+      ctx.push('\n--- CARPOOL PAYMENT RECORDS ---');
+      cpPmts.slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');}).slice(0,20).forEach(function(p){
+        ctx.push(p.date+': '+p.passenger+' paid R'+p.amount+(p.bank?' via '+p.bank:'')+' [id:'+p.id+']');
+      });
+    }
+  }catch(e){}
+
+  // ── PRIORITY RULES ──
+  try{
+    var prules = JSON.parse(lsGet('yb_priority_rules_v1')||'null');
+    if(prules && prules.length){
+      ctx.push('\n--- PRIORITY RULES (money-in split order) ---');
+      prules.filter(function(r){return r.enabled;}).sort(function(a,b){return a.priority-b.priority;}).forEach(function(r){
+        ctx.push('#'+r.priority+' '+r.name+': '+r.desc);
+      });
+    }
+  }catch(e){}
+
+  // ── MERCHANT CATEGORY MEMORY ──
+  try{
+    var merchantCats = JSON.parse(lsGet('yb_spend_merchant_cats_v1')||'{}');
+    var mcKeys = Object.keys(merchantCats);
+    if(mcKeys.length){
+      ctx.push('\n--- MERCHANT CATEGORY MEMORY ---');
+      mcKeys.forEach(function(k){ ctx.push(k+' → '+merchantCats[k]); });
+    }
+  }catch(e){}
+
+  // ── CARPOOL ARCHIVED MONTHS ──
+  try{
+    var archived = JSON.parse(lsGet('yb_carpool_archived')||'[]');
+    if(archived.length){
+      ctx.push('\n--- CARPOOL ARCHIVED MONTHS ---');
+      archived.forEach(function(m){ ctx.push('Archived: '+m); });
     }
   }catch(e){}
 
