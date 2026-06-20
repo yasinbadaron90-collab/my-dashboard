@@ -1101,9 +1101,9 @@ function confirmAddExpense(){
     else car.expenses.push(entry);
   } else {
     car.expenses.push(entry);
-    // Update car's current km if provided
-    if(km && km > (car.kilometers||0)) car.kilometers = km;
   }
+  // Auto-update car odometer if expense km is higher than current (new & edits)
+  if(km && km > (car.kilometers||0)) car.kilometers = km;
   saveCarsData(cars);
   closeModal('addExpenseModal');
   renderCars();
