@@ -539,6 +539,41 @@ function _odinBuildContext(){
     }
   }catch(e){}
 
+
+  // ── FUEL LOG ──
+  try{
+    var fuelEntries = JSON.parse(lsGet('yasin_fuel_v1')||'[]');
+    if(fuelEntries.length){
+      // Pay cycle: 25th last month → 24th this month (matches carpool pay cycle)
+      var now3 = new Date();
+      var cycleStart3, cycleEnd3;
+      if(now3.getDate() >= 25){
+        cycleStart3 = new Date(now3.getFullYear(), now3.getMonth(), 25);
+        cycleEnd3   = new Date(now3.getFullYear(), now3.getMonth()+1, 24);
+      } else {
+        cycleStart3 = new Date(now3.getFullYear(), now3.getMonth()-1, 25);
+        cycleEnd3   = new Date(now3.getFullYear(), now3.getMonth(), 24);
+      }
+      var csStr = cycleStart3.toISOString().split('T')[0];
+      var ceStr = cycleEnd3.toISOString().split('T')[0];
+      var cycleFuel = fuelEntries.filter(function(e){ return (e.date||'') >= csStr && (e.date||'') <= ceStr; });
+      var cycleTotal = cycleFuel.reduce(function(s,e){ return s+(e.amount||0); },0);
+      var FUEL_BUDGET = 2800;
+      var budgetLeft = FUEL_BUDGET - cycleTotal;
+      var dailyCost = Number(lsGet('yb_daily_fuel')||100);
+      ctx.push('\n--- FUEL LOG ---');
+      ctx.push('Pay cycle '+csStr+' to '+ceStr);
+      ctx.push('Spent this cycle: R'+cycleTotal.toFixed(2)+' of R'+FUEL_BUDGET+' budget — R'+budgetLeft.toFixed(2)+(budgetLeft>=0?' remaining':' OVER BUDGET'));
+      ctx.push('Daily fuel cost setting: R'+dailyCost+'/day');
+      ctx.push('Total log entries: '+fuelEntries.length+', this cycle: '+cycleFuel.length);
+      // Recent entries
+      var recentFuel = cycleFuel.slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+      recentFuel.forEach(function(e){
+        ctx.push('  '+e.date+': R'+(e.amount||0)+' (R'+(e.price||0)+'/L)');
+      });
+    }
+  }catch(e){}
+
   return ctx.join('\n');
 }
 
