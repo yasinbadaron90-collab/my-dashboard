@@ -341,7 +341,7 @@ function _odinBuildContext(){
 
   // ── INSTALMENTS ──
   try{
-    var instData = JSON.parse(lsGet('yb_instalments_v1')||'[]');
+    var instData = JSON.parse(lsGet('yasin_instalments_v1')||'[]');
     if(instData.length){
       ctx.push('\n--- INSTALMENTS ---');
       instData.forEach(function(p){
@@ -354,7 +354,7 @@ function _odinBuildContext(){
 
   // ── CARS ──
   try{
-    var cars = JSON.parse(lsGet('yb_cars_v1')||'[]');
+    var cars = JSON.parse(lsGet('yasin_cars_v1')||'[]');
     if(cars.length){
       ctx.push('\n--- CARS ---');
       cars.forEach(function(c){
@@ -370,6 +370,30 @@ function _odinBuildContext(){
           ctx.push('  advisory ['+a.severity+']: '+a.text);
         });
       });
+    }
+  }catch(e){}
+
+
+  // ── DRIVER'S LICENCES ──
+  try{
+    var drivers = JSON.parse(lsGet('yasin_drivers_v1')||'[]');
+    if(drivers.length){
+      ctx.push('\n--- DRIVER\'S LICENCES ---');
+      var today4 = new Date().toISOString().split('T')[0];
+      drivers.forEach(function(d){
+        var daysLeft = d.expiry ? Math.round((new Date(d.expiry)-new Date(today4))/(1000*60*60*24)) : null;
+        ctx.push(d.name+(d.idNumber?' (ID: '+d.idNumber+')':'')+': expires '+d.expiry+(daysLeft!=null?' ('+daysLeft+' days)':''));
+      });
+    }
+  }catch(e){}
+
+  // ── PASSENGERS ──
+  try{
+    var passengerData = JSON.parse(lsGet('yb_passengers_v1')||'[]');
+    var activePass = passengerData.filter(function(p){ return !p._deleted; });
+    if(activePass.length){
+      ctx.push('\n--- CARPOOL PASSENGERS ---');
+      activePass.forEach(function(p){ ctx.push(p.name); });
     }
   }catch(e){}
 
