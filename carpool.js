@@ -1687,147 +1687,243 @@ function renderReports(){
 }
 
 // ── NET WORTH ──
-function renderNetWorth() {
-  // ── ASSETS ──
-  // 1. Pocket balances (all funds, including expense pockets)
-  var assetRows = [];
-  var totalAssets = 0;
+// ── NET WORTH chart mode ──
+var _nwChartMode = 'donut'; // 'donut' | 'line'
+var _nwDonutChart = null;
+var _nwLineChart = null;
 
+function setNwChartMode(mode) {
+  _nwChartMode = mode;
+  document.getElementById('nwBtnDonut').style.background  = mode === 'donut' ? '#1a2e00' : 'none';
+  document.getElementById('nwBtnDonut').style.borderColor = mode === 'donut' ? '#c8f230' : '#333';
+  document.getElementById('nwBtnDonut').style.color       = mode === 'donut' ? '#c8f230' : '#555';
+  document.getElementById('nwBtnLine').style.background   = mode === 'line'  ? '#1a2e00' : 'none';
+  document.getElementById('nwBtnLine').style.borderColor  = mode === 'line'  ? '#c8f230' : '#333';
+  document.getElementById('nwBtnLine').style.color        = mode === 'line'  ? '#c8f230' : '#555';
+  document.getElementById('nwDonutWrap').style.display = mode === 'donut' ? 'block' : 'none';
+  document.getElementById('nwLineWrap').style.display  = mode === 'line'  ? 'block' : 'none';
+}
+
+function _nwCalcData() {
+  var assetRows = [], totalAssets = 0, liabilityRows = [], totalLiabilities = 0;
+
+  // Pockets
   var allFunds = [];
   try { allFunds = JSON.parse(localStorage.getItem('yasin_funds_v16') || '[]'); } catch(e) {}
-
   allFunds.forEach(function(f) {
     var bal = (typeof fundTotal === 'function') ? fundTotal(f) : 0;
     totalAssets += bal;
-    assetRows.push({
-      label: (f.emoji || '💰') + ' ' + (f.name || 'Fund'),
-      amount: bal,
-      color: bal < 0 ? '#f23060' : '#c8f230',
-      tag: 'POCKET'
-    });
+    if (bal !== 0) assetRows.push({ label: (f.emoji||'💰')+' '+f.name, amount: bal, color: bal<0?'#f23060':'#c8f230', tag:'POCKET' });
   });
 
-  // 2. Carpool receivables (what passengers owe Yasin = assets)
+  // Carpool receivables
   var borrowRaw = {};
   try { borrowRaw = JSON.parse(localStorage.getItem('yasin_borrows_v1') || '{}'); } catch(e) {}
   var carpoolReceivable = 0;
   Object.keys(borrowRaw).forEach(function(pax) {
-    (borrowRaw[pax] || []).forEach(function(e) {
-      if (e.type === 'repay') {
-        carpoolReceivable -= Number(e.amount || 0);
-      } else {
-        carpoolReceivable += e.paid ? 0 : Number(e.amount || 0);
-      }
+    (borrowRaw[pax]||[]).forEach(function(e) {
+      if(e.type==='repay') carpoolReceivable -= Number(e.amount||0);
+      else carpoolReceivable += e.paid ? 0 : Number(e.amount||0);
     });
   });
   if (carpoolReceivable > 0) {
     totalAssets += carpoolReceivable;
-    assetRows.push({
-      label: '🚗 Carpool receivables',
-      amount: carpoolReceivable,
-      color: '#c8f230',
-      tag: 'RECEIVABLE'
-    });
+    assetRows.push({ label:'🚗 Carpool receivables', amount:carpoolReceivable, color:'#c8f230', tag:'RECEIVABLE' });
   }
 
-  // ── LIABILITIES ──
-  var liabilityRows = [];
-  var totalLiabilities = 0;
-
-  // 1. Instalments outstanding
+  // Instalments
   var instPlans = [];
   try { instPlans = JSON.parse(localStorage.getItem('yasin_instalments_v1') || '[]'); } catch(e) {}
   instPlans.forEach(function(plan) {
+    var paidAmt = (plan.paid||[]).reduce(function(s,p){ return s+Number(p.amount||plan.amt||0); },0);
+    var planTotal = Number(plan.total||0);
     var outstanding = 0;
-    if (plan.monthToMonth || plan.planType === 'autoDebit') {
-      // Auto-debit / month-to-month: outstanding = total − what's been paid
-      var paidAmt = (plan.paid || []).reduce(function(s, p) { return s + Number(p.amount || plan.amt || 0); }, 0);
-      var planTotal = Number(plan.total || 0);
-      outstanding = Math.max(0, planTotal > 0 ? planTotal - paidAmt : 0);
-      // If no total set, show remaining months × monthly as estimate
-      if (planTotal <= 0 && plan.num && plan.amt) {
-        var paidCount = (plan.paid || []).length;
-        var remaining = Math.max(0, Number(plan.num) - paidCount);
-        outstanding = remaining * Number(plan.amt);
-      }
-    } else {
-      // Revolving fixed schedule
-      var planTotal2 = Number(plan.total || 0);
-      var paidAmt2 = (plan.paid || []).reduce(function(s, p) { return s + Number(p.amount || plan.amt || 0); }, 0);
-      outstanding = Math.max(0, planTotal2 - paidAmt2);
-      if (planTotal2 <= 0 && plan.num && plan.amt) {
-        var paidCount2 = (plan.paid || []).length;
-        outstanding = Math.max(0, (Number(plan.num) - paidCount2) * Number(plan.amt));
-      }
-    }
-    if (outstanding > 0) {
+    if(planTotal > 0) outstanding = Math.max(0, planTotal - paidAmt);
+    else if(plan.num && plan.amt) outstanding = Math.max(0,(Number(plan.num)-(plan.paid||[]).length)*Number(plan.amt));
+    if(outstanding > 0) {
       totalLiabilities += outstanding;
-      liabilityRows.push({
-        label: '💳 ' + (plan.desc || plan.provider || 'Instalment'),
-        amount: outstanding,
-        color: '#f23060',
-        tag: 'INSTALMENT'
-      });
+      liabilityRows.push({ label:'💳 '+(plan.desc||plan.provider||'Instalment'), amount:outstanding, color:'#f23060', tag:'INSTALMENT' });
     }
   });
 
-  // 2. Money Yasin owes others (external borrows)
+  // External borrows (I owe)
   var extData = {};
   try { extData = JSON.parse(localStorage.getItem('yb_external_borrows_v1') || '{}'); } catch(e) {}
   Object.keys(extData).forEach(function(key) {
-    var p = extData[key];
-    var entries = p.entries || [];
-    var owed = 0;
-    entries.forEach(function(e) {
-      if (e.type === 'repay') owed -= Number(e.amount || 0);
-      else owed += Number(e.amount || 0);
-    });
+    var p = extData[key]; var owed = 0;
+    (p.entries||[]).forEach(function(e){ if(e.type==='repay') owed-=Number(e.amount||0); else owed+=Number(e.amount||0); });
     owed = Math.max(0, owed);
-    if (owed > 0) {
+    if(owed > 0) {
       totalLiabilities += owed;
-      liabilityRows.push({
-        label: '💸 Owe: ' + (p.name || key),
-        amount: owed,
-        color: '#f23060',
-        tag: 'DEBT'
-      });
+      liabilityRows.push({ label:'💸 Owe: '+(p.name||key), amount:owed, color:'#f23060', tag:'DEBT' });
     }
   });
 
-  // ── RENDER ──
-  var netWorth = totalAssets - totalLiabilities;
-  var nwColor = netWorth >= 0 ? '#c8f230' : '#f23060';
+  return { assetRows:assetRows, liabilityRows:liabilityRows, totalAssets:totalAssets, totalLiabilities:totalLiabilities, netWorth:totalAssets-totalLiabilities };
+}
 
-  var nwTotalEl = document.getElementById('nwTotal');
-  var nwAssetsEl = document.getElementById('nwAssets');
-  var nwLiabEl = document.getElementById('nwLiabilities');
-  var nwFormulaEl = document.getElementById('nwFormula');
-  var nwAssetRowsEl = document.getElementById('nwAssetRows');
-  var nwLiabRowsEl = document.getElementById('nwLiabilityRows');
-  if (!nwTotalEl) return;
+function renderNetWorth() {
+  if (!document.getElementById('nwTotal')) return;
+  var d = _nwCalcData();
+  var nwColor = d.netWorth >= 0 ? '#c8f230' : '#f23060';
 
-  nwTotalEl.textContent = fmtR(netWorth);
-  nwTotalEl.style.color = nwColor;
-  nwAssetsEl.textContent = fmtR(totalAssets);
-  nwLiabEl.textContent = fmtR(totalLiabilities);
-  nwFormulaEl.textContent = fmtR(totalAssets) + ' \u2212 ' + fmtR(totalLiabilities);
+  // Big number
+  document.getElementById('nwTotal').textContent = fmtR(d.netWorth);
+  document.getElementById('nwTotal').style.color  = nwColor;
+  document.getElementById('nwAssets').textContent = fmtR(d.totalAssets);
+  document.getElementById('nwLiabilities').textContent = fmtR(d.totalLiabilities);
+  document.getElementById('nwFormula').textContent = fmtR(d.totalAssets) + ' − ' + fmtR(d.totalLiabilities);
 
+  // Apply chart mode toggle UI state
+  setNwChartMode(_nwChartMode);
+
+  // ── DONUT CHART ──
+  _renderNwDonut(d);
+
+  // ── LINE CHART (Net Worth over time) ──
+  _renderNwLine(d);
+
+  // ── BREAKDOWN ROWS ──
   function makeRow(item) {
-    var tagBadge = '<span style="font-size:8px;padding:1px 6px;border-radius:100px;background:#1a1a1a;color:var(--muted);border:1px solid #333;letter-spacing:1px;margin-left:6px;">' + item.tag + '</span>';
+    var tagBadge = '<span style="font-size:8px;padding:1px 6px;border-radius:100px;background:#1a1a1a;color:var(--muted);border:1px solid #333;letter-spacing:1px;margin-left:6px;">'+item.tag+'</span>';
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;">'
-      + '<span style="color:var(--muted);display:flex;align-items:center;">' + item.label + tagBadge + '</span>'
-      + '<span style="color:' + item.color + ';font-weight:500;font-family:\'DM Mono\',monospace;">' + fmtR(item.amount) + '</span>'
-      + '</div>';
+      +'<span style="color:var(--muted);display:flex;align-items:center;">'+item.label+tagBadge+'</span>'
+      +'<span style="color:'+item.color+';font-weight:500;font-family:DM Mono,monospace;">'+fmtR(item.amount)+'</span>'
+      +'</div>';
+  }
+  document.getElementById('nwAssetRows').innerHTML = d.assetRows.length
+    ? d.assetRows.map(makeRow).join('')
+    : '<div style="padding:14px;color:var(--muted);font-size:12px;">No pockets found</div>';
+  document.getElementById('nwLiabilityRows').innerHTML = d.liabilityRows.length
+    ? d.liabilityRows.map(makeRow).join('')
+    : '<div style="padding:14px;color:#5a8800;font-size:12px;">✅ No liabilities found</div>';
+}
+
+function _renderNwDonut(d) {
+  var canvas = document.getElementById('nwDonutCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (_nwDonutChart) { try{ _nwDonutChart.destroy(); }catch(e){} _nwDonutChart = null; }
+
+  var assetColors  = ['#c8f230','#a8d220','#88b210','#689200'];
+  var liabColors   = ['#f23060','#d21040','#b20020','#920000'];
+  var labels = [], dataVals = [], colors = [];
+  d.assetRows.forEach(function(r,i){ if(r.amount>0){ labels.push(r.label.replace(/[^ -]/g,'')); dataVals.push(r.amount); colors.push(assetColors[i%assetColors.length]); } });
+  d.liabilityRows.forEach(function(r,i){ labels.push(r.label.replace(/[^ -]/g,'')); dataVals.push(r.amount); colors.push(liabColors[i%liabColors.length]); });
+
+  if (typeof Chart === 'undefined') return;
+  _nwDonutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: dataVals, backgroundColor: colors, borderColor: '#1a1a1a', borderWidth: 3, hoverOffset: 6 }] },
+    options: {
+      responsive: true, maintainAspectRatio: true, cutout: '68%',
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { color: '#888', font: { family: 'DM Mono', size: 10 }, padding: 12, boxWidth: 12 } },
+        tooltip: { callbacks: { label: function(ctx){ return ' R' + Number(ctx.parsed).toLocaleString('en-ZA'); } } }
+      }
+    }
+  });
+}
+
+function _renderNwLine(d) {
+  var canvas = document.getElementById('nwLineCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (_nwLineChart) { try{ _nwLineChart.destroy(); }catch(e){} _nwLineChart = null; }
+
+  // Build monthly Net Worth history from debt repayment entries
+  var extData = {};
+  try { extData = JSON.parse(localStorage.getItem('yb_external_borrows_v1') || '{}'); } catch(e) {}
+
+  // Collect all repay entries sorted by date
+  var allRepays = [];
+  Object.keys(extData).forEach(function(key) {
+    (extData[key].entries||[]).forEach(function(e) {
+      if (e.type === 'repay') allRepays.push({ date: e.date, amount: Number(e.amount||0) });
+    });
+  });
+  allRepays.sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+
+  // Start from today going back 12 months, or from first repayment
+  var today = new Date();
+  var points = [];
+  var months = [];
+  for (var i = 11; i >= 0; i--) {
+    var d2 = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    months.push(d2.getFullYear() + '-' + String(d2.getMonth()+1).padStart(2,'0'));
+  }
+  // Future 6 months
+  for (var j = 1; j <= 6; j++) {
+    var d3 = new Date(today.getFullYear(), today.getMonth() + j, 1);
+    months.push(d3.getFullYear() + '-' + String(d3.getMonth()+1).padStart(2,'0'));
   }
 
-  nwAssetRowsEl.innerHTML = assetRows.length
-    ? assetRows.map(makeRow).join('')
-    : '<div style="padding:14px;color:var(--muted);font-size:12px;">No pockets found</div>';
+  // Calculate net worth at end of each month
+  var currentNw = d.netWorth;
+  // Projected: assume R1000/month repayment going forward (from last repayment pattern)
+  var lastRepayAmt = allRepays.length > 0 ? allRepays[allRepays.length-1].amount : 1000;
+  var todayStr = today.toISOString().slice(0,7);
 
-  nwLiabRowsEl.innerHTML = liabilityRows.length
-    ? liabilityRows.map(makeRow).join('')
-    : '<div style="padding:14px;color:#5a8800;font-size:12px;">\u2705 No liabilities found</div>';
+  var labels2 = [], dataVals2 = [], pointColors2 = [];
+  months.forEach(function(m) {
+    var isFuture = m > todayStr;
+    // Sum repayments up to this month
+    var repaidUpTo = 0;
+    allRepays.forEach(function(r){ if(r.date && r.date.slice(0,7) <= m) repaidUpTo += r.amount; });
+    // For future months, project linearly
+    var futureExtra = 0;
+    if (isFuture) {
+      var mDate = new Date(m+'-01');
+      var diffMonths = (mDate.getFullYear()-today.getFullYear())*12+(mDate.getMonth()-today.getMonth());
+      futureExtra = diffMonths * lastRepayAmt;
+    }
+    var nwAtMonth = d.netWorth + repaidUpTo - (allRepays.reduce(function(s,r){return s+r.amount;},0)) + futureExtra;
+    // Simpler: start from current NW, project forward
+    if (!isFuture) {
+      // Historical: actual total liabilities at that point
+      nwAtMonth = d.netWorth + (allRepays.reduce(function(s,r){return s+r.amount;},0)) - (allRepays.filter(function(r){return r.date && r.date.slice(0,7)<=m;}).reduce(function(s,r){return s+r.amount;},0));
+    } else {
+      var mDate2 = new Date(m+'-01');
+      var mDiff = (mDate2.getFullYear()-today.getFullYear())*12+(mDate2.getMonth()-today.getMonth());
+      nwAtMonth = d.netWorth + (mDiff * lastRepayAmt);
+    }
+
+    var shortLabel = new Date(m+'-01').toLocaleDateString('en-ZA',{month:'short',year:'2-digit'});
+    labels2.push(shortLabel);
+    dataVals2.push(Math.round(nwAtMonth));
+    pointColors2.push(isFuture ? '#3a5a00' : (nwAtMonth >= 0 ? '#c8f230' : '#f23060'));
+  });
+
+  if (typeof Chart === 'undefined') return;
+  _nwLineChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels2,
+      datasets: [{
+        label: 'Net Worth',
+        data: dataVals2,
+        borderColor: '#c8f230',
+        backgroundColor: 'rgba(200,242,48,0.08)',
+        pointBackgroundColor: pointColors2,
+        pointRadius: 4,
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(ctx){ return ' R' + Number(ctx.parsed.y).toLocaleString('en-ZA'); } } }
+      },
+      scales: {
+        x: { ticks: { color:'#555', font:{family:'DM Mono',size:9} }, grid: { color:'#1a1a1a' } },
+        y: { ticks: { color:'#555', font:{family:'DM Mono',size:9}, callback: function(v){ return 'R'+Number(v).toLocaleString('en-ZA'); } }, grid: { color:'#1a1a1a' } }
+      }
+    }
+  });
 }
+
 
 // ── CARPOOL INCOME CHART ──
 var _cpChart = null;
