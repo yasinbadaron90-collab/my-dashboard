@@ -1733,16 +1733,27 @@ function _nwCalcData() {
     }
   });
 
-  // External borrows (I owe)
+  // External borrows — split by direction using isHistorical flag
+  // isHistorical:true = Yasin OWES them (liability e.g. Nuri)
+  // isHistorical:false/undefined = they OWE Yasin (asset e.g. Tariq, Zakie)
   var extData = {};
   try { extData = JSON.parse(localStorage.getItem('yb_external_borrows_v1') || '{}'); } catch(e) {}
   Object.keys(extData).forEach(function(key) {
-    var p = extData[key]; var owed = 0;
-    (p.entries||[]).forEach(function(e){ if(e.type==='repay') owed-=Number(e.amount||0); else owed+=Number(e.amount||0); });
-    owed = Math.max(0, owed);
-    if(owed > 0) {
-      totalLiabilities += owed;
-      liabilityRows.push({ label:'💸 Owe: '+(p.name||key), amount:owed, color:'#f23060', tag:'DEBT' });
+    var p = extData[key];
+    var hasHistorical = (p.entries||[]).some(function(e){ return e.isHistorical; });
+    var balance = 0;
+    (p.entries||[]).forEach(function(e){ if(e.type==='repay') balance-=Number(e.amount||0); else balance+=Number(e.amount||0); });
+    balance = Math.max(0, balance);
+    if(balance <= 0) return;
+    if(hasHistorical) {
+      // I OWE them — liability
+      totalLiabilities += balance;
+      liabilityRows.push({ label:'💸 Owe: '+(p.name||key), amount:balance, color:'#f23060', tag:'DEBT' });
+    } else {
+      // They OWE me — asset (but not yet received, so excluded per user preference)
+      // Uncomment below to include as assets:
+      // totalAssets += balance;
+      // assetRows.push({ label:'💸 '+(p.name||key)+' owes me', amount:balance, color:'#c8f230', tag:'RECEIVABLE' });
     }
   });
 
