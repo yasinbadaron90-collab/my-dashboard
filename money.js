@@ -101,7 +101,9 @@ function confirmExternalBorrow(){
   const amount = parseFloat(document.getElementById('extBorrowAmt').value);
   const date   = document.getElementById('extBorrowDate').value || localDateStr(new Date());
   const note   = document.getElementById('extBorrowNote').value.trim();
-  const account = document.getElementById('extBorrowAccount').value || 'FNB';
+  const accountRaw = document.getElementById('extBorrowAccount').value || 'FNB';
+  // For historical debts, account is irrelevant — set to 'none' so nothing misreads it
+  const account = (_extHistoricalMode) ? 'none' : accountRaw;
   if(!name){ alert('Please enter a name.'); return; }
   if(!amount || amount <= 0){ alert('Please enter a valid amount.'); return; }
 
