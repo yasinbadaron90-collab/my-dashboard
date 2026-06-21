@@ -13,9 +13,36 @@ function openExternalBorrowModal(){
   document.getElementById('extBorrowDate').value = localDateStr(new Date());
   document.getElementById('extBorrowNote').value = '';
   _extLendSelectedPocketId = null;               // v90 — reset pocket choice
+  _extHistoricalMode = false;                    // v142c — reset historical toggle
+  _applyExtHistoricalUI();
   renderExtLendPocketPicker();                    // v90 — show pockets
   document.getElementById('externalBorrowModal').classList.add('active');
   setTimeout(updateExtLendingGuardrail,100);
+}
+
+// ── v142c — Historical debt toggle ────────────────────────────────────────
+var _extHistoricalMode = false;
+
+function toggleExtHistorical(){
+  _extHistoricalMode = !_extHistoricalMode;
+  _applyExtHistoricalUI();
+}
+
+function _applyExtHistoricalUI(){
+  var tog    = document.getElementById('extHistoricalToggle');
+  var knob   = document.getElementById('extHistoricalKnob');
+  var section = document.getElementById('extLendPocketSection');
+  var guardrail = document.getElementById('extLendingGuardrail');
+  if(tog){
+    tog.style.background  = _extHistoricalMode ? '#3a1a5a' : '#2a2a2a';
+    tog.style.borderColor = _extHistoricalMode ? '#7a3aba' : '#333';
+  }
+  if(knob){
+    knob.style.left       = _extHistoricalMode ? '18px' : '2px';
+    knob.style.background = _extHistoricalMode ? '#a78bfa' : '#555';
+  }
+  if(section)  section.style.display  = _extHistoricalMode ? 'none' : 'block';
+  if(guardrail) guardrail.style.display = _extHistoricalMode ? 'none' : 'block';
 }
 
 // ── v90 Step 6 — pocket picker for Log Money Lent ─────────────────────────
@@ -78,13 +105,17 @@ function confirmExternalBorrow(){
   if(!name){ alert('Please enter a name.'); return; }
   if(!amount || amount <= 0){ alert('Please enter a valid amount.'); return; }
 
-  // ── v90 Step 6 — pocket-first: the lent money leaves a pocket ──────────
-  var pocket = funds.find(function(f){ return f.id === _extLendSelectedPocketId; });
-  if(!pocket){ alert('Pick which pocket the money comes out of.'); return; }
-  var pocketBal = _extLendBalance(pocket);
-  if(amount > pocketBal){
-    alert('Only ' + fmtR(pocketBal) + ' available in ' + pocket.name + '. Pick another pocket or a smaller amount.');
-    return;
+  // ── v90 Step 6 / v142c — pocket-first OR historical (no pocket deduction) ─
+  var isHistorical = _extHistoricalMode || false;
+  var pocket = null;
+  if(!isHistorical){
+    pocket = funds.find(function(f){ return f.id === _extLendSelectedPocketId; });
+    if(!pocket){ alert('Pick which pocket the money comes out of.'); return; }
+    var pocketBal = _extLendBalance(pocket);
+    if(amount > pocketBal){
+      alert('Only ' + fmtR(pocketBal) + ' available in ' + pocket.name + '. Pick another pocket or a smaller amount.');
+      return;
+    }
   }
 
   const data = loadExternalBorrows();
@@ -102,53 +133,57 @@ function confirmExternalBorrow(){
   var entryId = uid();
   var newEntry = {
     id: entryId, type:'borrow', amount, date, note, account,
-    originPocket: pocket.id,          // Step 6 — remember source pocket
-    lendId: lendId
+    originPocket: pocket ? pocket.id : null,   // Step 6 — null for historical
+    lendId: isHistorical ? null : lendId,       // no lendId for historical
+    isHistorical: isHistorical || undefined
   };
   data[key].entries.push(newEntry);
   saveExternalBorrows(data);
 
-  // 1) Deduct the pocket (money genuinely leaves you)
-  var pocketDepId = uid();
-  pocket.deposits.push({
-    id: pocketDepId,
-    txnType: 'out',
-    amount: amount,
-    date: date,
-    note: '🤝 Lent to ' + name + (note ? ' · ' + note : ''),
-    lendId: lendId,
-    borrowEntryId: key + ':' + entryId   // lets removeSavingsDepositByBorrowId find it too
-  });
-  saveFunds();
+  if(!isHistorical){
+    // 1) Deduct the pocket (money genuinely leaves you)
+    var pocketDepId = uid();
+    pocket.deposits.push({
+      id: pocketDepId,
+      txnType: 'out',
+      amount: amount,
+      date: date,
+      note: '🤝 Lent to ' + name + (note ? ' · ' + note : ''),
+      lendId: lendId,
+      borrowEntryId: key + ':' + entryId
+    });
+    saveFunds();
 
-  // 2) Log as expense in cashflow — stamp cfId + destBank for the reverse path
-  var cfId = logBorrowToCashflow(name, amount, date, account, 'personal', lendId);
-  if(cfId){ newEntry.cfId = cfId; saveExternalBorrows(data); }
+    // 2) Log as expense in cashflow
+    var cfId = logBorrowToCashflow(name, amount, date, account, 'personal', lendId);
+    if(cfId){ newEntry.cfId = cfId; saveExternalBorrows(data); }
 
-  // 3) Bank doorway (+amount in, -amount out → net 0). The money passed
-  //    through the bank on its way out; the tile returns to where it was.
-  if(typeof window._adjustBaselineForBank === 'function'){
-    window._adjustBaselineForBank(account, amount);    // doorway IN
-    window._adjustBaselineForBank(account, -amount);   // doorway OUT
+    // 3) Bank doorway (+amount in, -amount out → net 0)
+    if(typeof window._adjustBaselineForBank === 'function'){
+      window._adjustBaselineForBank(account, amount);
+      window._adjustBaselineForBank(account, -amount);
+    }
+
+    // 4) Stash the lend record for hard-block guard + reverse
+    var lendRecs = [];
+    try { lendRecs = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
+    lendRecs.push({
+      id: lendId,
+      key: key,
+      personName: name,
+      entryId: entryId,
+      amount: amount,
+      date: date,
+      bank: account,
+      pocketId: pocket.id,
+      pocketDepId: pocketDepId,
+      cfId: cfId,
+      createdAt: new Date().toISOString()
+    });
+    lsSet('yb_lends_v1', JSON.stringify(lendRecs));
   }
-
-  // 4) Stash the lend record so the hard-block guard + reverse can find it.
-  var lendRecs = [];
-  try { lendRecs = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
-  lendRecs.push({
-    id: lendId,
-    key: key,
-    personName: name,
-    entryId: entryId,
-    amount: amount,
-    date: date,
-    bank: account,
-    pocketId: pocket.id,
-    pocketDepId: pocketDepId,
-    cfId: cfId,
-    createdAt: new Date().toISOString()
-  });
-  lsSet('yb_lends_v1', JSON.stringify(lendRecs));
+  // Historical debt: only the borrow entry exists — no pocket, no CF, no lend record.
+  // Deletion is allowed directly from Money Owed (no hard-block needed — nothing to cascade).
 
   closeModal('externalBorrowModal');
   renderMoneyOwed();
@@ -157,7 +192,10 @@ function confirmExternalBorrow(){
   odinRefreshIfOpen();
   if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){}
   if(typeof softDeleteToast === 'function'){
-    softDeleteToast({ message: '🤝 Lent ' + fmtR(amount) + ' to ' + name + ' · from ' + pocket.name, duration: 3500 });
+    var toastMsg = isHistorical
+      ? '📋 Logged R' + amount.toLocaleString('en-ZA') + ' historical debt for ' + name
+      : '🤝 Lent ' + fmtR(amount) + ' to ' + name + ' · from ' + (pocket ? pocket.name : '');
+    softDeleteToast({ message: toastMsg, duration: 3500 });
   }
 }
 
