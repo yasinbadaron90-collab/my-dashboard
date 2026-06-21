@@ -1681,6 +1681,152 @@ function renderReports(){
       }).join('')
     : '<div style="padding:14px;color:var(--muted);font-size:12px">No expenses logged yet</div>';
   document.getElementById('rptCarRows').innerHTML = carRows;
+
+  // NET WORTH
+  renderNetWorth();
+}
+
+// ── NET WORTH ──
+function renderNetWorth() {
+  // ── ASSETS ──
+  // 1. Pocket balances (all funds, including expense pockets)
+  var assetRows = [];
+  var totalAssets = 0;
+
+  var allFunds = [];
+  try { allFunds = JSON.parse(localStorage.getItem('yasin_funds_v16') || '[]'); } catch(e) {}
+
+  allFunds.forEach(function(f) {
+    var bal = (typeof fundTotal === 'function') ? fundTotal(f) : 0;
+    totalAssets += bal;
+    assetRows.push({
+      label: (f.emoji || '💰') + ' ' + (f.name || 'Fund'),
+      amount: bal,
+      color: bal < 0 ? '#f23060' : '#c8f230',
+      tag: 'POCKET'
+    });
+  });
+
+  // 2. Carpool receivables (what passengers owe Yasin = assets)
+  var borrowRaw = {};
+  try { borrowRaw = JSON.parse(localStorage.getItem('yasin_borrows_v1') || '{}'); } catch(e) {}
+  var carpoolReceivable = 0;
+  Object.keys(borrowRaw).forEach(function(pax) {
+    (borrowRaw[pax] || []).forEach(function(e) {
+      if (e.type === 'repay') {
+        carpoolReceivable -= Number(e.amount || 0);
+      } else {
+        carpoolReceivable += e.paid ? 0 : Number(e.amount || 0);
+      }
+    });
+  });
+  if (carpoolReceivable > 0) {
+    totalAssets += carpoolReceivable;
+    assetRows.push({
+      label: '🚗 Carpool receivables',
+      amount: carpoolReceivable,
+      color: '#c8f230',
+      tag: 'RECEIVABLE'
+    });
+  }
+
+  // ── LIABILITIES ──
+  var liabilityRows = [];
+  var totalLiabilities = 0;
+
+  // 1. Instalments outstanding
+  var instPlans = [];
+  try { instPlans = JSON.parse(localStorage.getItem('yasin_instalments_v1') || '[]'); } catch(e) {}
+  instPlans.forEach(function(plan) {
+    var outstanding = 0;
+    if (plan.monthToMonth || plan.planType === 'autoDebit') {
+      // Auto-debit / month-to-month: outstanding = total − what's been paid
+      var paidAmt = (plan.paid || []).reduce(function(s, p) { return s + Number(p.amount || plan.amt || 0); }, 0);
+      var planTotal = Number(plan.total || 0);
+      outstanding = Math.max(0, planTotal > 0 ? planTotal - paidAmt : 0);
+      // If no total set, show remaining months × monthly as estimate
+      if (planTotal <= 0 && plan.num && plan.amt) {
+        var paidCount = (plan.paid || []).length;
+        var remaining = Math.max(0, Number(plan.num) - paidCount);
+        outstanding = remaining * Number(plan.amt);
+      }
+    } else {
+      // Revolving fixed schedule
+      var planTotal2 = Number(plan.total || 0);
+      var paidAmt2 = (plan.paid || []).reduce(function(s, p) { return s + Number(p.amount || plan.amt || 0); }, 0);
+      outstanding = Math.max(0, planTotal2 - paidAmt2);
+      if (planTotal2 <= 0 && plan.num && plan.amt) {
+        var paidCount2 = (plan.paid || []).length;
+        outstanding = Math.max(0, (Number(plan.num) - paidCount2) * Number(plan.amt));
+      }
+    }
+    if (outstanding > 0) {
+      totalLiabilities += outstanding;
+      liabilityRows.push({
+        label: '💳 ' + (plan.desc || plan.provider || 'Instalment'),
+        amount: outstanding,
+        color: '#f23060',
+        tag: 'INSTALMENT'
+      });
+    }
+  });
+
+  // 2. Money Yasin owes others (external borrows)
+  var extData = {};
+  try { extData = JSON.parse(localStorage.getItem('yb_external_borrows_v1') || '{}'); } catch(e) {}
+  Object.keys(extData).forEach(function(key) {
+    var p = extData[key];
+    var entries = p.entries || [];
+    var owed = 0;
+    entries.forEach(function(e) {
+      if (e.type === 'repay') owed -= Number(e.amount || 0);
+      else owed += Number(e.amount || 0);
+    });
+    owed = Math.max(0, owed);
+    if (owed > 0) {
+      totalLiabilities += owed;
+      liabilityRows.push({
+        label: '💸 Owe: ' + (p.name || key),
+        amount: owed,
+        color: '#f23060',
+        tag: 'DEBT'
+      });
+    }
+  });
+
+  // ── RENDER ──
+  var netWorth = totalAssets - totalLiabilities;
+  var nwColor = netWorth >= 0 ? '#c8f230' : '#f23060';
+
+  var nwTotalEl = document.getElementById('nwTotal');
+  var nwAssetsEl = document.getElementById('nwAssets');
+  var nwLiabEl = document.getElementById('nwLiabilities');
+  var nwFormulaEl = document.getElementById('nwFormula');
+  var nwAssetRowsEl = document.getElementById('nwAssetRows');
+  var nwLiabRowsEl = document.getElementById('nwLiabilityRows');
+  if (!nwTotalEl) return;
+
+  nwTotalEl.textContent = fmtR(netWorth);
+  nwTotalEl.style.color = nwColor;
+  nwAssetsEl.textContent = fmtR(totalAssets);
+  nwLiabEl.textContent = fmtR(totalLiabilities);
+  nwFormulaEl.textContent = fmtR(totalAssets) + ' \u2212 ' + fmtR(totalLiabilities);
+
+  function makeRow(item) {
+    var tagBadge = '<span style="font-size:8px;padding:1px 6px;border-radius:100px;background:#1a1a1a;color:var(--muted);border:1px solid #333;letter-spacing:1px;margin-left:6px;">' + item.tag + '</span>';
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;">'
+      + '<span style="color:var(--muted);display:flex;align-items:center;">' + item.label + tagBadge + '</span>'
+      + '<span style="color:' + item.color + ';font-weight:500;font-family:\'DM Mono\',monospace;">' + fmtR(item.amount) + '</span>'
+      + '</div>';
+  }
+
+  nwAssetRowsEl.innerHTML = assetRows.length
+    ? assetRows.map(makeRow).join('')
+    : '<div style="padding:14px;color:var(--muted);font-size:12px;">No pockets found</div>';
+
+  nwLiabRowsEl.innerHTML = liabilityRows.length
+    ? liabilityRows.map(makeRow).join('')
+    : '<div style="padding:14px;color:#5a8800;font-size:12px;">\u2705 No liabilities found</div>';
 }
 
 // ── CARPOOL INCOME CHART ──

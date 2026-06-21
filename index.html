@@ -707,6 +707,7 @@ function _showUpdateToast(worker){
       <button onclick="rptScrollTo('rpt-sec-carpool')"  style="padding:5px 12px;border-radius:100px;border:1px solid #333;background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">🚗 Carpool</button>
       <button onclick="rptScrollTo('rpt-sec-fuel')"     style="padding:5px 12px;border-radius:100px;border:1px solid #333;background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">⛽ Fuel</button>
       <button onclick="rptScrollTo('rpt-sec-borrow')"   style="padding:5px 12px;border-radius:100px;border:1px solid #333;background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">💸 Borrow</button>
+      <button onclick="rptScrollTo('rpt-sec-networth')" style="padding:5px 12px;border-radius:100px;border:1px solid #333;background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">📊 Net Worth</button>
       <button onclick="rptScrollTo('rpt-sec-car')"      style="padding:5px 12px;border-radius:100px;border:1px solid #333;background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">🚙 Cars</button>
       <button onclick="rptScrollTo('rpt-sec-export')"   style="padding:5px 12px;border-radius:100px;border:1px solid #333;background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">📥 Export</button>
     </div>
@@ -1041,6 +1042,45 @@ function _showUpdateToast(worker){
           <span>Passenger</span><span>Borrowed</span><span>Repaid</span><span>Owing</span>
         </div>
         <div id="rptBorrowRows"></div>
+      </div>
+    </div>
+
+    <!-- ══ SECTION: NET WORTH ══ -->
+    <div id="rpt-sec-networth" style="margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">📊 Net Worth</div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;">Current snapshot</div>
+      </div>
+
+      <!-- Big number -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:12px;text-align:center;">
+        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">NET WORTH</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(28px,6vw,48px);letter-spacing:-1px;" id="nwTotal">R0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;" id="nwFormula">Assets − Liabilities</div>
+      </div>
+
+      <!-- Assets vs Liabilities cards -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div style="background:var(--surface);border:1px solid #2a5a00;border-radius:8px;padding:14px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:6px;">✅ Assets</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#c8f230;" id="nwAssets">R0</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid #5a1010;border-radius:8px;padding:14px;">
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#8a2020;margin-bottom:6px;">⚠️ Liabilities</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#f23060;" id="nwLiabilities">R0</div>
+        </div>
+      </div>
+
+      <!-- Asset breakdown -->
+      <div style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:10px;">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;">Asset Breakdown</div>
+        <div id="nwAssetRows"></div>
+      </div>
+
+      <!-- Liability breakdown -->
+      <div style="background:var(--surface);border-radius:8px;overflow:hidden;">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#8a2020;">Liability Breakdown</div>
+        <div id="nwLiabilityRows"></div>
       </div>
     </div>
 
