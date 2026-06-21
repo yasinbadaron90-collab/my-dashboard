@@ -1716,20 +1716,7 @@ function _nwCalcData() {
     if (bal !== 0) assetRows.push({ label: (f.emoji||'💰')+' '+f.name, amount: bal, color: bal<0?'#f23060':'#c8f230', tag:'POCKET' });
   });
 
-  // Carpool receivables
-  var borrowRaw = {};
-  try { borrowRaw = JSON.parse(localStorage.getItem('yasin_borrows_v1') || '{}'); } catch(e) {}
-  var carpoolReceivable = 0;
-  Object.keys(borrowRaw).forEach(function(pax) {
-    (borrowRaw[pax]||[]).forEach(function(e) {
-      if(e.type==='repay') carpoolReceivable -= Number(e.amount||0);
-      else carpoolReceivable += e.paid ? 0 : Number(e.amount||0);
-    });
-  });
-  if (carpoolReceivable > 0) {
-    totalAssets += carpoolReceivable;
-    assetRows.push({ label:'🚗 Carpool receivables', amount:carpoolReceivable, color:'#c8f230', tag:'RECEIVABLE' });
-  }
+  // Carpool receivables excluded — money not yet physically received
 
   // Instalments
   var instPlans = [];
