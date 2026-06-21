@@ -1405,6 +1405,71 @@ function buildReportPeriods(){
   return periods;
 }
 
+// ── REPORTS FOLDER TOGGLE (Option B layout) ──────────────────────────────
+var _rptFolderState = {};
+try { _rptFolderState = JSON.parse(localStorage.getItem('yb_rpt_folders_v1') || '{}'); } catch(e) {}
+
+function rptToggleFolder(id) {
+  var body  = document.getElementById(id + 'Body');
+  var arrow = document.getElementById(id + 'Arrow');
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display  = isOpen ? 'none' : 'block';
+  if (arrow) {
+    arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+    arrow.style.color     = isOpen ? 'var(--muted)' : 'var(--accent)';
+  }
+  _rptFolderState[id] = !isOpen;
+  try { localStorage.setItem('yb_rpt_folders_v1', JSON.stringify(_rptFolderState)); } catch(e) {}
+}
+
+function rptRestoreFolders() {
+  // Default: Net Worth open, rest closed
+  var defaults = { rptFolderNetworth: true };
+  var state = Object.assign({}, defaults, _rptFolderState);
+  Object.keys(state).forEach(function(id) {
+    var body  = document.getElementById(id + 'Body');
+    var arrow = document.getElementById(id + 'Arrow');
+    if (!body) return;
+    var isOpen = state[id];
+    body.style.display  = isOpen ? 'block' : 'none';
+    if (arrow) {
+      arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+      arrow.style.color     = isOpen ? 'var(--accent)'  : 'var(--muted)';
+    }
+  });
+}
+
+function rptUpdateFolderMeta() {
+  // Update the summary line shown on each closed folder header
+  setTimeout(function() {
+    // Savings
+    var savEl = document.getElementById('rptFolderSavingsMeta');
+    var savVal = document.getElementById('rptTotalSaved');
+    if (savEl && savVal) savEl.textContent = savVal.textContent;
+
+    // Carpool
+    var cpEl = document.getElementById('rptFolderCarpoolMeta');
+    var cpVal = document.getElementById('rptCarpoolTotal');
+    if (cpEl && cpVal) cpEl.textContent = cpVal.textContent + ' earned';
+
+    // Borrow
+    var borEl = document.getElementById('rptFolderBorrowMeta');
+    var borVal = document.getElementById('rptBorrowOwing');
+    if (borEl && borVal) borEl.textContent = borVal.textContent + ' outstanding';
+
+    // Net Worth
+    var nwEl = document.getElementById('rptFolderNetworthMeta');
+    var nwVal = document.getElementById('nwTotal');
+    if (nwEl && nwVal) { nwEl.textContent = nwVal.textContent; nwEl.style.color = nwVal.style.color; }
+
+    // Car
+    var carEl = document.getElementById('rptFolderCarMeta');
+    var carVal = document.getElementById('rptCarSpent');
+    if (carEl && carVal) carEl.textContent = carVal.textContent + ' spent';
+  }, 200);
+}
+
 function renderReportFilters(){
   const periods = buildReportPeriods();
   const container = document.getElementById('reportFilters');
@@ -1684,6 +1749,9 @@ function renderReports(){
 
   // NET WORTH
   renderNetWorth();
+  // Restore folder open/close state + update meta summaries
+  rptRestoreFolders();
+  rptUpdateFolderMeta();
 }
 
 // ── NET WORTH ──
