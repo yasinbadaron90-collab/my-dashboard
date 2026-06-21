@@ -1421,17 +1421,22 @@ function rptToggleFolder(id) {
   }
   _rptFolderState[id] = !isOpen;
   try { localStorage.setItem('yb_rpt_folders_v1', JSON.stringify(_rptFolderState)); } catch(e) {}
+  // Re-render Net Worth chart when its folder opens (canvas must be visible for Chart.js)
+  if (id === 'rptFolderNetworth' && !isOpen) {
+    setTimeout(function(){ if(typeof renderNetWorth==='function') renderNetWorth(); }, 50);
+  }
 }
 
 function rptRestoreFolders() {
-  // Default: Net Worth open, rest closed
-  var defaults = { rptFolderNetworth: true };
+  // Default: all closed (user taps to open what they want)
+  var defaults = {};
   var state = Object.assign({}, defaults, _rptFolderState);
-  Object.keys(state).forEach(function(id) {
+  var allFolders = ['rptFolderSavings','rptFolderCarpool','rptFolderFuel','rptFolderBorrow','rptFolderNetworth','rptFolderCar','rptFolderExport'];
+  allFolders.forEach(function(id) {
     var body  = document.getElementById(id + 'Body');
     var arrow = document.getElementById(id + 'Arrow');
     if (!body) return;
-    var isOpen = state[id];
+    var isOpen = state[id] === true;
     body.style.display  = isOpen ? 'block' : 'none';
     if (arrow) {
       arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
