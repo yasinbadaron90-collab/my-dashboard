@@ -1475,6 +1475,63 @@ function rptUpdateFolderMeta() {
   }, 200);
 }
 
+// ── REPORTS FOLDER TOGGLE ────────────────────────────────────────────────────
+var _rptFolderState = {};
+try { _rptFolderState = JSON.parse(localStorage.getItem('yb_rpt_folders_v1') || '{}'); } catch(e) {}
+
+function rptToggleFolder(id) {
+  var body  = document.getElementById(id + 'Body');
+  var arrow = document.getElementById(id + 'Arrow');
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display  = isOpen ? 'none' : 'block';
+  if (arrow) {
+    arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+    arrow.style.color     = isOpen ? 'var(--muted)' : 'var(--accent)';
+  }
+  _rptFolderState[id] = !isOpen;
+  try { localStorage.setItem('yb_rpt_folders_v1', JSON.stringify(_rptFolderState)); } catch(e) {}
+  if (id === 'rptFolderNetworth' && !isOpen) {
+    setTimeout(function(){ if(typeof renderNetWorth==='function') renderNetWorth(); }, 80);
+  }
+}
+
+function rptRestoreFolders() {
+  var allFolders = ['rptFolderSavings','rptFolderCarpool','rptFolderFuel','rptFolderBorrow',
+                    'rptFolderNetworth','rptFolderCar','rptFolderExport'];
+  allFolders.forEach(function(id) {
+    var body  = document.getElementById(id + 'Body');
+    var arrow = document.getElementById(id + 'Arrow');
+    if (!body) return;
+    var isOpen = _rptFolderState[id] === true;
+    body.style.display  = isOpen ? 'block' : 'none';
+    if (arrow) {
+      arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+      arrow.style.color     = isOpen ? 'var(--accent)'  : 'var(--muted)';
+    }
+  });
+}
+
+function rptUpdateFolderMeta() {
+  setTimeout(function() {
+    var map = {
+      'rptFolderSavings':  'rptTotalSaved',
+      'rptFolderCarpool':  'rptCarpoolTotal',
+      'rptFolderBorrow':   'rptBorrowOwing',
+      'rptFolderNetworth': 'nwTotal',
+      'rptFolderCar':      'rptCarSpent'
+    };
+    Object.keys(map).forEach(function(fid) {
+      var metaEl = document.getElementById(fid + 'Meta');
+      var valEl  = document.getElementById(map[fid]);
+      if (metaEl && valEl) {
+        metaEl.textContent = valEl.textContent;
+        if (fid === 'rptFolderNetworth') metaEl.style.color = valEl.style.color;
+      }
+    });
+  }, 300);
+}
+
 function renderReportFilters(){
   const periods = buildReportPeriods();
   const container = document.getElementById('reportFilters');

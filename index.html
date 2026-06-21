@@ -701,44 +701,17 @@ function _showUpdateToast(worker){
       <div id="insightCards" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
-    <!-- Nav bar replaced by folder headers -->
-
-    <!-- Period filter -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-      <div style="font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;">Period</div>
-      <button id="compareToggleBtn" onclick="toggleCompareMode()" style="display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:100px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;cursor:pointer;transition:all .2s;">
-        <span id="compareToggleIcon" style="font-size:11px;">⇄</span>
-        <span id="compareToggleLabel">COMPARE</span>
-      </button>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;" id="reportFilters"></div>
-
-    <!-- Compare banner -->
-    <div id="compareBanner" style="display:none;background:#0d1a00;border:1px solid #3a5a00;border-radius:8px;padding:12px 16px;margin-bottom:20px;">
-      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:8px;">Comparing</div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span id="cmpLabelA" style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;">—</span>
-        <span style="color:#3a5a00;font-size:18px;">vs</span>
-        <span id="cmpLabelB" style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--muted);">—</span>
-        <span style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-left:4px;">(previous period auto-selected)</span>
-      </div>
-    </div>
-
-    <!-- ══ SECTION: SAVINGS ══ -->
-      </div>
-    </div>
-
     <!-- Folder: 💰 Savings -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;" id="rptFolderSavingsWrap">
-      <div onclick="rptToggleFolder('rptFolderSavings')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--border);">
+      <div onclick="rptToggleFolder('rptFolderSavings')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;">
         <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;">💰 Savings</div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:11px;color:var(--muted);" id="rptFolderSavingsMeta"></span>
-          <span style="color:var(--muted);font-size:14px;transition:transform .2s;" id="rptFolderSavingsArrow">›</span>
+          <span style="color:var(--muted);font-size:18px;transition:transform .2s;" id="rptFolderSavingsArrow">›</span>
         </div>
       </div>
-      <div id="rptFolderSavingsBody" style="display:none;padding:16px 0 4px;">
-    <div id="rpt-sec-savings" style="margin-bottom:28px;">
+      <div id="rptFolderSavingsBody" style="display:none;padding:0 0 8px;">
+        <div id="rpt-sec-savings" style="margin-bottom:28px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">💰 Savings</div>
         <div style="font-size:10px;color:var(--muted);letter-spacing:1px;" id="rptSavingsPeriod">—</div>
@@ -783,22 +756,19 @@ function _showUpdateToast(worker){
         <div id="rptSavingsCompareRows"></div>
       </div>
     </div>
-
-    <!-- ══ SECTION: CARPOOL ══ -->
       </div>
     </div>
-
     <!-- Folder: 🚗 Carpool -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;" id="rptFolderCarpoolWrap">
-      <div onclick="rptToggleFolder('rptFolderCarpool')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--border);">
+      <div onclick="rptToggleFolder('rptFolderCarpool')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;">
         <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;">🚗 Carpool</div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:11px;color:var(--muted);" id="rptFolderCarpoolMeta"></span>
-          <span style="color:var(--muted);font-size:14px;transition:transform .2s;" id="rptFolderCarpoolArrow">›</span>
+          <span style="color:var(--muted);font-size:18px;transition:transform .2s;" id="rptFolderCarpoolArrow">›</span>
         </div>
       </div>
-      <div id="rptFolderCarpoolBody" style="display:none;padding:16px 0 4px;">
-    <div id="rpt-sec-carpool" style="margin-bottom:28px;">
+      <div id="rptFolderCarpoolBody" style="display:none;padding:0 0 8px;">
+        <div id="rpt-sec-carpool" style="margin-bottom:28px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">🚗 Carpool Income</div>
         <div style="font-size:10px;color:var(--muted);letter-spacing:1px;" id="rptCarpoolPeriod">—</div>
@@ -884,22 +854,19 @@ function _showUpdateToast(worker){
         <div id="rptCarpoolCompareRows"></div>
       </div>
     </div>
-
-    <!-- ══ SECTION: FUEL & PRICING ══ -->
       </div>
     </div>
-
     <!-- Folder: ⛽ Fuel -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;" id="rptFolderFuelWrap">
-      <div onclick="rptToggleFolder('rptFolderFuel')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--border);">
+      <div onclick="rptToggleFolder('rptFolderFuel')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;">
         <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;">⛽ Fuel</div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:11px;color:var(--muted);" id="rptFolderFuelMeta"></span>
-          <span style="color:var(--muted);font-size:14px;transition:transform .2s;" id="rptFolderFuelArrow">›</span>
+          <span style="color:var(--muted);font-size:18px;transition:transform .2s;" id="rptFolderFuelArrow">›</span>
         </div>
       </div>
-      <div id="rptFolderFuelBody" style="display:none;padding:16px 0 4px;">
-    <div id="rpt-sec-fuel" style="margin-bottom:28px;">
+      <div id="rptFolderFuelBody" style="display:none;padding:0 0 8px;">
+        <div id="rpt-sec-fuel" style="margin-bottom:28px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">⛽ Fuel & Pricing</div>
       </div>
@@ -1033,35 +1000,19 @@ function _showUpdateToast(worker){
         </div>
       </details>
     </div>
-
-    <!-- ══ SECTION: MAINTENANCE (removed May 2026) ══
-         User stopped using the maintenance system in favour of an
-         expense-flagged savings card (Ee90). Block is gone from the UI.
-         Stubs kept hidden so any background code writing to these IDs
-         no-ops gracefully instead of throwing. -->
-    <div id="rpt-sec-maint" style="display:none;">
-      <span id="rptMaintPeriod"></span>
-      <span id="rptMaintMonth">R0</span>
-      <span id="rptMaintTotal">R0</span>
-      <span id="rptMaintCount">0</span>
-      <div id="rptMaintRows"></div>
-    </div>
-
-    <!-- ══ SECTION: BORROW ══ -->
       </div>
     </div>
-
     <!-- Folder: 💸 Money Owed -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;" id="rptFolderBorrowWrap">
-      <div onclick="rptToggleFolder('rptFolderBorrow')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--border);">
+      <div onclick="rptToggleFolder('rptFolderBorrow')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;">
         <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;">💸 Money Owed</div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:11px;color:var(--muted);" id="rptFolderBorrowMeta"></span>
-          <span style="color:var(--muted);font-size:14px;transition:transform .2s;" id="rptFolderBorrowArrow">›</span>
+          <span style="color:var(--muted);font-size:18px;transition:transform .2s;" id="rptFolderBorrowArrow">›</span>
         </div>
       </div>
-      <div id="rptFolderBorrowBody" style="display:none;padding:16px 0 4px;">
-    <div id="rpt-sec-borrow" style="margin-bottom:28px;">
+      <div id="rptFolderBorrowBody" style="display:none;padding:0 0 8px;">
+        <div id="rpt-sec-borrow" style="margin-bottom:28px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">💸 Borrowed Money</div>
         <div style="font-size:10px;color:var(--muted);letter-spacing:1px;">All activity</div>
@@ -1087,22 +1038,19 @@ function _showUpdateToast(worker){
         <div id="rptBorrowRows"></div>
       </div>
     </div>
-
-    <!-- ══ SECTION: NET WORTH ══ -->
       </div>
     </div>
-
     <!-- Folder: 📊 Net Worth -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;" id="rptFolderNetworthWrap">
-      <div onclick="rptToggleFolder('rptFolderNetworth')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--border);">
+      <div onclick="rptToggleFolder('rptFolderNetworth')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;">
         <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;">📊 Net Worth</div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:11px;color:var(--muted);" id="rptFolderNetworthMeta"></span>
-          <span style="color:var(--muted);font-size:14px;transition:transform .2s;" id="rptFolderNetworthArrow">›</span>
+          <span style="color:var(--muted);font-size:18px;transition:transform .2s;" id="rptFolderNetworthArrow">›</span>
         </div>
       </div>
-      <div id="rptFolderNetworthBody" style="display:none;padding:16px 0 4px;">
-    <div id="rpt-sec-networth" style="margin-bottom:28px;">
+      <div id="rptFolderNetworthBody" style="display:none;padding:0 0 8px;">
+        <div id="rpt-sec-networth" style="margin-bottom:28px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">📊 Net Worth</div>
         <div style="font-size:10px;color:var(--muted);letter-spacing:1px;">Current snapshot</div>
@@ -1156,22 +1104,19 @@ function _showUpdateToast(worker){
         <div id="nwLiabilityRows"></div>
       </div>
     </div>
-
-    <!-- ══ SECTION: CAR EXPENSES ══ -->
       </div>
     </div>
-
     <!-- Folder: 🔧 Car Expenses -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;" id="rptFolderCarWrap">
-      <div onclick="rptToggleFolder('rptFolderCar')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--border);">
+      <div onclick="rptToggleFolder('rptFolderCar')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;">
         <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;">🔧 Car Expenses</div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:11px;color:var(--muted);" id="rptFolderCarMeta"></span>
-          <span style="color:var(--muted);font-size:14px;transition:transform .2s;" id="rptFolderCarArrow">›</span>
+          <span style="color:var(--muted);font-size:18px;transition:transform .2s;" id="rptFolderCarArrow">›</span>
         </div>
       </div>
-      <div id="rptFolderCarBody" style="display:none;padding:16px 0 4px;">
-    <div id="rpt-sec-car" style="margin-bottom:28px;">
+      <div id="rptFolderCarBody" style="display:none;padding:0 0 8px;">
+        <div id="rpt-sec-car" style="margin-bottom:28px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">🚙 Car Expenses</div>
         <div style="font-size:10px;color:var(--muted);letter-spacing:1px;">Full history</div>
@@ -1193,19 +1138,19 @@ function _showUpdateToast(worker){
         <div id="rptCarRows"></div>
       </div>
     </div>
-
-    <!-- ══ SECTION: EXPORT TOOLS ══ -->
+      </div>
+    </div>
     <!-- Folder: 📥 Export -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;" id="rptFolderExportWrap">
-      <div onclick="rptToggleFolder('rptFolderExport')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--border);">
+      <div onclick="rptToggleFolder('rptFolderExport')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;">
         <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;">📥 Export</div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:11px;color:var(--muted);" id="rptFolderExportMeta"></span>
-          <span style="color:var(--muted);font-size:14px;transition:transform .2s;" id="rptFolderExportArrow">›</span>
+          <span style="color:var(--muted);font-size:18px;transition:transform .2s;" id="rptFolderExportArrow">›</span>
         </div>
       </div>
-      <div id="rptFolderExportBody" style="display:none;padding:16px 0 4px;">
-    <div id="rpt-sec-export" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
+      <div id="rptFolderExportBody" style="display:none;padding:0 0 8px;">
+        <div id="rpt-sec-export" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
       <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">📥 Export</div>
       <!-- Streamlined (May 2026) — only the All-in-one Excel export is kept,
            which bundles savings + carpool + car expenses in a single file. The
@@ -1213,331 +1158,9 @@ function _showUpdateToast(worker){
            removed for clutter. -->
       <button onclick="exportReport('all')" class="rpt-export-btn" style="width:100%;background:#c8f230;color:#000;border:none;">⬇ Download All (Excel)</button>
     </div>
-
-  </div>
-</div>
-
-<!-- PAY DESTINATION MODAL -->
-<div class="overlay" id="payDestModal">
-  <div class="modal" style="max-width:400px;">
-    <h2 style="color:#c8f230;">💳 Payment Received <button class="info-btn" onclick="openInfo('Carpool payment received', 'Pick the pocket the money should land in. The trips being marked paid (and any loan being settled) show below — confirm and the money lands in your chosen pocket.')">ⓘ</button></h2>
-    <div id="payDestSummary" style="background:#0d1a00;border:1px solid #2a4a00;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:1.8;color:#8ab820;"></div>
-    <div class="field" style="margin-bottom:12px;">
-      <label style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Bank Account Received Into</label>
-      <select id="payDestBank" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
-        <option value="Tymebank">🏦 Tymebank</option>
-        <option value="FNB">🏛 FNB</option>
-        <option value="Cash">💵 Cash</option>
-      </select>
-    </div>
-    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Where do you want to put this money?</div>
-    <div id="payDestOptions" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding-right:4px;"></div>
-    <input type="hidden" id="payDestPassenger"/>
-    <input type="hidden" id="payDestTripOwing"/>
-    <input type="hidden" id="payDestBorrowOwing"/>
-    <input type="hidden" id="payDestTotal"/>
-    <input type="hidden" id="payDestChoice" value=""/>
-    <div class="modal-btns" style="margin-top:16px;">
-      <button class="btn ghost" onclick="closeModal('payDestModal')">Cancel</button>
-      <button class="btn primary" onclick="confirmPayDest()">Confirm ✓</button>
-    </div>
-  </div>
-</div>
-
-<!-- CARD TYPE PICKER -->
-<div class="overlay" id="cardTypePicker">
-  <div class="modal" style="max-width:360px;">
-    <h2 style="margin-bottom:6px;">New Card</h2>
-    <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:20px;">What type of card do you want to create?</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <button onclick="closeModal('cardTypePicker');openNewFundDirect();" style="display:flex;align-items:center;gap:14px;padding:16px;background:#0d1a00;border:1px solid #3a5a00;border-radius:10px;cursor:pointer;text-align:left;transition:all .18s;font-family:'DM Mono',monospace;" onmouseover="this.style.borderColor='#c8f230'" onmouseout="this.style.borderColor='#3a5a00'">
-        <span style="font-size:28px;">💰</span>
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#c8f230;margin-bottom:3px;">Savings Card</div>
-          <div style="font-size:10px;color:#5a8800;letter-spacing:1px;">Goal, deposits & progress tracking</div>
-        </div>
-      </button>
-      <button onclick="closeModal('cardTypePicker');openNewMaintCard();" style="display:flex;align-items:center;gap:14px;padding:16px;background:#1a1000;border:1px solid #6a4a00;border-radius:10px;cursor:pointer;text-align:left;transition:all .18s;font-family:'DM Mono',monospace;" onmouseover="this.style.borderColor='#f2a830'" onmouseout="this.style.borderColor='#6a4a00'">
-        <span style="font-size:28px;">🔧</span>
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#f2a830;margin-bottom:3px;">Maintenance Card</div>
-          <div style="font-size:10px;color:#6a4a00;letter-spacing:1px;">Monthly target, contributions & history</div>
-        </div>
-      </button>
-    </div>
-    <div class="modal-btns" style="margin-top:16px;">
-      <button class="btn ghost" onclick="closeModal('cardTypePicker')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- CUSTOM MAINTENANCE CARD MODAL -->
-<div class="overlay" id="customMaintModal">
-  <div class="modal">
-    <h2 id="customMaintTitle" style="color:#f2a830;">🔧 New Maintenance Card</h2>
-    <div class="field"><label>Card Name</label><input type="text" id="cmName" placeholder="e.g. Home Repairs, Tyres Fund"/></div>
-    <div class="field"><label>Icon</label><div class="emoji-grid" id="cmEmojiGrid"></div></div>
-    <div class="field"><label>Monthly Target (R)</label><input type="number" id="cmTarget" placeholder="e.g. 1500" min="1"/></div>
-    <div class="field">
-      <label>Contributors</label>
-      <div id="cmContributorList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
-      <button type="button" onclick="addCmContributor()" style="padding:6px 14px;border:1px dashed var(--border);border-radius:6px;background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">+ Add Person</button>
-    </div>
-    <input type="hidden" id="cmEditId"/>
-    <div class="modal-btns">
-      <button class="btn ghost" onclick="closeModal('customMaintModal')">Cancel</button>
-      <button class="btn primary" onclick="saveCustomMaintCard()">Save Card</button>
-    </div>
-  </div>
-</div>
-
-<!-- CUSTOM MAINTENANCE CONTRIBUTION MODAL -->
-<div class="overlay" id="customMaintContribModal">
-  <div class="modal">
-    <h2 style="color:#c8f230;">＋ Add Contribution</h2>
-    <div class="field"><label>Person</label>
-      <select id="cmContribPerson" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;"></select>
-    </div>
-    <div class="field"><label>Amount (R)</label><input type="number" id="cmContribAmt" placeholder="e.g. 500"/></div>
-    <div class="field"><label>Date</label><input type="date" id="cmContribDate"/></div>
-    <div class="field"><label>Note (optional)</label><input type="text" id="cmContribNote" placeholder="e.g. Monthly contribution"/></div>
-    <input type="hidden" id="cmContribCardId"/>
-    <div class="modal-btns">
-      <button class="btn ghost" onclick="closeModal('customMaintContribModal')">Cancel</button>
-      <button class="btn primary" onclick="confirmCustomMaintContrib()">Add</button>
-    </div>
-  </div>
-</div>
-
-<!-- DEADLINE BACKFILL MODAL — one-time prompt for cards missing a deadline.
-     Shown on Savings tab load if any non-expense card has no deadline. -->
-<div class="overlay" id="deadlineBackfillModal">
-  <div class="modal">
-    <h2 style="color:#c8f230;">🎯 Set Deadlines</h2>
-    <p style="font-size:11px;color:var(--muted);margin-bottom:14px;letter-spacing:1px;">All cards need a deadline now. Pick a target date for each. You can change them anytime.</p>
-    <div id="deadlineBackfillList" style="max-height:60vh;overflow-y:auto;"></div>
-    <div class="modal-btns" style="margin-top:14px;">
-      <button class="btn ghost" onclick="closeModal('deadlineBackfillModal')">Later</button>
-      <button class="btn primary" onclick="confirmDeadlineBackfill()">Save All</button>
-    </div>
-  </div>
-</div>
-
-<!-- SAVINGS MODALS -->
-<div class="overlay" id="fundModal">
-  <div class="modal">
-    <h2 id="modalTitle">New Fund <button class="info-btn" onclick="openInfo('Pocket settings', 'Each pocket has a name, emoji, optional savings goal, and an optional weekly/monthly target. Editable anytime.\n\nRemoving a pocket deletes its history too — back up first if you might want it later.')">ⓘ</button></h2>
-    <div class="field"><label>Fund Name</label><input type="text" id="fName" placeholder="e.g. Emergency Fund"/></div>
-    <div class="field"><label>Icon</label><div class="emoji-grid" id="emojiGrid"></div></div>
-    <div class="field"><label>Colour</label><div class="color-grid" id="colorGrid"></div></div>
-    <div class="field"><label>Goal Amount (R)</label><input type="number" id="fGoal"/></div>
-    <div class="field">
-      <label>Target Type</label>
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button type="button" id="btnWeekly" onclick="setTargetType('weekly')" style="flex:1;padding:9px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:1px solid #c8f230;background:#1a2e00;color:#c8f230;transition:all .15s">Weekly</button>
-        <button type="button" id="btnMonthly" onclick="setTargetType('monthly')" style="flex:1;padding:9px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);transition:all .15s">Monthly</button>
-      </div>
-      <input type="number" id="fWeekly" placeholder="e.g. 200" oninput="updateTargetHint()"/>
-      <div id="fTargetHint" style="font-size:10px;color:var(--muted);margin-top:6px;letter-spacing:1px;min-height:16px"></div>
-    </div>
-    <div class="field"><label>Start Date</label><input type="date" id="fStart"/></div>
-    <div class="field"><label>Deadline <span style="color:#f2a830;font-size:10px;">★ Required — when do you need this money by?</span></label><input type="date" id="fDeadline"/><div id="fDeadlineHint" style="font-size:10px;color:var(--muted);margin-top:6px;letter-spacing:1px;min-height:16px"></div></div>
-    <div class="modal-btns">
-      <button class="btn ghost" onclick="closeModal('fundModal')">Cancel</button>
-      <button class="btn primary" onclick="saveFund()">Save Fund</button>
-    </div>
-  </div>
-</div>
-
-<!-- REBUILD BANK BALANCES MODAL (May 2026 Round 2) — lets the user reset
-     the FNB / Tyme / Cash buckets to whatever's actually in their accounts
-     right now. One tap, balances correct, going forward they'll auto-adjust
-     as the user logs deposits/spends/moves. -->
-<div class="overlay" id="rebuildBalModal">
-  <div class="modal">
-    <h2 style="color:#a78bfa;">🔄 Rebuild Bank Balances</h2>
-    <p style="font-size:11px;color:var(--muted);margin-bottom:14px;letter-spacing:1px;">Open your bank apps, type the REAL amounts right now. From this moment, every new tagged entry adjusts these numbers automatically.</p>
-    <div class="field">
-      <label>🏛 FNB</label>
-      <input type="number" id="rebuildFNB" step="0.01" placeholder="e.g. 1250.50" style="background:#0a0f1a;border:1px solid #1a2a4a;color:#4a9aff;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;padding:10px 12px;border-radius:8px;width:100%;outline:none;"/>
-    </div>
-    <div class="field">
-      <label>🏦 TymeBank</label>
-      <input type="number" id="rebuildTyme" step="0.01" placeholder="e.g. 850" style="background:#1a0f00;border:1px solid #4a3a00;color:#f2a830;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;padding:10px 12px;border-radius:8px;width:100%;outline:none;"/>
-    </div>
-    <div class="field">
-      <label>💵 Cash</label>
-      <input type="number" id="rebuildCash" step="0.01" placeholder="e.g. 300" style="background:#0d1a00;border:1px solid #1a3a00;color:#c8f230;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;padding:10px 12px;border-radius:8px;width:100%;outline:none;"/>
-    </div>
-    <div class="modal-btns">
-      <button class="btn ghost" onclick="closeModal('rebuildBalModal')">Cancel</button>
-      <button class="btn primary" style="background:#a78bfa;color:#000;" onclick="confirmRebuildBalances()">Save Balances</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="depModal">
-  <div class="modal">
-    <h2>Move to Savings</h2>
-    <div class="dep-fund-name" id="depFundName"></div>
-    <div class="field"><label>Amount (R)</label><input type="number" id="depAmount"/></div>
-    <div class="field">
-      <label>From which bank? <span style="color:#f2a830;font-size:10px;">★ Required</span></label>
-      <div style="display:flex;gap:8px;margin-top:4px;">
-        <button type="button" id="depBankFNB" onclick="setDepBank('FNB',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid #4a7aaa;background:#0a0f1a;color:#4a9aff;">🏛 FNB</button>
-        <button type="button" id="depBankTyme" onclick="setDepBank('TymeBank',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">🏦 Tyme</button>
-        <button type="button" id="depBankCash" onclick="setDepBank('Cash',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">💵 Cash</button>
-      </div>
-    </div>
-    <input type="hidden" id="depBank" value="FNB"/>
-    <div class="field"><label>Date</label><input type="date" id="depDate"/></div>
-    <div class="field"><label>Note (optional)</label><input type="text" id="depNote" placeholder="e.g. weekly drop"/></div>
-    <div class="modal-btns">
-      <button class="btn ghost" onclick="closeModal('depModal')">Cancel</button>
-      <button class="btn primary" onclick="confirmDeposit()">Add</button>
-    </div>
-  </div>
-</div>
-
-<!-- USE FUNDS MODAL (Savings / Maintenance spend → Cash Flow) -->
-<div class="overlay" id="useFundsModal">
-  <div class="modal">
-    <h2 id="useFundsTitle" style="color:#f2a830;">💸 Use Funds</h2>
-    <div id="useFundsCardName" style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--muted);margin-bottom:16px;letter-spacing:0.5px;"></div>
-
-    <div class="field">
-      <label>What did you spend on?</label>
-      <input type="text" id="useFundsDesc" placeholder="e.g. Brake pads, Tyres, Grocery run"/>
-    </div>
-    <div class="field">
-      <label>Amount (R)</label>
-      <input type="number" id="useFundsAmt" placeholder="0.00" min="0"/>
-    </div>
-    <div class="field">
-      <label>Date</label>
-      <input type="date" id="useFundsDate"/>
-    </div>
-
-    <!-- Car linking — shown only when card type supports it -->
-    <div class="field" id="useFundsCarField" style="display:none;">
-      <label>Link to Car <span style="color:var(--muted);font-size:9px;">— optional, logs expense to that car too</span></label>
-      <select id="useFundsCarSel" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
-        <option value="">— No car link —</option>
-      </select>
-    </div>
-
-    <!-- Cash Flow toggle -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border);margin-top:4px;">
-      <div>
-        <div style="font-size:11px;color:var(--text);letter-spacing:0.5px;">Add to Cash Flow as expense</div>
-        <div style="font-size:9px;color:var(--muted);letter-spacing:0.5px;margin-top:2px;">Posts this spend to the current month's cash flow</div>
-      </div>
-      <button type="button" id="useFundsCFToggle" onclick="toggleUseFundsCF()" style="width:44px;height:24px;border-radius:100px;border:none;cursor:pointer;transition:background .2s;position:relative;background:#c8f230;">
-        <span id="useFundsCFThumb" style="position:absolute;top:3px;left:22px;width:18px;height:18px;border-radius:50%;background:#000;transition:left .2s;display:block;"></span>
-      </button>
-    </div>
-    <div id="useFundsCFNote" style="font-size:9px;color:#3a5a00;letter-spacing:0.5px;margin-bottom:8px;">✓ Will appear in Cash Flow → Expenses this month</div>
-
-    <input type="hidden" id="useFundsFundId"/>
-    <input type="hidden" id="useFundsCardType"/><!-- savings | maint | custommaint -->
-    <input type="hidden" id="useFundsCardId"/>
-    <div class="modal-btns">
-      <button class="btn ghost" onclick="closeModal('useFundsModal')">Cancel</button>
-      <button class="btn primary" onclick="confirmUseFunds()" style="background:#f2a830;color:#000;">💸 Confirm Spend</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="histModal">
-  <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-      <h2 id="histTitle" style="flex:1;margin:0;">History</h2>
-      <button onclick="openPocketStatement(window._currentHistFundId)" title="Pocket statement" style="background:#1a2e00;border:1px solid #3a5a00;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;padding:7px 11px;border-radius:4px;text-transform:uppercase;cursor:pointer;flex-shrink:0;white-space:nowrap;">📄 Statement</button>
-    </div>
-    <div id="histContent" style="margin-top:14px"></div>
-    <div class="modal-btns" style="margin-top:20px">
-      <button class="btn ghost" onclick="closeModal('histModal')">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── STEP 9 v95 — PER-POCKET STATEMENT MODAL ── -->
-<div class="overlay" id="pocketStmtModal" style="z-index:210;">
-  <div class="modal" style="max-width:420px;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px;">
-      <h2 id="pocketStmtTitle" style="flex:1;margin:0;font-size:16px;line-height:1.3;">📄 Statement <button class="info-btn" onclick="openInfo('Pocket statement', 'Bank-statement view of one pocket. Pick a date range → see opening balance, every movement, closing balance.\n\nExport as PDF, CSV, or copy as plain text.')">ⓘ</button></h2>
-      <button class="qe-close" onclick="closePocketStatement()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
-    </div>
-
-    <!-- Date range -->
-    <div style="display:flex;gap:8px;margin-bottom:12px;">
-      <div style="flex:1;">
-        <label style="display:block;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">From</label>
-        <input type="date" id="stmtFrom" onchange="onStmtDateChange()" style="width:100%;background:#fff;color:#000;border:1px solid #ccc;font-family:'DM Mono',monospace;font-size:12px;padding:7px 8px;border-radius:4px;"/>
-      </div>
-      <div style="flex:1;">
-        <label style="display:block;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">To</label>
-        <input type="date" id="stmtTo" onchange="onStmtDateChange()" style="width:100%;background:#fff;color:#000;border:1px solid #ccc;font-family:'DM Mono',monospace;font-size:12px;padding:7px 8px;border-radius:4px;"/>
       </div>
     </div>
 
-    <!-- Presets -->
-    <div style="display:flex;gap:6px;margin-bottom:14px;">
-      <button class="stmt-preset" data-preset="month" onclick="applyPocketStmtPreset('month')" style="flex:1;padding:6px 4px;background:#111;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;text-align:center;cursor:pointer;">This month</button>
-      <button class="stmt-preset" data-preset="30days" onclick="applyPocketStmtPreset('30days')" style="flex:1;padding:6px 4px;background:#111;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;text-align:center;cursor:pointer;">Last 30 days</button>
-      <button class="stmt-preset" data-preset="all" onclick="applyPocketStmtPreset('all')" style="flex:1;padding:6px 4px;background:#111;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;text-align:center;cursor:pointer;">All time</button>
-    </div>
-
-    <!-- Live preview -->
-    <div id="stmtPreview" style="background:#0d1a00;border:1px solid #2a4a00;border-radius:6px;overflow:hidden;margin-bottom:14px;"></div>
-
-    <!-- Outputs -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-      <button onclick="pocketStmtExportPDF()" style="padding:10px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;text-align:center;font-weight:500;background:#2e1a00;color:#f2a830;border:1px solid #5a3a00;cursor:pointer;">📄 PDF</button>
-      <button onclick="pocketStmtExportCSV()" style="padding:10px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;text-align:center;font-weight:500;background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;cursor:pointer;">📊 CSV</button>
-      <button id="stmtCopyBtn" onclick="pocketStmtExportCopy()" style="padding:10px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;text-align:center;font-weight:500;background:#1a1a2e;color:#a0a0ff;border:1px solid #3a3a5a;cursor:pointer;">📋 Copy</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     v96 — POCKET DEPOSIT EDIT MODAL
-     ═══════════════════════════════════════════════════════════════
-     Tap ✏️ on any pocket history row → opens this.
-     LINKED deposits (Money In / Spend / Repay / etc.): amount locked,
-       date + note editable.
-     STANDALONE deposits: all 3 fields editable.
--->
-<div class="overlay" id="editDepModal" style="z-index:212;">
-  <div class="modal" style="max-width:380px;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px;">
-      <h2 style="flex:1;margin:0;font-size:16px;">✏️ Edit deposit <button class="info-btn" onclick="openInfo('Edit deposit', 'Change a deposit\'s amount, date, or note.\n\nIf this deposit is linked to a money flow (Money In split, Spend, Move, repayment) the amount is locked — edit at the source instead.')">ⓘ</button></h2>
-      <button onclick="closeModal('editDepModal')" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
-    </div>
-
-    <div id="editDepLinkedBanner" style="display:none;background:#0e0820;border:1px solid #2a1a4a;border-radius:5px;padding:9px 11px;margin-bottom:14px;font-size:11px;color:#b090d8;">
-      🔗 Part of <b style="color:#d4b0f0;font-weight:500;" id="editDepLinkLabel">—</b><br>
-      To change the <b style="color:#d4b0f0;font-weight:500;">amount</b>, edit at the source. Date and note can still be edited here.
-    </div>
-
-    <div class="field">
-      <label>Amount (R)</label>
-      <input type="number" id="editDepAmount" step="0.01"/>
-      <div id="editDepAmountLockNote" style="display:none;font-size:9px;color:#7a5a30;margin-top:4px;letter-spacing:.5px;">🔒 Locked — managed by the linked record</div>
-    </div>
-    <div class="field">
-      <label>Date</label>
-      <input type="date" id="editDepDate"/>
-    </div>
-    <div class="field">
-      <label>Note</label>
-      <input type="text" id="editDepNote" placeholder="(optional)"/>
-    </div>
-
-    <div class="modal-btns">
-      <button class="btn ghost" onclick="closeModal('editDepModal')">Cancel</button>
-      <button class="btn primary" onclick="confirmEditDeposit()">Save</button>
-    </div>
   </div>
 </div>
 
