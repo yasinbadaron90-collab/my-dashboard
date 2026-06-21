@@ -814,6 +814,149 @@ function calcIOweEntries(entries){
   });
 }
 
+// ── v142d — PAY DEBT (I owe someone, paying them back) ──────────────────
+var _payDebtSelectedPocketId = null;
+
+function openPayDebtModal(key){
+  var data = loadExternalBorrows();
+  var person = data[key];
+  if(!person) return;
+  document.getElementById('payDebtPersonKey').value = key;
+  document.getElementById('payDebtNameDisplay').textContent = person.name;
+  document.getElementById('payDebtAmt').value = '';
+  document.getElementById('payDebtDate').value = localDateStr(new Date());
+  document.getElementById('payDebtNote').value = '';
+  // Show owing
+  var totals = calcPersonTotals(person.entries || []);
+  var owing = totals.borrowed - totals.repaid;
+  var summaryEl = document.getElementById('payDebtOwingSummary');
+  if(summaryEl){
+    summaryEl.innerHTML = 'You still owe <strong style="color:#f23060;font-size:13px;">R' + Math.max(0,owing).toLocaleString('en-ZA') + '</strong> to ' + person.name;
+  }
+  // Reset pocket picker — default to Daily
+  _payDebtSelectedPocketId = null;
+  var daily = (funds||[]).find(function(f){ return /daily/i.test(f.name||''); });
+  _payDebtSelectedPocketId = daily ? daily.id : ((funds||[])[0] ? (funds||[])[0].id : null);
+  _renderPayDebtPocketPicker();
+  document.getElementById('payDebtModal').classList.add('active');
+}
+
+function _renderPayDebtPocketPicker(){
+  var picker = document.getElementById('payDebtPocketPicker');
+  if(!picker) return;
+  var list = (funds||[]).filter(function(f){ return !f._deleted; });
+  picker.innerHTML = list.map(function(f){
+    var bal = (f.deposits||[]).reduce(function(s,d){ return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0)); }, 0);
+    var isSel = (f.id === _payDebtSelectedPocketId);
+    var border = isSel ? '#8a1010' : '#1a1a1a';
+    var bg     = isSel ? '#1a0808' : '#0e0e0e';
+    var nameC  = isSel ? '#f23060' : '#efefef';
+    var balC   = bal <= 0 ? '#555' : '#c8f230';
+    return '<div onclick="selectPayDebtPocket(\''+f.id+'\');updatePayDebtGuardrail();" '
+      + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+border+';background:'+bg+';">'
+      + '<span style="font-size:12px;color:'+nameC+';">'+(f.emoji||'💰')+' '+f.name+'</span>'
+      + '<span style="font-size:11px;color:'+balC+';font-family:Syne,sans-serif;font-weight:700;">R'+bal.toLocaleString('en-ZA')+'</span>'
+      + '</div>';
+  }).join('');
+}
+
+function selectPayDebtPocket(id){
+  _payDebtSelectedPocketId = id;
+  _renderPayDebtPocketPicker();
+}
+
+function updatePayDebtGuardrail(){
+  var amt = parseFloat(document.getElementById('payDebtAmt').value) || 0;
+  var pocket = _payDebtSelectedPocketId ? (funds||[]).find(function(f){ return f.id === _payDebtSelectedPocketId; }) : null;
+  var bal = pocket ? (pocket.deposits||[]).reduce(function(s,d){ return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0)); }, 0) : 0;
+  var guardrail = document.getElementById('payDebtGuardrail');
+  var btn = document.getElementById('payDebtConfirmBtn');
+  if(amt > 0 && pocket && amt > bal){
+    if(guardrail){ guardrail.style.display='block'; guardrail.textContent = '🔒 Only R'+bal.toLocaleString('en-ZA')+' in '+pocket.name+' — pick another pocket or a smaller amount.'; }
+    if(btn){ btn.disabled=true; btn.style.opacity='.4'; }
+  } else {
+    if(guardrail){ guardrail.style.display='none'; }
+    if(btn){ btn.disabled=false; btn.style.opacity='1'; }
+  }
+}
+
+function confirmPayDebt(){
+  var key    = document.getElementById('payDebtPersonKey').value;
+  var amount = parseFloat(document.getElementById('payDebtAmt').value);
+  var date   = document.getElementById('payDebtDate').value || localDateStr(new Date());
+  var note   = document.getElementById('payDebtNote').value.trim();
+  if(!amount || amount <= 0){ alert('Enter a valid amount.'); return; }
+
+  // Pocket check — hard block
+  var pocket = _payDebtSelectedPocketId ? (funds||[]).find(function(f){ return f.id === _payDebtSelectedPocketId; }) : null;
+  if(!pocket){ alert('Pick a pocket to pay from.'); return; }
+  var pocketBal = (pocket.deposits||[]).reduce(function(s,d){ return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0)); }, 0);
+  if(amount > pocketBal){
+    alert('Only R'+pocketBal.toLocaleString('en-ZA')+' in '+pocket.name+'. Pick another pocket or smaller amount.');
+    return;
+  }
+
+  var data = loadExternalBorrows();
+  if(!data[key]) return;
+  var personName = data[key].name || key;
+
+  // Unique link ID
+  var payDebtId = 'pd_' + uid();
+  var entryId = uid();
+
+  // 1. Add repay entry to the debt (reduces what you owe)
+  var repayEntry = {
+    id: entryId,
+    type: 'repay',
+    amount: amount,
+    date: date,
+    note: note || ('Paid ' + personName),
+    payDebtId: payDebtId,
+    pocketId: pocket.id
+  };
+  data[key].entries.push(repayEntry);
+  saveExternalBorrows(data);
+
+  // 2. Deduct from pocket (money leaves you)
+  var pocketDepId = uid();
+  pocket.deposits.push({
+    id: pocketDepId,
+    txnType: 'out',
+    amount: amount,
+    date: date,
+    note: '↑ Paid ' + personName + (note ? ' · ' + note : ''),
+    payDebtId: payDebtId
+  });
+  saveFunds();
+
+  // 3. Log as Cash Flow expense
+  if(typeof postToCF === 'function'){
+    postToCF({
+      label: '↑ Paid ' + personName + (note ? ' · ' + note : ''),
+      amount: amount,
+      date: date,
+      icon: 'expense',
+      type: 'expense',
+      sourceType: 'debt_payment',
+      sourceId: key,
+      sourceCardName: pocket.name,
+      account: pocket.name,
+      note: 'Debt payment to ' + personName + ' from ' + pocket.name + (note ? ' · ' + note : ''),
+      payDebtId: payDebtId,
+      destPocketId: pocket.id
+    });
+  }
+
+  closeModal('payDebtModal');
+  if(typeof renderFunds === 'function') try{ renderFunds(); }catch(e){}
+  renderMoneyOwed();
+  if(typeof renderCashFlow === 'function') try{ renderCashFlow(); }catch(e){}
+  if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){}
+  if(typeof softDeleteToast === 'function'){
+    softDeleteToast({ message: '↑ Paid R' + amount.toLocaleString('en-ZA') + ' to ' + personName + ' from ' + pocket.name, duration: 3500 });
+  }
+}
+
 function renderMoneyOwed(){
   const container = document.getElementById('moneyOwedList');
   if(!container) return;
@@ -904,10 +1047,15 @@ function renderMoneyOwed(){
     }).join('');
 
     const repayBtn = p.tag === 'external' && !settled
-      ? '<button onclick="openExternalRepayModal(\''+p.key+'\')" style="padding:7px 14px;background:#0e1a2e;border:1px solid #7090f0;border-radius:6px;color:#7090f0;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">↩ Repayment</button>'
+      ? '<button onclick="openExternalRepayModal(\''+p.key+'\')" style="padding:7px 14px;background:#0e1a2e;border:1px solid #7090f0;border-radius:6px;color:#7090f0;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">↩ They paid me</button>'
       : (p.tag === 'carpool' && !settled
           ? '<button onclick="openRepayModal(\''+p.key+'\')" style="padding:7px 14px;background:#0e1a2e;border:1px solid #7090f0;border-radius:6px;color:#7090f0;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">↩ Repayment</button>'
           : '');
+    // v142d — "↑ Pay Debt" button for historical debts (I owe them)
+    const hasHistorical = (p.entries||[]).some(function(e){ return e.isHistorical; });
+    const payDebtBtn = (p.tag === 'external' && !settled && hasHistorical)
+      ? '<button onclick="openPayDebtModal(\''+p.key+'\')" style="padding:7px 14px;background:#2e0a0a;border:1px solid #8a1010;border-radius:6px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;font-weight:700;">↑ Pay her</button>'
+      : '';
 
     const cardIdx = window._moPersonMap ? Object.keys(window._moPersonMap).length : 0;
     if(!window._moPersonMap) window._moPersonMap = {};
@@ -945,6 +1093,7 @@ function renderMoneyOwed(){
       +'</div>'
       // Actions
       +'<div style="padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+        +(payDebtBtn ? payDebtBtn : '')
         +(repayBtn ? repayBtn : '')
         +(function(){
           // Count repayment-type entries (hidden from the rows above). If any
