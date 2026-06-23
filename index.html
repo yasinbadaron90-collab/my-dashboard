@@ -3081,5 +3081,38 @@ function _showUpdateToast(worker){
 
   </div>
 </div>
+
+<!-- PAY DESTINATION MODAL (carpool statement Mark Paid) -->
+<div class="overlay" id="payDestModal">
+  <div class="modal" style="max-width:460px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h2 style="margin:0;">💳 Mark Paid</h2>
+      <button class="qe-close" onclick="closeModal('payDestModal')">✕</button>
+    </div>
+    <!-- Hidden fields -->
+    <input type="hidden" id="payDestPassenger"/>
+    <input type="hidden" id="payDestTripOwing"/>
+    <input type="hidden" id="payDestBorrowOwing"/>
+    <input type="hidden" id="payDestTotal"/>
+    <input type="hidden" id="payDestChoice"/>
+    <!-- Summary -->
+    <div id="payDestSummary" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--muted);"></div>
+    <!-- Bank selector -->
+    <div class="field" style="margin-bottom:12px;">
+      <label>Received via</label>
+      <select id="payDestBank" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
+        <option value="Cash">Cash</option>
+        <option value="FNB">FNB</option>
+        <option value="TymeBank">TymeBank</option>
+      </select>
+    </div>
+    <!-- Destination options -->
+    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Route money to</div>
+    <div id="payDestOptions" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;margin-bottom:14px;"></div>
+    <!-- Confirm -->
+    <button class="btn primary" style="width:100%;padding:13px;" onclick="confirmPayDest()">Confirm Payment ✓</button>
+  </div>
+</div>
+
 </body>
 </html>
