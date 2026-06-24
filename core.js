@@ -1,4 +1,4 @@
-// Core: storage, keys, auth, PIN, biometric, launch menu, drawer, theme
+// Core: storage, keys, auth, PIN, launch menu, drawer, theme
 
 /* My Dashboard V34 — Application Logic */
 /* Auto-extracted from single-file HTML */
@@ -139,10 +139,10 @@ function showStorageError(reason){
   toast.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:99999;background:#1a0a0a;border:1px solid #5a1010;border-radius:8px;padding:14px 16px;max-width:340px;width:calc(100% - 40px);box-shadow:0 4px 20px rgba(0,0,0,0.6);font-family:DM Mono,monospace;color:#efefef;';
   toast.innerHTML =
     '<div style="font-size:13px;font-weight:700;color:#f23060;margin-bottom:6px;">'+msg+'</div>'
-    + '<div style="font-size:10px;color:#888;line-height:1.5;margin-bottom:12px;letter-spacing:0.5px;">'+hint+'</div>'
+    + '<div style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:12px;letter-spacing:0.5px;">'+hint+'</div>'
     + '<div style="display:flex;gap:6px;">'
     +   '<button id="storageErrorBackupBtn" style="flex:1;padding:9px 10px;background:#c8f230;border:none;border-radius:5px;color:#000;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">Download Backup</button>'
-    +   '<button id="storageErrorDismissBtn" style="padding:9px 12px;background:none;border:1px solid #2a2a2a;border-radius:5px;color:#666;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Dismiss</button>'
+    +   '<button id="storageErrorDismissBtn" style="padding:9px 12px;background:none;border:1px solid #2a2a2a;border-radius:5px;color:var(--muted);font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Dismiss</button>'
     + '</div>';
   document.body.appendChild(toast);
 
@@ -232,8 +232,8 @@ function softDeleteToast(opts){
   toast.innerHTML = ''
     + '<span style="font-size:16px;flex-shrink:0;">🗑</span>'
     + '<div style="flex:1;min-width:0;">'
-    +   '<div style="font-size:12px;color:#efefef;letter-spacing:0.3px;">Deleted '+_escSDLabel(label)+'</div>'
-    +   '<div style="font-size:9px;color:#666;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;" id="softDeleteCountdown">'+(ms/1000)+'s to undo</div>'
+    +   '<div style="font-size:12px;color:var(--text);letter-spacing:0.3px;">Deleted '+_escSDLabel(label)+'</div>'
+    +   '<div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;" id="softDeleteCountdown">'+(ms/1000)+'s to undo</div>'
     + '</div>'
     + '<button id="softDeleteUndoBtn" style="flex-shrink:0;background:#c8f230;border:none;color:#000;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:8px 14px;border-radius:5px;cursor:pointer;font-weight:700;">Undo</button>';
 
@@ -296,7 +296,119 @@ window.yb_softDeletePending = function(){
   return _softDeletePending;
 };
 // ════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════
+// SPINNER OVERLAY (item 12 — loading indicators)
+// ════════════════════════════════════════════════════════════════════
+// Shows a centred overlay with a spinner + message during slow operations
+// (PDF generation, backup export, etc.). The spinner is a single shared
+// DOM element that gets created on first call and reused — multiple calls
+// to showSpinner stack the message but only show one overlay at a time.
+//
+// Usage:
+//   showSpinner('Generating PDF…');
+//   try { /* slow work */ } finally { hideSpinner(); }
+//
+// Always wrap slow work in try/finally so an error doesn't leave the
+// spinner stuck on screen. setTimeout 0 around the slow work also lets
+// the browser paint the spinner before blocking the main thread.
+function _ensureSpinnerEl(){
+  var el = document.getElementById('ybSpinnerOverlay');
+  if(el) return el;
+  el = document.createElement('div');
+  el.id = 'ybSpinnerOverlay';
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(2px);';
+  el.innerHTML = '<div style="background:#0d0d0d;border:1px solid #2a2a2a;border-radius:12px;padding:24px 32px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:200px;max-width:80vw;">'
+    + '<div style="width:32px;height:32px;border:3px solid #1a2e00;border-top-color:#c8f230;border-radius:50%;animation:ybSpin 0.8s linear infinite;"></div>'
+    + '<div id="ybSpinnerMsg" style="font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;color:var(--muted);text-align:center;line-height:1.5;">Working…</div>'
+    + '</div>';
+  document.body.appendChild(el);
+  // Inject the keyframes once
+  if(!document.getElementById('ybSpinnerStyle')){
+    var style = document.createElement('style');
+    style.id = 'ybSpinnerStyle';
+    style.textContent = '@keyframes ybSpin { to { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
+  }
+  return el;
+}
+
+function showSpinner(msg){
+  try {
+    var el = _ensureSpinnerEl();
+    var msgEl = document.getElementById('ybSpinnerMsg');
+    if(msgEl) msgEl.textContent = msg || 'Working…';
+    el.style.display = 'flex';
+  } catch(e){ console.warn('showSpinner failed', e); }
+}
+
+function hideSpinner(){
+  try {
+    var el = document.getElementById('ybSpinnerOverlay');
+    if(el) el.style.display = 'none';
+  } catch(e){ /* ignore */ }
+}
+
+// Helper that wraps a slow synchronous function in a spinner. The
+// setTimeout gives the browser one paint cycle to draw the spinner
+// before the heavy work blocks the thread.
+function withSpinner(msg, fn){
+  showSpinner(msg);
+  setTimeout(function(){
+    try { fn(); }
+    catch(e){ console.error('withSpinner work failed', e); alert('Something went wrong — '+(e.message||'see console for details')); }
+    finally { hideSpinner(); }
+  }, 50);
+}
+
+// ════════════════════════════════════════════════════════════════════
 // END SOFT-DELETE SYSTEM
+// ════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════
+// EMPTY STATE BUILDER (item 11)
+// ════════════════════════════════════════════════════════════════════
+// Renders a consistent "this section has no data yet" block. Used across
+// the app so every empty list looks and behaves the same way: a friendly
+// icon, a one-line message, an optional sub-explanation, and an optional
+// call-to-action button.
+//
+// Usage:
+//   container.innerHTML = buildEmptyState({
+//     icon: '🤝',                          // single emoji or short string
+//     title: 'Nobody owes you yet',         // headline
+//     subtitle: 'Add someone you\'ve lent to', // optional explanation
+//     ctaLabel: '+ Add Person',             // optional button text
+//     ctaOnclick: 'openAddPersonModal()',   // optional inline handler
+//     compact: false                        // use compact padding for inline
+//   });
+function buildEmptyState(opts){
+  opts = opts || {};
+  var icon      = opts.icon      || '📭';
+  var title     = opts.title     || 'Nothing here yet';
+  var subtitle  = opts.subtitle  || '';
+  var ctaLabel  = opts.ctaLabel  || '';
+  var ctaClick  = opts.ctaOnclick|| '';
+  var compact   = !!opts.compact;
+  var pad       = compact ? '20px 16px' : '40px 24px';
+
+  var html = '<div style="text-align:center;padding:'+pad+';background:var(--surface);border:1px dashed var(--border);border-radius:10px;">'
+    +   '<div style="font-size:'+(compact?'28':'42')+'px;line-height:1;margin-bottom:'+(compact?'8':'12')+'px;opacity:0.7;">'+icon+'</div>'
+    +   '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:'+(compact?'13':'15')+'px;color:var(--muted);letter-spacing:0.5px;">'+_eEsc(title)+'</div>';
+  if(subtitle){
+    html += '<div style="font-size:11px;color:var(--muted);letter-spacing:0.5px;margin-top:6px;line-height:1.5;">'+_eEsc(subtitle)+'</div>';
+  }
+  if(ctaLabel && ctaClick){
+    html += '<button onclick="'+ctaClick+'" style="margin-top:'+(compact?'10':'16')+'px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 18px;color:#c8f230;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">'+_eEsc(ctaLabel)+'</button>';
+  }
+  html += '</div>';
+  return html;
+}
+
+// Tiny escape helper local to the empty-state builder.
+function _eEsc(s){
+  if(s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 // ════════════════════════════════════════════════════════════════════
 
 // ── All storage keys — defined early to avoid ReferenceError ──
@@ -392,105 +504,9 @@ const EXTERNAL_BORROW_KEY= 'yb_external_borrows_v1';
 })();
 
 
-// PINs are intentionally empty by default. On first launch (no PINs in
-// localStorage) the app shows a setup screen where the user creates the first
-// admin account. Existing installations keep their saved PINs unchanged.
-function loadPINS(){
-  try {
-    const raw = lsGet(PIN_STORE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch (e) {
-    return {};
-  }
-}
-``
-
-function savePINS(pins){ lsSet(PIN_STORE_KEY, JSON.stringify(pins)); }
-
-// Has the user completed first-run setup? True if at least one PIN exists.
-function isFirstRun(){
-  try {
-    var saved = JSON.parse(lsGet(PIN_STORE_KEY));
-    if(!saved) return true;
-    return Object.keys(saved).length === 0;
-  } catch(e){ return true; }
-}
-
-// Create the first admin account from the setup screen. Validates the PIN
-// and name, persists, and returns true on success. Caller handles the UI
-// transition (closing the setup screen, showing the wizard).
-function createFirstAdmin(name, pin){
-  if(!name || !name.trim()) return { ok:false, error:'Name is required.' };
-  if(!/^\d{4}$/.test(pin || '')) return { ok:false, error:'PIN must be exactly 4 digits.' };
-  var trimmed = name.trim().slice(0, 30);
-  var newPins = {};
-  newPins[pin] = { role:'admin', name: trimmed };
-  savePINS(newPins);
-  PINS = newPins;
-  // Mark first-run as complete so the wizard knows to fire on next applyRole().
-  lsSet('yb_first_run_pending_wizard', '1');
-  return { ok:true };
-}
-
-let PINS = loadPINS();
+// Auth state — set by loginSuccess (Google Sign-In via firebase-sync.js)
 let currentRole = 'guest';
 let currentUser = null;
-let pinEntry = "";
-
-function pinPress(n){if(pinEntry.length>=4)return;pinEntry+=String(n);updateDots();if(pinEntry.length===4)setTimeout(checkPin,150);}
-function pinDel(){pinEntry=pinEntry.slice(0,-1);updateDots();document.getElementById("pinError").textContent="";}
-function updateDots(){for(let i=0;i<4;i++){const d=document.getElementById("dot"+i);if(i<pinEntry.length){d.style.background="#c8f230";d.style.borderColor="#c8f230";}else{d.style.background="transparent";d.style.borderColor="#333";}}}
-document.addEventListener('keydown',function(e){
-  const screen=document.getElementById('loginScreen');
-  if(!screen||screen.style.display==='none')return;
-  if(e.key>='0'&&e.key<='9'){pinPress(parseInt(e.key));}
-  else if(e.key==='Backspace'){pinDel();}
-});
-function checkPin(){
-  const match = PINS[pinEntry];
-  if(match){
-    currentRole = match.role;
-    currentUser = match.name;
-    const s=document.getElementById("loginScreen");
-    s.style.opacity="0";
-    setTimeout(function(){
-      s.style.display="none";
-      applyRole();
-      document.getElementById('drawerLogoutBtn').style.display = 'flex';
-      // After successful PIN login, offer to register biometric if admin
-      if(currentRole === 'admin' && window.PublicKeyCredential && !lsGet('yb_biometric_registered')){
-        setTimeout(offerBiometricRegistration, 800);
-      }
-      showLaunchMenu();
-    },400);
-  } else {
-    document.getElementById("pinError").textContent="Incorrect PIN. Try again.";
-    pinEntry="";updateDots();
-    const dots=document.getElementById("pinDots");
-    dots.style.transition="transform 0.1s";
-    dots.style.transform="translateX(10px)";
-    setTimeout(function(){dots.style.transform="translateX(-10px)";},100);
-    setTimeout(function(){dots.style.transform="translateX(0)";},200);
-  }
-}
-
-// ══ WEBAUTHN BIOMETRIC ══
-const BIOMETRIC_KEY = 'yb_biometric_registered';
-const BIOMETRIC_CRED_KEY = 'yb_biometric_credid';
-const RP_ID = 'yasinbadaron90-collab.github.io';
-const RP_NAME = 'YB Dashboard';
-
-function biometricSupported(){
-  return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create);
-}
-
-function showPinFallback(){
-  document.getElementById('biometricSection').style.display = 'none';
-  document.getElementById('pinSection').style.display = 'block';
-  document.getElementById('loginSubtitle').textContent = 'Enter PIN to continue';
-}
 
 function loginSuccess(name, role){
   currentRole = role;
@@ -505,235 +521,11 @@ function loginSuccess(name, role){
     s.style.display = 'none';
     applyRole();
     document.getElementById('drawerLogoutBtn').style.display = 'flex';
-    showLaunchMenu();
+    // v101.1: launch menu replaced by Home page (Step 10). applyRole now
+    // lands admin on page-home directly. Old call removed:
   }, 400);
 }
 
-// ── Called on page load — check if biometric is registered ──
-function initBiometricLogin(){
-  // First-run detection takes priority — if no admin exists yet, show the
-  // setup screen instead of PIN/biometric. This handles fresh installs and
-  // restored localStorage where PINs got wiped.
-  if(isFirstRun()){
-    showFirstRunSetup();
-    return;
-  }
-  if(!biometricSupported()) return;
-  const registered = lsGet(BIOMETRIC_KEY);
-  if(registered === 'true'){
-    // Show fingerprint button, hide PIN by default
-    document.getElementById('biometricSection').style.display = 'block';
-    document.getElementById('pinSection').style.display = 'none';
-    document.getElementById('loginSubtitle').textContent = 'Use fingerprint or PIN to continue';
-    // Auto-trigger biometric after short delay
-    setTimeout(biometricLogin, 400);
-  }
-}
-
-// ── First-run setup screen ──────────────────────────────────────────────
-function showFirstRunSetup(){
-  // Hide the PIN/biometric sections, show the setup section
-  var bio = document.getElementById('biometricSection'); if(bio) bio.style.display = 'none';
-  var pin = document.getElementById('pinSection');       if(pin) pin.style.display = 'none';
-  var setup = document.getElementById('firstRunSection');
-  if(setup) setup.style.display = 'block';
-  var sub = document.getElementById('loginSubtitle');
-  if(sub) sub.textContent = 'Create your account to get started';
-  // Reset the entry state
-  pinEntry = '';
-  updateSetupDots();
-  var nameEl = document.getElementById('frName');
-  if(nameEl) setTimeout(function(){ nameEl.focus(); }, 200);
-}
-
-// PIN entry buttons used during first-run setup. They share the same pinEntry
-// variable as the regular PIN flow; we just rebind the visual dots and
-// completion handler.
-function setupPinPress(n){
-  if(pinEntry.length >= 4) return;
-  pinEntry += String(n);
-  updateSetupDots();
-  if(pinEntry.length === 4){
-    // Don't auto-submit — wait for the Create button so the user has a chance
-    // to type their name first.
-  }
-}
-function setupPinDel(){
-  pinEntry = pinEntry.slice(0, -1);
-  updateSetupDots();
-  var err = document.getElementById('frError'); if(err) err.textContent = '';
-}
-function updateSetupDots(){
-  for(var i=0; i<4; i++){
-    var d = document.getElementById('frDot'+i);
-    if(!d) continue;
-    if(i < pinEntry.length){ d.style.background = '#c8f230'; d.style.borderColor = '#c8f230'; }
-    else { d.style.background = 'transparent'; d.style.borderColor = '#333'; }
-  }
-}
-
-// Submit handler for the "Create Account" button.
-function submitFirstRunSetup(){
-  var nameEl = document.getElementById('frName');
-  var errEl  = document.getElementById('frError');
-  var name = nameEl ? nameEl.value.trim() : '';
-  if(!name){
-    if(errEl) errEl.textContent = 'Please enter your name.';
-    if(nameEl) nameEl.focus();
-    return;
-  }
-  if(pinEntry.length !== 4){
-    if(errEl) errEl.textContent = 'Please enter a 4-digit PIN.';
-    return;
-  }
-  var result = createFirstAdmin(name, pinEntry);
-  if(!result.ok){
-    if(errEl) errEl.textContent = result.error;
-    return;
-  }
-  // Success — log them in directly, no need to re-enter the PIN.
-  if(errEl) errEl.textContent = '';
-  loginSuccess(name, 'admin');
-}
-
-// ── Trigger fingerprint authentication ──
-async function biometricLogin(){
-  const statusEl = document.getElementById('biometricStatus');
-  const btn = document.getElementById('biometricBtn');
-  if(statusEl) statusEl.textContent = 'Scanning…';
-  if(btn){ btn.style.borderColor = '#f2a830'; btn.style.background = '#1a1200'; }
-
-  try {
-    const credIdB64 = lsGet(BIOMETRIC_CRED_KEY);
-    if(!credIdB64){ showPinFallback(); return; }
-
-    // Decode stored credential ID
-    const credIdBytes = Uint8Array.from(atob(credIdB64), function(c){ return c.charCodeAt(0); });
-
-    const challenge = new Uint8Array(32);
-    crypto.getRandomValues(challenge);
-
-    const assertion = await navigator.credentials.get({
-      publicKey: {
-        challenge,
-        rpId: RP_ID,
-        allowCredentials: [{ id: credIdBytes, type: 'public-key' }],
-        userVerification: 'required',
-        timeout: 60000
-      }
-    });
-
-    if(assertion){
-      if(statusEl) statusEl.textContent = '✓ Unlocked!';
-      if(btn){ btn.style.borderColor = '#c8f230'; btn.style.background = '#0d1a00'; }
-      setTimeout(function(){
-        loginSuccess('Yasin', 'admin');
-      }, 300);
-    }
-  } catch(err){
-    if(err.name === 'NotAllowedError'){
-      if(statusEl) statusEl.textContent = 'Cancelled — try again';
-    } else {
-      if(statusEl) statusEl.textContent = 'Biometric failed — use PIN';
-      setTimeout(showPinFallback, 1500);
-    }
-    if(btn){ btn.style.borderColor = '#f23060'; btn.style.background = '#1a0505'; }
-    setTimeout(function(){
-      if(btn){ btn.style.borderColor = '#c8f230'; btn.style.background = '#0d1a00'; }
-      if(statusEl) statusEl.textContent = 'Touch to unlock';
-    }, 2000);
-  }
-}
-
-// ── Register biometric — called after first successful PIN login ──
-async function registerBiometric(){
-  if(!biometricSupported()){
-    alert('Your browser does not support biometric authentication.');
-    return;
-  }
-  try {
-    const challenge = new Uint8Array(32);
-    crypto.getRandomValues(challenge);
-    const userId = new Uint8Array(16);
-    crypto.getRandomValues(userId);
-
-    const credential = await navigator.credentials.create({
-      publicKey: {
-        challenge,
-        rp: { id: RP_ID, name: RP_NAME },
-        user: { id: userId, name: 'yasin', displayName: 'Yasin' },
-        pubKeyCredParams: [
-          { alg: -7, type: 'public-key' },   // ES256
-          { alg: -257, type: 'public-key' }  // RS256
-        ],
-        authenticatorSelection: {
-          authenticatorAttachment: 'platform',
-          userVerification: 'required',
-          residentKey: 'preferred'
-        },
-        timeout: 60000,
-        attestation: 'none'
-      }
-    });
-
-    if(credential){
-      // Store credential ID as base64
-      const credIdArr = new Uint8Array(credential.rawId);
-      const credIdB64 = btoa(String.fromCharCode.apply(null, credIdArr));
-      lsSet(BIOMETRIC_CRED_KEY, credIdB64);
-      lsSet(BIOMETRIC_KEY, 'true');
-      return true;
-    }
-  } catch(err){
-    console.warn('Biometric registration failed:', err);
-    return false;
-  }
-}
-
-// ── Offer to register biometric after first admin PIN login ──
-function offerBiometricRegistration(){
-  if(!biometricSupported()) return;
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9998;display:flex;align-items:center;justify-content:center;padding:24px;';
-  overlay.innerHTML =
-    '<div style="background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">'
-    +'<div style="font-size:48px;margin-bottom:16px;">👆</div>'
-    +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:#efefef;margin-bottom:8px;">Enable Fingerprint Login?</div>'
-    +'<div style="font-size:11px;color:#555;letter-spacing:0.5px;line-height:1.7;margin-bottom:24px;">Skip the PIN next time — just touch your fingerprint sensor to unlock your dashboard instantly.</div>'
-    +'<button onclick="confirmBiometricSetup(this.parentElement.parentElement)" style="width:100%;padding:14px;background:#c8f230;border:none;border-radius:8px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;margin-bottom:10px;">👆 Enable Fingerprint</button>'
-    +'<button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:12px;background:none;border:1px solid #2a2a2a;border-radius:8px;color:#555;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Not Now</button>'
-    +'</div>';
-  document.body.appendChild(overlay);
-}
-
-async function confirmBiometricSetup(overlay){
-  const btn = overlay.querySelector('button');
-  if(btn){ btn.textContent = '⏳ Scanning…'; btn.disabled = true; }
-  const success = await registerBiometric();
-  if(overlay) overlay.remove();
-  if(success){
-    // Show success toast
-    const toast = document.createElement('div');
-    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d1a00;border:1px solid #c8f230;border-radius:8px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#c8f230;letter-spacing:1px;white-space:nowrap;';
-    toast.textContent = '✓ Fingerprint registered! Use it next time you open the app.';
-    document.body.appendChild(toast);
-    setTimeout(function(){ toast.remove(); }, 4000);
-  } else {
-    alert('Fingerprint setup failed. You can try again from Settings.');
-  }
-}
-
-// ── Remove biometric (for Settings) ──
-function removeBiometric(){
-  if(!confirm('Remove fingerprint login? You\'ll need your PIN to log in again.')) return;
-  try{ localStorage.removeItem(BIOMETRIC_KEY); }catch(e){}
-  try{ localStorage.removeItem(BIOMETRIC_CRED_KEY); }catch(e){}
-  lsSet(BIOMETRIC_KEY, null);
-  lsSet(BIOMETRIC_CRED_KEY, null);
-  alert('Fingerprint removed. PIN login will be used next time.');
-}
-
-// ── Run on page load ──
 document.addEventListener('DOMContentLoaded', function(){
   // Load all persisted in-memory state into globals before anything renders or saves.
   // Modules that hold their data in a top-level variable (cpData, funds, borrowData)
@@ -743,23 +535,23 @@ document.addEventListener('DOMContentLoaded', function(){
   try { if(typeof loadCP       === 'function') loadCP();       } catch(e){}
   try { if(typeof loadFunds    === 'function') loadFunds();    } catch(e){}
   try { if(typeof loadBorrows  === 'function') loadBorrows();  } catch(e){}
-  initBiometricLogin();
+  // Old PIN-era init removed — login is now Google Sign-In only (handled in firebase-sync.js)
 });
 
 
 function applyRole(){
   if(currentRole==='admin'){
-    // Admin: start on carpool, show both nav tabs
+    // Admin: start on HOME (Step 10 landing), show all nav tabs
     document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-    document.getElementById('page-carpool').classList.add('active');
-    document.getElementById('navCarpool').classList.add('active');
+    document.getElementById('page-home').classList.add('active');
+    var navH = document.getElementById('navHome'); if(navH) navH.classList.add('active');
+    document.getElementById('navCarpool').classList.remove('active');
     document.getElementById('navSavings').classList.remove('active');
-    renderCarpool();
-    // Pre-render the savings-tab cards so when the user navigates over,
-    // they're already correct (no Loading...). Wrapped in try because
-    // these may not be defined yet on edge cases.
-    try { if(typeof renderFunds      === 'function') renderFunds();      } catch(e){}
-    try { if(typeof renderMaintCard  === 'function') renderMaintCard();  } catch(e){}
+    // Render home + pre-render commonly-visited tabs so navigation feels instant
+    try { if(typeof renderHome    === 'function') renderHome();    } catch(e){}
+    try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
+    try { if(typeof renderFunds   === 'function') renderFunds();   } catch(e){}
+    try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
     // Fire reminders after a short delay
     setTimeout(checkReminders, 800);
     // First-run wizard — triggered after createFirstAdmin sets the flag.
@@ -848,11 +640,18 @@ function applyRole(){
 }
 
 function logout(){
+  // Sign out of Firebase Google auth
+  try {
+    if(window._fb && window._fb.auth) window._fb.auth.signOut().catch(function(e){ console.warn('Firebase signOut', e); });
+  } catch(e){ console.warn('Firebase signOut threw', e); }
+
   currentRole = 'guest';
   currentUser = null;
-  pinEntry = '';
-  updateDots();
-  document.getElementById('pinError').textContent = '';
+  // Clear cloud login form
+  var em = document.getElementById('loginEmail'); if(em) em.value = '';
+  var pw = document.getElementById('loginPassword'); if(pw) pw.value = '';
+  var le = document.getElementById('loginError'); if(le) le.textContent = '';
+  var ls = document.getElementById('loginStatus'); if(ls) ls.textContent = '';
   document.getElementById('drawerLogoutBtn').style.display = 'none';
   // Restore hamburger button
   var hbg = document.getElementById('hbgBtn');
@@ -933,8 +732,8 @@ function buildResultsPDF(){
   toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #3a5a00;border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 24px rgba(0,0,0,.5);min-width:240px;';
   toast.innerHTML =
     '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:#c8f230;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
-    +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:#efefef;">Generating PDF...</div>'
-    +'<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">'+yearData.year+' · Yasin Badaron</div></div>';
+    +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:var(--text);">Generating PDF...</div>'
+    +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">'+yearData.year+' · Yasin Badaron</div></div>';
   if(!document.getElementById('spinStyle')){
     var sp=document.createElement('style');sp.id='spinStyle';
     sp.textContent='@keyframes spin{to{transform:rotate(360deg);}}';
@@ -1066,13 +865,53 @@ function buildResultsPDF(){
     toast.innerHTML =
       '<div style="width:18px;height:18px;background:#1a2e00;border:2px solid #3a5a00;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color:#c8f230;">✓</div>'
       +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:#c8f230;">PDF Downloaded!</div>'
-      +'<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">Saved to your Downloads folder</div></div>';
+      +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">Saved to your Downloads folder</div></div>';
     toast.style.borderColor = '#3a5a00';
     setTimeout(function(){
       toast.style.transition='opacity .4s'; toast.style.opacity='0';
       setTimeout(function(){ if(toast.parentNode) toast.parentNode.removeChild(toast); },400);
     },2500);
   },800);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// REPORTS TAB — section navigation
+// ════════════════════════════════════════════════════════════════════
+// Called by the section pill buttons at the top of the Reports tab.
+// Smoothly scrolls to the requested section and highlights the active
+// pill. Without this, the pills throw a ReferenceError on tap and the
+// page stays still — which was the bug the user noticed when tapping
+// the Fuel pill.
+function rptScrollTo(sectionId){
+  try {
+    var el = document.getElementById(sectionId);
+    if(!el){ console.warn('[rptScrollTo] Section not found:', sectionId); return; }
+    // Smooth scroll with a small offset so the section heading isn't
+    // jammed against the top nav bar.
+    var rect = el.getBoundingClientRect();
+    var scrollTarget = window.scrollY + rect.top - 80;
+    window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+
+    // Update pill active styles — the active pill gets the green
+    // highlight, others go back to muted grey. Pills are identified by
+    // their onclick attribute referring to this same function.
+    try {
+      document.querySelectorAll('button[onclick^="rptScrollTo("]').forEach(function(btn){
+        var matches = btn.getAttribute('onclick').indexOf("'"+sectionId+"'") > -1;
+        if(matches){
+          btn.style.border  = '1px solid #2a5a00';
+          btn.style.background = '#0d1a00';
+          btn.style.color = '#c8f230';
+        } else {
+          btn.style.border  = '1px solid #333';
+          btn.style.background = 'none';
+          btn.style.color = '#888';
+        }
+      });
+    } catch(e){ /* style update is non-critical */ }
+  } catch(err){
+    console.warn('[rptScrollTo] failed:', err);
+  }
 }
 
 function addFuelEntry() {
@@ -1196,7 +1035,8 @@ function loadFuelReport() {
   // ── Daily fuel cost (user-set) ──
   var dailyFuelCostEl = document.getElementById('dailyFuelCost');
   var dailyFuelCost = dailyFuelCostEl ? (parseFloat(dailyFuelCostEl.value) || 100) : 100;
-  var totalFuelCost = drivingDayCount * dailyFuelCost;
+  // Use actual fuel log entries for the cycle instead of estimated daily rate
+  var totalFuelCost = fuelTotal > 0 ? fuelTotal : drivingDayCount * dailyFuelCost;
 
   // ── Update Fuel log section ──
   var fuelTotalEl   = document.getElementById('fuelTotal');
@@ -1214,16 +1054,16 @@ function loadFuelReport() {
   if(fuelRowsEl){
     fuelRowsEl.innerHTML = '';
     if(fuelData.length === 0){
-      fuelRowsEl.innerHTML = '<div style="color:#555;font-size:13px;padding:12px 14px;">No fuel entries yet.</div>';
+      fuelRowsEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 14px;">No fuel entries yet.</div>';
     } else {
       fuelData.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).forEach(function(x){
         var row = document.createElement('div');
-        row.style.cssText = 'display:grid;grid-template-columns:1.5fr 1fr 1fr 28px;padding:9px 14px;border-bottom:1px solid #161616;font-size:12px;align-items:center;';
+        row.style.cssText = 'display:grid;grid-template-columns:1.5fr 1fr 1fr 28px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px;align-items:center;';
         var litres = x.price > 0 ? (x.amount/x.price).toFixed(1)+'L' : '-';
         row.innerHTML = '<span style="color:var(--muted)">'+x.date+'</span>'
-          +'<span style="color:#ccc">R'+Number(x.price).toFixed(2)+' <span style="color:#555;font-size:10px;">('+litres+')</span></span>'
+          +'<span style="color:var(--text)">R'+Number(x.price).toFixed(2)+' <span style="color:var(--muted);font-size:10px;">('+litres+')</span></span>'
           +'<span style="color:#a78bfa;font-weight:500">'+fmtR(x.amount)+'</span>'
-          +'<span onclick="deleteFuelEntry(\''+x.id+'\')" style="color:#555;cursor:pointer;font-size:18px;line-height:1;text-align:center;">&times;</span>';
+          +'<span onclick="deleteFuelEntry(\''+x.id+'\')" style="color:var(--muted);cursor:pointer;font-size:18px;line-height:1;text-align:center;">&times;</span>';
         fuelRowsEl.appendChild(row);
       });
     }
@@ -1255,7 +1095,7 @@ function loadFuelReport() {
   // ── Per-day coverage rows ──
   if(plRowsEl){
     if(dayRows.length === 0){
-      plRowsEl.innerHTML = '<div style="color:#555;font-size:13px;padding:12px 14px;">No carpool data this cycle yet.</div>';
+      plRowsEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 14px;">No carpool data this cycle yet.</div>';
     } else {
       plRowsEl.innerHTML = '';
       dayRows.forEach(function(d){
@@ -1264,11 +1104,11 @@ function loadFuelReport() {
         var pctLabel = pct >= 100 ? '✅ '+pct+'%' : pct+'%';
         var paxStr   = d.pax.length > 0 ? d.pax.join(', ') : '—';
         var row = document.createElement('div');
-        row.style.cssText = 'padding:9px 14px;border-bottom:1px solid #161616;';
+        row.style.cssText = 'padding:9px 14px;border-bottom:1px solid var(--border);';
         row.innerHTML =
           '<div style="display:grid;grid-template-columns:1.2fr 0.8fr 1fr 1fr 1fr;font-size:11px;align-items:center;margin-bottom:5px;">'
           +'<span style="color:var(--muted)">'+d.ds+'</span>'
-          +'<span style="color:#888;text-align:center;">'+paxStr+'</span>'
+          +'<span style="color:var(--muted);text-align:center;">'+paxStr+'</span>'
           +'<span style="color:#c8f230;text-align:right;">'+fmtR(Math.round(d.income))+'</span>'
           +'<span style="color:#f2a830;text-align:right;">'+fmtR(Math.round(dailyFuelCost))+'</span>'
           +'<span style="color:'+dColor+';font-weight:700;text-align:right;">'+pctLabel+'</span>'
@@ -1291,7 +1131,7 @@ function loadFuelReport() {
       var card = document.createElement('div');
       card.style.cssText = 'background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:8px;';
       card.innerHTML =
-        '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#efefef;margin-bottom:8px;">'+p+'</div>'
+        '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--text);margin-bottom:8px;">'+p+'</div>'
         +'<div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Saved you</div>'
         +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;color:#c8f230;margin-bottom:8px;">'+fmtR(s.income)+'</div>'
         +'<div style="font-size:10px;color:var(--muted);">'+s.trips+' trips &nbsp;·&nbsp; '+attendance+'% attendance</div>';

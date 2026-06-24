@@ -196,6 +196,7 @@ function savePassenger(){
 
   savePassengers(list);
   refreshPassengerGlobals();
+
   closeModal('passengerModal');
   renderPassengerRows();
 
@@ -222,6 +223,7 @@ function deletePassenger(id){
   savePassengers(list); // save with the flag applied (list already references p)
   refreshPassengerGlobals();
   renderPassengerRows();
+
   try { if(typeof renderPassOptList === 'function') renderPassOptList(); } catch(e){}
   try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
 

@@ -24,7 +24,7 @@ function countdownBadge(dateStr, label){
 function calcNextService(car){
   // If nextService date is manually set, use it as source of truth
   if(car.nextService){
-    var now0 = new Date();
+    var now0 = new Date(); now0.setHours(0,0,0,0);
     var svcDate0 = new Date(car.nextService+'T00:00:00');
     var days0 = Math.round((svcDate0-now0)/86400000);
     return { daysUntilNext: days0, kmUntilNext: null, nextType: car.lastServiceType||'Minor',
@@ -45,7 +45,7 @@ function calcNextService(car){
   var result = { minorDue:null, majorDue:null, nextType:'Minor', daysUntilNext:null, kmUntilNext:null, reason:'' };
   if(!lastDate && !lastKm) return result;
 
-  var now = new Date();
+  var now = new Date(); now.setHours(0,0,0,0);
 
   // Minor service: 6 months OR minorKmInterval km — whichever first
   var minorByDate = null, minorByKm = null;
@@ -127,7 +127,15 @@ function renderCars(){
   if(!container) return;
 
   if(cars.length === 0){
-    container.innerHTML = '<div style="padding:48px 16px;text-align:center;color:#333;font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">No cars added yet — tap <strong style="color:#f2a830;">+ Add Car</strong> to get started</div>';
+    container.innerHTML = (typeof buildEmptyState === 'function')
+      ? buildEmptyState({
+          icon: '🚙',
+          title: 'No cars added yet',
+          subtitle: 'Track service, licence, kilometres and expense history per car.',
+          ctaLabel: '+ Add Car',
+          ctaOnclick: 'openAddCarModal()'
+        })
+      : '<div style="padding:48px 16px;text-align:center;color:var(--muted);font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">No cars added yet — tap <strong style="color:#f2a830;">+ Add Car</strong> to get started</div>';
   } else {
     container.innerHTML = '';
     cars.forEach(function(car){
@@ -148,39 +156,121 @@ function renderCars(){
         return '<span style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:100px;padding:3px 10px;font-size:10px;color:#888;white-space:nowrap;">'+c+' <strong style="color:#f2a830;">R'+catMap[c].toLocaleString('en-ZA')+'</strong></span>';
       }).join('');
 
-      // Expense rows
+      // Expense rows — show 5 most recent on the card. Full history opens
+      // in a modal via the "All Records" button below.
       var rowsHtml = '';
       if(expenses.length === 0){
-        rowsHtml = '<div style="padding:20px 16px;text-align:center;color:#333;font-size:12px;">No expenses logged yet</div>';
+        rowsHtml = '<div style="padding:20px 16px;text-align:center;color:var(--muted);font-size:12px;">No expenses logged yet</div>';
       } else {
-        expenses.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).forEach(function(e){
-          rowsHtml +=
-            '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid #161616;font-size:12px;">'
+        var sortedExp = expenses.slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+        var SHOW_DEFAULT = 5;
+        var hasMore = sortedExp.length > SHOW_DEFAULT;
+
+        // Renders one expense row — shared between the card preview and modal
+        function buildExpRow(e){
+          return '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;">'
             +'<div>'
-              +'<div style="color:#ccc;font-size:12px;">'+(e.category||'💡 Other')+'<span style="color:#555;font-size:11px;margin-left:6px;">'+(e.desc||'')+'</span></div>'
-              +'<div style="color:#555;font-size:10px;margin-top:2px;">'+e.date+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
+              +'<div style="font-size:12px;"><strong style="color:var(--text);font-weight:700;">'+(e.category||'💡 Other')+'</strong><span style="color:var(--muted);font-size:11px;margin-left:6px;">'+(e.desc||'')+'</span></div>'
+              +'<div style="color:var(--muted);font-size:10px;margin-top:2px;">'+(e.date||'')+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
             +'</div>'
             +'<span style="color:#f2a830;font-weight:700;font-size:13px;white-space:nowrap;">R'+Number(e.amt).toLocaleString('en-ZA')+'</span>'
-            +'<span onclick="openEditExpense(\''+car.id+'\',\''+e.id+'\')" style="cursor:pointer;color:#444;font-size:14px;padding:2px 6px;">✏️</span>'
-            +'<span onclick="deleteExpense(\''+car.id+'\',\''+e.id+'\')" style="cursor:pointer;color:#444;font-size:14px;padding:2px 6px;">🗑</span>'
+            +'<span role="button" tabindex="0" aria-label="Edit expense" onclick="openEditExpense(\''+car.id+'\',\''+e.id+'\')" style="cursor:pointer;color:var(--muted);font-size:16px;padding:6px 10px;border-radius:6px;">✏️</span>'
+            +'<span role="button" tabindex="0" aria-label="Delete expense" onclick="deleteExpense(\''+car.id+'\',\''+e.id+'\')" style="cursor:pointer;color:var(--muted);font-size:16px;padding:6px 10px;border-radius:6px;">🗑</span>'
             +'</div>';
-        });
+        }
+
+        sortedExp.slice(0, SHOW_DEFAULT).forEach(function(e){ rowsHtml += buildExpRow(e); });
+
+        if(hasMore){
+          var moreCount = sortedExp.length - SHOW_DEFAULT;
+          rowsHtml += '<div style="padding:12px 16px;text-align:center;border-top:1px solid var(--border);background:var(--surface2);">'
+            + '<button onclick="openAllRecords(\''+car.id+'\')" '
+            +   'style="background:#1a1a00;border:1px solid #f2a830;border-radius:6px;padding:8px 18px;color:#f2a830;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">'
+            +   '📋 All Records ('+sortedExp.length+')'
+            + '</button>'
+            + '<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:6px;">+'+moreCount+' more entries</div>'
+            + '</div>';
+        } else if(expenses.length > 0){
+          // Even if there's no overflow, give users access to the modal in
+          // case they want the summary view. Render a quieter button when
+          // there's no overflow.
+          rowsHtml += '<div style="padding:10px 16px;text-align:center;border-top:1px solid var(--border);">'
+            + '<button onclick="openAllRecords(\''+car.id+'\')" '
+            +   'style="background:none;border:1px solid #333;border-radius:6px;padding:6px 14px;color:var(--muted);font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'
+            +   '📋 All Records'
+            + '</button>'
+            + '</div>';
+        }
       }
+
+      // ── Option A card: slim header + 4-cell grid + primary actions + ▼ More ──
+      // Header drops year/note/VIN/engine from card face (still saved, still in modal/PDF).
+      // Pills + expense rows dropped from card face — All Records modal shows them.
+      var today2 = new Date(); today2.setHours(0,0,0,0);
+      var svcDue = nextSvc ? new Date(nextSvc+'T00:00:00') : null;
+      var isOverdue = svcDue && svcDue <= today2;
+      var expCount = expenses.length;
+
+      // Reusable button HTML snippets
+      var btnLogExpense  = '<button onclick="openAddExpense(\''+car.id+'\')" style="flex:1;background:#1a1a00;border:1px solid #f2a830;border-radius:6px;padding:9px 14px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">+ Log Expense</button>';
+      var btnAllRecords  = '<button onclick="openAllRecords(\''+car.id+'\')" style="flex:1;background:#1a0d2a;border:1px solid #6a3aa0;border-radius:6px;padding:9px 14px;color:#a78bfa;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">📋 All Records'+(expCount>0?' ('+expCount+')':'')+'</button>';
+      var btnLogSvcToday = '<button onclick="openLogServiceToday(\''+car.id+'\')" style="flex:1;background:#1a0000;border:2px solid #f23060;border-radius:6px;padding:9px 14px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;animation:pulse-red 1.5s infinite;">✅ Log Service Today</button>';
+      var btnSetSvcDate  = '<button onclick="openRescheduleService(\''+car.id+'\')" style="flex:1;background:#0a1a2e;border:1px solid #3a5a8a;border-radius:6px;padding:9px 14px;color:#5fa0f0;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">📅 Set Service Date</button>';
+      // More-section buttons (full-width, secondary styling)
+      var moreBtn = function(onclick, color, border, text){
+        return '<button onclick="'+onclick+'" style="background:'+border+';border:1px solid '+color+';border-radius:6px;padding:8px 12px;color:'+color+';font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'+text+'</button>';
+      };
+
+      // Primary action row (state-dependent)
+      var primaryRow;
+      if(isOverdue){
+        primaryRow = '<div style="display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);">'
+          + btnLogSvcToday + btnSetSvcDate
+          + '</div>';
+      } else {
+        primaryRow = '<div style="display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);">'
+          + btnLogExpense + btnAllRecords
+          + '</div>';
+      }
+
+      // More section — collapsed by default. Contains everything that isn't primary,
+      // arranged in a clean 2-column grid (or wraps if more buttons).
+      var moreButtonsList = [];
+      if(isOverdue){
+        // When overdue, primary already has urgent buttons. Put Log Expense + All Records here too.
+        moreButtonsList.push(moreBtn('openAddExpense(\''+car.id+'\')',     '#f2a830', '#1a1a00', '+ Log Expense'));
+        moreButtonsList.push(moreBtn('openAllRecords(\''+car.id+'\')',     '#a78bfa', '#1a0d2a', '📋 All Records'+(expCount>0?' ('+expCount+')':'')));
+      } else {
+        moreButtonsList.push(moreBtn('openRescheduleService(\''+car.id+'\')', '#5fa0f0', '#0a1a2e', '📅 Set Service Date'));
+      }
+      moreButtonsList.push(moreBtn('openServiceModal(\''+car.id+'\')',    '#8ab820', '#0d1a00', '📅 Dates &amp; km'));
+      moreButtonsList.push(moreBtn('openEditCarModal(\''+car.id+'\')',    '#888',    '#1a1000', '✏️ Edit Car'));
+      moreButtonsList.push(moreBtn('exportCarPDF(\''+car.id+'\')',        '#8888dd', '#0a0a1a', '📄 Export PDF'));
+      if(typeof renderAdvisoryMoreButton === 'function'){
+        moreButtonsList.push(renderAdvisoryMoreButton(car));
+      }
+      moreButtonsList.push(moreBtn('openOdinScanner(\''+car.id+'\')', '#c8f230', '#0d1a00', '🧾 Scan Invoice'));
+      moreButtonsList.push('<button onclick="deleteCar(\''+car.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;padding:8px 12px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Remove</button>');
+
+      var moreSection = '<details class="car-card-more">'
+        + '<summary>▼ More</summary>'
+        + '<div class="car-card-more-body">'
+        +   moreButtonsList.join('')
+        + '</div>'
+        + '</details>';
 
       var card = document.createElement('div');
       card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;';
       card.innerHTML =
-        // Header
-        '<div style="background:#111;padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">'
+        // Slim header — name + plate + total spent only (year/note/VIN/engine moved to modal)
+        '<div style="background:#111;padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
           +'<div>'
-            +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:17px;color:#efefef;">'+car.name+'</div>'
-            +(car.year||car.note?'<div style="font-size:10px;color:#555;letter-spacing:1px;margin-top:2px;">'+(car.year?car.year+' · ':'')+( car.note||'')+'</div>':'')
-            +(car.plate?'<div style="font-size:11px;color:#f2a830;letter-spacing:2px;margin-top:4px;font-weight:700;">🔖 '+car.plate+'</div>':'')
-            +(car.vin?'<div style="font-size:9px;color:#444;letter-spacing:1px;margin-top:2px;">VIN: '+car.vin+'</div>':'')
-            +(car.engineNo?'<div style="font-size:9px;color:#444;letter-spacing:1px;margin-top:2px;">Engine: '+car.engineNo+'</div>':'')
+            +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:17px;color:var(--text);">'+car.name+'</div>'
+            +(car.plate?'<div style="font-size:11px;color:#f2a830;letter-spacing:2px;margin-top:4px;font-weight:700;display:inline-block;">🔖 '+car.plate+'</div>':'')
+            +(typeof renderAdvisoryBadge==='function' ? renderAdvisoryBadge(car) : '')
           +'</div>'
           +'<div style="text-align:right;">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:2px;">Total Spent</div>'
+            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Total Spent</div>'
             +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:22px;color:#f2a830;">R'+total.toLocaleString('en-ZA')+'</div>'
           +'</div>'
         +'</div>'
@@ -188,53 +278,32 @@ function renderCars(){
         // 4-cell status grid: Last Service | Next Service | Licence Disc | Kilometres
         +'<div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border);">'
           +'<div style="padding:12px 16px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:4px;">Last Service</div>'
-            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#efefef;">'+(lastSvc?formatDisplayDate(lastSvc):'<span style="color:#333;">—</span>')+'</div>'
+            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Last Service</div>'
+            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--text);">'+(lastSvc?formatDisplayDate(lastSvc):'<span style="color:var(--muted2);">—</span>')+'</div>'
             +(car.serviceKm?'<div style="font-size:10px;color:#4a7a00;margin-top:2px;">@ '+svcKmDisplay+'</div>':'')
           +'</div>'
           +'<div style="padding:12px 16px;border-bottom:1px solid var(--border);">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:4px;">Next Service Due</div>'
-            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#c8f230;">'+(nextSvc?formatDisplayDate(nextSvc):'<span style="color:#333;">—</span>')+'</div>'
+            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Next Service Due</div>'
+            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#c8f230;">'+(nextSvc?formatDisplayDate(nextSvc):'<span style="color:var(--muted2);">—</span>')+'</div>'
             +(car.nextServiceKm?'<div style="font-size:10px;color:#5a8800;margin-top:2px;">or '+Number(car.nextServiceKm).toLocaleString('en-ZA')+' km</div>':'')
             +(svcCd?'<div style="margin-top:2px;">'+svcCd+'</div>':'')
           +'</div>'
           +'<div style="padding:12px 16px;border-right:1px solid var(--border);">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:4px;">Licence Disc</div>'
-            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:'+(licExp?'#f2a830':'#333')+'">'+(licExp?formatDisplayDate(licExp):'<span style="color:#333;">—</span>')+'</div>'
+            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Licence Disc</div>'
+            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:'+(licExp?'#f2a830':'var(--muted2)')+'">'+(licExp?formatDisplayDate(licExp):'<span style="color:var(--muted2);">—</span>')+'</div>'
             +(licCd?'<div style="margin-top:2px;">'+licCd+'</div>':'')
           +'</div>'
           +'<div style="padding:12px 16px;">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:4px;">Kilometres</div>'
-            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#efefef;">'+kmDisplay+'</div>'
+            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Kilometres</div>'
+            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--text);">'+kmDisplay+'</div>'
           +'</div>'
         +'</div>'
 
-        // Action buttons
-        +(function(){
-          var today2 = new Date(); today2.setHours(0,0,0,0);
-          var svcDue = nextSvc ? new Date(nextSvc+'T00:00:00') : null;
-          var showSvcBtn = svcDue && svcDue <= today2;
-          return '<div style="display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;">'
-            +(showSvcBtn ? '<button onclick="openLogServiceToday(\''+car.id+'\')" style="background:#1a0000;border:2px solid #f23060;border-radius:6px;padding:7px 14px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;animation:pulse-red 1.5s infinite;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">✅ Log Service Today</button>' : '')
-          +(showSvcBtn ? '<button onclick="openRescheduleService(\''+car.id+'\')" style="background:#0a0a1a;border:1px solid #555;border-radius:6px;padding:7px 14px;color:#888;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">📅 Reschedule</button>' : '')
-            +'<button onclick="openAddExpense(\''+car.id+'\')" style="background:#1a1a00;border:1px solid #f2a830;border-radius:6px;padding:7px 14px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">+ Log Expense</button>'
-            +'<button onclick="openServiceModal(\''+car.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:7px 14px;color:#8ab820;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">📅 Dates & km</button>'
-            +'<button onclick="openEditCarModal(\''+car.id+'\')" style="background:#1a1000;border:1px solid #4a3000;border-radius:6px;padding:7px 14px;color:#888;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">✏️ Edit Car</button>'
-            +'<button onclick="exportCarPDF(\''+car.id+'\')" style="background:#0a0a1a;border:1px solid #3a3a7a;border-radius:6px;padding:7px 14px;color:#8888dd;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">📄 Export PDF</button>'
-            +'<button onclick="deleteCar(\''+car.id+'\')" style="margin-left:auto;background:none;border:1px solid #2a1a1a;border-radius:6px;padding:7px 12px;color:#555;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Remove</button>'
-          +'</div>';
-        })()
+        // Primary action row (state-aware)
+        + primaryRow
 
-        // Category pills
-        +(catPills?'<div style="padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border);">'+catPills+'</div>':'')
-
-        // Expense rows
-        +'<div>'
-          +'<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;padding:8px 16px;border-bottom:1px solid #1a1a1a;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;">'
-            +'<span>Description</span><span>Amount</span><span></span><span></span>'
-          +'</div>'
-          +rowsHtml
-        +'</div>';
+        // Collapsible More section
+        + moreSection;
 
       container.appendChild(card);
     });
@@ -247,7 +316,134 @@ function renderCars(){
 function formatDisplayDate(ds){
   if(!ds) return '—';
   var d = new Date(ds+'T00:00:00');
-  return d.getDate()+' '+d.toLocaleString('en-ZA',{month:'short'})+' '+d.getFullYear();
+  return d.getDate()+' '+d.toLocaleString('en-ZA',{month:'short'})+' '+d.getFullYear();}
+
+// ── ALL RECORDS modal ──
+// Opens a wider modal with the full service/expense history for one car.
+// Shows summary stats at the top (total spent, top categories) and the
+// complete chronological list below with edit/delete on every row.
+function openAllRecords(carId){
+  var car = loadCarsData().find(function(c){ return c.id === carId; });
+  if(!car){ console.warn('openAllRecords: car not found', carId); return; }
+  var expenses = (car.expenses||[]).slice().sort(function(a,b){
+    return (b.date||'').localeCompare(a.date||'');
+  });
+
+  document.getElementById('allRecordsCarId').value = carId;
+  document.getElementById('allRecordsCarLabel').textContent = car.name + (car.plate ? ' · '+car.plate : '');
+
+  // ── Summary block ──
+  var totalAmt = expenses.reduce(function(s,e){ return s+Number(e.amt||0); }, 0);
+  var catTotals = {};
+  expenses.forEach(function(e){
+    var cat = e.category || '💡 Other';
+    catTotals[cat] = (catTotals[cat]||0) + Number(e.amt||0);
+  });
+  var topCats = Object.keys(catTotals).map(function(k){ return { cat:k, amt:catTotals[k] }; })
+    .sort(function(a,b){ return b.amt - a.amt; }).slice(0, 4);
+
+  var dateRange = '';
+  if(expenses.length > 0){
+    var first = expenses[expenses.length - 1].date || '';
+    var last  = expenses[0].date || '';
+    if(first && last && first !== last) dateRange = first + ' → ' + last;
+    else if(first || last) dateRange = first || last;
+  }
+
+  var summaryHtml = ''
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">'
+    +   '<div>'
+    +     '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Total Spent</div>'
+    +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:22px;color:#f2a830;">R'+totalAmt.toLocaleString('en-ZA',{minimumFractionDigits:0,maximumFractionDigits:2})+'</div>'
+    +     (dateRange ? '<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:4px;">'+dateRange+'</div>' : '')
+    +   '</div>'
+    +   '<div style="text-align:right;">'
+    +     '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Entries</div>'
+    +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:22px;color:var(--text);">'+expenses.length+'</div>'
+    +   '</div>'
+    + '</div>';
+  if(topCats.length > 0){
+    summaryHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">';
+    topCats.forEach(function(c){
+      summaryHtml += '<span style="background:#1a1a00;border:1px solid #4a3000;border-radius:100px;padding:4px 10px;font-size:10px;color:#f2a830;letter-spacing:0.5px;">'
+        + c.cat + ' · R' + c.amt.toLocaleString('en-ZA',{maximumFractionDigits:0})
+        + '</span>';
+    });
+    summaryHtml += '</div>';
+  }
+  document.getElementById('allRecordsSummary').innerHTML = summaryHtml;
+
+  // ── Full chronological list ──
+  var listEl = document.getElementById('allRecordsList');
+  if(expenses.length === 0){
+    listEl.innerHTML = '<div style="padding:30px 16px;text-align:center;color:var(--muted);font-size:12px;letter-spacing:1px;">No expenses logged for this car yet.</div>';
+  } else {
+    var rows = '';
+    expenses.forEach(function(e){
+      rows += '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;">'
+        +'<div>'
+          +'<div style="font-size:12px;"><strong style="color:var(--text);font-weight:700;">'+(e.category||'💡 Other')+'</strong><span style="color:var(--muted);font-size:11px;margin-left:6px;">'+(e.desc||'')+'</span></div>'
+          +'<div style="color:var(--muted);font-size:10px;margin-top:2px;">'+(e.date||'')+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
+        +'</div>'
+        +'<span style="color:#f2a830;font-weight:700;font-size:13px;white-space:nowrap;">R'+Number(e.amt).toLocaleString('en-ZA')+'</span>'
+        +'<span role="button" tabindex="0" aria-label="Edit expense" onclick="openEditExpense(\''+car.id+'\',\''+e.id+'\');closeModal(\'allRecordsModal\');" style="cursor:pointer;color:var(--muted);font-size:16px;padding:6px 10px;border-radius:6px;">✏️</span>'
+        +'<span role="button" tabindex="0" aria-label="Delete expense" onclick="deleteExpenseFromAllRecords(\''+car.id+'\',\''+e.id+'\')" style="cursor:pointer;color:var(--muted);font-size:16px;padding:6px 10px;border-radius:6px;">🗑</span>'
+        +'</div>';
+    });
+    listEl.innerHTML = rows;
+  }
+
+  document.getElementById('allRecordsModal').classList.add('active');
+}
+
+// Wrapper around deleteExpense that re-renders the modal after deletion
+// instead of just closing it. Keeps the user in context to delete more.
+function deleteExpenseFromAllRecords(carId, expId){
+  if(!confirm('Delete this expense?')) return;
+  var cars = loadCarsData();
+  var car = cars.find(function(c){ return c.id === carId; });
+  if(!car || !car.expenses) return;
+  car.expenses = car.expenses.filter(function(e){ return e.id !== expId; });
+  saveCarsData(cars);
+  renderCars();
+  openAllRecords(carId);
+}
+
+// ── Expense date input mode toggle ──
+// Flips the date input between native date-picker mode and plain text mode.
+// On mobile, type=date forces the system picker which is slower for users
+// who know the date they want. type=text lets them type "2026-04-10"
+// directly. Toggle preserves the current value when switching.
+function toggleExpenseDateMode(){
+  var input = document.getElementById('expenseDate');
+  var btn   = document.getElementById('expenseDateModeBtn');
+  var hint  = document.getElementById('expenseDateHint');
+  if(!input || !btn) return;
+  var currentValue = input.value;
+  if(input.type === 'date'){
+    // Switch to manual typing
+    input.type = 'text';
+    input.placeholder = 'YYYY-MM-DD';
+    btn.innerHTML = '📅 Picker';
+    btn.title = 'Switch to date picker';
+    if(hint) hint.style.display = 'block';
+  } else {
+    // Switch back to picker — native date input only accepts YYYY-MM-DD
+    // format. If the user typed something else, clear it to avoid an
+    // invalid state.
+    input.type = 'date';
+    input.placeholder = '';
+    btn.innerHTML = '✎ Type';
+    btn.title = 'Switch to manual typing';
+    if(hint) hint.style.display = 'none';
+    // Validate the current text before keeping it — if it doesn't match
+    // YYYY-MM-DD, blank it so the picker has a clean state.
+    if(currentValue && !/^\d{4}-\d{2}-\d{2}$/.test(currentValue)){
+      input.value = '';
+    } else {
+      input.value = currentValue;
+    }
+  }
 }
 
 function openAddCarModal(){
@@ -277,16 +473,36 @@ function openAddCarModal(){
 function populateCarMaintDropdown(selectedId){
   var sel = document.getElementById('carMaintenanceFundId');
   if(!sel) return;
-  // Build list: original maint fund (live name) + all custom maint cards
-  // Use getMaintFundName() so when the user renames the fund (e.g. from
-  // "Maintenance Fund" to "Car Fund"), the new name shows up here too.
-  var liveName = (typeof getMaintFundName === 'function') ? getMaintFundName() : 'Maintenance Fund';
+  // ── May 2026 redesign ──
+  // Source car-expense funds from the SAVINGS funds array, filtered to those
+  // with isExpense === true (the user's actual day-to-day car expense tracker,
+  // e.g. "Ee90 _KiA picaNto"). The old Maintenance tab/system isn't used in
+  // practice — user has chosen one shared expense card across all their cars.
+  // We keep the legacy "__maint__" + custom-maint-cards as fallbacks for any
+  // older car records that were already linked there, so nothing silently
+  // unlinks.
   var options = '<option value="">— None —</option>';
-  options += '<option value="__maint__"'+(selectedId==='__maint__'?' selected':'')+'>'+liveName+'</option>';
   try{
-    var cards = JSON.parse(lsGet(CUSTOM_MAINT_KEY)||'[]');
-    cards.forEach(function(c){
-      options += '<option value="'+c.id+'"'+(selectedId===c.id?' selected':'')+'>'+c.name+'</option>';
+    var expenseFunds = (typeof funds !== 'undefined' ? funds : [])
+      .filter(function(f){ return f && f.isExpense && !f._deleted; });
+    expenseFunds.forEach(function(f){
+      var label = (f.emoji ? (f.emoji + ' ') : '') + f.name;
+      options += '<option value="'+f.id+'"'+(selectedId===f.id?' selected':'')+'>'+label+'</option>';
+    });
+  }catch(e){}
+  // Legacy fallback options — only render if a car was already linked to one,
+  // so the user can see what's wired up but the list isn't cluttered for new
+  // entries.
+  if(selectedId === '__maint__'){
+    var liveName = (typeof getMaintFundName === 'function') ? getMaintFundName() : 'Maintenance Fund';
+    options += '<option value="__maint__" selected>'+liveName+' (legacy)</option>';
+  }
+  try{
+    var legacyCards = JSON.parse(lsGet(CUSTOM_MAINT_KEY)||'[]');
+    legacyCards.forEach(function(c){
+      if(selectedId === c.id){
+        options += '<option value="'+c.id+'" selected>'+c.name+' (legacy)</option>';
+      }
     });
   }catch(e){}
   sel.innerHTML = options;
@@ -402,8 +618,8 @@ function buildCarPDF(carId){
   toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #3a5a00;border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 24px rgba(0,0,0,.5);min-width:240px;';
   toast.innerHTML =
     '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:#c8f230;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
-    +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:#efefef;">Generating PDF...</div>'
-    +'<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">'+car.name+'</div></div>';
+    +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:var(--text);">Generating PDF...</div>'
+    +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">'+car.name+'</div></div>';
   if(!document.getElementById('spinStyle')){
     var sp=document.createElement('style');sp.id='spinStyle';
     sp.textContent='@keyframes spin{to{transform:rotate(360deg);}}';
@@ -691,11 +907,57 @@ function openAddExpense(carId){
   setSelectedCategories(['🔧 Service']);
   document.getElementById('expenseDesc').value = '';
   document.getElementById('expenseAmt').value = '';
+  // ── Step 7 — pocket dropdown, default to the car's linked pocket ──
+  populateExpensePocketDropdown(car ? (car.maintenanceFundId || '') : '');
+  // Reset date input to picker mode in case it was left in text mode last time
+  var dateEl = document.getElementById('expenseDate');
+  if(dateEl && dateEl.type !== 'date'){
+    dateEl.type = 'date';
+    dateEl.placeholder = '';
+    var btn = document.getElementById('expenseDateModeBtn'); if(btn){ btn.innerHTML = '✎ Type'; btn.title = 'Switch to manual typing'; }
+    var hint = document.getElementById('expenseDateHint'); if(hint) hint.style.display = 'none';
+  }
   document.getElementById('expenseDate').value = localDateStr(new Date());
   document.getElementById('expenseKm').value = car && car.kilometers ? car.kilometers : '';
   document.getElementById('expenseModalSaveBtn').textContent = 'Save Entry';
   document.getElementById('addExpenseModal').classList.add('active');
   setTimeout(function(){ document.getElementById('expenseDesc').focus(); }, 100);
+}
+
+// ── Step 7 — car-expense pocket dropdown ──────────────────────────────────
+// A funded car expense spends from a pocket (deduct + Cash Flow), reusing the
+// proven Spend money-math. A "record-only" choice logs to car history only —
+// no pocket, no bank, no Cash Flow. The dropdown defaults to the car's linked
+// pocket but every pocket is selectable (short that day → pick another), plus
+// a "None — record only" option at the top.
+function populateExpensePocketDropdown(selectedId){
+  var sel = document.getElementById('expensePocketId');
+  if(!sel) return;
+  var opts = '<option value="">— None (record only) —</option>';
+  try{
+    var list = (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return f && !f._deleted; });
+    list.forEach(function(f){
+      var bal = (f.deposits||[]).reduce(function(s,d){ return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0)); }, 0);
+      var label = (f.emoji ? f.emoji + ' ' : '') + f.name + ' · ' + fmtR(bal);
+      opts += '<option value="'+f.id+'"'+(selectedId===f.id?' selected':'')+'>'+label+'</option>';
+    });
+  }catch(e){}
+  sel.innerHTML = opts;
+  updateExpensePocketHint();
+  sel.onchange = updateExpensePocketHint;
+}
+
+function updateExpensePocketHint(){
+  var sel = document.getElementById('expensePocketId');
+  var hint = document.getElementById('expensePocketHint');
+  if(!sel || !hint) return;
+  if(!sel.value){
+    hint.textContent = '📋 History only — no pocket deducted, nothing in Cash Flow.';
+    hint.style.color = '#7090f0';
+  } else {
+    hint.textContent = '💸 Deducts this pocket + logs to Cash Flow (via Direct).';
+    hint.style.color = '#5fe0a0';
+  }
 }
 
 function openEditExpense(carId, expId){
@@ -713,6 +975,8 @@ function openEditExpense(carId, expId){
   document.getElementById('expenseAmt').value = exp.amt || '';
   document.getElementById('expenseDate').value = exp.date || '';
   document.getElementById('expenseKm').value = exp.km || '';
+  // Step 7 — reflect the pocket this expense was paid from (blank = record-only)
+  populateExpensePocketDropdown(exp.pocketId || '');
   document.getElementById('expenseModalSaveBtn').textContent = 'Save Changes';
   document.getElementById('addExpenseModal').classList.add('active');
 }
@@ -723,36 +987,229 @@ function confirmAddExpense(){
   var cat    = getSelectedCategories();
   var desc   = document.getElementById('expenseDesc').value.trim();
   var amt    = parseFloat(document.getElementById('expenseAmt').value);
-  var date   = document.getElementById('expenseDate').value || localDateStr(new Date());
+  var dateRaw = document.getElementById('expenseDate').value || '';
+  // If user typed a date manually, validate format. Empty falls back to today.
+  var date;
+  if(!dateRaw){
+    date = localDateStr(new Date());
+  } else if(/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)){
+    // Sanity-check the date is real (not 2026-13-99)
+    var parts = dateRaw.split('-');
+    var d = new Date(parts[0]+'-'+parts[1]+'-'+parts[2]+'T00:00:00');
+    if(isNaN(d.getTime()) || d.getFullYear() < 2000 || d.getFullYear() > 2100){
+      alert('Invalid date — use format YYYY-MM-DD (e.g. 2026-04-10).');
+      return;
+    }
+    date = dateRaw;
+  } else {
+    alert('Invalid date — use format YYYY-MM-DD (e.g. 2026-04-10).');
+    return;
+  }
   var km     = document.getElementById('expenseKm').value ? Number(document.getElementById('expenseKm').value) : '';
   if(!cat){ alert('Please select at least one category.'); return; }
   if(!amt || amt <= 0){ alert('Please enter a valid amount.'); return; }
+  // ── Step 7 — which pocket pays for this expense? Blank = record-only. ──
+  var pocketSel = document.getElementById('expensePocketId');
+  var pocketId  = pocketSel ? (pocketSel.value || '') : '';
   var cars = loadCarsData();
   var car = cars.find(function(c){ return c.id === carId; });
   if(!car) return;
   if(!car.expenses) car.expenses = [];
+
+  // If editing: reverse the OLD record's pocket linkage (if any) first, so
+  // edits re-sync correctly (e.g. amount changed, or pocket switched).
+  if(editId){
+    var oldExp = car.expenses.find(function(e){ return e.id === editId; });
+    if(oldExp && oldExp.carExpenseId){
+      _carExpenseReverse(oldExp, { silent: true });
+      // Re-fetch car after the reverse touched data
+      cars = loadCarsData();
+      car  = cars.find(function(c){ return c.id === carId; });
+      if(!car) return;
+      if(!car.expenses) car.expenses = [];
+    }
+  }
+
   var entry = { id: editId||uid(), category: cat, desc: desc, amt: amt, date: date, km: km };
+
+  // ── If a pocket is selected, run the funded path (deduct + Cash Flow) ──
+  if(pocketId){
+    var pocket = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === pocketId; });
+    if(!pocket){ alert('Pocket not found. Pick another.'); return; }
+
+    var carExpenseId = 'ce_' + uid();
+    var doorway = 'DIRECT';  // Step 7 default — money came from the pocket
+    var pocketLabel = (pocket.emoji ? pocket.emoji + ' ' : '') + pocket.name;
+    var catLabel = Array.isArray(cat) ? cat.join(' ') : cat;
+    var cfLabel  = '🔧 ' + (desc || catLabel) + ' · ' + car.name;
+
+    // 1) Pocket deposit (txnType 'out' deducts balance)
+    var depositId = uid();
+    var deposit = {
+      id: depositId,
+      txnType: 'out',
+      amount: amt,
+      date: date,
+      note: '🔧 ' + (desc || catLabel) + ' · ' + car.name,
+      cfPosted: true,
+      carExpenseId: carExpenseId
+    };
+    pocket.deposits.push(deposit);
+    try { saveFunds(); } catch(e){}
+
+    // 2) Cash Flow expense row — Direct doorway (no destBank), banks untouched
+    var cfId = null;
+    try {
+      var cfData = loadCFData();
+      var mk = (date || localDateStr(new Date())).slice(0, 7);
+      if(!cfData[mk]) cfData[mk] = { income: [], expenses: [] };
+      cfId = uid();
+      var cfRec = {
+        id: cfId,
+        label: cfLabel,
+        amount: amt,
+        date: date,
+        icon: '🔧',
+        auto: false,
+        account: pocketLabel,
+        sourceType: 'car_expense',
+        sourceId: carId,
+        sourceCardName: car.name,
+        note: 'Car expense · from ' + pocket.name + ' (direct)',
+        carExpenseId: carExpenseId,
+        createdAt: new Date().toISOString()
+      };
+      cfData[mk].expenses.push(cfRec);
+      saveCFData(cfData);
+    } catch(e){ console.warn('[car-expense] CF post failed', e); }
+
+    // 3) Bank baseline: Direct doorway = bank never touched. Nothing to do.
+    //    (Same as Spend's Direct path — symmetric, net 0, no drift surface.)
+
+    // 4) Stamp the linkage onto the car expense entry
+    entry.carExpenseId = carExpenseId;
+    entry.pocketId     = pocketId;
+    entry.depositId    = depositId;
+    entry.cfId         = cfId;
+    entry.doorway      = doorway;
+  }
+  // Else: record-only path — no pocket, no CF, no bank. History entry only.
+
   if(editId){
     var idx = car.expenses.findIndex(function(e){ return e.id === editId; });
     if(idx > -1) car.expenses[idx] = entry;
+    else car.expenses.push(entry);
   } else {
     car.expenses.push(entry);
-    // Update car's current km if provided
-    if(km && km > (car.kilometers||0)) car.kilometers = km;
   }
+  // Auto-update car odometer if expense km is higher than current (new & edits)
+  if(km && km > (car.kilometers||0)) car.kilometers = km;
   saveCarsData(cars);
   closeModal('addExpenseModal');
   renderCars();
+  try { if(typeof renderFunds === 'function') renderFunds(); } catch(e){}
+  try { if(typeof renderCashFlow === 'function') renderCashFlow(); } catch(e){}
+  try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
+}
+
+// ── Step 7 — reverse a funded car expense's pocket+CF linkage ─────────
+// Pure reverse: restore the pocket deposit, drop the CF row directly (NO
+// removeFromCF — Direct doorway means the bank was never touched on save,
+// so it must not be touched on reverse either; removeFromCF would adjust
+// the bank baseline downward and drift it. This is the same pattern Spend
+// uses for its Direct path.)
+function _carExpenseReverse(exp, opts){
+  opts = opts || {};
+  if(!exp || !exp.carExpenseId) return false;
+
+  // 1) Remove the pocket deposit
+  try {
+    var p = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === exp.pocketId; });
+    if(p && exp.depositId){
+      p.deposits = (p.deposits || []).filter(function(d){
+        if(d.id === exp.depositId) return false;
+        if(d.carExpenseId && d.carExpenseId === exp.carExpenseId) return false;
+        return true;
+      });
+    }
+    try { saveFunds(); } catch(e){}
+  } catch(e){}
+
+  // 2) Remove the CF row (direct filter — banks stay where they are)
+  if(exp.cfId){
+    try {
+      var cfData = loadCFData();
+      var mk = (exp.date || '').slice(0, 7);
+      if(cfData[mk] && cfData[mk].expenses){
+        cfData[mk].expenses = cfData[mk].expenses.filter(function(e){
+          if(e.id === exp.cfId) return false;
+          if(e.carExpenseId && e.carExpenseId === exp.carExpenseId) return false;
+          return true;
+        });
+        saveCFData(cfData);
+      }
+    } catch(e){}
+  }
+
+  // 3) No bank reversal — Direct doorway never touched the baseline.
+
+  if(!opts.silent){
+    try { renderFunds(); } catch(e){}
+    try { if(typeof renderCashFlow === 'function') renderCashFlow(); } catch(e){}
+    try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
+  }
+  return true;
 }
 
 function deleteExpense(carId, expId){
-  if(!confirm('Delete this expense entry?')) return;
   var cars = loadCarsData();
   var car = cars.find(function(c){ return c.id === carId; });
   if(!car) return;
-  car.expenses = (car.expenses||[]).filter(function(e){ return e.id !== expId; });
-  saveCarsData(cars);
-  renderCars();
+  var exp = (car.expenses || []).find(function(e){ return e.id === expId; });
+  if(!exp) return;
+
+  // Build a friendly summary for the confirm dialog
+  var amtStr = fmtR(exp.amt || 0);
+  var catStr = Array.isArray(exp.category) ? exp.category.join(' ') : (exp.category || '');
+  var label  = (exp.desc || catStr || 'Expense') + ' · ' + amtStr + ' · ' + (exp.date || '');
+
+  function doDelete(){
+    // Funded expense → reverse the pocket+CF linkage first
+    if(exp.carExpenseId){
+      _carExpenseReverse(exp, { silent: true });
+    }
+    // Then drop the car-history entry
+    var cars2 = loadCarsData();
+    var car2  = cars2.find(function(c){ return c.id === carId; });
+    if(car2){
+      car2.expenses = (car2.expenses || []).filter(function(e){ return e.id !== expId; });
+      saveCarsData(cars2);
+    }
+    renderCars();
+    try { if(typeof renderFunds === 'function') renderFunds(); } catch(e){}
+    try { if(typeof renderCashFlow === 'function') renderCashFlow(); } catch(e){}
+    try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
+  }
+
+  if(exp.carExpenseId && exp.pocketId){
+    // Funded path — show what'll happen
+    var pocket = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === exp.pocketId; });
+    var pname  = pocket ? pocket.name : 'the pocket';
+    var msg    = label + '\n\nThis puts ' + amtStr + ' back into ' + pname + ' and removes the Cash Flow row. Banks stay at R0.';
+    if(typeof mihbConfirm === 'function'){
+      mihbConfirm({
+        title:       '🔧 Delete this car expense?',
+        message:     msg,
+        dangerLabel: '↩ Delete & return to ' + pname,
+        safeLabel:   'Leave it alone'
+      }, function(go){ if(go) doDelete(); });
+    } else {
+      if(confirm('🔧 Delete this car expense?\n\n' + msg)) doDelete();
+    }
+  } else {
+    // Record-only path — plain delete, no pocket math
+    if(confirm('Delete this expense entry?\n\n' + label)) doDelete();
+  }
 }
 
 function autoCalcNextService(){
@@ -831,29 +1288,29 @@ function renderDrivers(){
 
   var rows = drivers.map(function(d){
     var cd = countdownBadge(d.expiry, 'Expires');
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid #161616;flex-wrap:wrap;gap:8px;">'
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;">'
       +'<div>'
-        +'<div style="font-size:13px;color:#efefef;font-weight:700;">'+d.name+'</div>'
-        +(d.idNum?'<div style="font-size:10px;color:#555;letter-spacing:1px;">ID: '+d.idNum+'</div>':'')
+        +'<div style="font-size:13px;color:var(--text);font-weight:700;">'+d.name+'</div>'
+        +(d.idNum?'<div style="font-size:10px;color:var(--muted);letter-spacing:1px;">ID: '+d.idNum+'</div>':'')
       +'</div>'
       +'<div style="text-align:right;">'
-        +'<div style="font-size:12px;color:#f2a830;">'+(d.expiry?formatDisplayDate(d.expiry):'<span style="color:#333;">No date set</span>')+'</div>'
+        +'<div style="font-size:12px;color:#f2a830;">'+(d.expiry?formatDisplayDate(d.expiry):'<span style="color:var(--muted2);">No date set</span>')+'</div>'
         +(cd?'<div>'+cd+'</div>':'')
       +'</div>'
       +'<div style="display:flex;gap:6px;">'
-        +'<button onclick="openEditDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:4px 10px;color:#555;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#444\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'">✏️ Edit</button>'
-        +'<button onclick="deleteDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:4px 10px;color:#555;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">🗑</button>'
+        +'<button onclick="openEditDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:4px 10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#444\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'">✏️ Edit</button>'
+        +'<button onclick="deleteDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:4px 10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">🗑</button>'
       +'</div>'
     +'</div>';
   }).join('');
 
   wrap.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);">'
-      +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:#efefef;">🪪 Driver\'s Licences</div>'
+      +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:var(--text);">🪪 Driver\'s Licences</div>'
       +'<button onclick="openAddDriver()" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:6px 12px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">+ Add Person</button>'
     +'</div>'
     +(drivers.length===0
-      ? '<div style="padding:20px 16px;text-align:center;color:#333;font-size:12px;">No driver licences added yet</div>'
+      ? '<div style="padding:20px 16px;text-align:center;color:var(--muted);font-size:12px;">No driver licences added yet</div>'
       : rows);
 }
 
@@ -945,8 +1402,26 @@ function checkReminders(){
     var plans = JSON.parse(lsGet(INST_KEY)||'[]');
     var nowM = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
     plans.forEach(function(p){
+      // Auto-debit / month-to-month plans (e.g. MTN) — debitDay based, no fixed dates[]
+      if(p.planType === 'autoDebit' || p.monthToMonth){
+        if(!p.debitDay) return;
+        var paidM2M = (p.paid||[]).some(function(x){ return x.date && x.date.slice(0,7) === nowM; });
+        if(paidM2M) return;
+        var yM2M = today.getFullYear(), mM2M = today.getMonth();
+        var lastDayM2M = new Date(yM2M, mM2M+1, 0).getDate();
+        var debitDate = new Date(yM2M, mM2M, Math.min(p.debitDay, lastDayM2M));
+        var diffM2M = Math.round((debitDate - today)/86400000);
+        if(diffM2M < 0){
+          alerts.push({ icon:'💳', msg: p.desc+' ('+p.provider+') payment '+fmtR(p.amt)+' is <strong style="color:#f23060;">OVERDUE</strong>', level:'red' });
+        } else if(diffM2M <= 5){
+          var lvlM2M = diffM2M <= 1 ? 'red' : 'amber';
+          var whenM2M = diffM2M === 0 ? 'TODAY' : (diffM2M === 1 ? 'TOMORROW' : 'in '+diffM2M+' days');
+          alerts.push({ icon:'💳', msg: p.desc+' ('+p.provider+') payment '+fmtR(p.amt)+' debits <strong style="color:'+(lvlM2M==='red'?'#f23060':'#f2a830')+';">'+whenM2M+'</strong>', level: lvlM2M });
+        }
+        return;
+      }
       var paidIdxs = (p.paid||[]).map(function(x){ return x.index; });
-      p.dates.forEach(function(ds, i){
+      (p.dates||[]).forEach(function(ds, i){
         if(paidIdxs.indexOf(i) > -1) return;
         var diff2 = daysUntil(ds);
         if(diff2 !== null && diff2 >= 0 && diff2 <= 7){
@@ -958,7 +1433,47 @@ function checkReminders(){
     });
   }catch(e){}
 
-  if(alerts.length === 0) return;
+  var schoolAlerts = [];
+
+  // School events - webinars, assignments, quizzes, exams
+  try{
+    var schoolEvents = JSON.parse(lsGet('yasin_school_events_v1')||'[]');
+    var schoolDone = JSON.parse(lsGet('yasin_school_done_v1')||'[]');
+    var typeIcons2 = { webinar:'📡', assignment:'📝', quiz:'🧪', exam:'📋' };
+    schoolEvents.forEach(function(ev){
+      if(!ev.date) return;
+      if(schoolDone.indexOf(ev.id) > -1) return;
+      var diff3 = daysUntil(ev.date);
+      if(diff3 === null || diff3 < 0 || diff3 > 7) return;
+      var icon2 = typeIcons2[ev.type] || '📅';
+      var label2 = ev.title || ev.type || 'Event';
+      var subj2 = ev.subject || ev.subjects || '';
+      var timeStr2 = ev.time ? ' · ' + ev.time : '';
+      var level2 = diff3 <= 2 ? 'red' : 'amber';
+      var msg2;
+      if(diff3 === 0) msg2 = subj2 + ' <strong style="color:#f23060;">' + label2 + ' is TODAY</strong>' + timeStr2;
+      else if(diff3 === 1) msg2 = subj2 + ' ' + label2 + ' is <strong style="color:#f23060;">TOMORROW</strong>' + timeStr2;
+      else msg2 = subj2 + ' ' + label2 + ' in <strong style="color:#f2a830;">' + diff3 + ' days</strong> (' + ev.date + ')' + timeStr2;
+      schoolAlerts.push({ icon: icon2, msg: msg2, level: level2 });
+    });
+  }catch(e){}
+
+  var todayStr = today.toISOString().split('T')[0];
+
+  // Separate snooze keys for cars vs school
+  var carDismissed = lsGet('yb_reminder_dismissed_v1') || '';
+  var schoolDismissed = lsGet('yb_school_reminder_dismissed_v1') || '';
+
+  var visibleAlerts = [];
+  if(!carDismissed || carDismissed < todayStr) visibleAlerts = visibleAlerts.concat(alerts);
+  if(!schoolDismissed || schoolDismissed < todayStr) visibleAlerts = visibleAlerts.concat(schoolAlerts);
+
+  if(visibleAlerts.length === 0) return;
+
+  // Determine which types are visible for snooze label
+  var hasCars = alerts.length > 0 && (!carDismissed || carDismissed < todayStr);
+  var hasSchool = schoolAlerts.length > 0 && (!schoolDismissed || schoolDismissed < todayStr);
+  var totalCount = visibleAlerts.length;
 
   var old = document.getElementById('reminderBanner');
   if(old) old.remove();
@@ -967,17 +1482,43 @@ function checkReminders(){
   banner.id = 'reminderBanner';
   banner.style.cssText = 'position:fixed;top:50px;left:0;right:0;z-index:400;background:#0a0a0a;border-bottom:2px solid #f23060;padding:0;';
 
-  var rows = alerts.map(function(a){
-    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid #1a1a1a;font-size:11px;letter-spacing:0.5px;">'
+  var rows = visibleAlerts.map(function(a){
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid #2a2a2a;font-size:11px;letter-spacing:0.5px;">'
       +'<span style="font-size:16px;flex-shrink:0;">'+a.icon+'</span>'
-      +'<span style="color:#ccc;flex:1;">'+a.msg+'</span>'
+      +'<span style="color:#efefef;flex:1;">'+a.msg+'</span>'
       +'</div>';
   }).join('');
 
+  function _reminderSnooze(days){
+    var d = new Date(); d.setDate(d.getDate()+days);
+    var until = d.toISOString().split('T')[0];
+    if(hasCars) lsSet('yb_reminder_dismissed_v1', until);
+    if(hasSchool) lsSet('yb_school_reminder_dismissed_v1', until);
+    var b = document.getElementById('reminderBanner'); if(b) b.remove();
+  }
+  function _reminderSnoozeCars(days){
+    var d = new Date(); d.setDate(d.getDate()+days);
+    lsSet('yb_reminder_dismissed_v1', d.toISOString().split('T')[0]);
+    checkReminders();
+  }
+  function _reminderSnoozeSchool(days){
+    var d = new Date(); d.setDate(d.getDate()+days);
+    lsSet('yb_school_reminder_dismissed_v1', d.toISOString().split('T')[0]);
+    checkReminders();
+  }
+  window._reminderSnooze = _reminderSnooze;
+  window._reminderSnoozeCars = _reminderSnoozeCars;
+  window._reminderSnoozeSchool = _reminderSnoozeSchool;
+
   banner.innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#1a0000;border-bottom:1px solid #3a0000;">'
-      +'<span style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#f23060;font-weight:700;">⚠ '+alerts.length+' Reminder'+(alerts.length>1?'s':'')+'</span>'
-      +'<button onclick="document.getElementById(\'reminderBanner\').remove()" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#f23060;font-size:11px;padding:3px 10px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">Dismiss</button>'
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#1a0000;border-bottom:1px solid #3a0000;flex-wrap:wrap;gap:6px;">'
+      +'<span style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#f23060;font-weight:700;">⚠ '+totalCount+' Reminder'+(totalCount>1?'s':'')+'</span>'
+      +'<div style="display:flex;gap:6px;align-items:center;">'
+        +'<button onclick="_reminderSnooze(1)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:10px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">😴 1 day</button>'
+        +'<button onclick="_reminderSnooze(3)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:10px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">3 days</button>'
+        +'<button onclick="_reminderSnooze(7)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:10px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">1 week</button>'
+        +'<button onclick="_reminderSnooze(0)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#f23060;font-size:11px;padding:3px 10px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">✕ today</button>'
+      +'</div>'
     +'</div>'
     +rows;
 

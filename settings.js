@@ -12,7 +12,9 @@ function loadReconBalances(){
 function saveReconBalances(){
   var fnb  = parseFloat(document.getElementById('reconFNB').value)||0;
   var tyme = parseFloat(document.getElementById('reconTyme').value)||0;
-  var data = { fnb:fnb, tyme:tyme, updated: new Date().toISOString() };
+  var cashEl = document.getElementById('reconCash');
+  var cash = cashEl ? (parseFloat(cashEl.value)||0) : 0;
+  var data = { fnb:fnb, tyme:tyme, cash:cash, updated: new Date().toISOString() };
   lsSet(RECON_KEY, JSON.stringify(data));
   updateReconTotal();
   // Show quick toast
@@ -23,7 +25,9 @@ function saveReconBalances(){
 function updateReconTotal(){
   var fnb  = parseFloat(document.getElementById('reconFNB')&&document.getElementById('reconFNB').value)||0;
   var tyme = parseFloat(document.getElementById('reconTyme')&&document.getElementById('reconTyme').value)||0;
-  var total = fnb + tyme;
+  var cashEl = document.getElementById('reconCash');
+  var cash = cashEl ? (parseFloat(cashEl.value)||0) : 0;
+  var total = fnb + tyme + cash;
   var el = document.getElementById('reconTotal');
   if(el) el.textContent = fmtR(total);
   // Live-update the Bank Balance card at the top so the user sees the
@@ -49,8 +53,10 @@ function renderReconPanel(){
   var saved = loadReconBalances();
   var fnbEl  = document.getElementById('reconFNB');
   var tymeEl = document.getElementById('reconTyme');
-  if(fnbEl && saved.fnb !== undefined) fnbEl.value = saved.fnb;
+  var cashEl = document.getElementById('reconCash');
+  if(fnbEl  && saved.fnb  !== undefined) fnbEl.value  = saved.fnb;
   if(tymeEl && saved.tyme !== undefined) tymeEl.value = saved.tyme;
+  if(cashEl && saved.cash !== undefined) cashEl.value = saved.cash;
 
   // Last updated
   var lastEl = document.getElementById('reconLastUpdated');
@@ -61,7 +67,7 @@ function renderReconPanel(){
 
   updateReconTotal();
 
-  // ── Auto-save: debounced save when the user types in either bank balance ──
+  // ── Auto-save: debounced save when the user types in any bank balance ──
   // Previously the user had to remember to tap the green Save button. Forgetting
   // that = balances vanish on next login. We attach a one-time listener on each
   // input that auto-saves after 600ms of inactivity. The manual Save button
@@ -75,6 +81,11 @@ function renderReconPanel(){
     tymeEl._autoSaveBound = true;
     tymeEl.addEventListener('input', _scheduleReconAutoSave);
     tymeEl.addEventListener('blur',  saveReconBalances);
+  }
+  if(cashEl && !cashEl._autoSaveBound){
+    cashEl._autoSaveBound = true;
+    cashEl.addEventListener('input', _scheduleReconAutoSave);
+    cashEl.addEventListener('blur',  saveReconBalances);
   }
 
   // Savings rows
@@ -137,31 +148,122 @@ function renderReconPanel(){
 //   - renderCashFlow runs (tab opened, month changed, entry added)
 //   - User types in the bank balance inputs at the bottom (live updates
 //     wired in saveReconBalances + scheduleReconAutoSave)
-function renderBankBalanceCard(){
-  var amtEl = document.getElementById('cfBankBalanceAmt');
-  var brkEl = document.getElementById('cfBankBalanceBreakdown');
-  if(!amtEl || !brkEl) return; // card not on the page
+// Resolve which bank an entry is tagged to. destBank is the source of truth
+// (May 2026 redesign). Older entries that used the entry-modal bank picker
+// stored the choice in `account` instead — we honour that as a fallback if
+// `account` is one of the three known bank values, so existing data keeps
+// working without a migration.
+function _entryBank(e){
+  if(!e) return null;
+  if(e.destBank) return e.destBank;
+  if(['FNB','TymeBank','Cash'].indexOf(e.account) > -1) return e.account;
+  return null;
+}
 
-  // Prefer live values from the input fields if present (handles in-flight
-  // edits before the user clicks Save), fall back to stored values.
+// Compute live per-bucket balance for one bank label.
+// Formula: baseline + sum(tagged income created AFTER baselineISO) − sum(tagged
+//          expenses created AFTER baselineISO). Entries created on or before
+//          the baseline timestamp are treated as already-accounted-for in the
+//          baseline, since the user typed in their REAL current balance.
+//
+// Comparison uses entry.createdAt (a full ISO timestamp stamped when the entry
+// was logged), NOT entry.date (which is just a YYYY-MM-DD day). This lets us
+// distinguish entries made earlier today from entries made AFTER you saved
+// the baseline today — a same-day deposit logged after saving baseline still
+// counts. Entries that don't have createdAt (legacy data) are excluded.
+//
+// Untagged legacy entries (no destBank, no recognisable account) are ignored
+// regardless of date — they show as "—" in the UI and don't move bank totals
+// until retro-tagged.
+function _computeBankBucket(bank, cfData, baseline, baselineISO){
+  var net = baseline || 0;
+  if(!cfData || typeof cfData !== 'object') return net;
+  function isAfter(e){
+    if(!baselineISO) return !!e.createdAt; // no baseline → count anything stamped
+    if(!e || !e.createdAt) return false;   // unstamped → can't compare, skip safely
+    return e.createdAt > baselineISO;
+  }
+  Object.keys(cfData).forEach(function(mk){
+    if(!/^\d{4}-\d{2}$/.test(mk)) return; // skip 'recurring' and other meta keys
+    var month = cfData[mk] || {};
+    (month.income || []).forEach(function(e){
+      if(_entryBank(e) === bank && isAfter(e)) net += Number(e.amount) || 0;
+    });
+    (month.expenses || []).forEach(function(e){
+      // Both real expenses and savings allocations live here; both drain the
+      // bank since savings are internal transfers (your wealth doesn't shrink
+      // but your spendable cash does).
+      if(_entryBank(e) === bank && isAfter(e)) net -= Number(e.amount) || 0;
+    });
+  });
+  // Recurring entries don't have a date — skip them in the live balance math.
+  // They show in the monthly view but they're a template, not a real-money
+  // movement, so they shouldn't tweak the running bank total.
+  return net;
+}
+
+// ── Bank Bucket Math — May 2026 Redesign Round 2 ──────────────────────────
+// Earlier rounds tried to compute live balances by adding/subtracting all
+// tagged entries since a "baseline timestamp". That model fell apart in
+// practice because (a) legacy entries weren't timestamped, (b) re-saving
+// the baseline reset the gate and froze recent activity, and (c) users
+// got trapped in confusing loops.
+//
+// New model: the baseline IS the truth. Bank-bucket values shown in the
+// Available Cash card simply read the values the user typed in the
+// Account Balances panel. When the user logs a new deposit/expense/move
+// with a destBank, we IMMEDIATELY adjust that baseline value and persist
+// it (see _adjustBaselineForBank below). Past entries are decorative
+// history — they don't recompute.
+//
+// "Rebuild" button lets the user type fresh real-world numbers anytime
+// when the recorded baseline drifts from reality (bank fees, untracked
+// payments, etc.). One tap, done.
+
+function _adjustBaselineForBank(bank, delta){
+  // delta is positive for income, negative for expense/savings-allocation
+  var key = (bank === 'FNB') ? 'fnb' : (bank === 'TymeBank') ? 'tyme' : (bank === 'Cash') ? 'cash' : null;
+  if(!key) return;
+  var saved = (typeof loadReconBalances === 'function') ? loadReconBalances() : {};
+  saved[key] = (Number(saved[key]) || 0) + Number(delta || 0);
+  saved.updated = new Date().toISOString();
+  if(typeof lsSet === 'function') lsSet(RECON_KEY, JSON.stringify(saved));
+  // Reflect on screen if the inputs are visible.
+  var inp = document.getElementById('recon' + (key === 'fnb' ? 'FNB' : key === 'tyme' ? 'Tyme' : 'Cash'));
+  if(inp) inp.value = saved[key];
+  try { renderBankBalanceCard(); } catch(e){}
+}
+// Expose for other modules (savings.js, carpool.js) to call after a tagged
+// transaction lands. Each tagged transaction calls this once with the delta.
+if(typeof window !== 'undefined') window._adjustBaselineForBank = _adjustBaselineForBank;
+
+function renderBankBalanceCard(){
+  var amtEl   = document.getElementById('cfBankBalanceAmt');
+  var brkEl   = document.getElementById('cfBankBalanceBreakdown');
+  var fnbBalEl  = document.getElementById('cfBalFNB');
+  var tymeBalEl = document.getElementById('cfBalTyme');
+  var cashBalEl = document.getElementById('cfBalCash');
+  if(!amtEl) return;
+
+  // Read whichever is most up-to-date: live input field (in-flight edit) or
+  // saved value from localStorage. No timestamp gate — what you see is the
+  // truth the system is tracking.
   var fnbInp  = document.getElementById('reconFNB');
   var tymeInp = document.getElementById('reconTyme');
+  var cashInp = document.getElementById('reconCash');
   var saved   = (typeof loadReconBalances === 'function') ? loadReconBalances() : {};
   var fnb  = (fnbInp  && fnbInp.value  !== '') ? (parseFloat(fnbInp.value)  || 0) : (saved.fnb  || 0);
   var tyme = (tymeInp && tymeInp.value !== '') ? (parseFloat(tymeInp.value) || 0) : (saved.tyme || 0);
-  var total = fnb + tyme;
+  var cash = (cashInp && cashInp.value !== '') ? (parseFloat(cashInp.value) || 0) : (saved.cash || 0);
+  var total = fnb + tyme + cash;
 
   amtEl.textContent = fmtR(total);
-  brkEl.textContent = 'FNB: '+fmtR(fnb)+' · Tyme: '+fmtR(tyme);
+  if(fnbBalEl)  fnbBalEl.textContent  = fmtR(fnb);
+  if(tymeBalEl) tymeBalEl.textContent = fmtR(tyme);
+  if(cashBalEl) cashBalEl.textContent = fmtR(cash);
+  if(brkEl) brkEl.textContent = 'FNB: '+fmtR(fnb)+' · Tyme: '+fmtR(tyme)+' · Cash: '+fmtR(cash);
 
-  // Subtle color cue if both are zero — let the user know the card is
-  // waiting for data, not broken.
-  if(total <= 0){
-    amtEl.style.color  = '#3a6060';
-    brkEl.textContent  = 'Enter your bank balances below ↓';
-  } else {
-    amtEl.style.color  = '#9be0e0';
-  }
+  amtEl.style.color = (total <= 0 && fnb <= 0 && tyme <= 0 && cash <= 0) ? '#3a6060' : '#9be0e0';
 }
 
 function renderCashFlow(){
@@ -197,7 +299,7 @@ function renderCashFlow(){
   const instPlans = loadInst ? loadInst() : [];
   const autoExpenses = [];
 
-  // AUTO-PULL savings removed — MoneyMoveZ handles deposits directly, no double-count
+  // AUTO-PULL savings removed — Money In handles deposits directly, no double-count
 
   // ── AUTO-PULL: Car expenses this month ──
   const carFund = funds.find(function(f){ return f.isExpense; });
@@ -244,13 +346,16 @@ function renderCashFlow(){
   const netBg     = netOperating >= 0 ? '#0d1a00' : '#1a0505';
   const netBorder = netOperating >= 0 ? '#3a5a00' : '#5a1a1a';
 
-  // ── UPDATE NET BANNER ──
-  document.getElementById('cfNetBanner').style.cssText = 'border-radius:10px;padding:18px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background:'+netBg+';border:1px solid '+netBorder+';';
-  document.getElementById('cfNetLabel').style.color = netColor;
-  document.getElementById('cfNetAmt').style.color = netColor;
-  document.getElementById('cfNetAmt').textContent = (netOperating>=0?'+':'')+fmtR(netOperating);
-  document.getElementById('cfNetBreakdown').textContent = fmtR(totalIncome)+' − '+fmtR(totalRealExpenses)+' (real spend)';
-  document.getElementById('cfNetBreakdown').style.color = '#888';
+  // ── UPDATE NET BANNER (removed in May 2026 redesign — guarded for safety) ──
+  // The top Net Cash Flow banner was removed; calls below no-op if the elements
+  // aren't there. Math kept so anything else relying on netOperating still works.
+  var _nb = document.getElementById('cfNetBanner');
+  if(_nb){
+    _nb.style.cssText = 'border-radius:10px;padding:18px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background:'+netBg+';border:1px solid '+netBorder+';';
+    var _nl = document.getElementById('cfNetLabel');     if(_nl){ _nl.style.color = netColor; }
+    var _na = document.getElementById('cfNetAmt');       if(_na){ _na.style.color = netColor; _na.textContent = (netOperating>=0?'+':'')+fmtR(netOperating); }
+    var _nbk = document.getElementById('cfNetBreakdown'); if(_nbk){ _nbk.textContent = fmtR(totalIncome)+' − '+fmtR(totalRealExpenses)+' (real spend)'; _nbk.style.color = '#888'; }
+  }
 
   // ── UPDATE BANK BALANCE CARD ──
   // Pulls live from yb_recon_balances_v1 (set via the FNB/Tyme inputs at the
@@ -277,7 +382,20 @@ function renderCashFlow(){
   });
   // Auto: carpool
   // Carpool auto income removed — log manually when received
-  if(!incomeHTML) incomeHTML = '<div style="padding:14px;color:#444;font-size:12px;letter-spacing:1px;">No income entries — tap + Add to get started.</div>';
+  if(!incomeHTML){
+    // Compact empty state — sits inside the income card so we keep the
+    // padding tight. CTA opens the standard income entry modal.
+    incomeHTML = (typeof buildEmptyState === 'function')
+      ? buildEmptyState({
+          icon: '💵',
+          title: 'No income yet this month',
+          subtitle: 'Salary, carpool payments, side income — log it here.',
+          ctaLabel: '+ Add Income',
+          ctaOnclick: "openCfEntryModal('income')",
+          compact: true
+        })
+      : '<div style="padding:14px;color:#444;font-size:12px;letter-spacing:1px;">No income entries — tap + Add to get started.</div>';
+  }
   incomeContainer.innerHTML = incomeHTML;
 
   // ── RENDER EXPENSE ROWS — Real Expenses ──
@@ -288,7 +406,18 @@ function renderCashFlow(){
     expenseHTML += cfRow(e, 'expense', isRecur);
   });
   autoExpenses.forEach(function(e){ expenseHTML += cfAutoRow(e); });
-  if(!expenseHTML) expenseHTML = '<div style="padding:14px;color:#444;font-size:12px;letter-spacing:1px;">No real expenses this month.</div>';
+  if(!expenseHTML){
+    expenseHTML = (typeof buildEmptyState === 'function')
+      ? buildEmptyState({
+          icon: '🧾',
+          title: 'No expenses logged yet',
+          subtitle: 'Bills, groceries, fuel — tap below to log a real spend.',
+          ctaLabel: '+ Add Expense',
+          ctaOnclick: "openCfEntryModal('expense')",
+          compact: true
+        })
+      : '<div style="padding:14px;color:#444;font-size:12px;letter-spacing:1px;">No real expenses this month.</div>';
+  }
   expenseContainer.innerHTML = expenseHTML;
 
   // ── RENDER SAVINGS ALLOCATIONS SECTION ──
@@ -299,7 +428,19 @@ function renderCashFlow(){
       const isRecur = recurExpenses.some(function(r){ return r.id===e.id; });
       savingsHTML += cfRow(e, 'expense', isRecur);
     });
-    if(!savingsHTML) savingsHTML = '<div style="padding:14px;color:#444;font-size:12px;letter-spacing:1px;">No savings allocations this month.</div>';
+    if(!savingsHTML){
+      // No CTA — savings allocations come automatically from Money In
+      // and Use Funds, not from a direct "Add" action here. Just explain
+      // where they come from.
+      savingsHTML = (typeof buildEmptyState === 'function')
+        ? buildEmptyState({
+            icon: '💰',
+            title: 'No savings moves this month',
+            subtitle: 'Allocations appear here when you save via Money In or Use Funds in the Savings tab.',
+            compact: true
+          })
+        : '<div style="padding:14px;color:#444;font-size:12px;letter-spacing:1px;">No savings allocations this month.</div>';
+    }
     savingsContainer.innerHTML = savingsHTML;
     document.getElementById('cfSavingsTotalRow').textContent = fmtR(totalSavingsAllocs);
   }
@@ -311,16 +452,32 @@ function renderCashFlow(){
   // ── RECONCILE PANEL ──
   try{ renderReconPanel(); }catch(e){}
 
-  // ── NET SUMMARY CARD ──
-  const summaryCard = document.getElementById('cfNetSummaryCard');
-  summaryCard.style.cssText = 'border-radius:10px;padding:18px 20px;text-align:center;background:'+netBg+';border:1px solid '+netBorder+';';
-  document.getElementById('cfNetSummaryAmt').style.color = netColor;
-  document.getElementById('cfNetSummaryAmt').textContent = (net>=0?'+':'')+fmtR(net);
-  const msg = document.getElementById('cfNetSummaryMsg');
-  msg.style.color = netColor;
-  msg.textContent = netOperating >= 0
-    ? '🎉 You\'re '+fmtR(netOperating)+' ahead after real expenses'
-    : '⚠️ You\'re '+fmtR(Math.abs(net))+' over budget this month';
+  // ── NET SUMMARY CARD (removed in May 2026 redesign — guarded for safety) ──
+  // The bottom Net Cash Flow tile is hidden; writes below no-op gracefully.
+  var summaryCard = document.getElementById('cfNetSummaryCard');
+  if(summaryCard){
+    // Only restyle if the card is actually rendered (not just the legacy stub)
+    if(summaryCard.style.display !== 'none'){
+      summaryCard.style.cssText = 'border-radius:10px;padding:18px 20px;text-align:center;background:'+netBg+';border:1px solid '+netBorder+';';
+    }
+    var _sa = document.getElementById('cfNetSummaryAmt');
+    if(_sa){ _sa.style.color = netColor; _sa.textContent = (netOperating>=0?'+':'')+fmtR(netOperating); }
+    var _sm = document.getElementById('cfNetSummaryMsg');
+    if(_sm){
+      _sm.style.color = netColor;
+      _sm.textContent = netOperating >= 0
+        ? '🎉 You\'re '+fmtR(netOperating)+' ahead after real expenses'
+        : '⚠️ You\'re '+fmtR(Math.abs(netOperating))+' over budget this month';
+    }
+  }
+}
+
+// Map a destBank value → coloured pill markup.
+function _bankBadge(bank){
+  if(bank === 'FNB')      return '<span style="color:#4a9aff;background:#0a0f1a;border:1px solid #4a7aaa;border-radius:3px;padding:1px 6px;letter-spacing:1px;">🏛 FNB</span>';
+  if(bank === 'TymeBank') return '<span style="color:#f2a830;background:#1a0f00;border:1px solid #aa8a00;border-radius:3px;padding:1px 6px;letter-spacing:1px;">🏦 Tyme</span>';
+  if(bank === 'Cash')     return '<span style="color:#c8f230;background:#0d1a00;border:1px solid #3a5a00;border-radius:3px;padding:1px 6px;letter-spacing:1px;">💵 Cash</span>';
+  return '';
 }
 
 function cfRow(e, type, isRecur){
@@ -334,16 +491,46 @@ function cfRow(e, type, isRecur){
       dateBadge = ' <span style="color:#5a8800;font-size:9px;background:#0d1a00;border:1px solid #2a4a00;border-radius:3px;padding:1px 5px;letter-spacing:0.5px;">'+d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'})+'</span>';
     }catch(ex){}
   }
-  const subLine = e.account
-    ? '<div style="font-size:9px;letter-spacing:1px;"><span style="color:#a78bfa;background:#1a0e2e;border:1px solid #3a2060;border-radius:3px;padding:1px 5px;">'+e.account+'</span>'+(e.borrowTag?' <span style="color:#555;">'+e.borrowTag+'</span>':'')+'</div>'
-    : '<div style="font-size:9px;color:#444;letter-spacing:1px;display:flex;align-items:center;gap:4px;">'+(isRecur?'Monthly recurring':'This month only')+dateBadge+'</div>';
-  return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);">'
+  // ── BANK BADGE ──
+  // destBank (May 2026 redesign) is the source of truth. Falls back to
+  // account if account holds one of the three known bank values (older
+  // entries from before destBank existed).
+  var bank = _entryBank(e);
+  var bankHtml;
+  // ── POCKET BADGE (Spend Step 2, 2026-05-22; Car expense Step 7, 2026-05-29; Instalment Step 8 v93, 2026-05-29) ──
+  // Pocket-direct Spends (doorway=Direct) carry sourceType='pocket_spend'
+  // and the pocket name in `account`. Car expenses funded by a pocket carry
+  // sourceType='car_expense' with the pocket name in `account`. Instalment
+  // payments (revolving + autoDebit-no-staging) carry sourceType='instalment_pay'.
+  // All three render as a purple pocket badge instead of "— Untagged".
+  var isPocketRow = (e && (e.sourceType === 'pocket_spend' || e.sourceType === 'car_expense' || e.sourceType === 'instalment_pay' || e.sourceType === 'bankfeed_spend') && e.account && !bank);
+  if(isPocketRow){
+    bankHtml = '<span style="color:#c890ff;background:#1a0a26;border:1px solid #6a3aa0;border-radius:3px;padding:1px 6px;letter-spacing:0.5px;">'
+             + String(e.account).replace(/</g,'&lt;').replace(/>/g,'&gt;')
+             + '</span>';
+  } else if(bank){
+    bankHtml = _bankBadge(bank);
+  } else {
+    // Untagged legacy entry — show grey badge + retro-tag pencil so the user
+    // can clean it up over time. These entries do NOT affect bank balances
+    // until tagged.
+    bankHtml = '<span style="color:#555;background:#1a1a1a;border:1px dashed #444;border-radius:3px;padding:1px 6px;letter-spacing:1px;">— Untagged</span>'
+             + ' <button onclick="openCfEntryModal(\''+type+'\',\''+e.id+'\')" title="Tag this with a bank" style="background:none;border:1px solid #2a2a2a;border-radius:3px;color:#666;font-size:9px;cursor:pointer;padding:1px 5px;letter-spacing:1px;margin-left:2px;">✎ tag</button>';
+  }
+  const subLine = '<div style="font-size:9px;letter-spacing:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+bankHtml+dateBadge+'</div>';
+  // Untagged rows render slightly dimmer so the user notices they need attention.
+  // Pocket rows are treated as "tagged" — full brightness.
+  var fullBright = (bank || isPocketRow);
+  var rowStyle = fullBright ? '' : 'background:#0e0e0e;';
+  var labelStyle = fullBright ? 'color:var(--text);' : 'color:var(--muted);';
+  var amtStyle = fullBright ? 'color:'+color+';' : 'color:var(--muted);';
+  return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);'+rowStyle+'">'
     +'<span style="font-size:18px;flex-shrink:0;">'+e.icon+'</span>'
     +'<div style="flex:1;min-width:0;">'
-      +'<div style="font-size:12px;color:#efefef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+e.label+'</div>'
+      +'<div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+labelStyle+'">'+e.label+'</div>'
       +subLine
     +'</div>'
-    +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:'+color+';white-space:nowrap;">'+sign+fmtR(e.amount)+'</span>'
+    +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;white-space:nowrap;'+amtStyle+'">'+sign+fmtR(e.amount)+'</span>'
     +'<div style="display:flex;gap:4px;" class="admin-only">'
       +'<button onclick="openCfEntryModal(\''+type+'\',\''+e.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;width:26px;height:26px;color:#555;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.borderColor=\'#555\'" onmouseout="this.style.borderColor=\'#2a2a2a\'">✏️</button>'
       +'<button onclick="deleteCfEntry(\''+e.id+'\',\''+type+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;width:26px;height:26px;color:#555;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">✕</button>'
@@ -359,7 +546,7 @@ function cfAutoRow(e){
   return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);opacity:.85;">'
     +'<span style="font-size:18px;flex-shrink:0;">'+e.icon+'</span>'
     +'<div style="flex:1;min-width:0;">'
-      +'<div style="font-size:12px;color:#efefef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+e.label+'</div>'
+      +'<div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+e.label+'</div>'
       +'<div style="font-size:9px;color:#3a5a00;letter-spacing:1px;">'+(sourceLabel[e.source]||'Auto-imported')+'</div>'
     +'</div>'
     +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:'+color+';white-space:nowrap;">'+sign+fmtR(e.amount)+'</span>'
@@ -573,30 +760,6 @@ function restoreData(input){
   reader.readAsText(file);
 }
 
-function changePin(){
-  const newPin = document.getElementById('pinNew').value.trim();
-  const confirmPin = document.getElementById('pinConfirm').value.trim();
-  const status = document.getElementById('pinChangeStatus');
-  if(!/^\d{4}$/.test(newPin)){ status.style.color='#f23060'; status.textContent='✕ PIN must be exactly 4 digits.'; return; }
-  if(newPin !== confirmPin){ status.style.color='#f23060'; status.textContent='✕ PINs do not match.'; return; }
-  if(PINS[newPin] && PINS[newPin].name !== currentUser){
-    status.style.color='#f23060'; status.textContent='✕ That PIN is already used by ' + PINS[newPin].name + '.'; return;
-  }
-  // Find and update the current user's old PIN entry
-  const oldPin = Object.keys(PINS).find(function(p){ return PINS[p].name === currentUser; });
-  if(oldPin && oldPin !== newPin){
-    PINS[newPin] = PINS[oldPin];
-    delete PINS[oldPin];
-  } else if(!oldPin){
-    PINS[newPin] = { role: 'admin', name: currentUser };
-  }
-  savePINS(PINS);
-  status.style.color='#c8f230';
-  status.textContent='✓ PIN updated and saved permanently.';
-  document.getElementById('pinNew').value='';
-  document.getElementById('pinConfirm').value='';
-}
-
 function clearAllData(){
   if(!confirm('⚠ This will delete ALL data — savings funds, carpool, borrows, fuel, prayer. Maintenance card stays. Are you sure?')) return;
   if(!confirm('Last chance — download a backup first? Press Cancel to go back, OK to delete everything.')) return;
@@ -615,4 +778,190 @@ function clearAllData(){
   location.reload();
 }
 
-// ══ BORROW FEATURE ══
+// Force reload — nukes the service worker cache, then hard-reloads.
+// Used when you've pushed a new version to GitHub and don't want to wait
+// for the auto-detect "Update ready" toast.
+function forceReloadApp(){
+  if(!confirm('Force reload to get the latest version? Your local data is safe.')) return;
+  var msg = document.getElementById('cloudSyncMsg');
+  if(msg) msg.textContent = 'Clearing cache…';
+  Promise.resolve()
+    .then(function(){
+      if('caches' in window){
+        return caches.keys().then(function(keys){
+          return Promise.all(keys.map(function(k){ return caches.delete(k); }));
+        });
+      }
+    })
+    .then(function(){
+      if('serviceWorker' in navigator){
+        return navigator.serviceWorker.getRegistrations().then(function(regs){
+          return Promise.all(regs.map(function(r){ return r.unregister(); }));
+        });
+      }
+    })
+    .catch(function(e){ console.warn('forceReload cleanup error', e); })
+    .then(function(){
+      if(msg) msg.textContent = 'Reloading…';
+      setTimeout(function(){ location.reload(true); }, 250);
+    });
+}
+window.forceReloadApp = forceReloadApp;
+
+// ══ MAINTENANCE CARD VISIBILITY TOGGLE ══════════════════════════════════
+// User has stopped using the dedicated Maintenance Fund card in favour of
+// a generic expense-flagged savings card (Ee90). The card is hidden by
+// default; this toggle in the hamburger drawer flips it back if they ever
+// want it. Persists in localStorage so it survives reloads.
+var MAINT_CARD_VIS_KEY = 'yb_show_maint_card_v1';
+
+function toggleMaintCardVisibility(){
+  var current = (lsGet(MAINT_CARD_VIS_KEY) === '1');
+  var next = !current;
+  lsSet(MAINT_CARD_VIS_KEY, next ? '1' : '0');
+  applyMaintCardVisibility();
+  // Quick label update so the user sees the change reflected in the drawer
+  var label = document.getElementById('maintCardToggleLabel');
+  if(label) label.textContent = next ? 'Hide Maintenance Card' : 'Show Maintenance Card';
+}
+
+function applyMaintCardVisibility(){
+  var wrap = document.getElementById('maintCardWrap');
+  if(!wrap) return;
+  var visible = (lsGet(MAINT_CARD_VIS_KEY) === '1');
+  wrap.style.display = visible ? '' : 'none';
+  // Mirror the label state at startup too
+  var label = document.getElementById('maintCardToggleLabel');
+  if(label) label.textContent = visible ? 'Hide Maintenance Card' : 'Show Maintenance Card';
+}
+
+// Apply on first load so the saved preference takes effect
+if(typeof window !== 'undefined'){
+  // Defer to next tick so DOM is ready
+  setTimeout(function(){ try { applyMaintCardVisibility(); } catch(e){} }, 100);
+}
+window.toggleMaintCardVisibility = toggleMaintCardVisibility;
+window.applyMaintCardVisibility = applyMaintCardVisibility;
+
+// ══ REBUILD BANK BALANCES (May 2026 Round 2) ═════════════════════════════
+// User can drift from reality if they don't log every transaction (e.g.
+// bank fees, untracked cash spends, missed deposits). This modal lets
+// them type in real values straight from their banking apps and wipes
+// the timestamp gate so future entries adjust normally.
+function openRebuildBalances(){
+  var saved = loadReconBalances();
+  document.getElementById('rebuildFNB').value  = saved.fnb  !== undefined ? saved.fnb  : '';
+  document.getElementById('rebuildTyme').value = saved.tyme !== undefined ? saved.tyme : '';
+  document.getElementById('rebuildCash').value = saved.cash !== undefined ? saved.cash : '';
+  document.getElementById('rebuildBalModal').classList.add('active');
+}
+function confirmRebuildBalances(){
+  var fnb  = parseFloat(document.getElementById('rebuildFNB').value)  || 0;
+  var tyme = parseFloat(document.getElementById('rebuildTyme').value) || 0;
+  var cash = parseFloat(document.getElementById('rebuildCash').value) || 0;
+  lsSet(RECON_KEY, JSON.stringify({
+    fnb: fnb, tyme: tyme, cash: cash,
+    updated: new Date().toISOString()
+  }));
+  // Mirror into the inputs on the main page so the user sees the new values.
+  var fnbInp  = document.getElementById('reconFNB');   if(fnbInp)  fnbInp.value  = fnb;
+  var tymeInp = document.getElementById('reconTyme');  if(tymeInp) tymeInp.value = tyme;
+  var cashInp = document.getElementById('reconCash');  if(cashInp) cashInp.value = cash;
+  closeModal('rebuildBalModal');
+  try { renderBankBalanceCard(); } catch(e){}
+  try { renderReconPanel(); } catch(e){}
+}
+window.openRebuildBalances = openRebuildBalances;
+window.confirmRebuildBalances = confirmRebuildBalances;
+
+// ── Google Drive Import / Export ─────────────────────────────────────────
+// These replace the old sync.js driveExport/driveImport functions.
+// Export = download backup JSON (same as backupData but named for Drive UI).
+// Import = trigger file picker (same as restoreData hidden input).
+
+var _driveImportInput = null;
+
+function driveExport(){
+  try {
+    backupData();
+    // Update last exported label
+    var expEl = document.getElementById('gdLastExported');
+    if(expEl){
+      var now = new Date();
+      expEl.textContent = '↑ Last exported: ' + now.toLocaleDateString('en-ZA') + ' ' + now.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'});
+    }
+    lsSet('gd_last_exported', new Date().toISOString());
+  } catch(e){ console.warn('driveExport failed:', e); }
+}
+
+function driveImport(){
+  // Create a hidden file input and trigger it
+  if(!_driveImportInput){
+    _driveImportInput = document.createElement('input');
+    _driveImportInput.type = 'file';
+    _driveImportInput.accept = '.json';
+    _driveImportInput.style.display = 'none';
+    _driveImportInput.onchange = function(){
+      if(this.files && this.files[0]){
+        restoreData(this);
+        // Update last imported label
+        var impEl = document.getElementById('gdLastImported');
+        if(impEl){
+          var now = new Date();
+          impEl.textContent = '↓ Last imported: ' + now.toLocaleDateString('en-ZA') + ' ' + now.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'});
+        }
+        lsSet('gd_last_imported', new Date().toISOString());
+      }
+      this.value = ''; // reset so same file can be re-imported
+    };
+    document.body.appendChild(_driveImportInput);
+  }
+  _driveImportInput.click();
+}
+
+// Restore last exported/imported timestamps on settings open
+function refreshDriveStatus(){
+  var expEl = document.getElementById('gdLastExported');
+  var impEl = document.getElementById('gdLastImported');
+  var expTs = lsGet('gd_last_exported');
+  var impTs = lsGet('gd_last_imported');
+  function fmt(ts){ 
+    if(!ts) return null;
+    var d = new Date(ts);
+    return isNaN(d) ? null : d.toLocaleDateString('en-ZA')+' '+d.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'});
+  }
+  if(expEl) expEl.textContent = fmt(expTs) ? '↑ Last exported: '+fmt(expTs) : '↑ Never exported';
+  if(impEl) impEl.textContent = fmt(impTs) ? '↓ Last imported: '+fmt(impTs) : '↓ Never imported';
+}
+
+window.driveExport = driveExport;
+window.driveImport = driveImport;
+window.refreshDriveStatus = refreshDriveStatus;
+
+// Hard reset service worker and all caches — forces fresh JS files to load
+async function hardResetServiceWorker(){
+  try {
+    // Unregister all service workers
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for(const reg of regs) await reg.unregister();
+    }
+    // Delete all caches
+    const keys = await caches.keys();
+    for(const key of keys) await caches.delete(key);
+    alert('Cache cleared! App will now reload with fresh files.');
+    window.location.reload(true);
+  } catch(e){
+    alert('Error: '+e.message);
+  }
+}
+window.hardResetServiceWorker = hardResetServiceWorker;
+
+// ── Clear All Reminder Snoozes ──
+function clearAllSnoozes(){
+  lsSet('yb_reminder_dismissed_v1', '');
+  lsSet('yb_school_reminder_dismissed_v1', '');
+  if(typeof checkReminders === 'function') checkReminders();
+  alert('All snoozes cleared — reminders will show again.');
+}
+window.clearAllSnoozes = clearAllSnoozes;

@@ -21,6 +21,8 @@
 :root.light .nav-tab{color:#999;}
 :root.light .nav-tab.active{color:#5a9e00;border-bottom-color:#5a9e00;}
 :root.light .fund-card{background:#fff;border-color:#e0e0e0;}
+:root.light .qe-date-nav h3{color:var(--text);}
+:root.light .pass-card-name{color:var(--text);}
 :root.light .hbg-section-label{color:#bbb;}
 :root.light .hbg-logo{color:#111;}
 :root.light .hbg-item{color:#777;}
@@ -33,7 +35,7 @@
 :root.light .theme-toggle-track{background:#c8f230;border-color:#a0c020;}
 :root.light .theme-toggle-thumb{background:#fff;transform:translateX(16px);}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+body{background:#0d0d0d;color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
 .nav{display:flex;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:50;}
 
 /* ── HAMBURGER SIDEBAR ── */
@@ -70,7 +72,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-
 
 /* SAVINGS */
 .topbar{display:flex;justify-content:space-between;align-items:flex-end;max-width:720px;margin:0 auto 32px;}
-.topbar h1{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,42px);letter-spacing:-1px;line-height:1;}
+.topbar h1{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,42px);letter-spacing:-1px;line-height:1;color:var(--text);}
 .topbar h1 span{color:var(--muted);}
 .total-pill{background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:8px 16px;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;}
 .total-pill strong{color:var(--text);}
@@ -143,7 +145,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-
 .btn-copy{background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;}
 .btn-save{background:#1a1a00;color:#f2a830;border:1px solid #3a3a00;}
 .cp-topbar{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
-.cp-topbar h1{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,42px);letter-spacing:-1px;line-height:1;}
+.cp-topbar h1{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,42px);letter-spacing:-1px;line-height:1;color:var(--text);}
 .cp-topbar h1 span{color:var(--muted);}
 .cp-pills{display:flex;gap:8px;flex-wrap:wrap;}
 .cp-pill{background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:7px 14px;font-size:11px;letter-spacing:1px;color:var(--muted);white-space:nowrap;}
@@ -495,3 +497,404 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-
 .routine-card.due-soon{border-left:3px solid #d4a800;}
 .routine-card.ok{border-left:3px solid #c8f230;}
 .routine-section-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#444;margin:16px 0 8px;padding-left:2px;}
+/* ══════════════════════════════════════════════════════════════════════ */
+/* FAB OVERLAP FIX — added 2026-05-23 (Step 2 polish)                     */
+/* Hide both FABs whenever a modal overlay is open, so they don't sit on  */
+/* top of modal save/cancel buttons. Restores when the modal closes.      */
+/* ══════════════════════════════════════════════════════════════════════ */
+body:has(.overlay.active) #moneyInFAB,
+body:has(.overlay.active) #spendFAB,
+body:has(.overlay.active) #moveFAB,
+body:has(.qe-overlay.active) #moneyInFAB,
+body:has(.qe-overlay.active) #spendFAB,
+body:has(.qe-overlay.active) #moveFAB {
+  display: none !important;
+}
+
+/* Belt-and-braces JS fallback applies the .modal-open class to <body>    */
+/* when any modal is opened/closed, in case :has() isn't supported.       */
+body.modal-open #moneyInFAB,
+body.modal-open #spendFAB,
+body.modal-open #moveFAB {
+  display: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/* v93.4 (2026-05-29) — FAB TOGGLE button                                  */
+/* When the toggle is in "closed" state, the 3 FABs are hidden via the    */
+/* body.fabs-hidden class. The toggle itself is hidden while FABs show    */
+/* (Q2=B). The toggle also hides when any modal opens (same as the FABs). */
+/* ══════════════════════════════════════════════════════════════════════ */
+body.fabs-hidden #moneyInFAB,
+body.fabs-hidden #spendFAB,
+body.fabs-hidden #moveFAB {
+  display: none !important;
+}
+body:has(.overlay.active) #fabToggle,
+body:has(.qe-overlay.active) #fabToggle,
+body.modal-open #fabToggle {
+  display: none !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   STEP 10 — HOME SCREEN (page-home / home.js)
+   Three zones: YOUR MONEY · NEEDS ATTENTION · EVERYWHERE ELSE
+   ════════════════════════════════════════════════════════════════════ */
+.home-zone{margin-bottom:24px;}
+.home-zone-hdr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;}
+.home-zone-title{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--text);}
+.home-zone-meta{font-size:10px;color:var(--muted);letter-spacing:1px;}
+
+/* === Zone 1: YOUR MONEY === */
+.home-total-line{font-family:'Syne',sans-serif;font-weight:800;font-size:32px;letter-spacing:-1px;color:var(--accent);margin-bottom:14px;line-height:1;}
+.home-total-line small{font-family:'DM Mono',monospace;font-size:10px;font-weight:400;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-left:6px;}
+
+.home-pocket-strip{display:flex;gap:10px;overflow-x:auto;padding:4px 16px 14px;margin:0 -16px 16px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+.home-pocket-strip::-webkit-scrollbar{display:none;}
+.home-pocket-card{flex:0 0 130px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;scroll-snap-align:start;cursor:pointer;transition:border-color .15s,transform .1s;}
+.home-pocket-card:hover{border-color:#3a3a3a;}
+.home-pocket-card:active{transform:scale(0.97);}
+.home-pocket-emoji{font-size:18px;margin-bottom:6px;display:block;}
+.home-pocket-name{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.home-pocket-bal{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;letter-spacing:-0.5px;}
+
+.home-money-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;}
+.home-money-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 10px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s;}
+.home-money-btn:hover{border-color:#444;}
+.home-money-btn:active{transform:scale(0.97);}
+.home-money-btn-icon{font-size:18px;}
+.home-money-btn.in{border-color:#3a5a00;}
+.home-money-btn.in .home-money-btn-icon{color:var(--accent);}
+.home-money-btn.spend{border-color:#5a3000;}
+.home-money-btn.spend .home-money-btn-icon{color:#f2a830;}
+.home-money-btn.move{border-color:#3a1a5a;}
+.home-money-btn.move .home-money-btn-icon{color:#c890ff;}
+
+/* === Zone 2: NEEDS ATTENTION === */
+.home-alerts{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.home-alerts.home-all-good{padding:14px 16px;text-align:center;border-color:#2a4a00;background:#0d1a00;}
+.home-ok-line{color:var(--accent);font-size:13px;letter-spacing:1px;}
+.home-ok-line strong{font-weight:700;}
+
+.home-alert-row{display:flex;flex-direction:column;border-bottom:1px solid var(--border);transition:background .15s;}
+.home-alert-row:last-of-type{border-bottom:none;}
+.home-alert-main{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;}
+.home-alert-main:hover{background:var(--surface2);}
+.home-alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.home-alert-dot.red{background:#f23060;box-shadow:0 0 8px rgba(242,48,96,.5);}
+.home-alert-dot.amber{background:#f2a830;box-shadow:0 0 8px rgba(242,168,48,.5);}
+.home-alert-dot.green{background:#7ad450;box-shadow:0 0 8px rgba(122,212,80,.5);}
+.home-alert-body{flex:1;min-width:0;}
+.home-alert-text{font-size:12px;color:var(--text);line-height:1.4;}
+.home-alert-meta{font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:3px;}
+.home-alert-chev{color:var(--muted);font-size:14px;}
+.home-alert-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 14px 12px 32px;}
+.home-alert-btn{background:transparent;border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.5px;padding:6px 10px;border-radius:4px;cursor:pointer;transition:all .15s;}
+.home-alert-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--surface2);}
+.home-alert-btn:active{transform:scale(0.96);}
+/* v112: spacer pushes manage buttons to the right when there's space */
+.home-alert-spacer{flex:1;}
+/* v112: smaller icon buttons for snooze + dismiss (manage actions) */
+.home-alert-mbtn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;padding:5px 8px;border-radius:4px;cursor:pointer;transition:all .15s;line-height:1;}
+.home-alert-mbtn:hover{border-color:var(--text);color:var(--text);background:var(--surface2);}
+.home-alert-mbtn:active{transform:scale(0.92);}
+/* v112: snooze picker — inline row that appears under main actions */
+.home-alert-snooze-picker{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 14px 12px 32px;}
+.home-alert-snooze-lbl{font-size:10px;color:var(--muted);letter-spacing:0.5px;margin-right:4px;}
+/* v112: snoozed-count footer link */
+.home-alerts-foot.home-alerts-snoozed{border-top:1px solid var(--border);}
+.home-alerts-foot.home-alerts-snoozed a{color:#f2a830;}
+.home-alerts-foot.home-alerts-snoozed a:hover{color:#f5c060;}
+/* v112: toast for snooze/dismiss feedback */
+.home-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--accent);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.5px;padding:10px 18px;border-radius:24px;z-index:9999;transition:opacity .4s;box-shadow:0 4px 16px rgba(0,0,0,.4);}
+.home-alerts-foot{padding:10px 14px;text-align:center;border-top:1px solid var(--border);}
+.home-alerts-foot a{color:var(--muted);font-size:11px;letter-spacing:1px;cursor:pointer;text-decoration:none;}
+.home-alerts-foot a:hover{color:var(--text);}
+
+/* === Zone 3: EVERYWHERE ELSE === */
+.home-folder{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;}
+.home-folder-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;user-select:none;transition:background .15s;}
+.home-folder-hdr:hover{background:var(--surface2);}
+.home-folder-title{display:flex;align-items:center;gap:10px;}
+.home-folder-icon{font-size:14px;}
+.home-folder-name{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--text);}
+.home-folder-count{font-size:9px;color:var(--muted);letter-spacing:1px;}
+.home-folder-chev{color:var(--muted);font-size:12px;transition:transform .25s;}
+.home-folder.open .home-folder-chev{transform:rotate(90deg);}
+.home-folder-body{max-height:0;overflow:hidden;transition:max-height .35s ease;}
+.home-folder.open .home-folder-body{max-height:500px;}
+
+.home-tab-row{display:flex;align-items:center;gap:12px;padding:11px 14px 11px 30px;border-top:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.home-tab-row:hover{background:var(--surface2);}
+.home-tab-icon{font-size:14px;width:18px;text-align:center;}
+.home-tab-label{flex:1;font-size:12px;color:var(--text);letter-spacing:0.5px;}
+.home-tab-arrow{color:var(--muted);font-size:12px;}
+
+/* ════════════════════════════════════════════════════════════════════
+   STEP 11a — ⓘ EXPLAINER PATTERN (info.js)
+   Reusable small button + modal for "what's this" explanations
+   ════════════════════════════════════════════════════════════════════ */
+.info-btn{
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--muted);
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  font-size:11px;
+  font-family:'DM Mono',monospace;
+  font-weight:700;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  line-height:1;
+  transition:all .15s;
+  margin-left:6px;
+  flex-shrink:0;
+  vertical-align:middle;
+}
+.info-btn:hover,.info-btn:active{
+  border-color:var(--text);
+  color:var(--text);
+  transform:scale(1.08);
+}
+/* In zone headers: align nicely with title text */
+.home-zone-title .info-btn,
+.home-zone-hdr .info-btn{
+  margin-left:8px;
+  position:relative;
+  top:-1px;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   STEP 11b — CARS TAB FORM REDESIGN
+   Collapsible groups for Add/Edit Car modal: Basics (open) +
+   Service tracking + Vehicle details (collapsed by default).
+   ════════════════════════════════════════════════════════════════════ */
+.car-form-basics{
+  margin-bottom:14px;
+}
+.car-form-basics-hdr{
+  display:flex;
+  align-items:center;
+  padding:8px 0 10px;
+  margin-bottom:10px;
+  border-bottom:1px solid var(--border);
+}
+.car-form-group-title{
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:13px;
+  color:var(--text);
+  letter-spacing:0.5px;
+}
+.car-form-basics-hdr .info-btn{
+  margin-left:auto;
+}
+
+/* Collapsible sections */
+.car-form-details{
+  margin-bottom:10px;
+  border:1px solid var(--border);
+  border-radius:6px;
+  background:var(--surface2);
+  overflow:hidden;
+}
+.car-form-details > summary{
+  cursor:pointer;
+  padding:11px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:13px;
+  color:var(--text);
+  letter-spacing:0.5px;
+  list-style:none;
+  user-select:none;
+  transition:background .12s;
+}
+.car-form-details > summary:hover{
+  background:var(--surface);
+}
+.car-form-details > summary::-webkit-details-marker{display:none;}
+.car-form-summary-left{
+  display:inline-flex;
+  align-items:center;
+  flex:1;
+}
+.car-form-summary-left .info-btn{
+  margin-left:8px;
+}
+.car-form-details > summary::after{
+  content:'▼';
+  font-size:10px;
+  color:var(--muted);
+  transition:transform .15s;
+  margin-left:10px;
+  flex-shrink:0;
+}
+.car-form-details[open] > summary::after{
+  transform:rotate(180deg);
+}
+.car-form-details-body{
+  padding:12px 14px 14px;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+}
+.car-form-details-body .field:last-child{
+  margin-bottom:0;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   STEP 11b (v106) — CAR CARD ▼ More section (Option A: Collapse it)
+   ════════════════════════════════════════════════════════════════════ */
+.car-card-more{
+  background:var(--surface);
+}
+.car-card-more > summary{
+  cursor:pointer;
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--muted);
+  list-style:none;
+  user-select:none;
+  transition:background .12s,color .12s;
+  border-top:1px solid var(--border);
+}
+.car-card-more > summary:hover{
+  background:var(--surface2);
+  color:var(--text);
+}
+.car-card-more > summary::-webkit-details-marker{display:none;}
+.car-card-more[open] > summary{
+  border-bottom:1px solid var(--border);
+}
+.car-card-more[open] > summary::after{
+  content:' — close';
+  color:var(--muted2);
+  font-size:9px;
+  margin-left:6px;
+}
+.car-card-more-body{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  padding:12px 14px;
+  background:var(--surface2);
+}
+.car-card-more-body > button{
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+/* "Remove" button spans both cols at the bottom — visually separates the
+   destructive action from the safe ones */
+.car-card-more-body > button:last-child{
+  grid-column:1 / -1;
+  margin-top:4px;
+  border-top:1px solid var(--border);
+  padding-top:10px !important;
+  border-radius:0 !important;
+  border:none !important;
+  background:transparent !important;
+}
+.car-card-more-body > button:last-child:hover{
+  color:#c0392b !important;
+}
+
+/* ══ BANK FEED COMPANION ══ */
+.bf-hdr{margin-bottom:18px;}
+.bf-title{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.5px;}
+.bf-sub{font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:3px;}
+.bf-section-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:16px;}
+.bf-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;}
+.bf-upload-opt{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px 12px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.bf-opt-primary{border-color:var(--accent);background:#0d1a00;}
+.bf-upload-icon{font-size:26px;}
+.bf-upload-name{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;}
+.bf-upload-hint{font-size:10px;color:var(--muted);}
+.bf-info-box{background:#0d1a00;border:1px solid #2a4a00;border-radius:8px;padding:12px 14px;font-size:11px;color:#8ab820;line-height:1.6;}
+.bf-warn-box{background:#1a0505;border:1px solid #5a1a1a;border-radius:8px;padding:12px 14px;font-size:11px;color:#f23060;line-height:1.6;margin-bottom:12px;}
+.bf-btn-primary{background:var(--accent);border:none;border-radius:8px;padding:13px;width:100%;color:#000;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;margin-bottom:8px;}
+.bf-btn-ghost{background:none;border:1px solid var(--border);border-radius:8px;padding:11px;width:100%;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-bottom:6px;}
+.bf-btn-disabled{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:13px;width:100%;color:#444;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+.bf-reading-wrap{text-align:center;padding:32px 0 20px;}
+.bf-reading-icon{font-size:44px;margin-bottom:14px;}
+.bf-reading-label{font-size:12px;color:#8ab820;letter-spacing:1px;margin-bottom:14px;}
+.bf-prog-track{height:5px;background:#1a1a1a;border-radius:3px;overflow:hidden;margin:0 20px;}
+.bf-prog-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.8s ease;}
+.bf-stat-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;}
+.bf-stat-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;}
+.bf-stat-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.bf-stat-val{font-family:'Syne',sans-serif;font-weight:700;font-size:20px;}
+.bf-txn-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;}
+.bf-txn-top{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px 8px;}
+.bf-txn-left{display:flex;flex-direction:column;gap:3px;}
+.bf-txn-merchant{font-size:12px;color:var(--text);font-weight:500;}
+.bf-txn-meta{font-size:10px;color:var(--muted);}
+.bf-txn-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
+.bf-txn-amt{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;}
+.bf-badge{font-size:9px;letter-spacing:1px;padding:2px 8px;border-radius:100px;text-transform:uppercase;white-space:nowrap;}
+.bf-badge-green{background:#1a2e00;color:var(--accent);border:1px solid #3a5a00;}
+.bf-badge-orange{background:#2e1a00;color:#f2a830;border:1px solid #5a3a00;}
+.bf-badge-purple{background:#1a0a26;color:#c890ff;border:1px solid #4a2a80;}
+.bf-badge-grey{background:#1a1a1a;color:#555;border:1px solid #333;}
+.bf-picker-row{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px 12px;border-top:1px solid var(--border);max-height:140px;overflow-y:auto;}
+.bf-pocket-chip{background:#111;border:1px solid #2a2a2a;border-radius:4px;padding:5px 9px;font-size:10px;color:#777;cursor:pointer;transition:all .12s;}
+.bf-pocket-chip:hover{border-color:#555;color:var(--text);}
+.bf-pocket-sel{background:#1a2e00;border-color:var(--accent);color:var(--accent);}
+.bf-pocket-skip{border-color:#3a1a1a;color:#f23060;}
+.bf-pocket-sel-skip{background:#2e0a0a;border-color:#f23060;}
+.bf-confirm-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #1a1a1a;}
+.bf-confirm-row:last-of-type{border-bottom:none;}
+.bf-confirm-left{display:flex;flex-direction:column;gap:3px;}
+.bf-confirm-merchant{font-size:12px;color:var(--text);}
+.bf-confirm-pocket{font-size:10px;}
+.bf-confirm-amt{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;}
+.bf-date-box{flex:1;background:#111;border:1px solid #333;border-radius:6px;padding:10px;text-align:center;cursor:pointer;}
+.bf-date-label{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;}
+.bf-date-val{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;}
+
+/* ══ ODIN INVOICE SCANNER ══ */
+.scan-hdr{margin-bottom:16px;}
+.scan-title{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.5px;}
+.scan-sub{font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:3px;}
+.scan-section-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:14px;}
+.scan-info-box{background:#0d1a00;border:1px solid #2a4a00;border-radius:8px;padding:12px 14px;font-size:11px;color:#8ab820;line-height:1.6;margin-bottom:10px;}
+.scan-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.scan-upload-opt{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px 12px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.scan-opt-primary{border-color:var(--accent);background:#0d1a00;}
+.scan-upload-icon{font-size:26px;}
+.scan-upload-name{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;}
+.scan-upload-hint{font-size:10px;color:var(--muted);}
+.scan-btn-primary{background:var(--accent);border:none;border-radius:8px;padding:13px;width:100%;color:#000;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;margin-bottom:8px;}
+.scan-btn-ghost{background:none;border:1px solid var(--border);border-radius:8px;padding:11px;width:100%;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-bottom:6px;}
+.scan-line-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid #1a1a1a;gap:10px;}
+.scan-line-row:last-of-type{border-bottom:none;}
+.scan-line-greyed{opacity:0.45;}
+.scan-line-credit{background:#0d0800;border-radius:6px;padding:8px 10px;margin-bottom:4px;}
+.scan-line-left{flex:1;}
+.scan-line-desc{font-size:12px;color:var(--text);}
+.scan-line-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.scan-line-amt{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;}
+.scan-toggle-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:4px;cursor:pointer;border:1px solid;}
+.scan-toggle-on{background:#1a2e00;border-color:#3a5a00;color:#c8f230;}
+.scan-toggle-off{background:#1a1a1a;border-color:#333;color:#555;}
+.scan-badge{font-size:9px;letter-spacing:1px;padding:2px 8px;border-radius:100px;text-transform:uppercase;}
+.scan-badge-orange{background:#2e1a00;color:#f2a830;border:1px solid #5a3a00;}
+.scan-badge-grey{background:#1a1a1a;color:#555;border:1px solid #333;}
+.scan-badge-blue{background:#050a1a;color:#7090f0;border:1px solid #1a2040;}
+.scan-reconcile{font-size:11px;padding:10px 14px;border-radius:8px;margin-bottom:12px;line-height:1.6;}
+.scan-reconcile-ok{background:#0d1a00;border:1px solid #2a4a00;color:#8ab820;}
+.scan-reconcile-warn{background:#1a0800;border:1px solid #5a3000;color:#f2a830;}

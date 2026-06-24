@@ -7,9 +7,85 @@ let cpMonth = new Date().getMonth();
 
 // ── Cross-module access ─────────────────────────────────────────────────
 // `let` makes these variables block-scoped to this script — other modules
-// like routine.js (MoneyMoveZ allocation logic) need to read them. Mirror
+// like routine.js (Money In allocation logic) need to read them. Mirror
 // onto window so they can. After every loadCP() / month change, refresh
 // the window references too (see syncWindowCp helper below).
+// ════════════════════════════════════════════════════════════════════
+// CARPOOL TARIFF (configurable per-trip rates)
+// ════════════════════════════════════════════════════════════════════
+// Stores the current full-day and half-day carpool rates. User can edit
+// these in Settings & PINs → Carpool Tariff. Whenever fuel prices change
+// (or any other reason to adjust), update these values — historical
+// entries are unaffected because the actual amount is stored on each
+// entry, not the rate at time of render.
+//
+// Defaults are R52 (full) / R26 (half) — the rates as of May 2026 after
+// the fuel price increase.
+var CARPOOL_TARIFF_KEY = 'yb_carpool_tariff_v1';
+var CARPOOL_TARIFF_DEFAULTS = { full: 52, half: 26 };
+
+function loadCarpoolTariff(){
+  try {
+    var raw = lsGet(CARPOOL_TARIFF_KEY);
+    if(!raw) return Object.assign({}, CARPOOL_TARIFF_DEFAULTS);
+    var parsed = JSON.parse(raw);
+    // Defensive — if user somehow saved something weird, fall back to defaults
+    var full = Number(parsed.full);
+    var half = Number(parsed.half);
+    if(!isFinite(full) || full <= 0) full = CARPOOL_TARIFF_DEFAULTS.full;
+    if(!isFinite(half) || half <= 0) half = CARPOOL_TARIFF_DEFAULTS.half;
+    return { full: full, half: half };
+  } catch(e){
+    console.warn('loadCarpoolTariff failed', e);
+    return Object.assign({}, CARPOOL_TARIFF_DEFAULTS);
+  }
+}
+
+function saveCarpoolTariff(full, half){
+  var f = Number(full), h = Number(half);
+  if(!isFinite(f) || f <= 0){ alert('Full day rate must be a positive number.'); return false; }
+  if(!isFinite(h) || h <= 0){ alert('Half day rate must be a positive number.'); return false; }
+  lsSet(CARPOOL_TARIFF_KEY, JSON.stringify({ full: f, half: h }));
+  // Re-render carpool grid so dropdowns reflect the new rates
+  if(typeof renderCarpool === 'function') try { renderCarpool(); } catch(e){}
+  if(typeof toast === 'function') try { toast('Tariff updated — new entries will use R'+f+'/R'+h); } catch(e){}
+  return true;
+}
+
+// UI helpers — populate the Settings & PINs inputs from stored tariff,
+// and save when the user taps the Save button.
+function populateCarpoolTariffInputs(){
+  try {
+    var t = loadCarpoolTariff();
+    var fullEl = document.getElementById('carpoolTariffFull');
+    var halfEl = document.getElementById('carpoolTariffHalf');
+    if(fullEl) fullEl.value = t.full;
+    if(halfEl) halfEl.value = t.half;
+  } catch(e){ console.warn('populateCarpoolTariffInputs failed', e); }
+}
+
+function saveCarpoolTariffFromInputs(){
+  var fullEl = document.getElementById('carpoolTariffFull');
+  var halfEl = document.getElementById('carpoolTariffHalf');
+  if(!fullEl || !halfEl){ alert('Tariff inputs not found.'); return; }
+  var ok = saveCarpoolTariff(fullEl.value, halfEl.value);
+  if(ok){
+    // Show feedback in case toast helper isn't available
+    var btn = event && event.target;
+    if(btn){
+      var orig = btn.innerHTML;
+      btn.innerHTML = '✅ Saved!';
+      btn.disabled = true;
+      setTimeout(function(){ btn.innerHTML = orig; btn.disabled = false; }, 1200);
+    }
+  }
+}
+// ════════════════════════════════════════════════════════════════════
+
+
+// ── Cross-module access (mirror state onto window for routine.js etc) ──
+// Keeps cpData/cpYear/cpMonth visible to other modules. Called after
+// every state change (loadCP, saveCP, month switches).
 function syncWindowCp(){
   window.cpData  = cpData;
   window.cpYear  = cpYear;
@@ -39,12 +115,13 @@ function getDay(ds){
   if(!cpData[mk])cpData[mk]={};
   if(!cpData[mk][ds]){
     const dayObj={notes:''};
-    PASSENGER_DATA.forEach(function(p){ dayObj[p.name]={amt:p.defaultAmt||44,paid:false}; });
+    var _tFull = (typeof loadCarpoolTariff==='function')?loadCarpoolTariff().full:52;
+    PASSENGER_DATA.forEach(function(p){ dayObj[p.name]={amt:p.defaultAmt||_tFull,paid:false}; });
     cpData[mk][ds]=dayObj;
   }
   // Ensure any new passengers added later get initialised on existing days
   PASSENGER_DATA.forEach(function(p){
-    if(!cpData[mk][ds][p.name]) cpData[mk][ds][p.name]={amt:p.defaultAmt||44,paid:false};
+    if(!cpData[mk][ds][p.name]) cpData[mk][ds][p.name]={amt:p.defaultAmt||((typeof loadCarpoolTariff==='function')?loadCarpoolTariff().full:52),paid:false};
   });
   return cpData[mk][ds];
 }
@@ -55,8 +132,13 @@ function cpChangeMonth(dir){
   cpMonth+=dir;
   if(cpMonth>11){cpMonth=0;cpYear++;}
   if(cpMonth<0){cpMonth=11;cpYear--;}
+  // ── 2026-05-26 — allow ONE month ahead for forward planning.
+  // (Previously blocked any month past today. Now you can flip to next
+  // month to project totals for passengers — Auto Fill works as normal.)
   const now=new Date();
-  if(cpYear>now.getFullYear()||(cpYear===now.getFullYear()&&cpMonth>now.getMonth())){
+  const maxMonth=new Date(now.getFullYear(), now.getMonth()+1, 1);
+  const target=new Date(cpYear, cpMonth, 1);
+  if(target > maxMonth){
     cpMonth-=dir;
     if(cpMonth>11){cpMonth=0;cpYear++;}
     if(cpMonth<0){cpMonth=11;cpYear--;}
@@ -68,7 +150,8 @@ function cpChangeMonth(dir){
 // SMART AUTO-FILL
 // DEFAULT_AMOUNTS — built dynamically from passenger data
 var DEFAULT_AMOUNTS = {};
-PASSENGER_DATA.forEach(function(p){ DEFAULT_AMOUNTS[p.name] = p.defaultAmt || 44; });
+var _DA_full = (typeof loadCarpoolTariff==='function')?loadCarpoolTariff().full:52;
+PASSENGER_DATA.forEach(function(p){ DEFAULT_AMOUNTS[p.name] = p.defaultAmt || _DA_full; });
 
 // ── South African Public Holidays ──
 const SA_HOLIDAYS = {
@@ -121,22 +204,25 @@ function autoFillMonth(){
   if(!cpData[mk]) cpData[mk]={};
   const d = new Date(cpYear, cpMonth, 1);
   let filled = 0;
+  var _filledDates = []; // track new dates so we only sync the ones we created
   while(d.getMonth()===cpMonth){
     const dow = d.getDay();
     if(dow>=1&&dow<=5){ // weekdays only
       const ds = localDateStr(d);
       if(!cpData[mk][ds]){
         const dayObj = { notes: '' };
-        PASSENGER_DATA.forEach(function(p){ dayObj[p.name] = {amt: p.defaultAmt||44, paid:false}; });
+        var _qFull = (typeof loadCarpoolTariff==='function')?loadCarpoolTariff().full:52;
+        PASSENGER_DATA.forEach(function(p){ dayObj[p.name] = {amt: p.defaultAmt||_qFull, paid:false}; });
         cpData[mk][ds] = dayObj;
         filled++;
+        _filledDates.push(ds);
       }
     }
     d.setDate(d.getDate()+1);
   }
   saveCP();
   renderCarpool();
-  if(filled>0) alert('Auto-filled '+filled+' weekdays with R44 each. Tap ✓ to mark paid, or adjust any amounts!');
+  if(filled>0){ alert('Auto-filled '+filled+' weekdays using each passenger\'s default trip amount. Tap ✓ to mark paid, or adjust any amounts!'); }
   else alert('All weekdays already have entries for this month!');
 }
 function isWeekday(d){const day=d.getDay();return day>=1&&day<=5;}
@@ -246,32 +332,74 @@ function renderCarpool(){
         // encode value as "amt_paid" string
         let val='absent';
         if(hasEntry){
-          if(amt===44&&paid)       val='44_paid';
-          else if(amt===44&&!paid) val='44_unpaid';
-          else if(amt===22&&paid)  val='22_paid';
-          else if(amt===22&&!paid) val='22_unpaid';
-          else if(amt===0)         val='0_present';
+          // Build val string from actual stored amount, regardless of whether
+          // it matches current tariff. This means historical R44 entries
+          // produce val="44_paid" even after tariff changed to R52, and the
+          // dropdown will surface it as a "(old)" option for visibility.
+          if(amt > 0)              val = String(amt) + (paid ? '_paid' : '_unpaid');
+          else if(amt===0)         val = '0_present';
         }
         const selStyle='background:#111;border:1px solid #333;color:#efefef;font-family:"DM Mono",monospace;font-size:11px;border-radius:4px;padding:5px 4px;width:90px;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;text-align:center;';
-        // Passenger view: read-only display instead of dropdown
+        // Per-passenger dropdown values. Each passenger has their own
+        // defaultAmt (full-day rate). Half-day = round(defaultAmt / 2).
+        // The global Carpool Tariff is only a fallback when a passenger
+        // record is missing or has no defaultAmt. Historical entries with
+        // an amount that doesn't match THIS passenger's current full/half
+        // are surfaced as "(old)" options so the user can see them.
+        const _pData = (typeof PASSENGER_DATA !== 'undefined' ? PASSENGER_DATA : []).find(function(x){return x.name===p;});
+        const _gTariff = (typeof loadCarpoolTariff === 'function') ? loadCarpoolTariff() : { full: 52, half: 26 };
+        const _pFull = (_pData && typeof _pData.defaultAmt === 'number' && _pData.defaultAmt > 0) ? _pData.defaultAmt : _gTariff.full;
+        const _pHalf = Math.round(_pFull / 2);
+        const fullVal = String(_pFull);
+        const halfVal = String(_pHalf);
+        // Build the value string format used in storage: "<amt>_<paid|unpaid>"
+        const fullPaidV   = fullVal+'_paid';
+        const fullUnpaidV = fullVal+'_unpaid';
+        const halfPaidV   = halfVal+'_paid';
+        const halfUnpaidV = halfVal+'_unpaid';
+
+        // Passenger view: read-only display instead of dropdown.
+        // Read amt/paid directly from the stored value string so historical
+        // entries display correctly regardless of current tariff.
         if(currentRole !== 'admin' && p !== currentUser) return ''; // skip other columns
         if(currentRole !== 'admin'){
           let dispTxt='—', dispCol='#333';
-          if(val==='44_paid'||val==='22_paid'){
-            const a=val==='44_paid'?'R44':'R22';
-            dispTxt=a+' ✓'; dispCol='#c8f230';
-          } else if(val==='44_unpaid'||val==='22_unpaid'){
-            const a=val==='44_unpaid'?'R44':'R22';
-            dispTxt=a+' ⏳'; dispCol='#f2a830';
+          // Parse "<amt>_<paid|unpaid>" — works for ANY amount, not just 44/22
+          if(/^\d+_(paid|unpaid)$/.test(val)){
+            const parts = val.split('_');
+            const amt = parts[0];
+            const isPaid = parts[1] === 'paid';
+            dispTxt = 'R'+amt+(isPaid?' ✓':' ⏳');
+            dispCol = isPaid ? '#c8f230' : '#f2a830';
           } else if(val==='0_present'){dispTxt='R0';dispCol='#555';}
           return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:12px;color:${dispCol};padding:6px 4px;">${dispTxt}</td>`;
         }
+
+        // Admin view — full editable dropdown. If the stored value uses an
+        // old historical rate (e.g. "44_paid" from pre-tariff-change), we
+        // include it as an extra option so the user can see the historical
+        // amount AND optionally change it. This avoids the "can't see what's
+        // already in the cell" problem when changing tariffs over time.
+        let extraHistOption = '';
+        if(/^\d+_(paid|unpaid)$/.test(val)){
+          const parts = val.split('_');
+          const histAmt = parts[0];
+          // Only add as extra if it's not one of the current tariff values
+          if(histAmt !== fullVal && histAmt !== halfVal){
+            const isPaid = parts[1] === 'paid';
+            const histLabel = 'R'+histAmt+(isPaid?' ✓':' ⏳')+' (old)';
+            const bg = isPaid ? '#1a2e00' : '#1e1400';
+            const fg = isPaid ? '#c8f230' : '#f2a830';
+            extraHistOption = `<option value="${val}" selected style="background:${bg};color:${fg}">${histLabel}</option>`;
+          }
+        }
         return `<td><select data-date="${ds}" data-passenger="${p}" onchange="setTripSelect(this)" style="${selStyle}">
           <option value="absent"   ${val==='absent'   ?'selected':''} style="background:#111;color:#444">— Absent</option>
-          <option value="44_unpaid"${val==='44_unpaid'?'selected':''} style="background:#1e1400;color:#f2a830">R44 ⏳</option>
-          <option value="44_paid"  ${val==='44_paid'  ?'selected':''} style="background:#1a2e00;color:#c8f230">R44 ✓</option>
-          <option value="22_unpaid"${val==='22_unpaid'?'selected':''} style="background:#1e1400;color:#f2a830">R22 ⏳</option>
-          <option value="22_paid"  ${val==='22_paid'  ?'selected':''} style="background:#1a2e00;color:#c8f230">R22 ✓</option>
+          ${extraHistOption}
+          <option value="${fullUnpaidV}" ${val===fullUnpaidV?'selected':''} style="background:#1e1400;color:#f2a830">R${fullVal} ⏳</option>
+          <option value="${fullPaidV}"   ${val===fullPaidV  ?'selected':''} style="background:#1a2e00;color:#c8f230">R${fullVal} ✓</option>
+          <option value="${halfUnpaidV}" ${val===halfUnpaidV?'selected':''} style="background:#1e1400;color:#f2a830">R${halfVal} ⏳</option>
+          <option value="${halfPaidV}"   ${val===halfPaidV  ?'selected':''} style="background:#1a2e00;color:#c8f230">R${halfVal} ✓</option>
           <option value="0_present"${val==='0_present'?'selected':''} style="background:#222;color:#555">R0</option>
         </select></td>`;
       }).join('')}${currentRole==='admin'?'<td class="tc">'+(tot>0?fmtR(tot):'<span style="color:var(--muted2)">—</span>')+'</td>':''}${currentRole==='admin'?'<td class="nc"><input class="notes-inp" placeholder="notes..." value="'+(dd.notes||'').replace(/"/g,'&quot;')+'" data-date="'+ds+'" onchange="setNote(this)"/></td>':'<td class="nc" style="color:var(--muted);font-size:11px;">'+(dd.notes||'')+'</td>'}`;
@@ -285,9 +413,11 @@ function renderCarpool(){
 }
 
 function styleSelect(sel, val){
-  if(val==='44_paid'||val==='22_paid'){
+  // Generic regex match — works for any amount (R44, R22, R52, R26, future
+  // tariff changes). Style based on paid/unpaid suffix, not the amount.
+  if(/^\d+_paid$/.test(val)){
     sel.style.background='#1a2e00';sel.style.color='#c8f230';sel.style.borderColor='#5a8800';
-  } else if(val==='44_unpaid'||val==='22_unpaid'){
+  } else if(/^\d+_unpaid$/.test(val)){
     sel.style.background='#1e1400';sel.style.color='#f2a830';sel.style.borderColor='#4a3000';
   } else if(val==='0_present'){
     sel.style.background='#1a1a1a';sel.style.color='#555';sel.style.borderColor='#333';
@@ -328,27 +458,81 @@ let carTxnFundId = null, carTxnType = 'in';
 function openCarTxn(fundId, type) {
   carTxnFundId = fundId; carTxnType = type;
   document.getElementById('carTxnTitle').textContent = type==='in' ? 'Add Funds' : 'Log Spend';
-  document.getElementById('carTxnSubtitle').textContent = type==='in' ? '🚗 Adding to Car Fund' : '🚗 Car Fund (EE90)';
+  // Subtitle now reads the fund's actual name instead of hardcoded "Car Fund (EE90)",
+  // because the card may have been renamed.
+  var fund = funds.find(function(x){ return x.id === fundId; });
+  var fundLabel = fund ? ((fund.emoji||'🚗') + ' ' + fund.name) : '🚗 Car Fund';
+  document.getElementById('carTxnSubtitle').textContent = type==='in' ? ('Adding to ' + fundLabel) : ('Spending from ' + fundLabel);
   document.getElementById('carTxnConfirm').textContent = type==='in' ? 'Add' : 'Log';
   document.getElementById('carTxnConfirm').style.background = type==='in' ? '#c8f230' : '#f23060';
   document.getElementById('carTxnConfirm').style.color = type==='in' ? '#000' : '#fff';
+  // Bank picker label adapts to direction:
+  //   in  → "From which bank?" (you're moving money INTO the car fund — drains the bank)
+  //   out → "Paid from which bank?" (the spend draws from this bucket)
+  var lbl = document.getElementById('carTxnBankLabel');
+  if(lbl){
+    lbl.innerHTML = (type==='in' ? 'From which bank?' : 'Paid from which bank?')
+      + ' <span style="color:#f2a830;font-size:10px;">★ Required</span>';
+  }
   document.getElementById('carTxnAmt').value = '';
   document.getElementById('carTxnDate').value = localDateStr(new Date());
   document.getElementById('carTxnNote').value = '';
+  // Default the bank picker to FNB on every open.
+  setCarTxnBank('FNB', null);
   document.getElementById('carTxnModal').classList.add('active');
 }
+
+// Highlight the picked button in the Car Fund modal's bank picker.
+// Mirrors setCfBank / setDepBank visually so the three pickers feel identical.
+function setCarTxnBank(bank, btn){
+  var hidden = document.getElementById('carTxnBank');
+  if(hidden) hidden.value = bank;
+  var fnbBtn  = document.getElementById('carTxnBankFNB');
+  var tymeBtn = document.getElementById('carTxnBankTyme');
+  var cashBtn = document.getElementById('carTxnBankCash');
+  if(fnbBtn){  fnbBtn.style.borderColor  = bank==='FNB'     ? '#4a7aaa' : 'var(--border)';
+               fnbBtn.style.background   = bank==='FNB'     ? '#0a0f1a' : 'none';
+               fnbBtn.style.color        = bank==='FNB'     ? '#4a9aff' : 'var(--muted)'; }
+  if(tymeBtn){ tymeBtn.style.borderColor = bank==='TymeBank'? '#aa8a00' : 'var(--border)';
+               tymeBtn.style.background  = bank==='TymeBank'? '#1a1000' : 'none';
+               tymeBtn.style.color       = bank==='TymeBank'? '#f2a830' : 'var(--muted)'; }
+  if(cashBtn){ cashBtn.style.borderColor = bank==='Cash'    ? '#3a5a00' : 'var(--border)';
+               cashBtn.style.background  = bank==='Cash'    ? '#0d1a00' : 'none';
+               cashBtn.style.color       = bank==='Cash'    ? '#c8f230' : 'var(--muted)'; }
+}
+
 function confirmCarTxn() {
   const amount = parseFloat(document.getElementById('carTxnAmt').value);
   const date = document.getElementById('carTxnDate').value || localDateStr(new Date());
   const note = document.getElementById('carTxnNote').value.trim();
   if (!amount || amount <= 0) return;
   const f = funds.find(x => x.id === carTxnFundId);
-  var isOut_car=carTxnType==='out';
-  var cfId_car=postToCF({label:isOut_car?(note||'Car Fund Spend'):'Add to '+f.name,amount:amount,date:date,icon:'car',type:'expense',sourceType:isOut_car?'car_spend':'car_add',sourceId:carTxnFundId,sourceCardName:f.name,note:note});
-  f.deposits.push({ id: uid(), txnType: carTxnType, amount, date, note, cfId:cfId_car });
-  const manuals=loadManualBalances();
-  if(manuals[carTxnFundId]!==undefined){delete manuals[carTxnFundId];saveManualBalances(manuals);}
+  var isOut_car = carTxnType === 'out';
+  // From-bank — propagates through to the Cash Flow entry so the bank-bucket
+  // math knows which account to drain (May 2026 redesign).
+  var bankEl = document.getElementById('carTxnBank');
+  var fromBank = bankEl ? (bankEl.value || 'FNB') : 'FNB';
+  var cfId_car = postToCF({
+    label: isOut_car ? (note || 'Car Fund Spend') : ('Add to ' + f.name),
+    amount: amount, date: date, icon: 'car',
+    type: 'expense',
+    sourceType: isOut_car ? 'car_spend' : 'car_add',
+    sourceId: carTxnFundId, sourceCardName: f.name, note: note,
+    destBank: fromBank
+  });
+  f.deposits.push({ id: uid(), txnType: carTxnType, amount, date, note, cfId: cfId_car, fromBank: fromBank });
+  const manuals = loadManualBalances();
+  if (manuals[carTxnFundId] !== undefined) { delete manuals[carTxnFundId]; saveManualBalances(manuals); }
   saveFunds(); closeModal('carTxnModal'); renderFunds();
+  // ── Adjust live bank-bucket baseline (May 2026 Round 2) ──
+  // Whether adding funds (type 'in' — pulls from a bank into the car fund)
+  // or logging a spend (type 'out' — uses the car fund from a bank), the
+  // bank bucket loses money in both cases (the car fund is internal). 
+  if(typeof window._adjustBaselineForBank === 'function'){
+    window._adjustBaselineForBank(fromBank, -amount);
+  }
+  // Refresh the Available Cash card so the drained bucket updates live.
+  try { if (typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch (e) {}
 }
 
 // MINI STATEMENT
@@ -363,11 +547,25 @@ function togglePane(){
   if(reopen)reopen.style.display=col?'inline-flex':'none';
 }
 function generateStatements(){
+  // Validate first so the spinner doesn't show for invalid input.
   const from=document.getElementById('stmtFrom').value;
   const to=document.getElementById('stmtTo').value;
   if(!from||!to){alert('Please select a date range');return;}
   const selected=[...document.querySelectorAll('.pass-opt.selected')].map(el=>el.getAttribute('data-name'));
   if(!selected.length){alert('Please select at least one passenger');return;}
+  // Defer to spinner-wrapped worker so the user sees feedback during
+  // the 1-2 second PDF render. Validation already passed above.
+  if(typeof withSpinner === 'function'){
+    withSpinner('Generating statements…', _generateStatementsWork);
+  } else {
+    _generateStatementsWork();
+  }
+}
+
+function _generateStatementsWork(){
+  const from=document.getElementById('stmtFrom').value;
+  const to=document.getElementById('stmtTo').value;
+  const selected=[...document.querySelectorAll('.pass-opt.selected')].map(el=>el.getAttribute('data-name'));
   const fromDate=new Date(from+'T00:00:00');
   const toDate=new Date(to+'T00:00:00');
   toDate.setHours(23,59,59,999); // prevent timezone cutoff missing last day
@@ -422,8 +620,8 @@ function generateStatements(){
           +'<span class="stmt-day">'+b.date+(b.note?' · '+b.note:'')+'</span>'
           +'<span style="display:flex;align-items:center;gap:6px;">'
           +'<span style="color:#7090f0;font-weight:500;">↩ -'+fmtR(b.amount)+' paid</span>'
-          +'<span onclick="openEditBorrowModal(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:#444;font-size:14px;" title="Edit">✏️</span>'
-          +'<span onclick="deleteBorrowEntry(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:#444;font-size:14px;" title="Delete">🗑</span>'
+          +'<span onclick="openEditBorrowModal(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:var(--muted);font-size:14px;" title="Edit">✏️</span>'
+          +'<span onclick="deleteBorrowEntry(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:var(--muted);font-size:14px;" title="Delete">🗑</span>'
           +'</span>'
           +'</div>';
       }
@@ -431,8 +629,8 @@ function generateStatements(){
         +'<span class="stmt-day">'+b.date+(b.note?' · '+b.note:'')+'</span>'
         +'<span style="display:flex;align-items:center;gap:6px;">'
         +'<span class="stmt-borrow">💸 '+fmtR(b.amount)+(b.paid?' ✓':' ⏳')+'</span>'
-        +'<span onclick="openEditBorrowModal(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:#444;font-size:14px;" title="Edit">✏️</span>'
-        +'<span onclick="deleteBorrowEntry(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:#444;font-size:14px;" title="Delete">🗑</span>'
+        +'<span onclick="openEditBorrowModal(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:var(--muted);font-size:14px;" title="Edit">✏️</span>'
+        +'<span onclick="deleteBorrowEntry(\''+passenger+'\',\''+b.id+'\')" style="cursor:pointer;color:var(--muted);font-size:14px;" title="Delete">🗑</span>'
         +'</span>'
         +'</div>';
     }).join('');
@@ -447,14 +645,14 @@ function generateStatements(){
     // Breakdown footer — always shows trips section; borrow section only if borrows exist
     const breakdownHtml='<div style="padding:8px 12px;border-top:1px solid #1e3a00;background:#0a1500;font-size:10px;display:flex;flex-direction:column;gap:3px;">'
       +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Trips</span><span style="color:#c8f230;">'+fmtR(tripTotal)+'</span></div>'
-      +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Trips Paid</span><span style="color:#efefef;">'+fmtR(tripPaid)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Trips Paid</span><span style="color:var(--text);">'+fmtR(tripPaid)+'</span></div>'
       +(tripOwing>0
         ?'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:2px;"><span style="color:#f2a830;letter-spacing:1px;text-transform:uppercase;">Trips Outstanding</span><span style="color:#f2a830;font-weight:700;">'+fmtR(tripOwing)+'</span></div>'
         :'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:2px;"><span style="color:#c8f230;letter-spacing:1px;text-transform:uppercase;">Trips</span><span style="color:#c8f230;font-weight:700;">All settled ✓</span></div>'
       )
       +(borrowTotal>0
         ?'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:4px;"><span style="color:#6b4fa8;">Borrowed</span><span style="color:#a78bfa;">'+fmtR(borrowTotal)+'</span></div>'
-         +(borrowPaid>0?'<div style="display:flex;justify-content:space-between;"><span style="color:#6b4fa8;">Borrow Paid</span><span style="color:#efefef;">'+fmtR(borrowPaid)+'</span></div>':'')
+         +(borrowPaid>0?'<div style="display:flex;justify-content:space-between;"><span style="color:#6b4fa8;">Borrow Paid</span><span style="color:var(--text);">'+fmtR(borrowPaid)+'</span></div>':'')
          +(borrowOwing>0?'<div style="display:flex;justify-content:space-between;"><span style="color:#a78bfa;letter-spacing:1px;text-transform:uppercase;">Borrow Outstanding</span><span style="color:#a78bfa;font-weight:700;">'+fmtR(borrowOwing)+'</span></div>':'')
         :''
       )
@@ -512,8 +710,8 @@ function generateStatements(){
   // Grand total card
   const gtCard=document.createElement('div');
   gtCard.style.cssText='background:#111;border:1px solid #2a4a00;border-radius:6px;padding:14px 16px;margin-top:4px;';
-  const gtRows=passengerTotals.map(function(p){return '<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px"><span style="color:#555">'+p.name+'</span><span style="color:#efefef">'+fmtR(p.total)+'</span></div>';}).join('');
-  gtCard.innerHTML='<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#444;margin-bottom:10px">Total — '+from+' to '+to+'</div>'+gtRows+'<div style="border-top:1px solid #2a2a2a;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;"><span style="color:#efefef;font-size:12px;font-weight:500">Grand Total</span><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#c8f230">'+fmtR(grandTotal)+'</span></div>';
+  const gtRows=passengerTotals.map(function(p){return '<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px"><span style="color:var(--muted)">'+p.name+'</span><span style="color:var(--text)">'+fmtR(p.total)+'</span></div>';}).join('');
+  gtCard.innerHTML='<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Total — '+from+' to '+to+'</div>'+gtRows+'<div style="border-top:1px solid #2a2a2a;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;"><span style="color:var(--text);font-size:12px;font-weight:500">Grand Total</span><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#c8f230">'+fmtR(grandTotal)+'</span></div>';
   container.appendChild(gtCard);
 
   document.getElementById('stmtArea').style.display='block';
@@ -528,16 +726,16 @@ function copyStmt(btn, text, passenger, from, to, rows, totalAmt){
   .header{text-align:center;border-bottom:2px solid #c8f230;padding-bottom:16px;margin-bottom:20px;}
   .co{font-size:11px;color:#5a8800;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;}
   .name{font-size:32px;font-weight:700;color:#c8f230;letter-spacing:-1px;}
-  .period{font-size:12px;color:#555;margin-top:4px;}
-  .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1a1a1a;font-size:13px;}
-  .row .day{color:#555;}
+  .period{font-size:12px;color:var(--muted);margin-top:4px;}
+  .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .row .day{color:var(--muted);}
   .row .amt-paid{color:#c8f230;font-weight:700;}
   .row .amt-owing{color:#f2a830;font-weight:700;}
-  .row .amt-absent{color:#333;}
+  .row .amt-absent{color:var(--muted2);}
   .total-bar{display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:2px solid #c8f230;}
   .total-label{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5a8800;}
   .total-amt{font-size:28px;font-weight:700;color:#c8f230;}
-  .footer{text-align:center;margin-top:24px;font-size:10px;color:#333;letter-spacing:2px;}
+  .footer{text-align:center;margin-top:24px;font-size:10px;color:var(--muted2);letter-spacing:2px;}
 </style></head>
 <body>
 <div class="header">
@@ -601,9 +799,9 @@ function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borro
   tripData.forEach(function(t){
     if(y>bottomMargin){y=newPage();}
     doc.setTextColor(85,85,85);doc.setFontSize(11);doc.setFont('helvetica','normal');doc.text(t.day,20,y);
-    if(t.amt===0){doc.setTextColor(50,50,50);doc.text('—',190,y,{align:'right'});}
-    else if(t.paid){doc.setTextColor(200,242,48);doc.text('R'+t.amt+' \u2713',190,y,{align:'right'});}
-    else{doc.setTextColor(242,168,48);doc.text('R'+t.amt+' \u23f3',190,y,{align:'right'});}
+    if(t.amt===0){doc.setTextColor(50,50,50);doc.text('-',190,y,{align:'right'});}
+    else if(t.paid){doc.setTextColor(200,242,48);doc.text('R'+t.amt+'  PAID',190,y,{align:'right'});}
+    else{doc.setTextColor(242,168,48);doc.text('R'+t.amt+'  OWING',190,y,{align:'right'});}
     doc.setDrawColor(30,30,30);doc.setLineWidth(0.2);doc.line(20,y+4,190,y+4);
     y+=13;
   });
@@ -614,14 +812,14 @@ function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borro
     y+=4;
     doc.setFillColor(15,10,26);doc.rect(20,y-5,170,9,'F');
     doc.setTextColor(107,79,168);doc.setFontSize(8);doc.setFont('helvetica','normal');
-    doc.text('\u{1F4B8} BORROWED',20,y);
+    doc.text('BORROWED',20,y);
     y+=10;
     borrowData.forEach(function(b){
       if(y>bottomMargin){y=newPage();}
       const label=b.date+(b.note?' \u00B7 '+b.note:'');
       doc.setTextColor(85,85,85);doc.setFontSize(11);doc.setFont('helvetica','normal');doc.text(label,20,y);
       doc.setTextColor(167,139,250);
-      doc.text('R'+b.amount+(b.paid?' \u2713':' \u23f3'),190,y,{align:'right'});
+      doc.text('R'+b.amount+(b.paid?'  PAID':'  OWING'),190,y,{align:'right'});
       doc.setDrawColor(30,30,30);doc.setLineWidth(0.2);doc.line(20,y+4,190,y+4);
       y+=13;
     });
@@ -685,7 +883,7 @@ function openPayDestModal(btn){
   // Summary
   const summaryEl = document.getElementById('payDestSummary');
   summaryEl.innerHTML =
-    '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:16px;color:#efefef;margin-bottom:6px;">'+passenger+' paying '+fmtR(totalOwing)+'</div>'
+    '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:16px;color:var(--text);margin-bottom:6px;">'+passenger+' paying '+fmtR(totalOwing)+'</div>'
     +(tripOwing>0?'<div>🚗 Carpool outstanding: <strong style="color:#f2a830;">'+fmtR(tripOwing)+'</strong></div>':'')
     +(borrowOwing>0?'<div>💸 Borrow outstanding: <strong style="color:#a78bfa;">'+fmtR(borrowOwing)+'</strong></div>':'');
 
@@ -694,7 +892,7 @@ function openPayDestModal(btn){
   optionsEl.innerHTML = '';
 
   // Savings funds
-  funds.filter(function(f){ return !f.isExpense; }).forEach(function(f){
+  funds.filter(function(f){ return !f._deleted; }).forEach(function(f){
     const saved = fundTotal(f);
     const pct = f.goal > 0 ? Math.min(100, Math.round(saved/f.goal*100)) : 0;
     optionsEl.appendChild(buildDestOption('fund:'+f.id, f.emoji+' '+f.name, fmtR(saved)+' saved · '+pct+'% of goal', '#c8f230'));
@@ -733,8 +931,8 @@ function buildDestOption(value, label, sub, color){
   div.innerHTML =
     '<div style="width:14px;height:14px;border-radius:50%;border:2px solid '+color+';flex-shrink:0;" class="dest-radio"></div>'
     +'<div style="flex:1;">'
-      +'<div style="font-size:12px;color:#efefef;">'+label+'</div>'
-      +'<div style="font-size:10px;color:#555;letter-spacing:0.5px;margin-top:2px;">'+sub+'</div>'
+      +'<div style="font-size:12px;color:var(--text);">'+label+'</div>'
+      +'<div style="font-size:10px;color:var(--muted);letter-spacing:0.5px;margin-top:2px;">'+sub+'</div>'
     +'</div>';
   return div;
 }
@@ -762,7 +960,20 @@ function confirmPayDest(){
 
   const today = localDateStr(new Date());
 
+  // ── BANK NORMALISATION ─────────────────────────────────────────────
+  // The dropdown values are "Tymebank" / "FNB" / "Cash". The rest of the
+  // app uses "TymeBank" (capital B) as the canonical destBank value, so
+  // normalise here. Without this, payments routed to Tyme wouldn't be
+  // counted by the bank-bucket math (string mismatch).
+  var rawBank = (document.getElementById('payDestBank') || {}).value || 'FNB';
+  var destBank = rawBank;
+  if(rawBank.toLowerCase() === 'tymebank') destBank = 'TymeBank';
+  else if(rawBank.toLowerCase() === 'fnb') destBank = 'FNB';
+  else if(rawBank.toLowerCase() === 'cash') destBank = 'Cash';
+  var nowISO = new Date().toISOString();
+
   // 1. Mark carpool trips as paid in the current statement range
+  var _markedDates = [];
   if(tripOwing > 0){
     const from = document.querySelector('#stmtFrom') ? document.querySelector('#stmtFrom').value : null;
     const to   = document.querySelector('#stmtTo')   ? document.querySelector('#stmtTo').value   : null;
@@ -773,6 +984,7 @@ function confirmPayDest(){
           const dd = cpData[mk][ds];
           if(dd && dd[passenger] && typeof dd[passenger]==='object' && !dd[passenger].paid && dd[passenger].amt > 0){
             dd[passenger].paid = true;
+            _markedDates.push(ds);
           }
         });
       });
@@ -780,22 +992,77 @@ function confirmPayDest(){
     }
   }
 
-  // 2. Mark borrows as repaid
+  // ── SMART NOTE (2026-05-23) ──────────────────────────────────────
+  // Build a "Carpool {passenger} · {smart range}" string from _markedDates:
+  //   • Full Mon-Fri of one calendar week  → "18–22 May"  (date range)
+  //   • Single day                         → "Thu 21 May" (day + date)
+  //   • Scattered days                     → "Mon · Tue · Wed" (day names)
+  // Falls back to "payment" if no dates were marked (e.g. borrow-only repay).
+  function _carpoolSmartNote(dates){
+    if(!dates || !dates.length) return passenger + ' payment';
+    var DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var sorted = dates.slice().sort();
+    // Single day → "Thu 21 May"
+    if(sorted.length === 1){
+      var d1 = new Date(sorted[0]+'T00:00:00');
+      return 'Carpool ' + passenger + ' · ' + DAYS_SHORT[d1.getDay()] + ' ' + d1.getDate() + ' ' + MONTHS_SHORT[d1.getMonth()];
+    }
+    // Check for "full Mon-Fri of one calendar week" → date range
+    if(sorted.length === 5){
+      var first = new Date(sorted[0]+'T00:00:00');
+      var last  = new Date(sorted[sorted.length-1]+'T00:00:00');
+      var dayDiff = Math.round((last - first) / 86400000);
+      if(first.getDay() === 1 && last.getDay() === 5 && dayDiff === 4){
+        // Consecutive Mon-Fri: build range
+        var sameMonth = first.getMonth() === last.getMonth();
+        if(sameMonth){
+          return 'Carpool ' + passenger + ' · ' + first.getDate() + '–' + last.getDate() + ' ' + MONTHS_SHORT[last.getMonth()];
+        }
+        return 'Carpool ' + passenger + ' · ' + first.getDate() + ' ' + MONTHS_SHORT[first.getMonth()] + ' – ' + last.getDate() + ' ' + MONTHS_SHORT[last.getMonth()];
+      }
+    }
+    // Scattered (2-4 days, or 5+ that aren't a clean Mon-Fri week) → day names
+    var dayNames = sorted.map(function(ds){ return DAYS_SHORT[new Date(ds+'T00:00:00').getDay()]; });
+    return 'Carpool ' + passenger + ' · ' + dayNames.join(' · ');
+  }
+  var smartNote = _carpoolSmartNote(_markedDates);
+
+  // ── CARPOOL PAYMENT RECORD (2026-05-23) ──────────────────────────
+  // One payment = one cpPmtId that links ALL the rows we create or modify.
+  // Stored in localStorage key 'yb_carpool_payments_v1'. Deleting the CF
+  // row from Cash Flow hard-blocks and redirects to _carpoolPaymentReverse.
+  // Same Case-A pattern as Money In and Spend.
+  var cpPmtId = 'cp_' + uid();
+  var cfIncomeId = null;
+  var pocketDepositId = null;
+  var pocketDepositFundId = null;
+  var maintEntryId = null;
+  var maintCardId = null;
+  var maintOriginal = false;
+  var paidBorrowIds = [];
+
+  // 2. Mark borrows as repaid (capture which ones WE just paid)
   if(borrowOwing > 0 && borrowData[passenger]){
     borrowData[passenger].forEach(function(b){
-      if(b.type !== 'repay' && !b.paid) b.paid = true;
+      if(b.type !== 'repay' && !b.paid){
+        b.paid = true;
+        paidBorrowIds.push(b.id);
+      }
     });
     saveBorrows();
   }
 
   // 3. Route money to destination
   if(choice === 'cashflow'){
-    // Add to cash flow as income entry for this month
+    // Add to cash flow as income entry for this month, tagged with the
+    // chosen bank so it adjusts the running Available Cash balance.
     const data = loadCFData ? loadCFData() : {};
     const mk = (new Date()).getFullYear()+'-'+String((new Date()).getMonth()+1).padStart(2,'0');
     if(!data[mk]) data[mk] = { income:[], expenses:[] };
     data[mk].income = data[mk].income || [];
-    data[mk].income.push({ id: uid(), label: passenger+' payment', amount: totalOwing, icon:'💳', auto:false });
+    cfIncomeId = uid();
+    data[mk].income.push({ id: cfIncomeId, label: smartNote, amount: totalOwing, icon:'💳', auto:false, date: today, account: destBank, destBank: destBank, createdAt: nowISO, carpoolPaymentId: cpPmtId });
     if(saveCFData) saveCFData(data);
 
   } else if(choice.startsWith('fund:')){
@@ -803,15 +1070,18 @@ function confirmPayDest(){
     const f = funds.find(function(x){ return x.id === fundId; });
     if(f){
       if(!f.deposits) f.deposits = [];
-      f.deposits.push({ id:uid(), amount:totalOwing, date:today, note:passenger+' carpool+borrow payment', txnType:'in' });
+      pocketDepositId = uid();
+      pocketDepositFundId = f.id;
+      f.deposits.push({ id:pocketDepositId, amount:totalOwing, date:today, note:smartNote, txnType:'in', fromBank: destBank, carpoolPaymentId: cpPmtId });
       saveFunds();
       renderFunds();
-      // Also add to cash flow as income
+      // Also add to cash flow as income, tagged with bank
       const data = loadCFData ? loadCFData() : {};
       const mk = today.slice(0,7);
       if(!data[mk]) data[mk] = { income:[], expenses:[] };
       data[mk].income = data[mk].income || [];
-      data[mk].income.push({ id:uid(), label:passenger+' → '+f.name, amount:totalOwing, icon:f.emoji||'💰', auto:false });
+      cfIncomeId = uid();
+      data[mk].income.push({ id:cfIncomeId, label:smartNote+' → '+f.name, amount:totalOwing, icon:f.emoji||'💰', auto:false, date: today, account: destBank, destBank: destBank, createdAt: nowISO, carpoolPaymentId: cpPmtId });
       if(saveCFData) saveCFData(data);
     }
 
@@ -819,7 +1089,9 @@ function confirmPayDest(){
     const cardId = choice.replace('maint:','');
     if(cardId === 'original'){
       const data = getMaintData();
-      data.push({ id:uid(), person:passenger, amount:totalOwing, date:today, note:'Carpool+borrow payment' });
+      maintEntryId = uid();
+      maintOriginal = true;
+      data.push({ id:maintEntryId, person:passenger, amount:totalOwing, date:today, note:smartNote, carpoolPaymentId: cpPmtId });
       saveMaintData(data);
       renderMaintCard();
     } else {
@@ -830,17 +1102,20 @@ function confirmPayDest(){
         // Find contributor ID for this passenger
         const contrib = (card.contributors||[]).find(function(c){ return (typeof c==='object'?c.name:c) === passenger; });
         const personId = contrib ? (typeof contrib==='object'?contrib.id:contrib) : passenger;
-        card.entries.push({ id:uid(), personId, person:passenger, amount:totalOwing, date:today, note:'Carpool+borrow payment' });
+        maintEntryId = uid();
+        maintCardId = card.id;
+        card.entries.push({ id:maintEntryId, personId, person:passenger, amount:totalOwing, date:today, note:smartNote, carpoolPaymentId: cpPmtId });
         saveCustomMaintCards(cards);
         renderCustomMaintCards();
       }
     }
-    // Also add to cash flow
+    // Also add to cash flow, tagged with bank
     const data = loadCFData ? loadCFData() : {};
     const mk = today.slice(0,7);
     if(!data[mk]) data[mk] = { income:[], expenses:[] };
     data[mk].income = data[mk].income || [];
-    data[mk].income.push({ id:uid(), label:passenger+' → Maintenance', amount:totalOwing, icon:'🔧', auto:false });
+    cfIncomeId = uid();
+    data[mk].income.push({ id:cfIncomeId, label:smartNote+' → Maintenance', amount:totalOwing, icon:'🔧', auto:false, date: today, account: destBank, destBank: destBank, createdAt: nowISO, carpoolPaymentId: cpPmtId });
     if(saveCFData) saveCFData(data);
 
   } else if(choice === 'split'){
@@ -856,7 +1131,53 @@ function confirmPayDest(){
     return;
   }
 
+  // ── SAVE CARPOOL PAYMENT MASTER RECORD ───────────────────────────
+  // This record is the canonical source for reversing this payment. If
+  // the user tries to delete the CF income row from Cash Flow, the guard
+  // looks up this record, lists everything that needs undoing, and the
+  // reverse function un-marks the trips/borrows + removes the CF +
+  // pocket/maint deposit in one atomic step. Same pattern as Money In.
+  try {
+    var allPmts = [];
+    try { allPmts = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); } catch(e){}
+    allPmts.push({
+      id: cpPmtId,
+      passenger: passenger,
+      amount: totalOwing,
+      date: today,
+      smartNote: smartNote,
+      destBank: destBank,
+      destChoice: choice,
+      paidDates: _markedDates.slice(),       // dates we marked paid
+      paidBorrowIds: paidBorrowIds.slice(),  // borrow ids we marked paid
+      cfIncomeId: cfIncomeId,
+      pocketDepositId: pocketDepositId,
+      pocketDepositFundId: pocketDepositFundId,
+      maintEntryId: maintEntryId,
+      maintCardId: maintCardId,
+      maintOriginal: maintOriginal,
+      createdAt: nowISO
+    });
+    lsSet('yb_carpool_payments_v1', JSON.stringify(allPmts));
+  } catch(e){ console.warn('[carpool] save payment record failed', e); }
+
   closeModal('payDestModal');
+
+  // ── 2026-05-27 — Pocket-first bank doorway (v83) ──
+  // Payment received → bank goes UP by totalOwing (doorway in).
+  // Money then leaves the bank to the destination (pocket / cashflow /
+  // maint card) → bank goes DOWN by totalOwing (doorway out).
+  // Net effect on bank baseline: R0. The money lives where it was sent.
+  // Reverse function already symmetric — undoes the +totalOwing leg.
+  if(choice !== 'split' && typeof window._adjustBaselineForBank === 'function'){
+    window._adjustBaselineForBank(destBank, totalOwing);       // doorway IN  (+)
+    // Doorway OUT: only when the money LEAVES the bank to a pocket/fund/
+    // maint card. If choice === 'cashflow' the money stays in the bank as
+    // generic income (no pocket destination) — so we do NOT subtract.
+    if(choice !== 'cashflow'){
+      window._adjustBaselineForBank(destBank, -totalOwing);    // doorway OUT (-)
+    }
+  }
 
   // Show success toast
   const destName = choice === 'cashflow' ? 'Cash Flow' : choice.startsWith('fund:') ? (funds.find(function(f){ return f.id===choice.replace('fund:',''); })||{}).name||'Fund' : 'Maintenance';
@@ -869,6 +1190,113 @@ function confirmPayDest(){
   // Refresh everything
   renderCarpool();
   generateStatements();
+}
+
+// ══ CARPOOL PAYMENT REVERSAL (2026-05-23) ════════════════════════════════
+// Reverses a single carpool payment by cpPmtId. Used by the hard-block
+// guard in cashflow.js when the user tries to delete a carpool-payment
+// CF row directly. Reverses atomically:
+//   1. Un-marks the trips back to unpaid
+//   2. Un-marks the borrows back to unpaid
+//   3. Removes the pocket deposit (if any)
+//   4. Removes the maintenance entry (if any)
+//   5. Removes the CF income row
+//   6. Reverses the bank baseline (money "leaves" the bank again)
+//   7. Removes the payment record from yb_carpool_payments_v1
+//
+// Safe to call even if some pieces have already been deleted (defensive
+// filters). Returns true on success, false if the record wasn't found.
+function _carpoolPaymentReverse(cpPmtId, opts){
+  opts = opts || {};
+  var allPmts = [];
+  try { allPmts = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); } catch(e){}
+  var rec = allPmts.find(function(r){ return r.id === cpPmtId; });
+  if(!rec) return false;
+
+  // 1. Un-mark the trips
+  if(rec.paidDates && rec.paidDates.length && typeof cpData !== 'undefined'){
+    rec.paidDates.forEach(function(ds){
+      var mk = ds.slice(0,7);
+      if(cpData[mk] && cpData[mk][ds] && cpData[mk][ds][rec.passenger] && typeof cpData[mk][ds][rec.passenger] === 'object'){
+        cpData[mk][ds][rec.passenger].paid = false;
+      }
+    });
+    if(typeof saveCP === 'function') saveCP();
+  }
+
+  // 2. Un-mark the borrows
+  if(rec.paidBorrowIds && rec.paidBorrowIds.length && typeof borrowData !== 'undefined' && borrowData[rec.passenger]){
+    borrowData[rec.passenger].forEach(function(b){
+      if(rec.paidBorrowIds.indexOf(b.id) > -1) b.paid = false;
+    });
+    if(typeof saveBorrows === 'function') saveBorrows();
+  }
+
+  // 3. Remove the pocket deposit
+  if(rec.pocketDepositId && rec.pocketDepositFundId && typeof funds !== 'undefined'){
+    var f = funds.find(function(x){ return x.id === rec.pocketDepositFundId; });
+    if(f && f.deposits){
+      f.deposits = f.deposits.filter(function(d){ return d.id !== rec.pocketDepositId; });
+      if(typeof saveFunds === 'function') saveFunds();
+    }
+  }
+
+  // 4. Remove the maintenance entry
+  if(rec.maintEntryId){
+    if(rec.maintOriginal && typeof getMaintData === 'function' && typeof saveMaintData === 'function'){
+      var md = getMaintData().filter(function(e){ return e.id !== rec.maintEntryId; });
+      saveMaintData(md);
+    } else if(rec.maintCardId && typeof loadCustomMaintCards === 'function' && typeof saveCustomMaintCards === 'function'){
+      var cards = loadCustomMaintCards();
+      var card = cards.find(function(c){ return c.id === rec.maintCardId; });
+      if(card && card.entries){
+        card.entries = card.entries.filter(function(e){ return e.id !== rec.maintEntryId; });
+        saveCustomMaintCards(cards);
+      }
+    }
+  }
+
+  // 5. Remove the CF income row
+  if(rec.cfIncomeId && typeof loadCFData === 'function' && typeof saveCFData === 'function'){
+    var cfData = loadCFData();
+    var mk = (rec.date||'').slice(0,7);
+    if(cfData[mk] && cfData[mk].income){
+      cfData[mk].income = cfData[mk].income.filter(function(e){ return e.id !== rec.cfIncomeId; });
+      saveCFData(cfData);
+    }
+  }
+
+  // 6. Reverse the bank baseline (v83 doorway-aware)
+  //    Forward path on pocket destinations did: +totalOwing then -totalOwing
+  //    (net 0 on bank baseline — money lives in the pocket).
+  //    For 'cashflow' destination the money stayed in the bank as income, so
+  //    forward only did +totalOwing — reverse must subtract it.
+  //    Older payment records (pre-v83) didn't store destChoice → fall back to
+  //    the legacy behaviour (always subtract the full amount).
+  if(rec.destBank && rec.amount && typeof window._adjustBaselineForBank === 'function'){
+    var _isCashflowDest = (rec.destChoice === 'cashflow');
+    var _hasChoiceField = (typeof rec.destChoice !== 'undefined' && rec.destChoice !== null);
+    if(!_hasChoiceField || _isCashflowDest){
+      // Legacy record OR money was sent to cashflow → undo the +amount
+      window._adjustBaselineForBank(rec.destBank, -rec.amount);
+    }
+    // else: destChoice was pocket/fund/maint → forward did net 0, reverse does 0
+  }
+
+  // 7. Remove the payment record itself
+  allPmts = allPmts.filter(function(r){ return r.id !== cpPmtId; });
+  lsSet('yb_carpool_payments_v1', JSON.stringify(allPmts));
+
+  // Refresh UI unless silent
+  if(!opts.silent){
+    try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
+    try { if(typeof renderFunds === 'function') renderFunds(); } catch(e){}
+    try { if(typeof renderCashFlow === 'function') renderCashFlow(); } catch(e){}
+    try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
+    try { if(typeof renderCustomMaintCards === 'function') renderCustomMaintCards(); } catch(e){}
+    try { if(typeof generateStatements === 'function') generateStatements(); } catch(e){}
+  }
+  return true;
 }
 
 function openWA(btn){const card=btn.closest('.stmt-card');const text=card._waData;window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');}
@@ -977,6 +1405,133 @@ function buildReportPeriods(){
   return periods;
 }
 
+// ── REPORTS FOLDER TOGGLE (Option B layout) ──────────────────────────────
+var _rptFolderState = {};
+try { _rptFolderState = JSON.parse(localStorage.getItem('yb_rpt_folders_v1') || '{}'); } catch(e) {}
+
+function rptToggleFolder(id) {
+  var body  = document.getElementById(id + 'Body');
+  var arrow = document.getElementById(id + 'Arrow');
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display  = isOpen ? 'none' : 'block';
+  if (arrow) {
+    arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+    arrow.style.color     = isOpen ? 'var(--muted)' : 'var(--accent)';
+  }
+  _rptFolderState[id] = !isOpen;
+  try { localStorage.setItem('yb_rpt_folders_v1', JSON.stringify(_rptFolderState)); } catch(e) {}
+  // Re-render Net Worth chart when its folder opens (canvas must be visible for Chart.js)
+  if (id === 'rptFolderNetworth' && !isOpen) {
+    setTimeout(function(){ if(typeof renderNetWorth==='function') renderNetWorth(); }, 50);
+  }
+}
+
+function rptRestoreFolders() {
+  // Default: all closed (user taps to open what they want)
+  var defaults = {};
+  var state = Object.assign({}, defaults, _rptFolderState);
+  var allFolders = ['rptFolderSavings','rptFolderCarpool','rptFolderFuel','rptFolderBorrow','rptFolderNetworth','rptFolderCar','rptFolderExport'];
+  allFolders.forEach(function(id) {
+    var body  = document.getElementById(id + 'Body');
+    var arrow = document.getElementById(id + 'Arrow');
+    if (!body) return;
+    var isOpen = state[id] === true;
+    body.style.display  = isOpen ? 'block' : 'none';
+    if (arrow) {
+      arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+      arrow.style.color     = isOpen ? 'var(--accent)'  : 'var(--muted)';
+    }
+  });
+}
+
+function rptUpdateFolderMeta() {
+  // Update the summary line shown on each closed folder header
+  setTimeout(function() {
+    // Savings
+    var savEl = document.getElementById('rptFolderSavingsMeta');
+    var savVal = document.getElementById('rptTotalSaved');
+    if (savEl && savVal) savEl.textContent = savVal.textContent;
+
+    // Carpool
+    var cpEl = document.getElementById('rptFolderCarpoolMeta');
+    var cpVal = document.getElementById('rptCarpoolTotal');
+    if (cpEl && cpVal) cpEl.textContent = cpVal.textContent + ' earned';
+
+    // Borrow
+    var borEl = document.getElementById('rptFolderBorrowMeta');
+    var borVal = document.getElementById('rptBorrowOwing');
+    if (borEl && borVal) borEl.textContent = borVal.textContent + ' outstanding';
+
+    // Net Worth
+    var nwEl = document.getElementById('rptFolderNetworthMeta');
+    var nwVal = document.getElementById('nwTotal');
+    if (nwEl && nwVal) { nwEl.textContent = nwVal.textContent; nwEl.style.color = nwVal.style.color; }
+
+    // Car
+    var carEl = document.getElementById('rptFolderCarMeta');
+    var carVal = document.getElementById('rptCarSpent');
+    if (carEl && carVal) carEl.textContent = carVal.textContent + ' spent';
+  }, 200);
+}
+
+// ── REPORTS FOLDER TOGGLE ────────────────────────────────────────────────────
+var _rptFolderState = {};
+try { _rptFolderState = JSON.parse(localStorage.getItem('yb_rpt_folders_v1') || '{}'); } catch(e) {}
+
+function rptToggleFolder(id) {
+  var body  = document.getElementById(id + 'Body');
+  var arrow = document.getElementById(id + 'Arrow');
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display  = isOpen ? 'none' : 'block';
+  if (arrow) {
+    arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+    arrow.style.color     = isOpen ? 'var(--muted)' : 'var(--accent)';
+  }
+  _rptFolderState[id] = !isOpen;
+  try { localStorage.setItem('yb_rpt_folders_v1', JSON.stringify(_rptFolderState)); } catch(e) {}
+  if (id === 'rptFolderNetworth' && !isOpen) {
+    setTimeout(function(){ if(typeof renderNetWorth==='function') renderNetWorth(); }, 80);
+  }
+}
+
+function rptRestoreFolders() {
+  var allFolders = ['rptFolderSavings','rptFolderCarpool','rptFolderFuel','rptFolderBorrow',
+                    'rptFolderNetworth','rptFolderCar','rptFolderExport'];
+  allFolders.forEach(function(id) {
+    var body  = document.getElementById(id + 'Body');
+    var arrow = document.getElementById(id + 'Arrow');
+    if (!body) return;
+    var isOpen = _rptFolderState[id] === true;
+    body.style.display  = isOpen ? 'block' : 'none';
+    if (arrow) {
+      arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+      arrow.style.color     = isOpen ? 'var(--accent)'  : 'var(--muted)';
+    }
+  });
+}
+
+function rptUpdateFolderMeta() {
+  setTimeout(function() {
+    var map = {
+      'rptFolderSavings':  'rptTotalSaved',
+      'rptFolderCarpool':  'rptCarpoolTotal',
+      'rptFolderBorrow':   'rptBorrowOwing',
+      'rptFolderNetworth': 'nwTotal',
+      'rptFolderCar':      'rptCarSpent'
+    };
+    Object.keys(map).forEach(function(fid) {
+      var metaEl = document.getElementById(fid + 'Meta');
+      var valEl  = document.getElementById(map[fid]);
+      if (metaEl && valEl) {
+        metaEl.textContent = valEl.textContent;
+        if (fid === 'rptFolderNetworth') metaEl.style.color = valEl.style.color;
+      }
+    });
+  }, 300);
+}
+
 function renderReportFilters(){
   const periods = buildReportPeriods();
   const container = document.getElementById('reportFilters');
@@ -1073,9 +1628,9 @@ function renderReports(){
       // Also show what was deposited in the current period as context
       const deposited = fundDepositedInPeriod(f, months);
       return '<div class="rpt-row" style="grid-template-columns:1.5fr 1fr 1fr 1fr">'
-        + '<span style="color:#888">' + f.emoji + ' ' + f.name + '</span>'
+        + '<span style="color:var(--muted)">' + f.emoji + ' ' + f.name + '</span>'
         + '<span style="color:#c8f230" title="Balance at end of '+period.label+'">' + fmtR(a) + '</span>'
-        + '<span style="color:#666" title="Balance at end of '+prevPeriod.label+'">' + fmtR(b) + '</span>'
+        + '<span style="color:var(--muted)" title="Balance at end of '+prevPeriod.label+'">' + fmtR(b) + '</span>'
         + '<span style="color:' + d.color + ';font-weight:500">' + d.text + (pctStr ? ' <span style="font-size:9px;opacity:.7">('+pctStr+')</span>' : '') + '</span>'
         + '</div>';
     }).join('');
@@ -1089,7 +1644,7 @@ function renderReports(){
     sdEl.textContent = sd.text; sdEl.style.color = sd.color;
     const spEl = document.getElementById('savCmpDeltaPct');
     spEl.textContent = fmtDeltaPct(totalA, totalB); spEl.style.color = sd.color;
-    document.getElementById('rptSavingsCompareRows').innerHTML = compareRows || '<div style="padding:14px;color:#555;font-size:12px">No funds found</div>';
+    document.getElementById('rptSavingsCompareRows').innerHTML = compareRows || '<div style="padding:14px;color:var(--muted);font-size:12px">No funds found</div>';
     document.getElementById('rptTotalSaved').textContent = fmtR(totalA);
     document.getElementById('rptFundCount').textContent = funds.length;
 
@@ -1111,7 +1666,7 @@ function renderReports(){
         displayAmt=fmtR(bal);
         displayPct=(totalIn>0?Math.min(100,(bal/totalIn)*100):0).toFixed(0)+'%';
         displayCol=bal<0?'#f23060':bal<totalIn*0.2?'#f2a830':'#c8f230';
-        return '<div class="rpt-row" style="grid-template-columns:2fr 1fr 1fr"><span style="color:#888">'+f.emoji+' '+f.name+'</span><span style="color:'+displayCol+';font-weight:500">'+displayAmt+'</span><span style="color:#555">'+displayPct+' avail</span></div>';
+        return '<div class="rpt-row" style="grid-template-columns:2fr 1fr 1fr"><span style="color:var(--muted)">'+f.emoji+' '+f.name+'</span><span style="color:'+displayCol+';font-weight:500">'+displayAmt+'</span><span style="color:var(--muted)">'+displayPct+' avail</span></div>';
       } else {
         // Use fundBalanceAt for accurate period balance
         const t = fundBalanceAt(f, months);
@@ -1120,7 +1675,7 @@ function renderReports(){
         const pct = goal > 0 ? Math.min(100,(t/goal)*100).toFixed(0) : '—';
         const col = t===0?'#333':'#c8f230';
         const pctDisplay = goal > 0 ? pct+'%'+(t>=goal?' \uD83C\uDF89':'') : '—';
-        return '<div class="rpt-row" style="grid-template-columns:2fr 1fr 1fr"><span style="color:#888">'+f.emoji+' '+f.name+'</span><span style="color:'+col+';font-weight:500">'+fmtR(t)+'</span><span style="color:#555">'+pctDisplay+'</span></div>';
+        return '<div class="rpt-row" style="grid-template-columns:2fr 1fr 1fr"><span style="color:var(--muted)">'+f.emoji+' '+f.name+'</span><span style="color:'+col+';font-weight:500">'+fmtR(t)+'</span><span style="color:var(--muted)">'+pctDisplay+'</span></div>';
       }
     }).join('');
     document.getElementById('rptTotalSaved').textContent=fmtR(totalSaved);
@@ -1167,9 +1722,9 @@ function renderReports(){
       const d    = fmtDelta(cur - prev);
       const pct  = fmtDeltaPct(cur, prev);
       return '<div class="rpt-row" style="grid-template-columns:1.2fr 1fr 1fr 1fr">'
-        + '<span style="color:#888">' + p + '</span>'
+        + '<span style="color:var(--muted)">' + p + '</span>'
         + '<span style="color:#c8f230">' + fmtR(cur) + '</span>'
-        + '<span style="color:#666">' + fmtR(prev) + '</span>'
+        + '<span style="color:var(--muted)">' + fmtR(prev) + '</span>'
         + '<span style="color:' + d.color + ';font-weight:500">' + d.text + (pct ? ' <span style="font-size:9px;opacity:.7">(' + pct + ')</span>' : '') + '</span>'
         + '</div>';
     }).join('');
@@ -1215,33 +1770,288 @@ function renderReports(){
     document.getElementById('rptCarpoolOwing').textContent=fmtR(cpOwing);
     const carpoolRows=passengers.map(function(p){
       const d=paxData[p];
-      return '<div class="rpt-row" style="grid-template-columns:1.5fr 1fr 1fr 1fr"><span style="color:#888">'+p+'</span><span style="color:#efefef">'+fmtR(d.total)+'</span><span style="color:#c8f230">'+fmtR(d.paid)+'</span><span style="color:#f2a830">'+fmtR(d.owing)+'</span></div>';
+      return '<div class="rpt-row" style="grid-template-columns:1.5fr 1fr 1fr 1fr"><span style="color:var(--muted)">'+p+'</span><span style="color:var(--text)">'+fmtR(d.total)+'</span><span style="color:#c8f230">'+fmtR(d.paid)+'</span><span style="color:#f2a830">'+fmtR(d.owing)+'</span></div>';
     }).join('');
     document.getElementById('rptCarpoolRows').innerHTML=carpoolRows;
   }
   renderCarpoolChart();
 
   // MAINTENANCE (unified: original + custom cards)
-  renderMaintReport(months, label);
+  if(typeof renderMaintReport === "function") renderMaintReport(months, label);
 
   // Smart Engine — refresh insights
-  runSmartEngine();
+  if(typeof runSmartEngine === "function") runSmartEngine();
 
-  // CAR EXPENSES - pull directly from live Car Fund data
-  const carFund=funds.find(function(f){return f.isExpense;});
-  if(carFund){
-    const totalIn=carFund.deposits.filter(function(d){return d.txnType==='in';}).reduce(function(s,d){return s+d.amount;},0);
-    const totalOut=carFund.deposits.filter(function(d){return d.txnType==='out';}).reduce(function(s,d){return s+d.amount;},0);
-    const balance=totalIn-totalOut;
-    document.getElementById('rptCarSpent').textContent=fmtR(totalOut);
-    document.getElementById('rptCarAvail').textContent=fmtR(balance);
-    const outDeposits=carFund.deposits.filter(function(d){return d.txnType==='out';});
-    const carRows=outDeposits.length>0?outDeposits.sort(function(a,b){return new Date(a.date)-new Date(b.date);}).map(function(d){
-      return '<div class="rpt-row" style="grid-template-columns:2fr 1fr 1fr"><span style="color:#888">'+(d.note||'—')+'</span><span style="color:#555">'+(d.date||'—')+'</span><span style="color:#f23060;font-weight:500">-'+fmtR(d.amount)+'</span></div>';
-    }).join(''):'<div style="padding:14px;color:#555;font-size:12px">No expenses logged yet</div>';
-    document.getElementById('rptCarRows').innerHTML=carRows;
+  // CAR EXPENSES — pull directly from live Car Fund data.
+  // Mirror savings.js's logic exactly: a deposit is treated as an
+  // outflow when txnType==='out' OR txnType is missing entirely (legacy
+  // Find car fund — check isExpense flag first, then fall back to name match
+  // Read car fund fresh from localStorage — savings-based expense tracker only
+  var _rawFunds = [];
+  try { _rawFunds = JSON.parse(localStorage.getItem('yasin_funds_v16') || '[]'); } catch(e){}
+  var carFundRpt = _rawFunds.find(function(f){ return f.isExpense; });
+  var totalOut = 0, totalIn = 0, allOutRows = [];
+  if(carFundRpt){
+    var deps = carFundRpt.deposits || [];
+    totalIn = deps.filter(function(d){ return d.txnType==='in'; }).reduce(function(s,d){ return s+(d.amount||0); },0);
+    deps.filter(function(d){ return d.txnType==='out'; }).forEach(function(d){
+      totalOut += d.amount||0;
+      allOutRows.push({ note: d.note||'—', date: d.date||'—', amount: d.amount||0 });
+    });
   }
+  var balance = totalIn - totalOut;
+  document.getElementById('rptCarSpent').textContent = fmtR(totalOut);
+  document.getElementById('rptCarAvail').textContent = fmtR(balance);
+  var carRows = allOutRows.length > 0
+    ? allOutRows.slice().sort(function(a,b){ return new Date(a.date)-new Date(b.date); }).map(function(d){
+        return '<div class="rpt-row" style="grid-template-columns:2fr 1fr 1fr"><span style="color:var(--muted)">'+d.note+'</span><span style="color:var(--muted)">'+d.date+'</span><span style="color:#f23060;font-weight:500">-'+fmtR(d.amount)+'</span></div>';
+      }).join('')
+    : '<div style="padding:14px;color:var(--muted);font-size:12px">No expenses logged yet</div>';
+  document.getElementById('rptCarRows').innerHTML = carRows;
+
+  // NET WORTH
+  renderNetWorth();
+  // Restore folder open/close state + update meta summaries
+  rptRestoreFolders();
+  rptUpdateFolderMeta();
 }
+
+// ── NET WORTH ──
+// ── NET WORTH chart mode ──
+var _nwChartMode = 'donut'; // 'donut' | 'line'
+var _nwDonutChart = null;
+var _nwLineChart = null;
+
+function setNwChartMode(mode) {
+  _nwChartMode = mode;
+  document.getElementById('nwBtnDonut').style.background  = mode === 'donut' ? '#1a2e00' : 'none';
+  document.getElementById('nwBtnDonut').style.borderColor = mode === 'donut' ? '#c8f230' : '#333';
+  document.getElementById('nwBtnDonut').style.color       = mode === 'donut' ? '#c8f230' : '#555';
+  document.getElementById('nwBtnLine').style.background   = mode === 'line'  ? '#1a2e00' : 'none';
+  document.getElementById('nwBtnLine').style.borderColor  = mode === 'line'  ? '#c8f230' : '#333';
+  document.getElementById('nwBtnLine').style.color        = mode === 'line'  ? '#c8f230' : '#555';
+  document.getElementById('nwDonutWrap').style.display = mode === 'donut' ? 'block' : 'none';
+  document.getElementById('nwLineWrap').style.display  = mode === 'line'  ? 'block' : 'none';
+}
+
+function _nwCalcData() {
+  var assetRows = [], totalAssets = 0, liabilityRows = [], totalLiabilities = 0;
+
+  // Pockets
+  var allFunds = [];
+  try { allFunds = JSON.parse(localStorage.getItem('yasin_funds_v16') || '[]'); } catch(e) {}
+  allFunds.forEach(function(f) {
+    var bal = (typeof fundTotal === 'function') ? fundTotal(f) : 0;
+    totalAssets += bal;
+    if (bal !== 0) assetRows.push({ label: (f.emoji||'💰')+' '+f.name, amount: bal, color: bal<0?'#f23060':'#c8f230', tag:'POCKET' });
+  });
+
+  // Carpool receivables excluded — money not yet physically received
+
+  // Instalments
+  var instPlans = [];
+  try { instPlans = JSON.parse(localStorage.getItem('yasin_instalments_v1') || '[]'); } catch(e) {}
+  instPlans.forEach(function(plan) {
+    var paidAmt = (plan.paid||[]).reduce(function(s,p){ return s+Number(p.amount||plan.amt||0); },0);
+    var planTotal = Number(plan.total||0);
+    var outstanding = 0;
+    if(planTotal > 0) outstanding = Math.max(0, planTotal - paidAmt);
+    else if(plan.num && plan.amt) outstanding = Math.max(0,(Number(plan.num)-(plan.paid||[]).length)*Number(plan.amt));
+    if(outstanding > 0) {
+      totalLiabilities += outstanding;
+      liabilityRows.push({ label:'💳 '+(plan.desc||plan.provider||'Instalment'), amount:outstanding, color:'#f23060', tag:'INSTALMENT' });
+    }
+  });
+
+  // External borrows — split by direction using isHistorical flag
+  // isHistorical:true = Yasin OWES them (liability e.g. Nuri)
+  // isHistorical:false/undefined = they OWE Yasin (asset e.g. Tariq, Zakie)
+  var extData = {};
+  try { extData = JSON.parse(localStorage.getItem('yb_external_borrows_v1') || '{}'); } catch(e) {}
+  Object.keys(extData).forEach(function(key) {
+    var p = extData[key];
+    var hasHistorical = (p.entries||[]).some(function(e){ return e.isHistorical; });
+    var balance = 0;
+    (p.entries||[]).forEach(function(e){ if(e.type==='repay') balance-=Number(e.amount||0); else balance+=Number(e.amount||0); });
+    balance = Math.max(0, balance);
+    if(balance <= 0) return;
+    if(hasHistorical) {
+      // I OWE them — liability
+      totalLiabilities += balance;
+      liabilityRows.push({ label:'💸 Owe: '+(p.name||key), amount:balance, color:'#f23060', tag:'DEBT' });
+    } else {
+      // They OWE me — asset (but not yet received, so excluded per user preference)
+      // Uncomment below to include as assets:
+      // totalAssets += balance;
+      // assetRows.push({ label:'💸 '+(p.name||key)+' owes me', amount:balance, color:'#c8f230', tag:'RECEIVABLE' });
+    }
+  });
+
+  return { assetRows:assetRows, liabilityRows:liabilityRows, totalAssets:totalAssets, totalLiabilities:totalLiabilities, netWorth:totalAssets-totalLiabilities };
+}
+
+function renderNetWorth() {
+  if (!document.getElementById('nwTotal')) return;
+  var d = _nwCalcData();
+  var nwColor = d.netWorth >= 0 ? '#c8f230' : '#f23060';
+
+  // Big number
+  document.getElementById('nwTotal').textContent = fmtR(d.netWorth);
+  document.getElementById('nwTotal').style.color  = nwColor;
+  document.getElementById('nwAssets').textContent = fmtR(d.totalAssets);
+  document.getElementById('nwLiabilities').textContent = fmtR(d.totalLiabilities);
+  document.getElementById('nwFormula').textContent = fmtR(d.totalAssets) + ' − ' + fmtR(d.totalLiabilities);
+
+  // Apply chart mode toggle UI state
+  setNwChartMode(_nwChartMode);
+
+  // ── DONUT CHART ──
+  _renderNwDonut(d);
+
+  // ── LINE CHART (Net Worth over time) ──
+  _renderNwLine(d);
+
+  // ── BREAKDOWN ROWS ──
+  function makeRow(item) {
+    var tagBadge = '<span style="font-size:8px;padding:1px 6px;border-radius:100px;background:#1a1a1a;color:var(--muted);border:1px solid #333;letter-spacing:1px;margin-left:6px;">'+item.tag+'</span>';
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;">'
+      +'<span style="color:var(--muted);display:flex;align-items:center;">'+item.label+tagBadge+'</span>'
+      +'<span style="color:'+item.color+';font-weight:500;font-family:DM Mono,monospace;">'+fmtR(item.amount)+'</span>'
+      +'</div>';
+  }
+  document.getElementById('nwAssetRows').innerHTML = d.assetRows.length
+    ? d.assetRows.map(makeRow).join('')
+    : '<div style="padding:14px;color:var(--muted);font-size:12px;">No pockets found</div>';
+  document.getElementById('nwLiabilityRows').innerHTML = d.liabilityRows.length
+    ? d.liabilityRows.map(makeRow).join('')
+    : '<div style="padding:14px;color:#5a8800;font-size:12px;">✅ No liabilities found</div>';
+}
+
+function _renderNwDonut(d) {
+  var canvas = document.getElementById('nwDonutCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (_nwDonutChart) { try{ _nwDonutChart.destroy(); }catch(e){} _nwDonutChart = null; }
+
+  var assetColors  = ['#c8f230','#a8d220','#88b210','#689200'];
+  var liabColors   = ['#f23060','#d21040','#b20020','#920000'];
+  var labels = [], dataVals = [], colors = [];
+  d.assetRows.forEach(function(r,i){ if(r.amount>0){ labels.push(r.label.replace(/[^ -]/g,'')); dataVals.push(r.amount); colors.push(assetColors[i%assetColors.length]); } });
+  d.liabilityRows.forEach(function(r,i){ labels.push(r.label.replace(/[^ -]/g,'')); dataVals.push(r.amount); colors.push(liabColors[i%liabColors.length]); });
+
+  if (typeof Chart === 'undefined') return;
+  _nwDonutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: dataVals, backgroundColor: colors, borderColor: '#1a1a1a', borderWidth: 3, hoverOffset: 6 }] },
+    options: {
+      responsive: true, maintainAspectRatio: true, cutout: '68%',
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { color: '#888', font: { family: 'DM Mono', size: 10 }, padding: 12, boxWidth: 12 } },
+        tooltip: { callbacks: { label: function(ctx){ return ' R' + Number(ctx.parsed).toLocaleString('en-ZA'); } } }
+      }
+    }
+  });
+}
+
+function _renderNwLine(d) {
+  var canvas = document.getElementById('nwLineCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (_nwLineChart) { try{ _nwLineChart.destroy(); }catch(e){} _nwLineChart = null; }
+
+  // Build monthly Net Worth history from debt repayment entries
+  var extData = {};
+  try { extData = JSON.parse(localStorage.getItem('yb_external_borrows_v1') || '{}'); } catch(e) {}
+
+  // Collect all repay entries sorted by date
+  var allRepays = [];
+  Object.keys(extData).forEach(function(key) {
+    (extData[key].entries||[]).forEach(function(e) {
+      if (e.type === 'repay') allRepays.push({ date: e.date, amount: Number(e.amount||0) });
+    });
+  });
+  allRepays.sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+
+  // Start from today going back 12 months, or from first repayment
+  var today = new Date();
+  var points = [];
+  var months = [];
+  for (var i = 11; i >= 0; i--) {
+    var d2 = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    months.push(d2.getFullYear() + '-' + String(d2.getMonth()+1).padStart(2,'0'));
+  }
+  // Future 6 months
+  for (var j = 1; j <= 6; j++) {
+    var d3 = new Date(today.getFullYear(), today.getMonth() + j, 1);
+    months.push(d3.getFullYear() + '-' + String(d3.getMonth()+1).padStart(2,'0'));
+  }
+
+  // Calculate net worth at end of each month
+  var currentNw = d.netWorth;
+  // Projected: assume R1000/month repayment going forward (from last repayment pattern)
+  var lastRepayAmt = allRepays.length > 0 ? allRepays[allRepays.length-1].amount : 1000;
+  var todayStr = today.toISOString().slice(0,7);
+
+  var labels2 = [], dataVals2 = [], pointColors2 = [];
+  months.forEach(function(m) {
+    var isFuture = m > todayStr;
+    // Sum repayments up to this month
+    var repaidUpTo = 0;
+    allRepays.forEach(function(r){ if(r.date && r.date.slice(0,7) <= m) repaidUpTo += r.amount; });
+    // For future months, project linearly
+    var futureExtra = 0;
+    if (isFuture) {
+      var mDate = new Date(m+'-01');
+      var diffMonths = (mDate.getFullYear()-today.getFullYear())*12+(mDate.getMonth()-today.getMonth());
+      futureExtra = diffMonths * lastRepayAmt;
+    }
+    var nwAtMonth = d.netWorth + repaidUpTo - (allRepays.reduce(function(s,r){return s+r.amount;},0)) + futureExtra;
+    // Simpler: start from current NW, project forward
+    if (!isFuture) {
+      // Historical: actual total liabilities at that point
+      nwAtMonth = d.netWorth + (allRepays.reduce(function(s,r){return s+r.amount;},0)) - (allRepays.filter(function(r){return r.date && r.date.slice(0,7)<=m;}).reduce(function(s,r){return s+r.amount;},0));
+    } else {
+      var mDate2 = new Date(m+'-01');
+      var mDiff = (mDate2.getFullYear()-today.getFullYear())*12+(mDate2.getMonth()-today.getMonth());
+      nwAtMonth = d.netWorth + (mDiff * lastRepayAmt);
+    }
+
+    var shortLabel = new Date(m+'-01').toLocaleDateString('en-ZA',{month:'short',year:'2-digit'});
+    labels2.push(shortLabel);
+    dataVals2.push(Math.round(nwAtMonth));
+    pointColors2.push(isFuture ? '#3a5a00' : (nwAtMonth >= 0 ? '#c8f230' : '#f23060'));
+  });
+
+  if (typeof Chart === 'undefined') return;
+  _nwLineChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels2,
+      datasets: [{
+        label: 'Net Worth',
+        data: dataVals2,
+        borderColor: '#c8f230',
+        backgroundColor: 'rgba(200,242,48,0.08)',
+        pointBackgroundColor: pointColors2,
+        pointRadius: 4,
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(ctx){ return ' R' + Number(ctx.parsed.y).toLocaleString('en-ZA'); } } }
+      },
+      scales: {
+        x: { ticks: { color:'#555', font:{family:'DM Mono',size:9} }, grid: { color:'#1a1a1a' } },
+        y: { ticks: { color:'#555', font:{family:'DM Mono',size:9}, callback: function(v){ return 'R'+Number(v).toLocaleString('en-ZA'); } }, grid: { color:'#1a1a1a' } }
+      }
+    }
+  });
+}
+
 
 // ── CARPOOL INCOME CHART ──
 var _cpChart = null;
@@ -1340,14 +2150,14 @@ function renderCarpoolChart() {
   const legend = document.getElementById('cpChartLegend');
   if(legend){
     legend.innerHTML = PASSENGER_DATA.map(function(p){
-      return '<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#aaa;"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+(p.color||'#c8f230')+'"></span>'+p.name+'</div>';
+      return '<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+(p.color||'#c8f230')+'"></span>'+p.name+'</div>';
     }).join('');
   }
 
   // Destroy old chart
   if (_cpChart) { _cpChart.destroy(); _cpChart = null; }
-  // Reset drill-down
-  closeDrillDown();
+  // Reset drill-down (function may not exist if drill-down feature is disabled)
+  try { if(typeof closeDrillDown === 'function') closeDrillDown(); } catch(e){}
 
   var isLine = _cpChartMode === 'line';
   var isDark = !document.documentElement.classList.contains('light');
@@ -1386,7 +2196,7 @@ function renderCarpoolChart() {
         var idx = elements[0].index;
         var mk = monthKeys[idx];
         var lbl = labels[idx];
-        drillDownToMonth(mk, lbl);
+        try { if(typeof drillDownToMonth === 'function') drillDownToMonth(mk, lbl); } catch(e){}
       },
       plugins: {
         legend: { display: false },

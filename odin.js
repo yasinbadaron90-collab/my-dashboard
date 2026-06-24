@@ -1,7 +1,5 @@
 // Odin: command centre, alerts, tab render
 
-
-
 // ══════════════════════════════════════════════════════════════
 // 🧠 ODIN COMMAND CENTRE TAB
 // ══════════════════════════════════════════════════════════════
@@ -192,7 +190,7 @@ function _renderOdinTabSnapshot(mk){
     tile.onmouseover = function(){ this.style.opacity='0.8'; };
     tile.onmouseout  = function(){ this.style.opacity='1'; };
     tile.addEventListener('click', (function(tab){ return function(){ goToTab(tab); }; })(t.tab));
-    tile.innerHTML = '<div style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">'+t.label+'</div>'
+    tile.innerHTML = '<div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">'+t.label+'</div>'
       +'<div style="font-family:Syne,sans-serif;font-weight:800;font-size:18px;color:'+t.color+';">'+t.value+'</div>';
     container.appendChild(tile);
   });
@@ -236,7 +234,7 @@ function _renderOdinTabActivity(mk){
 
   if(!activity.length){
     var none = document.createElement('div');
-    none.style.cssText = 'font-size:11px;color:#333;padding:8px 0;';
+    none.style.cssText = 'font-size:11px;color:var(--muted2);padding:8px 0;';
     none.textContent = 'No activity this month yet.';
     container.appendChild(none);
     return;
@@ -244,10 +242,10 @@ function _renderOdinTabActivity(mk){
 
   activity.forEach(function(a){
     var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #161616;cursor:pointer;';
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;';
     row.addEventListener('click', (function(tab){ return function(){ goToTab(tab); }; })(a.tab));
-    row.innerHTML = '<div><div style="font-size:12px;color:#efefef;font-family:DM Mono,monospace;">'+a.text+'</div>'
-      +'<div style="font-size:10px;color:#333;margin-top:2px;">'+a.date+'</div></div>'
+    row.innerHTML = '<div><div style="font-size:12px;color:var(--text);font-family:DM Mono,monospace;">'+a.text+'</div>'
+      +'<div style="font-size:10px;color:var(--muted2);margin-top:2px;">'+a.date+'</div></div>'
       +'<span style="font-size:13px;font-weight:700;color:'+a.color+';">'+a.amount+'</span>';
     container.appendChild(row);
   });
@@ -256,7 +254,7 @@ function _renderOdinTabActivity(mk){
 // ══ ODIN LAUNCH ALERTS ══
 function buildOdinLaunchAlerts(){
   var alerts = [];
-  var now = new Date();
+  var now = new Date(); now.setHours(0,0,0,0);
   var mk = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
 
   // ── Car service ──
@@ -282,12 +280,11 @@ function buildOdinLaunchAlerts(){
     var snap = (typeof getLendingSnapshot==='function') ? getLendingSnapshot() : null;
     if(snap && snap.net < 0){
       alerts.push({ level:'red', text:'Cash flow deficit — '+fmtR(Math.abs(snap.net))+' over budget', tab:'cashflow',
-        actions:[{ label:'Allocate', fn: function(){ openAllocateModal('odin'); } },
-                 { label:'View', fn: function(){ goToTab('cashflow'); } }]
+        actions:[{ label:'View', fn: function(){ goToTab('cashflow'); } }]
       });
     } else if(snap && snap.net > 0){
       alerts.push({ level:'green', text:'Cash flow positive — '+fmtR(snap.net)+' surplus this month', tab:'cashflow',
-        actions:[{ label:'Allocate surplus', fn: function(){ openAllocateModal('odin'); } }]
+        actions:[{ label:'View', fn: function(){ goToTab('cashflow'); } }]
       });
     }
   }catch(e){}
@@ -298,7 +295,14 @@ function buildOdinLaunchAlerts(){
     passengers.forEach(function(p){
       var entries = (borrowData&&borrowData[p.name])||[];
       var b=0,r=0;
-      entries.forEach(function(e){ if(e.type==='repay') r+=Number(e.amount||0); else b+=Number(e.amount||0); });
+      // FIX 2026-06-04 (v110b): mirror v80's calcPersonTotals — a borrow
+      // with paid:true (set by Carpool's Mark Paid flow) counts as fully
+      // repaid. Without this, Odin's "owes you" alert fires even after
+      // the borrow has been marked paid via carpool.
+      entries.forEach(function(e){
+        if(e.type==='repay') r+=Number(e.amount||0);
+        else { b+=Number(e.amount||0); if(e.paid) r+=Number(e.amount||0); }
+      });
       var owed = Math.max(0,b-r);
       if(owed>0){
         // Find the latest unpaid borrow entry for delete
@@ -324,7 +328,11 @@ function buildOdinLaunchAlerts(){
     Object.keys(extD).forEach(function(key){
       var p = extD[key];
       var b=0,r=0;
-      (p.entries||[]).forEach(function(e){ if(e.type==='repay') r+=Number(e.amount||0); else b+=Number(e.amount||0); });
+      // FIX 2026-06-04 (v110b): same paid-flag fix as carpool block above
+      (p.entries||[]).forEach(function(e){
+        if(e.type==='repay') r+=Number(e.amount||0);
+        else { b+=Number(e.amount||0); if(e.paid) r+=Number(e.amount||0); }
+      });
       var owed = Math.max(0,b-r);
       if(owed>0){
         var unpaid = (p.entries||[]).filter(function(e){ return e.type!=='repay'; });
@@ -347,15 +355,57 @@ function buildOdinLaunchAlerts(){
   // ── Instalments due ──
   try{
     var plans = (typeof loadInst==='function') ? loadInst() : [];
+    var nowMonthKey = now.toISOString().slice(0,7); // 'YYYY-MM'
     plans.forEach(function(plan){
-      if(plan.monthToMonth) return;
+      var planId = plan.id;
+
+      // ─── Auto-debit / month-to-month plans (e.g. MTN) — v114 5-day reminder
+      if(plan.planType === 'autoDebit' || plan.monthToMonth){
+        if(!plan.debitDay) return;
+        var paidThisMonth = (plan.paid||[]).some(function(p){
+          return p.date && p.date.slice(0,7) === nowMonthKey;
+        });
+        if(paidThisMonth) return;
+        // Compute this month's debit date (clamp to last day of month)
+        var y = now.getFullYear(), m = now.getMonth();
+        var lastDay = new Date(y, m+1, 0).getDate();
+        var safeDay = Math.min(plan.debitDay, lastDay);
+        var debitDate = new Date(y, m, safeDay);
+        var daysLeft = Math.round((debitDate - now) / 86400000);
+        if(daysLeft >= 0 && daysLeft <= 5){
+          var pocketName = null;
+          if(plan.fundingPocketId && typeof loadFunds === 'function'){
+            try{
+              var pf = (loadFunds()||[]).find(function(f){ return f && f.id === plan.fundingPocketId; });
+              if(pf) pocketName = pf.name;
+            }catch(e){}
+          }
+          var pocketHint = pocketName ? ' — fund '+pocketName : '';
+          var whenStr = daysLeft === 0 ? 'today' : (daysLeft === 1 ? 'tomorrow' : 'in '+daysLeft+' days');
+          var lvl = daysLeft <= 1 ? 'red' : 'amber';
+          alerts.push({
+            level: lvl,
+            text: plan.desc+' ('+fmtR(plan.amt)+') debits '+whenStr+pocketHint,
+            tab: 'instalments',
+            actions: [
+              { label:'Mark Paid', fn: function(){
+                if(typeof openInstM2MPay === 'function'){ openInstM2MPay(planId); }
+                else { goToTab('instalments'); }
+              }},
+              { label:'View', fn: function(){ goToTab('instalments'); } }
+            ]
+          });
+        }
+        return; // skip the fixed-schedule loop for this plan
+      }
+
+      // ─── Fixed-schedule plans (existing behaviour, untouched)
       var paidIdxs = (plan.paid||[]).map(function(p){ return p.index; });
       (plan.dates||[]).forEach(function(ds,i){
         if(paidIdxs.indexOf(i)>-1) return;
         var dueDate = new Date(ds+'T00:00:00');
         var daysLeft = Math.round((dueDate-now)/86400000);
         if(daysLeft>=0 && daysLeft<=14){
-          var planId = plan.id;
           alerts.push({ level:'red', text: plan.desc+' — '+fmtR(plan.amt)+' due in '+daysLeft+' days', tab:'instalments',
             actions:[
               { label:'View', fn: function(){ goToTab('instalments'); } },
@@ -469,169 +519,28 @@ function buildOdinLaunchAlerts(){
     }
   } catch(e){}
 
+  // ── Data integrity: negative balance on a savings pocket ──
+  // Expense-tracker pockets are allowed to go "over budget" (negative) by
+  // design — that's already surfaced on the Savings card itself. A regular
+  // savings/goal pocket going negative shouldn't happen given the existing
+  // hard-blocks on withdrawals, so this is a safety-net check only.
+  try{
+    if(typeof loadFunds === 'function') loadFunds();
+    (funds||[]).filter(function(f){ return !f._deleted && !f.isExpense; }).forEach(function(f){
+      var bal = (typeof fundTotal === 'function') ? fundTotal(f) : 0;
+      if(bal < 0){
+        alerts.push({ level:'red',
+          text: f.emoji+' '+f.name+' is negative ('+fmtR(bal)+') — shouldn\'t be possible, worth checking',
+          tab:'savings',
+          actions:[{ label:'Go to Savings', fn: function(){ goToTab('savings'); } }]
+        });
+      }
+    });
+  } catch(e){}
+
   return alerts;
 }
 
-
-function renderOdinLaunchAlerts(){
-  var container = document.getElementById('odinLaunchAlerts');
-  if(!container) return;
-  var alerts = buildOdinLaunchAlerts();
-  container.innerHTML = '';
-
-  if(!alerts.length){
-    var clear = document.createElement('div');
-    clear.style.cssText = 'background:#0d1a00;border:1px solid #1a3a00;border-radius:10px;padding:12px 16px;font-size:12px;color:#5a8800;letter-spacing:0.5px;';
-    clear.textContent = '✅ All clear — no urgent items today.';
-    container.appendChild(clear);
-    return;
-  }
-
-  var red   = alerts.filter(function(a){ return a.level==='red'; });
-  var amber = alerts.filter(function(a){ return a.level==='amber'; });
-  var green = alerts.filter(function(a){ return a.level==='green'; });
-
-  // Summary line
-  var summary = document.createElement('div');
-  summary.style.cssText = 'font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;';
-  if(red.length){
-    summary.style.color = '#f23060';
-    summary.textContent = '⚠ '+red.length+' urgent item'+(red.length>1?'s':'')+' need'+(red.length===1?'s':'')+' attention';
-  } else if(amber.length){
-    summary.style.color = '#f2a830';
-    summary.textContent = amber.length+' item'+(amber.length>1?'s':'')+' to keep an eye on';
-  } else {
-    summary.style.color = '#5a8800';
-    summary.textContent = 'Looking good today';
-  }
-  container.appendChild(summary);
-
-  // Show only red alerts by default
-  var defaultAlerts = red.length ? red : amber.length ? amber.slice(0,2) : green.slice(0,1);
-  var hiddenAlerts  = red.length ? amber.concat(green) : amber.length ? amber.slice(2).concat(green) : green.slice(1);
-
-  function buildAlertCard(a){
-    var bg    = a.level==='red'?'#1a0505':a.level==='amber'?'#1a1000':'#0d1a00';
-    var border= a.level==='red'?'#5a1a1a':a.level==='amber'?'#5a3a00':'#1a3a00';
-    var color = a.level==='red'?'#f23060':a.level==='amber'?'#f2a830':'#5a8800';
-    var dot   = a.level==='red'?'🔴':a.level==='amber'?'🟡':'🟢';
-    var d = document.createElement('div');
-    d.style.cssText = 'display:flex;align-items:center;gap:10px;background:'+bg+';border:1px solid '+border+';border-radius:8px;padding:10px 14px;margin-bottom:8px;cursor:pointer;transition:opacity .15s;';
-    d.onmouseover = function(){ this.style.opacity='0.8'; };
-    d.onmouseout  = function(){ this.style.opacity='1'; };
-    d.addEventListener('click', (function(tab){ return function(){ closeLaunchMenu(); goToTab(tab); }; })(a.tab));
-    var dotSpan = document.createElement('span');
-    dotSpan.style.cssText = 'font-size:14px;flex-shrink:0;';
-    dotSpan.textContent = dot;
-    var textSpan = document.createElement('span');
-    textSpan.style.cssText = 'font-size:12px;color:'+color+';flex:1;font-family:DM Mono,monospace;letter-spacing:0.3px;';
-    textSpan.textContent = a.text;
-    var arrow = document.createElement('span');
-    arrow.style.cssText = 'color:#333;font-size:16px;';
-    arrow.textContent = '›';
-    d.appendChild(dotSpan);
-    d.appendChild(textSpan);
-    d.appendChild(arrow);
-    return d;
-  }
-
-  // Render default (urgent) alerts
-  defaultAlerts.forEach(function(a){ container.appendChild(buildAlertCard(a)); });
-
-  // View all toggle
-  if(hiddenAlerts.length){
-    var extraWrap = document.createElement('div');
-    extraWrap.style.display = 'none';
-    hiddenAlerts.forEach(function(a){ extraWrap.appendChild(buildAlertCard(a)); });
-    container.appendChild(extraWrap);
-
-    var toggleBtn = document.createElement('button');
-    toggleBtn.style.cssText = 'width:100%;background:none;border:1px solid #2a2a2a;border-radius:8px;padding:8px;color:#555;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;cursor:pointer;margin-top:2px;transition:all .15s;';
-    toggleBtn.textContent = 'View all ('+hiddenAlerts.length+' more)';
-    var expanded = false;
-    toggleBtn.addEventListener('click', function(){
-      expanded = !expanded;
-      extraWrap.style.display = expanded ? 'block' : 'none';
-      toggleBtn.textContent = expanded ? 'Show less ↑' : 'View all ('+hiddenAlerts.length+' more)';
-      toggleBtn.style.color = expanded ? '#888' : '#555';
-    });
-    container.appendChild(toggleBtn);
-  }
-}
-
-
-function showLaunchMenu(){
-  document.getElementById('launchMenuOverlay').style.display='flex';
-  // Hide the nav and all pages until the user picks a section
-  var nav = document.querySelector('.nav');
-  if(nav) nav.style.visibility='hidden';
-  document.querySelectorAll('.page').forEach(function(p){ p.style.visibility='hidden'; });
-  // Build menu items based on role
-  const list = document.getElementById('launchMenuList');
-  list.innerHTML = '';
-
-  const adminItems = [
-    { icon:'🚗', label:'Carpool', sub:'Trips, payments & statements', tab:'carpool' },
-    { icon:'💰', label:'Savings', sub:'Funds & deposit tracking', tab:'savings' },
-    { icon:'💵', label:'Cash Flow', sub:'Income, expenses & net position', tab:'cashflow' },
-    { icon:'💳', label:'Instalments', sub:'Payment plans & instalment tracking', tab:'instalments' },
-    { icon:'🎓', label:'School', sub:'Webinars, assignments, exams & quizzes', tab:'school' },
-    { icon:'🔧', label:'Car Service Tracker', sub:'Maintenance logs & expense history', tab:'cars' },
-    { icon:'🤝', label:'Money Owed to Me', sub:'Loans, repayments & balances', tab:'money' },
-    { icon:'📊', label:'Reports', sub:'Fuel savings & borrow summary', tab:'reports' },
-    { icon:'🕌', label:'Prayer Tracker', sub:'Salah streaks & heatmap', tab:'prayer' },
-    { icon:'🔁', label:'Routine', sub:'Daily tasks & habit tracking', tab:'routine' },
-    { icon:'✦', label:'AI Assistant', sub:'Ask anything about your dashboard', tab:'ai' },
-  ];
-  const passengerItems = [
-    { icon:'🚗', label:'Carpool', sub:'View your trips & statement', tab:'carpool' },
-  ];
-  const carserviceItems = [
-    { icon:'🔧', label:'Car Service Tracker', sub:'Maintenance logs & expense history', tab:'cars' },
-  ];
-
-  const items = currentRole === 'admin' ? adminItems : currentRole === 'carservice' ? carserviceItems : passengerItems;
-  items.forEach(function(item){
-    const btn = document.createElement('button');
-    btn.style.cssText = 'display:flex;align-items:center;gap:16px;width:100%;padding:16px 18px;background:#111;border:1px solid #2a2a2a;border-radius:10px;cursor:pointer;text-align:left;transition:all .18s;font-family:"DM Mono",monospace;margin-bottom:10px;';
-    btn.onmouseover = function(){ this.style.borderColor='#c8f230'; this.style.background='#0d1a00'; };
-    btn.onmouseout  = function(){ this.style.borderColor='#2a2a2a'; this.style.background='#111'; };
-    btn.innerHTML =
-      '<span style="font-size:28px;line-height:1;flex-shrink:0;">'+item.icon+'</span>'+
-      '<div>'+
-        '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:#efefef;margin-bottom:2px;">'+item.label+'</div>'+
-        '<div style="font-size:10px;color:#555;letter-spacing:1px;">'+item.sub+'</div>'+
-      '</div>'+
-      '<span style="margin-left:auto;color:#333;font-size:18px;">›</span>';
-    btn.onclick = function(){
-      closeLaunchMenu();
-      if(item.tab === 'ai'){ openAIAssistant(); } else { goToTab(item.tab); }
-    };
-    list.appendChild(btn);
-  });
-
-  // Greeting
-  const greeting = document.getElementById('launchGreeting');
-  const hour = new Date().getHours();
-  const timeGreet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  greeting.textContent = timeGreet + ', ' + (currentUser || 'there') + ' 👋';
-
-  // Odin alerts — only for admin
-  if(currentRole === 'admin'){
-    setTimeout(renderOdinLaunchAlerts, 50);
-  } else {
-    var alertsEl = document.getElementById('odinLaunchAlerts');
-    if(alertsEl) alertsEl.innerHTML = '';
-  }
-}
-
-function closeLaunchMenu(){
-  document.getElementById('launchMenuOverlay').style.display='none';
-  // Restore nav and pages
-  var nav = document.querySelector('.nav');
-  if(nav) nav.style.visibility='';
-  document.querySelectorAll('.page').forEach(function(p){ p.style.visibility=''; });
-}
 function closeModal(id){document.getElementById(id).classList.remove('active');}
 document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('active');});});
 

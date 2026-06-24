@@ -12,8 +12,88 @@ function openExternalBorrowModal(){
   document.getElementById('extBorrowAmt').value = '';
   document.getElementById('extBorrowDate').value = localDateStr(new Date());
   document.getElementById('extBorrowNote').value = '';
+  _extLendSelectedPocketId = null;               // v90 — reset pocket choice
+  _extHistoricalMode = false;                    // v142c — reset historical toggle
+  _applyExtHistoricalUI();
+  renderExtLendPocketPicker();                    // v90 — show pockets
   document.getElementById('externalBorrowModal').classList.add('active');
   setTimeout(updateExtLendingGuardrail,100);
+}
+
+// ── v142c — Historical debt toggle ────────────────────────────────────────
+var _extHistoricalMode = false;
+
+function toggleExtHistorical(){
+  _extHistoricalMode = !_extHistoricalMode;
+  _applyExtHistoricalUI();
+}
+
+function _applyExtHistoricalUI(){
+  var tog    = document.getElementById('extHistoricalToggle');
+  var knob   = document.getElementById('extHistoricalKnob');
+  var section = document.getElementById('extLendPocketSection');
+  var guardrail = document.getElementById('extLendingGuardrail');
+  if(tog){
+    tog.style.background  = _extHistoricalMode ? '#3a1a5a' : '#2a2a2a';
+    tog.style.borderColor = _extHistoricalMode ? '#7a3aba' : '#333';
+  }
+  if(knob){
+    knob.style.left       = _extHistoricalMode ? '18px' : '2px';
+    knob.style.background = _extHistoricalMode ? '#a78bfa' : '#555';
+  }
+  if(section)  section.style.display  = _extHistoricalMode ? 'none' : 'block';
+  if(guardrail) guardrail.style.display = _extHistoricalMode ? 'none' : 'block';
+}
+
+// ── v90 Step 6 — pocket picker for Log Money Lent ─────────────────────────
+// A personal lend pulls money OUT of a chosen pocket (and through a bank
+// doorway). Default = the Daily pocket if it exists, else first pocket.
+// The chosen pocket is stored as originPocket on the borrow entry so the
+// repayment flow can auto-suggest it later (closing the lend↔repay loop).
+var _extLendSelectedPocketId = null;
+
+function _extLendBalance(f){
+  return (f.deposits||[]).reduce(function(s,d){
+    return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0));
+  }, 0);
+}
+
+function renderExtLendPocketPicker(){
+  var picker = document.getElementById('extLendPocketPicker');
+  if(!picker) return;
+  var list = (funds||[]).filter(function(f){ return !f._deleted; });
+  // Default selection: Daily if present, else first pocket
+  if(!_extLendSelectedPocketId){
+    var daily = list.find(function(f){ return /daily/i.test(f.name||''); });
+    _extLendSelectedPocketId = daily ? daily.id : (list[0] ? list[0].id : null);
+  }
+  if(!list.length){
+    picker.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:10px;text-align:center;">No pockets exist yet — create one on the Savings tab first.</div>';
+    return;
+  }
+  picker.innerHTML = list.map(function(f){
+    var bal = _extLendBalance(f);
+    var isSel = (f.id === _extLendSelectedPocketId);
+    var border = isSel ? '#a78bfa' : '#1a1a1a';
+    var bg     = isSel ? '#1a1030' : '#0e0e0e';
+    var nameC  = isSel ? '#a78bfa' : '#efefef';
+    var balC   = bal <= 0 ? '#555' : '#c8f230';
+    return '<div onclick="selectExtLendPocket(\''+f.id+'\')" '
+      + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+border+';background:'+bg+';">'
+      + '<span style="font-size:12px;color:'+nameC+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+escapeHtmlSafe(f.name)+'</span>'
+      + '<span style="font-size:11px;color:'+balC+';font-family:Syne,sans-serif;font-weight:700;">'+fmtR(bal)+'</span>'
+      + '</div>';
+  }).join('');
+}
+
+function selectExtLendPocket(id){
+  _extLendSelectedPocketId = id;
+  renderExtLendPocketPicker();
+  if(typeof updateExtLendingGuardrail === 'function') try{ updateExtLendingGuardrail(); }catch(e){}
+}
+
+function escapeHtmlSafe(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function confirmExternalBorrow(){
@@ -21,37 +101,205 @@ function confirmExternalBorrow(){
   const amount = parseFloat(document.getElementById('extBorrowAmt').value);
   const date   = document.getElementById('extBorrowDate').value || localDateStr(new Date());
   const note   = document.getElementById('extBorrowNote').value.trim();
-  const account = document.getElementById('extBorrowAccount').value || 'FNB';
+  const accountRaw = document.getElementById('extBorrowAccount').value || 'FNB';
+  // For historical debts, account is irrelevant — set to 'none' so nothing misreads it
+  const account = (_extHistoricalMode) ? 'none' : accountRaw;
   if(!name){ alert('Please enter a name.'); return; }
   if(!amount || amount <= 0){ alert('Please enter a valid amount.'); return; }
+
+  // ── v90 Step 6 / v142c — pocket-first OR historical (no pocket deduction) ─
+  var isHistorical = _extHistoricalMode || false;
+  var pocket = null;
+  if(!isHistorical){
+    pocket = funds.find(function(f){ return f.id === _extLendSelectedPocketId; });
+    if(!pocket){ alert('Pick which pocket the money comes out of.'); return; }
+    var pocketBal = _extLendBalance(pocket);
+    if(amount > pocketBal){
+      alert('Only ' + fmtR(pocketBal) + ' available in ' + pocket.name + '. Pick another pocket or a smaller amount.');
+      return;
+    }
+  }
+
   const data = loadExternalBorrows();
   const key  = name.toLowerCase().replace(/\s+/g,'_');
+  // ── Phase D: every borrower needs a UUID so cloud-sync can reference them ──
+  var isNew = !data[key];
   if(!data[key]) data[key] = { name: name, entries: [] };
-  var newEntry = { id: uid(), type:'borrow', amount, date, note, account };
+  if(!data[key].borrowerId){
+    data[key].borrowerId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : uid();
+  }
+  // v90: lendId links the borrow entry ↔ pocket deposit ↔ CF row for the
+  //      hard-block guard + atomic reverse. originPocket lets the repayment
+  //      flow auto-suggest where the money should come back to.
+  var lendId = 'ln_' + uid();
+  var entryId = uid();
+  var newEntry = {
+    id: entryId, type:'borrow', amount, date, note, account,
+    originPocket: pocket ? pocket.id : null,   // Step 6 — null for historical
+    lendId: isHistorical ? null : lendId,       // no lendId for historical
+    isHistorical: isHistorical || undefined
+  };
   data[key].entries.push(newEntry);
   saveExternalBorrows(data);
-  // Log as expense in cashflow — stamp cfId back for cascade delete
-  var cfId = logBorrowToCashflow(name, amount, date, account, 'personal');
-  if(cfId){ newEntry.cfId = cfId; saveExternalBorrows(data); }
+
+  if(!isHistorical){
+    // 1) Deduct the pocket (money genuinely leaves you)
+    var pocketDepId = uid();
+    pocket.deposits.push({
+      id: pocketDepId,
+      txnType: 'out',
+      amount: amount,
+      date: date,
+      note: '🤝 Lent to ' + name + (note ? ' · ' + note : ''),
+      lendId: lendId,
+      borrowEntryId: key + ':' + entryId
+    });
+    saveFunds();
+
+    // 2) Log as expense in cashflow
+    var cfId = logBorrowToCashflow(name, amount, date, account, 'personal', lendId);
+    if(cfId){ newEntry.cfId = cfId; saveExternalBorrows(data); }
+
+    // 3) Bank doorway (+amount in, -amount out → net 0)
+    if(typeof window._adjustBaselineForBank === 'function'){
+      window._adjustBaselineForBank(account, amount);
+      window._adjustBaselineForBank(account, -amount);
+    }
+
+    // 4) Stash the lend record for hard-block guard + reverse
+    var lendRecs = [];
+    try { lendRecs = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
+    lendRecs.push({
+      id: lendId,
+      key: key,
+      personName: name,
+      entryId: entryId,
+      amount: amount,
+      date: date,
+      bank: account,
+      pocketId: pocket.id,
+      pocketDepId: pocketDepId,
+      cfId: cfId,
+      createdAt: new Date().toISOString()
+    });
+    lsSet('yb_lends_v1', JSON.stringify(lendRecs));
+  }
+  // Historical debt: only the borrow entry exists — no pocket, no CF, no lend record.
+  // Deletion is allowed directly from Money Owed (no hard-block needed — nothing to cascade).
+
   closeModal('externalBorrowModal');
   renderMoneyOwed();
+  try { renderFunds(); } catch(e){}
+  try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
   odinRefreshIfOpen();
   if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){}
+  if(typeof softDeleteToast === 'function'){
+    var toastMsg = isHistorical
+      ? '📋 Logged R' + amount.toLocaleString('en-ZA') + ' historical debt for ' + name
+      : '🤝 Lent ' + fmtR(amount) + ' to ' + name + ' · from ' + (pocket ? pocket.name : '');
+    softDeleteToast({ message: toastMsg, duration: 3500 });
+  }
 }
+
+// ── v90 — Reverse a personal lend atomically ─────────────────────────────
+// Mirrors _repaymentReverse's discipline: remove the CF row DIRECTLY (via
+// loadCFData/saveCFData), NOT through removeFromCF — because the forward
+// doorway already netted the bank to 0, so we must NOT touch the bank
+// baseline again (that would create a +amount drift). Removes: pocket
+// deposit, CF expense row, borrow entry, and the lend record.
+function _lendReverse(lendId, opts){
+  opts = opts || {};
+  var lendRecs = [];
+  try { lendRecs = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
+  var rec = lendRecs.find(function(r){ return r.id === lendId; });
+  if(!rec){ console.warn('[lend-reverse] no record for', lendId); return false; }
+
+  // 1) Remove the pocket deposit (gives the money back to the pocket)
+  var pocket = funds.find(function(f){ return f.id === rec.pocketId; });
+  if(pocket){
+    pocket.deposits = (pocket.deposits||[]).filter(function(d){
+      var byId      = rec.pocketDepId && d.id === rec.pocketDepId;
+      var byLendId  = d.lendId === lendId;
+      return !byId && !byLendId;
+    });
+    saveFunds();
+  }
+
+  // 2) Remove the CF expense row DIRECTLY (no removeFromCF → no bank touch)
+  if(typeof loadCFData === 'function' && typeof saveCFData === 'function'){
+    var cfData = loadCFData();
+    var mk = (rec.date||'').slice(0,7);
+    var removed = 0;
+    ['expenses'].forEach(function(sec){
+      if(cfData[mk] && cfData[mk][sec]){
+        var b = cfData[mk][sec].length;
+        cfData[mk][sec] = cfData[mk][sec].filter(function(e){
+          return e.id !== rec.cfId && e.lendId !== lendId;
+        });
+        removed += (b - cfData[mk][sec].length);
+      }
+      if(cfData.recurring && cfData.recurring[sec]){
+        var rb = cfData.recurring[sec].length;
+        cfData.recurring[sec] = cfData.recurring[sec].filter(function(e){
+          return e.id !== rec.cfId && e.lendId !== lendId;
+        });
+        removed += (rb - cfData.recurring[sec].length);
+      }
+    });
+    if(removed > 0) saveCFData(cfData);
+  }
+
+  // 3) Remove the borrow entry — v108: branch on isCarpool flag.
+  //    Carpool borrows live in borrowData (yasin_borrows_v1).
+  //    External lends live in loadExternalBorrows().
+  if(rec.isCarpool){
+    try {
+      if(typeof borrowData !== 'undefined' && rec.passenger && borrowData[rec.passenger]){
+        borrowData[rec.passenger] = borrowData[rec.passenger].filter(function(e){ return e.id !== rec.entryId; });
+        if(typeof saveBorrows === 'function') saveBorrows();
+      }
+    } catch(e){ console.warn('[lend-reverse] carpool borrow remove failed', e); }
+  } else {
+    try {
+      var data = loadExternalBorrows();
+      if(data[rec.key] && data[rec.key].entries){
+        data[rec.key].entries = data[rec.key].entries.filter(function(e){ return e.id !== rec.entryId; });
+        saveExternalBorrows(data);
+      }
+    } catch(e){ console.warn('[lend-reverse] external borrow entry remove failed', e); }
+  }
+
+  // 4) Remove the lend record itself
+  lendRecs = lendRecs.filter(function(r){ return r.id !== lendId; });
+  lsSet('yb_lends_v1', JSON.stringify(lendRecs));
+
+  // 5) Bank baseline: NOT touched (forward doorway was net 0). Nothing to do.
+
+  if(!opts.silent){
+    try { renderMoneyOwed(); } catch(e){}
+    try { renderFunds(); } catch(e){}
+    try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
+    try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
+    try { if(typeof odinRefreshIfOpen === 'function') odinRefreshIfOpen(); } catch(e){}
+  }
+  return true;
+}
+if(typeof window !== 'undefined') window._lendReverse = _lendReverse;
+
 
 // ── LOG BORROW AS CASHFLOW EXPENSE ──
 // Returns the CF entry id so callers can stamp cfId onto the borrow entry for cascade delete
-function logBorrowToCashflow(personName, amount, date, account, tag){
+function logBorrowToCashflow(personName, amount, date, account, tag, lendId){
   try{
     var data = loadCFData();
     var d = new Date(date + 'T00:00:00');
     var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     if(!data[mk]) data[mk] = { income:[], expenses:[] };
     if(!data[mk].expenses) data[mk].expenses = [];
-    var acctLabel = account === 'TymeBank' ? 'TymeBank' : 'FNB';
+    var acctLabel = account === 'TymeBank' ? 'TymeBank' : (account === 'Cash' ? 'Cash' : 'FNB');
     var tagLabel  = tag === 'carpool' ? '🚗 Carpool' : '👤 Personal';
     var cfEntryId = uid();
-    data[mk].expenses.push({
+    var row = {
       id: cfEntryId,
       label: '💸 Lent to ' + personName + ' [' + acctLabel + ']',
       amount: amount,
@@ -60,13 +308,83 @@ function logBorrowToCashflow(personName, amount, date, account, tag){
       account: account,
       borrowTag: tagLabel,
       date: date
-    });
+    };
+    // v90: personal lends carry lendId so _lendReverse can find & remove this
+    // row directly. destBank is informational; the bank baseline is handled by
+    // the doorway dance in confirmExternalBorrow (net 0), NOT by this row.
+    if(lendId) row.lendId = lendId;
+    data[mk].expenses.push(row);
     saveCFData(data);
     return cfEntryId;
   }catch(e){ console.warn('Could not log borrow to cashflow:', e); return null; }
 }
 
 // ── ADD MORE BORROW (top-up existing person) ──
+// ════════════════════════════════════════════════════════════════════════════
+// v108b — Add More Borrow pocket picker (mirrors _cpLend* / _extLend*).
+// The "+ More Borrowed" flow on a borrower card tops up an existing person's
+// outstanding loan. Pre-v108b it drifted the bank exactly the same way
+// confirmExternalBorrow did pre-v90: no pocket deduction, no doorway dance,
+// no lendId. Now it does the full pocket-first dance for both branches.
+// ════════════════════════════════════════════════════════════════════════════
+var _amLendSelectedPocketId = null;
+
+function _amLendBalance(f){
+  if(!f) return 0;
+  if(f.isExpense){
+    var tin  = (f.deposits||[]).filter(function(d){return d.txnType==='in';}).reduce(function(s,d){return s+d.amount;},0);
+    var tout = (f.deposits||[]).filter(function(d){return d.txnType==='out'||!d.txnType;}).reduce(function(s,d){return s+d.amount;},0);
+    return tin - tout;
+  }
+  return (typeof fundTotal === 'function') ? fundTotal(f) : 0;
+}
+
+function _amLendRenderPocketList(){
+  var box = document.getElementById('amLendPocketPicker');
+  if(!box) return;
+  var list = (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return f && !f._deleted; });
+  if(!_amLendSelectedPocketId){
+    var daily = list.find(function(f){ return f.name === 'Daily'; });
+    if(daily) _amLendSelectedPocketId = daily.id;
+    else {
+      var firstWithBal = list.find(function(f){ return _amLendBalance(f) > 0; });
+      _amLendSelectedPocketId = firstWithBal ? firstWithBal.id : (list[0] ? list[0].id : null);
+    }
+  }
+  box.innerHTML = '';
+  if(!list.length){
+    box.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:11px;text-align:center;letter-spacing:1px;">No pockets yet. Create one on the Savings tab.</div>';
+    return;
+  }
+  list.forEach(function(f){
+    var bal = _amLendBalance(f);
+    var isSel = (f.id === _amLendSelectedPocketId);
+    var balColor = bal <= 0 ? '#555' : '#c8f230';
+    var row = document.createElement('button');
+    row.type = 'button';
+    row.dataset.fundId = f.id;
+    row.onclick = function(){ _amLendPickPocket(f.id); };
+    row.style.cssText = 'width:100%;text-align:left;background:' + (isSel?'#1a2e00':'#0a0a0a') +
+      ';border:1px solid ' + (isSel?'#5a8800':'#1a1a1a') +
+      ';border-radius:7px;padding:10px 12px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:DM Mono,monospace;';
+    row.innerHTML =
+      '<span style="font-size:18px;">' + (f.emoji||'💰') + '</span>'
+      + '<span style="flex:1;color:' + (isSel?'#c8f230':'#efefef') + ';font-size:13px;">' + f.name + '</span>'
+      + '<span style="color:' + balColor + ';font-size:11px;font-weight:700;">R' + Number(bal).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>';
+    box.appendChild(row);
+  });
+}
+
+function _amLendPickPocket(id){
+  _amLendSelectedPocketId = id;
+  _amLendRenderPocketList();
+}
+
+if(typeof window !== 'undefined'){
+  window._amLendPickPocket = _amLendPickPocket;
+  window._amLendRenderPocketList = _amLendRenderPocketList;
+}
+
 function openAddMoreBorrowModal(key, tag){
   var personName = '';
   var currentTotal = 0;
@@ -91,6 +409,8 @@ function openAddMoreBorrowModal(key, tag){
   document.getElementById('addMoreBorrowDate').value  = localDateStr(new Date());
   document.getElementById('addMoreBorrowNote').value  = '';
   document.getElementById('addMoreBorrowAccount').value = 'FNB';
+  _amLendSelectedPocketId = null;
+  _amLendRenderPocketList();
   document.getElementById('addMoreBorrowModal').classList.add('active');
 }
 
@@ -104,33 +424,117 @@ function confirmAddMoreBorrow(){
   if(!amount || amount <= 0){ alert('Enter a valid amount to add.'); return; }
   var personName = document.getElementById('addMoreBorrowPersonName').textContent;
 
+  // ── v108b — pocket-first: the topped-up money leaves a pocket ──────────────
+  // Same dance as confirmBorrow (carpool) and confirmExternalBorrow (external).
+  // Branches differ only in storage layer + cashflow tag + lendRec shape.
+  var pocket = funds.find(function(f){ return f.id === _amLendSelectedPocketId; });
+  if(!pocket){ alert('Pick which pocket the money comes out of.'); return; }
+  var pocketBal = _amLendBalance(pocket);
+  if(amount > pocketBal){
+    alert('Only R' + Number(pocketBal).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})
+      + ' available in ' + pocket.name + '. Pick another pocket or a smaller amount.');
+    return;
+  }
+
+  var lendId = 'ln_' + uid();
+  var entryId = uid();
+  var cfTag = (tag === 'carpool') ? 'carpool' : 'personal';
+  var lendNotePrefix = (tag === 'carpool') ? '💸 Lent to ' : '🤝 Lent to ';
+
   if(tag === 'carpool'){
     if(!borrowData[key]) borrowData[key] = [];
-    var cpEntry = { id: uid(), type:'borrow', amount: amount, date: date, note: note, account: account, paid: false };
+    var cpEntry = {
+      id: entryId, type:'borrow', amount: amount, date: date, note: note, account: account, paid: false,
+      originPocket: pocket.id,
+      lendId: lendId
+    };
     borrowData[key].push(cpEntry);
-    var cpCfId = logBorrowToCashflow(personName, amount, date, account, tag);
-    if(cpCfId){ cpEntry.cfId = cpCfId; }
     saveBorrows();
-    renderCarpool();
   } else {
     var extData = loadExternalBorrows();
     if(!extData[key]){ alert('Person not found.'); return; }
-    var extEntry = { id: uid(), type:'borrow', amount: amount, date: date, note: note, account: account };
+    if(!extData[key].borrowerId){
+      extData[key].borrowerId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : uid();
+    }
+    var extEntry = {
+      id: entryId, type:'borrow', amount: amount, date: date, note: note, account: account,
+      originPocket: pocket.id,
+      lendId: lendId
+    };
     extData[key].entries.push(extEntry);
-    var extCfId = logBorrowToCashflow(personName, amount, date, account, tag);
-    if(extCfId){ extEntry.cfId = extCfId; }
     saveExternalBorrows(extData);
-    renderMoneyOwed();
-    if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){}
   }
+
+  // 1) Deduct the pocket (money genuinely leaves you)
+  var pocketDepId = uid();
+  pocket.deposits.push({
+    id: pocketDepId,
+    txnType: 'out',
+    amount: amount,
+    date: date,
+    note: lendNotePrefix + personName + (note ? ' · ' + note : ''),
+    lendId: lendId,
+    borrowEntryId: key + ':' + entryId
+  });
+  saveFunds();
+
+  // 2) Log as expense in cashflow — stamp cfId + destBank for the reverse path
+  var cfId = logBorrowToCashflow(personName, amount, date, account, cfTag, lendId);
+  if(cfId){
+    if(tag === 'carpool'){
+      var cpList = borrowData[key] || [];
+      var cpRow = cpList.find(function(e){ return e.id === entryId; });
+      if(cpRow){ cpRow.cfId = cfId; saveBorrows(); }
+    } else {
+      var ed2 = loadExternalBorrows();
+      var extRow = (ed2[key] && ed2[key].entries) ? ed2[key].entries.find(function(e){ return e.id === entryId; }) : null;
+      if(extRow){ extRow.cfId = cfId; saveExternalBorrows(ed2); }
+    }
+  }
+
+  // 3) Bank doorway (+amount in, -amount out → net 0). Bank tile unaffected.
+  if(typeof window._adjustBaselineForBank === 'function'){
+    window._adjustBaselineForBank(account, amount);    // doorway IN
+    window._adjustBaselineForBank(account, -amount);   // doorway OUT
+  }
+
+  // 4) Stash the lend record. Shape differs by branch so _lendReverse can route.
+  var lendRecs = [];
+  try { lendRecs = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
+  var rec = {
+    id: lendId,
+    entryId: entryId,
+    amount: amount,
+    date: date,
+    bank: account,
+    pocketId: pocket.id,
+    pocketDepId: pocketDepId,
+    cfId: cfId,
+    createdAt: new Date().toISOString()
+  };
+  if(tag === 'carpool'){
+    rec.isCarpool = true;
+    rec.passenger = key;
+    rec.personName = personName;
+  } else {
+    rec.key = key;
+    rec.personName = personName;
+  }
+  lendRecs.push(rec);
+  lsSet('yb_lends_v1', JSON.stringify(lendRecs));
+
   closeModal('addMoreBorrowModal');
+  if(tag === 'carpool'){ try { renderCarpool(); } catch(e){} }
+  else { try { renderMoneyOwed(); } catch(e){} if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){} }
+  try { renderFunds(); } catch(e){}
+  try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
 
   var old = document.getElementById('borrowAddToast');
   if(old) old.remove();
   var toast = document.createElement('div');
   toast.id = 'borrowAddToast';
   toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a0e2e;border:1px solid #a78bfa;border-radius:8px;padding:12px 16px;z-index:9999;display:flex;align-items:center;gap:10px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;color:#a78bfa;box-shadow:0 4px 20px rgba(0,0,0,.6);min-width:260px;';
-  toast.innerHTML = '<span>💸 R'+Number(amount).toLocaleString('en-ZA')+' added to <strong style="color:#efefef;">'+personName+'</strong> · from '+account+' · logged to cashflow</span><button onclick="document.getElementById(\'borrowAddToast\').remove();" style="background:none;border:none;color:#555;cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
+  toast.innerHTML = '<span>💸 R'+Number(amount).toLocaleString('en-ZA')+' added to <strong style="color:var(--text);">'+personName+'</strong> · from '+account+' · logged to cashflow</span><button onclick="document.getElementById(\'borrowAddToast\').remove();" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
   document.body.appendChild(toast);
   setTimeout(function(){ if(toast.parentNode) toast.remove(); }, 5000);
 }
@@ -152,6 +556,73 @@ function buildFundSelectOptions(selectId){
   sel.value = '';
 }
 
+// ══ v86 (2026-05-27) — POCKET-FIRST external repay ═════════════════════
+// Mirror of carpool confirmRepay flow. Same data shape, same hard-block,
+// same atomic reverse. Differences from carpool:
+//   - Stores person record in loadExternalBorrows() not borrowData
+//   - Payment record carries isExternal:true + externalKey for _repaymentReverse
+//   - Origin pocket lookup walks data[key].entries not borrowData[passenger]
+//
+// State for the pocket picker (separate from carpool's _repaySelectedPocketId
+// so opening one modal doesn't pollute the other).
+var _extRepaySelectedPocketId = null;
+
+function _findOriginPocketForExternal(key){
+  // Look at oldest unpaid borrow on this person; if it has an originPocket
+  // field, use it. Pre-Step-6 personal loans won't have one → returns null
+  // and picker falls back to Daily (or first pocket).
+  var data = loadExternalBorrows();
+  if(!data[key] || !data[key].entries) return null;
+  var unpaid = data[key].entries.filter(function(e){
+    return e.type !== 'repay' && !e.paid && !e.iOwe && !e.completed && e.originPocket;
+  });
+  if(unpaid.length === 0) return null;
+  unpaid.sort(function(a,b){ return (a.date||'') < (b.date||'') ? -1 : 1; });
+  return unpaid[0].originPocket;
+}
+
+function _findDailyPocketId(){
+  // Used as fallback default. Matches the pattern in Spend.
+  var daily = (funds||[]).find(function(f){ return (f.name||'').toLowerCase() === 'daily'; });
+  return daily ? daily.id : (funds && funds.length > 0 ? funds[0].id : null);
+}
+
+function renderExtRepayPocketPicker(){
+  var picker = document.getElementById('extRepayPocketPicker');
+  if(!picker) return;
+  var key = document.getElementById('extRepayPersonKey').value;
+  var originId = _findOriginPocketForExternal(key);
+  // Default selection: origin → daily → first pocket
+  if(originId && funds.find(function(f){ return f.id === originId; })){
+    _extRepaySelectedPocketId = originId;
+  } else {
+    _extRepaySelectedPocketId = _findDailyPocketId();
+  }
+  picker.innerHTML = (funds||[]).map(function(f){
+    var bal = (f.deposits||[]).reduce(function(s,d){
+      return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0));
+    }, 0);
+    var isOrigin = (f.id === originId);
+    var isSelected = (f.id === _extRepaySelectedPocketId);
+    var borderColor = isSelected ? '#a78bfa' : (isOrigin ? '#5a8800' : 'transparent');
+    var bgColor = isSelected ? '#0d0a1a' : (isOrigin ? '#0d1a00' : '#0e0e0e');
+    var nameColor = isSelected ? '#a78bfa' : '#efefef';
+    var tag = isOrigin
+      ? '<span style="font-size:8px;background:#3a5a00;color:#c8f230;border-radius:3px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
+      : '';
+    return '<div onclick="selectExtRepayPocket(\''+f.id+'\')" '
+      + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';">'
+      + '<span style="font-size:12px;color:'+nameColor+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+f.name+tag+'</span>'
+      + '<span style="font-size:10px;color:var(--muted);">R'+bal.toLocaleString('en-ZA')+'</span>'
+      + '</div>';
+  }).join('') || '<div style="font-size:11px;color:var(--muted);padding:8px;text-align:center;">No pockets exist yet.</div>';
+}
+
+function selectExtRepayPocket(id){
+  _extRepaySelectedPocketId = id;
+  renderExtRepayPocketPicker();
+}
+
 function openExternalRepayModal(key){
   const data   = loadExternalBorrows();
   const person = data[key];
@@ -161,12 +632,20 @@ function openExternalRepayModal(key){
   document.getElementById('extRepayAmt').value = '';
   document.getElementById('extRepayDate').value = localDateStr(new Date());
   document.getElementById('extRepayNote').value = '';
+  // Reset bank dropdown to default
+  var bankSel = document.getElementById('extRepayBank');
+  if(bankSel) bankSel.value = 'TymeBank';
   // Show owing
   const { borrowed, repaid } = calcPersonTotals(person.entries);
   const owing = borrowed - repaid;
-  document.getElementById('extRepayOwingSummary').innerHTML =
-    person.name + ' currently owes <strong style="color:#f2a830;font-size:13px;">R' + owing.toLocaleString('en-ZA') + '</strong>';
-  buildFundSelectOptions('extRepayFundSelect');
+  if(owing <= 0){
+    document.getElementById('extRepayOwingSummary').innerHTML =
+      '<span style="color:#c8f230;">✓ ' + person.name + ' has no outstanding balance.</span>';
+  } else {
+    document.getElementById('extRepayOwingSummary').innerHTML =
+      person.name + ' currently owes <strong style="color:#f2a830;font-size:13px;">R' + owing.toLocaleString('en-ZA') + '</strong>';
+  }
+  renderExtRepayPocketPicker();
   document.getElementById('externalRepayModal').classList.add('active');
 }
 
@@ -174,38 +653,127 @@ function confirmExternalRepay(){
   const key    = document.getElementById('extRepayPersonKey').value;
   const amount = parseFloat(document.getElementById('extRepayAmt').value);
   const date   = document.getElementById('extRepayDate').value || localDateStr(new Date());
-  const note   = document.getElementById('extRepayNote').value.trim() || 'Repayment';
+  const bankEl = document.getElementById('extRepayBank');
+  const bank   = bankEl ? bankEl.value : 'TymeBank';
+  const noteRaw = document.getElementById('extRepayNote').value.trim();
   if(!amount || amount <= 0){ alert('Enter a valid repayment amount.'); return; }
+
+  // ── v86 — pocket-first ──
+  var pocketId = _extRepaySelectedPocketId;
+  var pocket = pocketId ? funds.find(function(f){ return f.id === pocketId; }) : null;
+  if(!pocket){
+    alert('Pick a pocket for the repayment to go into.');
+    return;
+  }
+
   const data = loadExternalBorrows();
   if(!data[key]) return;
   const personName = data[key].name || key;
-  const borrowEntryId = uid();
-  data[key].entries.push({ id: borrowEntryId, type:'repay', amount, date, note });
-  saveExternalBorrows(data);
-  // ── Optional: push repayment into a savings fund ──
-  const fundSel = document.getElementById('extRepayFundSelect');
-  if(fundSel && fundSel.value){
-    const linkedId = key + ':' + borrowEntryId;
-    if(fundSel.value === '__maint__'){
-      const mdata = getMaintData();
-      mdata.push({ id: uid(), borrowEntryId: linkedId, person: personName, amount, date, note: '↩ Repaid by ' + personName + (note && note !== 'Repayment' ? ' · ' + note : '') });
-      saveMaintData(mdata);
-      renderMaintCard();
-  odinRefreshIfOpen();
-      showRepayToast(personName, amount, 'Maintenance Fund');
-    } else {
-      const f = funds.find(x => x.id === fundSel.value);
-      if(f){
-        f.deposits.push({ id: uid(), borrowEntryId: linkedId, amount, date, note: '↩ Repaid by ' + personName + (note && note !== 'Repayment' ? ' · ' + note : ''), txnType: 'in' });
-        saveFunds();
-        renderFunds();
-        showRepayToast(personName, amount, f.name);
-      }
-    }
+  if(!data[key].borrowerId){
+    data[key].borrowerId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : uid();
   }
+
+  // 1. Unique ID linking all records
+  var repayId = 'rp_' + uid();
+
+  // 2. CF income row (doorway IN)
+  const cfLabel = '↩ Repayment from ' + personName + ' → ' + pocket.name;
+  const cfNote = 'Borrowed money repaid by ' + personName + ' (via ' + bank + ') into pocket: ' + pocket.name + (noteRaw ? ' · ' + noteRaw : '');
+  var cfId_repay = postToCF({
+    label: cfLabel,
+    amount: amount,
+    date: date,
+    icon: 'repay',
+    type: 'income',
+    sourceType: 'borrow_repaid',
+    sourceId: key,
+    sourceCardName: bank,
+    note: cfNote,
+    destBank: bank,
+    repayId: repayId,
+    destPocketId: pocket.id
+  });
+
+  // 3. Pocket deposit (where the money actually lives)
+  var pocketDepId = uid();
+  pocket.deposits.push({
+    id: pocketDepId,
+    amount: amount,
+    date: date,
+    note: '↩ Repaid by ' + personName + (noteRaw ? ' · ' + noteRaw : ''),
+    txnType: 'in',
+    repayId: repayId,
+    cfRowId: cfId_repay
+  });
+  saveFunds();
+
+  // 4. External borrow repay entry (audit trail)
+  var borrowEntryId = uid();
+  var repayEntry = {
+    id: borrowEntryId,
+    type: 'repay',
+    amount: amount,
+    date: date,
+    note: cfNote,
+    paid: true,
+    cfId: cfId_repay,
+    bank: bank,
+    repayId: repayId,
+    destPocketId: pocket.id,
+    destPocketDepId: pocketDepId
+  };
+  data[key].entries.push(repayEntry);
+  saveExternalBorrows(data);
+
+  // 5. Bank doorway (+amount in, -amount out → net 0)
+  if(typeof window._adjustBaselineForBank === 'function'){
+    var _bankBefore = (typeof loadReconBalances === 'function') ? loadReconBalances() : {};
+    var _kBefore = (bank==='FNB')?'fnb':(bank==='TymeBank')?'tyme':(bank==='Cash')?'cash':null;
+    var _vBefore = _kBefore ? Number(_bankBefore[_kBefore]||0) : null;
+    window._adjustBaselineForBank(bank, amount);    // doorway IN
+    window._adjustBaselineForBank(bank, -amount);   // doorway OUT
+    var _bankAfter = (typeof loadReconBalances === 'function') ? loadReconBalances() : {};
+    var _vAfter = _kBefore ? Number(_bankAfter[_kBefore]||0) : null;
+    console.log('[ext-repay-forward] bank', bank, 'before:', _vBefore, 'after doorway in+out:', _vAfter, '(should match)');
+  }
+
+  // 6. Stash payment record (carries isExternal flag for _repaymentReverse)
+  try {
+    var allReps = [];
+    try { allReps = JSON.parse(lsGet('yb_repayments_v1')||'[]'); } catch(e){}
+    allReps.push({
+      id: repayId,
+      isExternal: true,
+      externalKey: key,
+      passenger: personName,   // for display only; reverse uses externalKey
+      amount: amount,
+      date: date,
+      bank: bank,
+      pocketId: pocket.id,
+      pocketDepId: pocketDepId,
+      cfRowId: cfId_repay,
+      borrowRepayEntryId: borrowEntryId,
+      createdAt: new Date().toISOString()
+    });
+    lsSet('yb_repayments_v1', JSON.stringify(allReps));
+  } catch(e){ console.warn('[ext-repay] save payment record failed', e); }
+
   closeModal('externalRepayModal');
+
+  // Refresh UI
+  if(typeof renderFunds === 'function') try{ renderFunds(); }catch(e){}
   renderMoneyOwed();
+  if(typeof renderCashFlow === 'function') try{ renderCashFlow(); }catch(e){}
   if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){}
+
+  // Toast
+  try{
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d0a1a;border:1px solid #a78bfa;border-radius:8px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#a78bfa;letter-spacing:1px;white-space:nowrap;';
+    toast.textContent = '✓ R'+amount+' from '+personName+' → '+pocket.name;
+    document.body.appendChild(toast);
+    setTimeout(function(){ toast.remove(); }, 4000);
+  }catch(e){}
 }
 
 function showRepayToast(name, amount, fundName){
@@ -214,7 +782,7 @@ function showRepayToast(name, amount, fundName){
   const toast = document.createElement('div');
   toast.id = 'repayFundToast';
   toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0a1a2e;border:1px solid #7090f0;border-radius:8px;padding:12px 16px;z-index:9999;display:flex;align-items:center;gap:10px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;color:#7090f0;box-shadow:0 4px 20px rgba(0,0,0,.6);min-width:260px;';
-  toast.innerHTML = '<span>✓ R'+Number(amount).toLocaleString('en-ZA')+' from '+name+' added to <strong style="color:#efefef;">'+fundName+'</strong></span><button onclick="document.getElementById(\'repayFundToast\').remove();" style="background:none;border:none;color:#555;cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
+  toast.innerHTML = '<span>✓ R'+Number(amount).toLocaleString('en-ZA')+' from '+name+' added to <strong style="color:var(--text);">'+fundName+'</strong></span><button onclick="document.getElementById(\'repayFundToast\').remove();" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
   document.body.appendChild(toast);
   setTimeout(function(){ if(toast.parentNode) toast.remove(); }, 5000);
 }
@@ -226,7 +794,16 @@ function calcPersonTotals(entries){
     // direction and are rendered in a separate section.
     if(e.iOwe || e.type === 'iowe') return;
     if(e.type === 'repay') repaid += Number(e.amount||0);
-    else borrowed += Number(e.amount||0);
+    else {
+      borrowed += Number(e.amount||0);
+      // ── FIX 2026-05-26 ──
+      // A borrow with paid:true (set by Carpool's Mark Paid flow) is
+      // equivalent to a full repayment. Without this, the Money Owed UI
+      // shows borrows as still owed even after they've been marked paid
+      // via carpool. type:'repay' entries (manual Repayment button) are
+      // already handled above.
+      if(e.paid) repaid += Number(e.amount||0);
+    }
   });
   return { borrowed, repaid };
 }
@@ -237,6 +814,149 @@ function calcIOweEntries(entries){
   return (entries||[]).filter(function(e){
     return (e.iOwe || e.type === 'iowe') && !e.completed;
   });
+}
+
+// ── v142d — PAY DEBT (I owe someone, paying them back) ──────────────────
+var _payDebtSelectedPocketId = null;
+
+function openPayDebtModal(key){
+  var data = loadExternalBorrows();
+  var person = data[key];
+  if(!person) return;
+  document.getElementById('payDebtPersonKey').value = key;
+  document.getElementById('payDebtNameDisplay').textContent = person.name;
+  document.getElementById('payDebtAmt').value = '';
+  document.getElementById('payDebtDate').value = localDateStr(new Date());
+  document.getElementById('payDebtNote').value = '';
+  // Show owing
+  var totals = calcPersonTotals(person.entries || []);
+  var owing = totals.borrowed - totals.repaid;
+  var summaryEl = document.getElementById('payDebtOwingSummary');
+  if(summaryEl){
+    summaryEl.innerHTML = 'You still owe <strong style="color:#f23060;font-size:13px;">R' + Math.max(0,owing).toLocaleString('en-ZA') + '</strong> to ' + person.name;
+  }
+  // Reset pocket picker — default to Daily
+  _payDebtSelectedPocketId = null;
+  var daily = (funds||[]).find(function(f){ return /daily/i.test(f.name||''); });
+  _payDebtSelectedPocketId = daily ? daily.id : ((funds||[])[0] ? (funds||[])[0].id : null);
+  _renderPayDebtPocketPicker();
+  document.getElementById('payDebtModal').classList.add('active');
+}
+
+function _renderPayDebtPocketPicker(){
+  var picker = document.getElementById('payDebtPocketPicker');
+  if(!picker) return;
+  var list = (funds||[]).filter(function(f){ return !f._deleted; });
+  picker.innerHTML = list.map(function(f){
+    var bal = (f.deposits||[]).reduce(function(s,d){ return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0)); }, 0);
+    var isSel = (f.id === _payDebtSelectedPocketId);
+    var border = isSel ? '#8a1010' : '#1a1a1a';
+    var bg     = isSel ? '#1a0808' : '#0e0e0e';
+    var nameC  = isSel ? '#f23060' : '#efefef';
+    var balC   = bal <= 0 ? '#555' : '#c8f230';
+    return '<div onclick="selectPayDebtPocket(\''+f.id+'\');updatePayDebtGuardrail();" '
+      + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+border+';background:'+bg+';">'
+      + '<span style="font-size:12px;color:'+nameC+';">'+(f.emoji||'💰')+' '+f.name+'</span>'
+      + '<span style="font-size:11px;color:'+balC+';font-family:Syne,sans-serif;font-weight:700;">R'+bal.toLocaleString('en-ZA')+'</span>'
+      + '</div>';
+  }).join('');
+}
+
+function selectPayDebtPocket(id){
+  _payDebtSelectedPocketId = id;
+  _renderPayDebtPocketPicker();
+}
+
+function updatePayDebtGuardrail(){
+  var amt = parseFloat(document.getElementById('payDebtAmt').value) || 0;
+  var pocket = _payDebtSelectedPocketId ? (funds||[]).find(function(f){ return f.id === _payDebtSelectedPocketId; }) : null;
+  var bal = pocket ? (pocket.deposits||[]).reduce(function(s,d){ return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0)); }, 0) : 0;
+  var guardrail = document.getElementById('payDebtGuardrail');
+  var btn = document.getElementById('payDebtConfirmBtn');
+  if(amt > 0 && pocket && amt > bal){
+    if(guardrail){ guardrail.style.display='block'; guardrail.textContent = '🔒 Only R'+bal.toLocaleString('en-ZA')+' in '+pocket.name+' — pick another pocket or a smaller amount.'; }
+    if(btn){ btn.disabled=true; btn.style.opacity='.4'; }
+  } else {
+    if(guardrail){ guardrail.style.display='none'; }
+    if(btn){ btn.disabled=false; btn.style.opacity='1'; }
+  }
+}
+
+function confirmPayDebt(){
+  var key    = document.getElementById('payDebtPersonKey').value;
+  var amount = parseFloat(document.getElementById('payDebtAmt').value);
+  var date   = document.getElementById('payDebtDate').value || localDateStr(new Date());
+  var note   = document.getElementById('payDebtNote').value.trim();
+  if(!amount || amount <= 0){ alert('Enter a valid amount.'); return; }
+
+  // Pocket check — hard block
+  var pocket = _payDebtSelectedPocketId ? (funds||[]).find(function(f){ return f.id === _payDebtSelectedPocketId; }) : null;
+  if(!pocket){ alert('Pick a pocket to pay from.'); return; }
+  var pocketBal = (pocket.deposits||[]).reduce(function(s,d){ return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0)); }, 0);
+  if(amount > pocketBal){
+    alert('Only R'+pocketBal.toLocaleString('en-ZA')+' in '+pocket.name+'. Pick another pocket or smaller amount.');
+    return;
+  }
+
+  var data = loadExternalBorrows();
+  if(!data[key]) return;
+  var personName = data[key].name || key;
+
+  // Unique link ID
+  var payDebtId = 'pd_' + uid();
+  var entryId = uid();
+
+  // 1. Add repay entry to the debt (reduces what you owe)
+  var repayEntry = {
+    id: entryId,
+    type: 'repay',
+    amount: amount,
+    date: date,
+    note: note || ('Paid ' + personName),
+    payDebtId: payDebtId,
+    pocketId: pocket.id
+  };
+  data[key].entries.push(repayEntry);
+  saveExternalBorrows(data);
+
+  // 2. Deduct from pocket (money leaves you)
+  var pocketDepId = uid();
+  pocket.deposits.push({
+    id: pocketDepId,
+    txnType: 'out',
+    amount: amount,
+    date: date,
+    note: '↑ Paid ' + personName + (note ? ' · ' + note : ''),
+    payDebtId: payDebtId
+  });
+  saveFunds();
+
+  // 3. Log as Cash Flow expense
+  if(typeof postToCF === 'function'){
+    postToCF({
+      label: '↑ Paid ' + personName + (note ? ' · ' + note : ''),
+      amount: amount,
+      date: date,
+      icon: 'expense',
+      type: 'expense',
+      sourceType: 'debt_payment',
+      sourceId: key,
+      sourceCardName: pocket.name,
+      account: pocket.name,
+      note: 'Debt payment to ' + personName + ' from ' + pocket.name + (note ? ' · ' + note : ''),
+      payDebtId: payDebtId,
+      destPocketId: pocket.id
+    });
+  }
+
+  closeModal('payDebtModal');
+  if(typeof renderFunds === 'function') try{ renderFunds(); }catch(e){}
+  renderMoneyOwed();
+  if(typeof renderCashFlow === 'function') try{ renderCashFlow(); }catch(e){}
+  if(typeof renderOdinInsights === 'function') try{ renderOdinInsights('money'); }catch(e){}
+  if(typeof softDeleteToast === 'function'){
+    softDeleteToast({ message: '↑ Paid R' + amount.toLocaleString('en-ZA') + ' to ' + personName + ' from ' + pocket.name, duration: 3500 });
+  }
 }
 
 function renderMoneyOwed(){
@@ -290,7 +1010,15 @@ function renderMoneyOwed(){
   if(moTO) moTO.textContent = 'R' + displayOwing.toLocaleString('en-ZA');
 
   if(people.length === 0){
-    container.innerHTML = '<div style="color:#555;font-size:13px;text-align:center;padding:40px 0;">No one owes you anything right now 🎉</div>';
+    container.innerHTML = (typeof buildEmptyState === 'function')
+      ? buildEmptyState({
+          icon: '🤝',
+          title: 'Nobody owes you anything 🎉',
+          subtitle: 'Lent someone money? Add them here to track repayments.',
+          ctaLabel: '+ Add Person',
+          ctaOnclick: 'openExternalBorrowModal()'
+        })
+      : '<div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">No one owes you anything right now 🎉</div>';
     return;
   }
 
@@ -311,20 +1039,25 @@ function renderMoneyOwed(){
       const delFn    = p.tag === 'carpool'
         ? 'deleteBorrowEntry(\''+p.key+'\',\''+e.id+'\')'
         : 'deleteBorrowEntryUnified(\'__ext__'+p.key+'\',\''+e.id+'\')';
-      const actionBtns = '<span onclick="'+editFn+'" style="cursor:pointer;color:#444;font-size:13px;padding:2px 5px;" title="Edit">✏️</span>'
-        +'<span onclick="'+delFn+'" style="cursor:pointer;color:#444;font-size:13px;padding:2px 5px;" title="Delete">🗑</span>';
+      const actionBtns = '<span onclick="'+editFn+'" style="cursor:pointer;color:var(--muted);font-size:13px;padding:2px 5px;" title="Edit">✏️</span>'
+        +'<span onclick="'+delFn+'" style="cursor:pointer;color:var(--muted);font-size:13px;padding:2px 5px;" title="Delete">🗑</span>';
       if(e.type==='repay') return ''; // repayments hidden from mini statement
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:11px;border-bottom:1px solid #161616;">'
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:11px;border-bottom:1px solid var(--border);">'
         +'<span style="color:#555;">'+e.date+(e.note?' · '+e.note:'')+(e.account?' <span style="font-size:9px;background:#1a0e2e;border:1px solid #3a2060;border-radius:3px;padding:1px 4px;color:#a78bfa;">'+e.account+'</span>':'')+' </span>'
         +'<span style="display:flex;align-items:center;gap:4px;"><span style="color:#a78bfa;">💸 R'+Number(e.amount).toLocaleString('en-ZA')+'</span>'+actionBtns+'</span>'
         +'</div>';
     }).join('');
 
     const repayBtn = p.tag === 'external' && !settled
-      ? '<button onclick="openExternalRepayModal(\''+p.key+'\')" style="padding:7px 14px;background:#0e1a2e;border:1px solid #7090f0;border-radius:6px;color:#7090f0;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">↩ Repayment</button>'
+      ? '<button onclick="openExternalRepayModal(\''+p.key+'\')" style="padding:7px 14px;background:#0e1a2e;border:1px solid #7090f0;border-radius:6px;color:#7090f0;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">↩ They paid me</button>'
       : (p.tag === 'carpool' && !settled
           ? '<button onclick="openRepayModal(\''+p.key+'\')" style="padding:7px 14px;background:#0e1a2e;border:1px solid #7090f0;border-radius:6px;color:#7090f0;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">↩ Repayment</button>'
           : '');
+    // v142d — "↑ Pay Debt" button for historical debts (I owe them)
+    const hasHistorical = (p.entries||[]).some(function(e){ return e.isHistorical; });
+    const payDebtBtn = (p.tag === 'external' && !settled && hasHistorical)
+      ? '<button onclick="openPayDebtModal(\''+p.key+'\')" style="padding:7px 14px;background:#2e0a0a;border:1px solid #8a1010;border-radius:6px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;font-weight:700;">↑ Pay her</button>'
+      : '';
 
     const cardIdx = window._moPersonMap ? Object.keys(window._moPersonMap).length : 0;
     if(!window._moPersonMap) window._moPersonMap = {};
@@ -337,7 +1070,7 @@ function renderMoneyOwed(){
       // Top
       '<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">'
         +'<div style="display:flex;align-items:center;gap:10px;">'
-          +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:16px;color:#efefef;">'+p.name+'</div>'
+          +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:16px;color:var(--text);">'+p.name+'</div>'
           +tagHtml
         +'</div>'
         +'<div style="text-align:right;">'
@@ -347,7 +1080,7 @@ function renderMoneyOwed(){
       +'</div>'
       // Progress bar
       +'<div style="padding:10px 16px;border-bottom:1px solid var(--border);background:#0a0a0a;">'
-        +'<div style="display:flex;justify-content:space-between;font-size:9px;color:#444;margin-bottom:4px;letter-spacing:1px;">'
+        +'<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:4px;letter-spacing:1px;">'
           +'<span>Lent R'+p.borrowed.toLocaleString('en-ZA')+'</span>'
           +'<span>'+pct+'% repaid</span>'
           +'<span>Repaid R'+p.repaid.toLocaleString('en-ZA')+'</span>'
@@ -362,7 +1095,16 @@ function renderMoneyOwed(){
       +'</div>'
       // Actions
       +'<div style="padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+        +(payDebtBtn ? payDebtBtn : '')
         +(repayBtn ? repayBtn : '')
+        +(function(){
+          // Count repayment-type entries (hidden from the rows above). If any
+          // exist, surface a manager so they can be viewed/deleted — without
+          // this, a stale repayment silently distorts the running total.
+          var _rc = (p.entries||[]).filter(function(e){ return !e._deleted && e.type==='repay'; }).length;
+          if(_rc === 0) return '';
+          return '<button onclick="openRepaymentsManager(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#0e2e1a;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">↩ Repayments ('+_rc+')</button>';
+        })()
         +'<button onclick="openAddMoreBorrowModal(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;color:#a78bfa;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">➕ More Borrowed</button>'
         +'<button onclick="exportPersonPDF(this)" style="padding:7px 14px;background:#1a1a00;border:1px solid #5a4a00;border-radius:6px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity=\'.75\'" onmouseout="this.style.opacity=\'1\'">⬇ PDF</button>'
         +(settled && p.key ? '<button onclick="archiveExternalPerson(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#1a1a1a;border:1px solid #333;border-radius:6px;color:#555;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.color=\'#888\'" onmouseout="this.style.color=\'#555\'">📦 Archive</button>' : '')
@@ -378,7 +1120,7 @@ function renderMoneyOwed(){
 // ════════════════════════════════════════════════════════════════════
 // "YOU OWE THESE PEOPLE" SECTION (refunds owed back from overpayments)
 // ════════════════════════════════════════════════════════════════════
-// Reads borrowData for entries flagged iOwe:true (created by the MoneyMoveZ
+// Reads borrowData for entries flagged iOwe:true (created by the Money In
 // overpayment flow when someone pays you more than they owe). Each row
 // shows the amount + a "Pay back" button that opens the outgoing flow.
 function renderIOweSection(container){
@@ -425,7 +1167,7 @@ function renderIOweSection(container){
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
     +   '<div>'
     +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:18px;color:#f2a830;letter-spacing:0.5px;">↩ YOU OWE</div>'
-    +     '<div style="font-size:10px;color:#666;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Refunds from overpayments</div>'
+    +     '<div style="font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Refunds from overpayments</div>'
     +   '</div>'
     +   '<div style="background:#1a0f00;border:1px solid #5a3a00;border-radius:6px;padding:6px 12px;color:#f2a830;font-family:DM Mono,monospace;font-size:13px;font-weight:700;">R'+totalOwed.toFixed(2)+'</div>'
     + '</div>';
@@ -671,31 +1413,41 @@ function loadBorrowReport() {
   const el = function(id){ return document.getElementById(id); };
   el('rptBorrowTotal').textContent  = fmtR(totalBorrowed);
   el('rptBorrowRepaid').textContent = fmtR(totalRepaid);
-  el('rptBorrowOwing').textContent  = fmtR(totalBorrowed - totalRepaid);
+  // Clamp owing at 0 — repayments can exceed borrows in normal usage
+  // (e.g. when a passenger settles old debts via carpool credits) and
+  // a negative number in the report is just confusing.
+  el('rptBorrowOwing').textContent  = fmtR(Math.max(0, totalBorrowed - totalRepaid));
 
   const container = el('rptBorrowRows');
   container.innerHTML = '';
 
   const names = Object.keys(byPerson);
   if (names.length === 0) {
-    container.innerHTML = '<div style="color:#555;font-size:13px;padding:8px 0;">No borrow records yet.</div>';
+    container.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No borrow records yet.</div>';
     return;
   }
 
   names.forEach(function(name) {
     const b = byPerson[name];
-    const owing = b.borrowed - b.repaid;
+    const rawOwing = b.borrowed - b.repaid;
+    const owing    = Math.max(0, rawOwing);   // never display negatives
+    const settled  = rawOwing <= 0;
     const tagBadge = b.tag === 'personal'
       ? '<span style="font-size:9px;padding:1px 7px;border-radius:100px;background:#1a1a2e;color:#7090f0;border:1px solid #2a2a5a;letter-spacing:1px;margin-left:6px;">👤 PERSONAL</span>'
       : '<span style="font-size:9px;padding:1px 7px;border-radius:100px;background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;letter-spacing:1px;margin-left:6px;">🚗 CARPOOL</span>';
     const row = document.createElement('div');
     row.className = 'rpt-row';
     row.style.gridTemplateColumns = '1.5fr 1fr 1fr 1fr';
+    // Settled balances show "✓ Settled" in green; outstanding balances
+    // show the amount in orange. Either way, no negatives ever leak out.
+    const owingCell = settled
+      ? '<span style="color:#c8f230;font-weight:500">✓ Settled</span>'
+      : '<span style="color:#f2a830;font-weight:500">' + fmtR(owing) + '</span>';
     row.innerHTML =
-      '<span style="color:#ccc;display:flex;align-items:center;">' + name + tagBadge + '</span>' +
-      '<span style="color:#888">' + fmtR(b.borrowed) + '</span>' +
+      '<span style="color:var(--text);display:flex;align-items:center;">' + name + tagBadge + '</span>' +
+      '<span style="color:var(--muted)">' + fmtR(b.borrowed) + '</span>' +
       '<span style="color:#c8f230">' + fmtR(b.repaid) + '</span>' +
-      '<span style="color:' + (owing > 0 ? '#f2a830' : '#c8f230') + ';font-weight:500">' + fmtR(owing) + '</span>';
+      owingCell;
     container.appendChild(row);
   });
 }
@@ -741,6 +1493,63 @@ function _roleCanAccessTab(tab){
   } catch(e){ return false; }
 }
 
+// ════════════════════════════════════════════════════════════════════
+// DEFENSIVE TAB RENDER DISPATCHER (item 12)
+// ════════════════════════════════════════════════════════════════════
+// Centralises all per-tab render calls and wraps each one in a try/catch.
+// Used by both switchTab and goToTab so that a single failed render
+// (missing function, undefined ref, throw inside a render) doesn't break
+// navigation or prevent sibling renders in the same tab from running.
+function _renderTabSafely(tab){
+  if(tab==='home')       _safeCall(typeof renderHome==='function'?renderHome:null, 'renderHome');
+  if(tab==='carpool')    _safeCall(typeof renderCarpool==='function'?renderCarpool:null, 'renderCarpool');
+  if(tab==='savings'){
+    _safeCall(typeof renderFunds==='function'?renderFunds:null, 'renderFunds');
+    _safeCall(typeof renderCustomMaintCards==='function'?renderCustomMaintCards:null, 'renderCustomMaintCards');
+    _safeCall(typeof renderMaintCard==='function'?renderMaintCard:null, 'renderMaintCard');
+  }
+  if(tab==='reports'){
+    _safeCall(typeof renderReportFilters==='function'?renderReportFilters:null, 'renderReportFilters');
+    _safeCall(typeof renderReports==='function'?renderReports:null, 'renderReports');
+    _safeCall(typeof loadBorrowReport==='function'?loadBorrowReport:null, 'loadBorrowReport');
+    _safeCall(typeof restoreDailyFuel==='function'?restoreDailyFuel:null, 'restoreDailyFuel');
+    _safeCall(typeof loadFuelReport==='function'?loadFuelReport:null, 'loadFuelReport');
+    _safeCall(typeof restorePricingSettings==='function'?restorePricingSettings:null, 'restorePricingSettings');
+    _safeCall(typeof runSmartEngine==='function'?runSmartEngine:null, 'runSmartEngine');
+    _safeCall(typeof initCFReportPickers==='function'?initCFReportPickers:null, 'initCFReportPickers');
+  }
+  if(tab==='prayer'){ pDayOffset=0; _safeCall(typeof renderPrayer==='function'?renderPrayer:null, 'renderPrayer'); }
+  if(tab==='money'){
+    _safeCall(typeof renderMoneyOwed==='function'?renderMoneyOwed:null, 'renderMoneyOwed');
+    _safeCall(function(){ if(typeof renderOdinInsights==='function') renderOdinInsights('money'); }, 'renderOdinInsights(money)');
+  }
+  if(tab==='cars')        _safeCall(typeof renderCars==='function'?renderCars:null, 'renderCars');
+  if(tab==='instalments') _safeCall(typeof renderInst==='function'?renderInst:null, 'renderInst');
+  if(tab==='school')      _safeCall(typeof renderSchool==='function'?renderSchool:null, 'renderSchool');
+  if(tab==='routine')     _safeCall(typeof renderRoutine==='function'?renderRoutine:null, 'renderRoutine');
+  if(tab==='cashflow')    _safeCall(typeof renderCashFlow==='function'?renderCashFlow:null, 'renderCashFlow');
+  if(tab==='odin'){
+    _safeCall(typeof renderOdinTab==='function'?renderOdinTab:null, 'renderOdinTab');
+    // The Odin tab page also embeds report-style sections (🔧 Maintenance,
+    // 💸 Borrowed, 🚗 Car Expenses, ⛽ Fuel). These are populated by the
+    // Reports renderers — not by renderOdinTab — so we call them here too.
+    // Otherwise the embedded sections show R0 forever.
+    _safeCall(typeof renderReports==='function'?renderReports:null, 'renderReports (for odin tab)');
+    _safeCall(typeof loadBorrowReport==='function'?loadBorrowReport:null, 'loadBorrowReport (for odin tab)');
+    _safeCall(typeof loadFuelReport==='function'?loadFuelReport:null, 'loadFuelReport (for odin tab)');
+    _safeCall(typeof renderMaintReport==='function'?renderMaintReport:null, 'renderMaintReport (for odin tab)');
+  }
+}
+
+function _safeCall(fn, label){
+  try {
+    if(typeof fn === 'function') fn();
+    else if(fn !== null) console.warn('[_safeCall] not a function:', label);
+  } catch(e){
+    console.warn('[_safeCall] '+label+' threw:', e);
+  }
+}
+
 function switchTab(tab,btn){
   // Enforce role — silently ignore attempts to switch to disallowed tabs.
   // Without this, drawer items and Odin chat commands could navigate
@@ -752,6 +1561,8 @@ function switchTab(tab,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('navSavings').classList.remove('active');
   document.getElementById('navCarpool').classList.remove('active');
+  var navHome = document.getElementById('navHome');
+  if(navHome) navHome.classList.remove('active');
   var navCars = document.getElementById('navCars');
   if(navCars) navCars.classList.remove('active');
   var navInst = document.getElementById('navInstalments');
@@ -764,6 +1575,7 @@ function switchTab(tab,btn){
   if(navCf) navCf.classList.remove('active');
   var navOdin = document.getElementById('navOdin');
   if(navOdin) navOdin.classList.remove('active');
+  if(tab==='home' && navHome) navHome.classList.add('active');
   if(tab==='savings') document.getElementById('navSavings').classList.add('active');
   if(tab==='carpool') document.getElementById('navCarpool').classList.add('active');
   if(tab==='cars' && navCars) navCars.classList.add('active');
@@ -773,17 +1585,10 @@ function switchTab(tab,btn){
   if(tab==='cashflow' && navCf) navCf.classList.add('active');
   if(tab==='odin' && navOdin) navOdin.classList.add('active');
   document.getElementById('page-'+tab).classList.add('active');
-  if(tab==='carpool') renderCarpool();
-  if(tab==='savings'){ renderFunds(); renderCustomMaintCards(); try { renderMaintCard(); } catch(e){} }
-  if(tab==='reports'){ renderReportFilters(); renderReports(); loadBorrowReport(); restoreDailyFuel(); loadFuelReport(); restorePricingSettings(); runSmartEngine(); initCFReportPickers(); }
-  if(tab==='prayer'){ pDayOffset=0; renderPrayer(); }
-  if(tab==='money'){ renderMoneyOwed(); try{ renderOdinInsights('money'); }catch(e){} }
-  if(tab==='cars'){ renderCars(); }
-  if(tab==='instalments'){ renderInst(); }
-  if(tab==='school'){ renderSchool(); }
-  if(tab==='routine'){ renderRoutine(); }
-  if(tab==='cashflow'){ renderCashFlow(); }
-  if(tab==='odin'){ renderOdinTab(); }
+  // Defensive render dispatch — each render call wrapped so a single
+  // failure (missing function, ReferenceError) doesn't halt others or
+  // break tab navigation. Same pattern as the maintenance card boot fix.
+  _renderTabSafely(tab);
 }
 
 // Navigate to a tab without needing a button reference
@@ -797,6 +1602,8 @@ function goToTab(tab){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('navSavings').classList.remove('active');
   document.getElementById('navCarpool').classList.remove('active');
+  var navHome = document.getElementById('navHome');
+  if(navHome) navHome.classList.remove('active');
   var navCars = document.getElementById('navCars');
   if(navCars) navCars.classList.remove('active');
   var navInst = document.getElementById('navInstalments');
@@ -807,6 +1614,7 @@ function goToTab(tab){
   if(navRoutine) navRoutine.classList.remove('active');
   var navCf = document.getElementById('navCashflow');
   if(navCf) navCf.classList.remove('active');
+  if(tab==='home' && navHome) navHome.classList.add('active');
   if(tab==='savings') document.getElementById('navSavings').classList.add('active');
   if(tab==='carpool') document.getElementById('navCarpool').classList.add('active');
   if(tab==='cars' && navCars) navCars.classList.add('active');
@@ -815,17 +1623,10 @@ function goToTab(tab){
   if(tab==='routine' && navRoutine) navRoutine.classList.add('active');
   if(tab==='cashflow' && navCf) navCf.classList.add('active');
   document.getElementById('page-'+tab).classList.add('active');
-  if(tab==='carpool') renderCarpool();
-  if(tab==='savings'){ renderFunds(); renderCustomMaintCards(); try { renderMaintCard(); } catch(e){} }
-  if(tab==='reports'){ renderReportFilters(); renderReports(); loadBorrowReport(); restoreDailyFuel(); loadFuelReport(); restorePricingSettings(); runSmartEngine(); initCFReportPickers(); }
-  if(tab==='prayer'){ pDayOffset=0; renderPrayer(); }
-  if(tab==='money'){ renderMoneyOwed(); try{ renderOdinInsights('money'); }catch(e){} }
-  if(tab==='cars'){ renderCars(); }
-  if(tab==='instalments'){ renderInst(); }
-  if(tab==='school'){ renderSchool(); }
-  if(tab==='routine'){ renderRoutine(); }
-  if(tab==='cashflow'){ renderCashFlow(); }
-  if(tab==='odin'){ renderOdinTab(); }
+  // Defensive render dispatch — each render call wrapped so a single
+  // failure (missing function, ReferenceError) doesn't halt others or
+  // break tab navigation. Same pattern as the maintenance card boot fix.
+  _renderTabSafely(tab);
 }
 
 // ── POST-LOGIN LAUNCH MENU ──
@@ -868,17 +1669,17 @@ function openIOwePayBack(store, key, entryId){
     +   '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
     +     '<div>'
     +       '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:18px;color:#f2a830;">↩ Pay back '+escHtml(displayName)+'</div>'
-    +       '<div style="font-size:10px;color:#666;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Refund owed: R'+amt.toFixed(2)+'</div>'
+    +       '<div style="font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Refund owed: R'+amt.toFixed(2)+'</div>'
     +     '</div>'
-    +     '<button onclick="document.getElementById(\'iOweModal\').remove();" style="background:none;border:none;color:#666;font-size:22px;cursor:pointer;">&times;</button>'
+    +     '<button onclick="document.getElementById(\'iOweModal\').remove();" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;">&times;</button>'
     +   '</div>'
     +   '<div style="margin-bottom:10px;">'
-    +     '<div style="font-size:9px;color:#666;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Amount paid</div>'
+    +     '<div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Amount paid</div>'
     +     '<input type="number" id="iOweAmt" value="'+amt.toFixed(2)+'" step="0.01" '
     +       'style="width:100%;background:#111;border:1px solid #2a2a2a;color:#c8f230;font-family:DM Mono,monospace;font-size:16px;font-weight:700;padding:10px 12px;border-radius:6px;outline:none;box-sizing:border-box;"/>'
     +   '</div>'
     +   '<div style="margin-bottom:10px;">'
-    +     '<div style="font-size:9px;color:#666;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Paid from</div>'
+    +     '<div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Paid from</div>'
     +     '<select id="iOweBank" style="width:100%;background:#111;border:1px solid #2a2a2a;color:#efefef;font-family:DM Mono,monospace;font-size:13px;padding:10px 12px;border-radius:6px;outline:none;">'
     +       '<option value="TymeBank">TymeBank</option>'
     +       '<option value="FNB">FNB</option>'
@@ -887,12 +1688,12 @@ function openIOwePayBack(store, key, entryId){
     +     '</select>'
     +   '</div>'
     +   '<div style="margin-bottom:14px;">'
-    +     '<div style="font-size:9px;color:#666;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Date</div>'
+    +     '<div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Date</div>'
     +     '<input type="date" id="iOweDate" value="'+todayStr+'" '
     +       'style="width:100%;background:#111;border:1px solid #2a2a2a;color:#efefef;font-family:DM Mono,monospace;font-size:13px;padding:10px 12px;border-radius:6px;outline:none;box-sizing:border-box;"/>'
     +   '</div>'
     +   '<div style="display:flex;gap:8px;">'
-    +     '<button onclick="document.getElementById(\'iOweModal\').remove();" style="flex:1;padding:11px;background:none;border:1px solid #2a2a2a;border-radius:6px;color:#888;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Cancel</button>'
+    +     '<button onclick="document.getElementById(\'iOweModal\').remove();" style="flex:1;padding:11px;background:none;border:1px solid #2a2a2a;border-radius:6px;color:var(--muted);font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Cancel</button>'
     +     '<button onclick="confirmIOwePayBack()" style="flex:2;padding:11px;background:#f2a830;border:none;border-radius:6px;color:#000;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">✓ Confirm payment</button>'
     +   '</div>'
     + '</div>';
@@ -1007,3 +1808,158 @@ function _findIOweEntry(store, key, entryId){
 // ════════════════════════════════════════════════════════════════════
 // END PAY-BACK FLOW
 // ════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════
+// MANAGE REPAYMENTS (May 2026 — fixes hidden-repayment problem)
+// Repayment-type entries are hidden from the person card (intentional —
+// keeps the mini-statement clean). But that meant a wrongly-logged or
+// stale repayment could silently distort the running total with NO way
+// to view or remove it. This modal exposes every repayment for a person
+// and lets you delete individual ones, reusing the SAME delete functions
+// the card already uses (so cloud soft-delete + linked Cash Flow reversal
+// all happen correctly — no new delete logic, just visibility).
+// ════════════════════════════════════════════════════════════════════
+function openRepaymentsManager(personKey, tag){
+  var entries = [];
+  var name = personKey;
+  if(tag === 'carpool'){
+    if(typeof loadBorrows === 'function') loadBorrows();
+    entries = (borrowData[personKey] || [])
+      .filter(function(e){ return !e._deleted && e.type === 'repay'; });
+    name = personKey;
+  } else {
+    var d = loadExternalBorrows();
+    var person = d[personKey];
+    if(person){
+      name = person.name || personKey;
+      entries = (person.entries || [])
+        .filter(function(e){ return !e._deleted && e.type === 'repay'; });
+    }
+  }
+
+  var modal = document.getElementById('repayMgrModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'repayMgrModal';
+    modal.className = 'overlay';
+    modal.innerHTML =
+      '<div class="modal" style="max-width:420px;">'
+      + '<h2 style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:20px;color:var(--text);margin-bottom:4px;">↩ Repayments</h2>'
+      + '<div id="repayMgrSub" style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;"></div>'
+      + '<div id="repayMgrList"></div>'
+      + '<div class="modal-btns" style="margin-top:18px;">'
+      + '<button class="btn ghost" onclick="closeModal(\'repayMgrModal\')">Close</button>'
+      + '</div>'
+      + '</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function(ev){ if(ev.target === modal) modal.classList.remove('active'); });
+  }
+
+  document.getElementById('repayMgrSub').textContent = name + ' · ' + entries.length + ' repayment' + (entries.length === 1 ? '' : 's');
+
+  var listEl = document.getElementById('repayMgrList');
+  if(!entries.length){
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:20px 0;text-align:center;">No repayments logged for ' + name + '.</div>';
+  } else {
+    listEl.innerHTML = entries
+      .slice()
+      .sort(function(a,b){ return a.date < b.date ? -1 : 1; })
+      .map(function(e){
+        var delFn = tag === 'carpool'
+          ? "deleteRepayFromManager('" + personKey + "','" + e.id + "','carpool')"
+          : "deleteRepayFromManager('" + personKey + "','" + e.id + "','external')";
+        var acct = e.account
+          ? ' <span style="font-size:9px;background:#1a0e2e;border:1px solid #3a2060;border-radius:3px;padding:1px 4px;color:#a78bfa;">' + e.account + '</span>'
+          : '';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">'
+          + '<div style="display:flex;flex-direction:column;gap:2px;">'
+          + '<span style="font-size:12px;color:#c8f230;font-weight:500;">+R' + Number(e.amount).toLocaleString('en-ZA') + '</span>'
+          + '<span style="font-size:10px;color:var(--muted);">' + (e.date || '—') + (e.note ? ' · ' + e.note : '') + acct + '</span>'
+          + '</div>'
+          + '<button onclick="' + delFn + '" style="background:#1a0000;border:1px solid #5a1a1a;border-radius:6px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;padding:6px 12px;cursor:pointer;">🗑 Delete</button>'
+          + '</div>';
+      }).join('');
+  }
+
+  modal.classList.add('active');
+}
+
+// Bridges the manager's delete button to the existing, proven delete
+// functions, then refreshes the manager so the list updates in place.
+function deleteRepayFromManager(personKey, entryId, tag){
+  if(tag === 'carpool'){
+    if(typeof deleteBorrowEntry === 'function') deleteBorrowEntry(personKey, entryId);
+  } else {
+    if(typeof deleteBorrowEntryUnified === 'function') deleteBorrowEntryUnified('__ext__' + personKey, entryId);
+  }
+  // Re-render the manager so the deleted repayment drops out of the list.
+  // Small delay lets the underlying save/render settle first.
+  setTimeout(function(){
+    if(document.getElementById('repayMgrModal') && document.getElementById('repayMgrModal').classList.contains('active')){
+      openRepaymentsManager(personKey, tag);
+    }
+  }, 120);
+}
+
+if(typeof window !== 'undefined'){
+  window.openRepaymentsManager = openRepaymentsManager;
+  window.deleteRepayFromManager = deleteRepayFromManager;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// LINK BORROW EDIT → CASH FLOW (May 2026 — closes the last gap)
+// A loan creates a linked CF expense (logBorrowToCashflow stamps cfId
+// onto the borrow entry). Deleting the loan already removes that CF
+// record. But EDITING the loan amount left the CF entry stale — the
+// bug behind the Lezaun R110/R100 confusion. This finds the linked CF
+// entry by cfId, updates its amount/date/label, and adjusts the bank
+// baseline by the difference (so the bank tile stays correct — same
+// reverse-old/apply-new pattern used in cashflow.js saveCfEntry).
+// Safe no-op if the entry has no cfId (older entries / repayments).
+// ════════════════════════════════════════════════════════════════════
+function updateLinkedCFEntry(cfId, newAmount, newDate, personName){
+  if(!cfId) return;                       // not linked — nothing to do
+  if(typeof loadCFData !== 'function') return;
+  try{
+    var cfData = loadCFData();
+    var found  = null, foundMk = null, foundSec = null;
+    Object.keys(cfData).forEach(function(mk){
+      ['income','expenses'].forEach(function(sec){
+        if(found) return;
+        var arr = cfData[mk] && cfData[mk][sec];
+        if(!arr) return;
+        var hit = arr.find(function(e){ return e.id === cfId; });
+        if(hit){ found = hit; foundMk = mk; foundSec = sec; }
+      });
+    });
+    if(!found) return;                    // linked CF entry not present
+
+    var oldAmount = Number(found.amount) || 0;
+    var newAmt    = Number(newAmount)    || 0;
+    if(oldAmount === newAmt && (!newDate || newDate === found.date)) return; // no change
+
+    // Adjust the bank baseline by the delta. A loan CF entry is an EXPENSE
+    // (money left your account), so increasing the loan removes more, etc.
+    // direction: expense => negative effect. delta in effect = -(new-old).
+    if(typeof window._adjustBaselineForBank === 'function'){
+      var bank = found.destBank
+        || (['FNB','TymeBank','Cash'].indexOf(found.account) > -1 ? found.account : null);
+      if(bank){
+        var effectOld = -oldAmount;       // expense reduced the bank by oldAmount
+        var effectNew = -newAmt;          // expense should reduce by newAmt
+        window._adjustBaselineForBank(bank, (effectNew - effectOld));
+      }
+    }
+
+    found.amount = newAmt;
+    if(newDate) found.date = newDate;
+    // Keep the label's amount-free wording; logBorrowToCashflow builds it
+    // without the number, so no relabel needed. Leave label as-is.
+    cfData[foundMk][foundSec] = cfData[foundMk][foundSec].map(function(e){
+      return e.id === cfId ? found : e;
+    });
+    saveCFData(cfData);
+    if(typeof renderCashFlow === 'function'){ try{ renderCashFlow(); }catch(e){} }
+  }catch(e){ console.warn('updateLinkedCFEntry failed:', e); }
+}
+if(typeof window !== 'undefined') window.updateLinkedCFEntry = updateLinkedCFEntry;

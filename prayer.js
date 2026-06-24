@@ -210,7 +210,7 @@ function renderTodayGrid(data, today){
 
   grid.innerHTML = prayers.map(p => {
     const done = todayEntry[p.key] === 1;
-    const timeStr = times[p.key] ? '<span style="font-size:10px;color:#aaa;letter-spacing:1px;margin-top:1px;">'+times[p.key]+'</span>' : '';
+    const timeStr = times[p.key] ? '<span style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:1px;">'+times[p.key]+'</span>' : '';
     const isJumuah = p.key === 'j';
     const bgColor = done
       ? (p.key==='t' ? 'rgba(155,89,182,.15)' : isJumuah ? 'rgba(242,168,48,.1)' : 'rgba(200,242,48,.1)')

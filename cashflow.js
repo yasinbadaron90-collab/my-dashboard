@@ -31,7 +31,7 @@ function buildCFMonthData(mk){
 
   // Carpool income is intentionally NOT auto-pulled here. Carpool entries on
   // the Carpool tab represent expected/projected earnings, not money received.
-  // Real income only counts when the user actively logs receipt via MoneyMoveZ
+  // Real income only counts when the user actively logs receipt via Money In
   // (which posts a proper income entry through postToCF). Otherwise the cash
   // flow report would over-report income that's still owed to the user.
 
@@ -39,7 +39,7 @@ function buildCFMonthData(mk){
   // Previously the PDF path pulled instalments, savings deposits, and car
   // spends into the expense list automatically. The in-app screen does NOT
   // do this — instalment payments are logged manually when paid, savings
-  // come through MoneyMoveZ, and car spends post via Use Funds → CF directly.
+  // come through Money In, and car spends post via Use Funds → CF directly.
   //
   // Keeping the auto-pulls in the PDF caused a discrepancy: the PDF total
   // would be e.g. R10,365 while the in-app showed R9,689 for the same month.
@@ -133,8 +133,8 @@ function buildCFPDF(months, titleLabel){
   toast.id = 'cfPdfToast';
   toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #3a5a00;border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 24px rgba(0,0,0,.5);min-width:240px;';
   toast.innerHTML = '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:#c8f230;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
-    +'<div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:13px;color:#efefef;">Generating PDF...</div>'
-    +'<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">Cash Flow Report</div></div>';
+    +'<div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:13px;color:var(--text);">Generating PDF...</div>'
+    +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">Cash Flow Report</div></div>';
   if(!document.getElementById('spinStyle')){
     var sp=document.createElement('style');sp.id='spinStyle';
     sp.textContent='@keyframes spin{to{transform:rotate(360deg);}}';
@@ -508,9 +508,14 @@ function exportReport(type){
     csv+='Date,Description,Amount\n';
     const carFundExp=funds.find(function(f){return f.isExpense;});
     if(carFundExp){
-      carFundExp.deposits.filter(function(d){return d.txnType==='out';}).sort(function(a,b){return new Date(a.date)-new Date(b.date);}).forEach(function(d){
-        csv+=d.date+','+(d.note||'').replace(/,/g,' ')+','+d.amount+'\n';
-      });
+      // Match savings card logic: outflow = txnType==='out' OR no txnType field
+      // (legacy records added before the txnType flag existed)
+      (carFundExp.deposits||[])
+        .filter(function(d){ return d.txnType === 'out' || !d.txnType; })
+        .sort(function(a,b){ return new Date(a.date) - new Date(b.date); })
+        .forEach(function(d){
+          csv+=d.date+','+(d.note||'').replace(/,/g,' ')+','+d.amount+'\n';
+        });
     }
     csv+='\n';
   }
@@ -664,50 +669,18 @@ function localDateTimeStr(d){
 // ══ SETTINGS ══
 function openSettings(){
   document.getElementById('restoreStatus').textContent='';
-  document.getElementById('pinChangeStatus').textContent='';
-  document.getElementById('pinNew').value='';
-  document.getElementById('pinConfirm').value='';
   document.getElementById('passPinStatus') && (document.getElementById('passPinStatus').textContent='');
   renderPassengerRows();
-  renderLoginUserRows();
-  // Biometric status
-  const bioStatus = document.getElementById('biometricSettingsStatus');
-  const bioBtn = document.getElementById('biometricSettingsBtn');
-  if(bioStatus && bioBtn){
-    const registered = lsGet(BIOMETRIC_KEY) === 'true';
-    const supported = biometricSupported();
-    if(!supported){
-      bioStatus.textContent = 'Not supported on this browser/device.';
-      bioBtn.innerHTML = '';
-    } else if(registered){
-      bioStatus.textContent = 'Fingerprint is registered and active.';
-      bioBtn.innerHTML = '<button onclick="removeBiometric()" style="width:100%;padding:10px;background:#1a0a0a;border:1px solid #3a1010;border-radius:6px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">🗑 Remove Fingerprint</button>';
-    } else {
-      bioStatus.textContent = 'Not set up yet. Register your fingerprint to skip the PIN.';
-      bioBtn.innerHTML = '<button onclick="confirmBiometricSetup(this.closest(\'[style]\'))" style="width:100%;padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">👆 Register Fingerprint</button>';
-    }
-  }
+  // Populate the carpool tariff inputs with current saved values
+  if(typeof populateCarpoolTariffInputs === 'function') try { populateCarpoolTariffInputs(); } catch(e){}
   document.getElementById('settingsModal').classList.add('active');
+  // Pre-fill Bank Feed API key field
+  try { if(typeof bfPreFillKeyInput === 'function') bfPreFillKeyInput(); } catch(e){}
+  // Refresh cloud sync status panel (added in Supabase migration)
+  try { if(typeof refreshCloudSyncStatus === 'function') refreshCloudSyncStatus(); } catch(e){}
+  // Refresh Google Drive export/import timestamps
+  try { if(typeof refreshDriveStatus === 'function') refreshDriveStatus(); } catch(e){}
 }
-
-function renderPassPinRows(){
-  const container = document.getElementById('passPinRows');
-  if(!container) return;
-  const passengers = Object.entries(PINS).filter(function(e){ return e[1].role==='user' || e[1].role==='carservice'; });
-  container.innerHTML = passengers.map(function(entry){
-    const pin = entry[0];
-    const user = entry[1];
-    const id = 'pinval_' + pin;
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0d1a10;border:1px solid #1a4028;border-radius:4px;">'
-      + '<span style="font-family:\'DM Mono\',monospace;font-size:11px;color:#efefef;letter-spacing:1px;">'+user.name+'</span>'
-      + '<span style="display:flex;align-items:center;gap:8px;">'
-      + '<span id="'+id+'" data-pin="'+pin+'" style="font-family:\'DM Mono\',monospace;font-size:14px;color:#c8f230;letter-spacing:4px;">••••</span>'
-      + '<button onclick="(function(el,btn){if(el.textContent===\'••••\'){el.textContent=el.dataset.pin;btn.textContent=\'Hide\';}else{el.textContent=\'••••\';btn.textContent=\'Show\';}})(document.getElementById(\''+id+'\'),this)" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 7px;color:#888;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">Show</button>'
-      + '</span>'
-      + '</div>';
-  }).join('');
-}
-
 
 function renderPassOptList(){
   // Re-render the statement pane passenger checkboxes dynamically
@@ -716,96 +689,6 @@ function renderPassOptList(){
   container.innerHTML = PASSENGER_DATA.map(function(p){
     return '<div class="pass-opt selected" data-name="'+p.name+'" onclick="togglePassOpt(this)"><span>'+p.name+'</span><span class="chk">✓</span></div>';
   }).join('');
-}
-
-// ══ LOGIN USER MANAGEMENT ══
-var lumSelRole = 'user';
-
-function renderLoginUserRows(){
-  const container = document.getElementById('loginUserRows');
-  if(!container) return;
-  const roleLabels = { admin:'Admin', user:'Passenger', carservice:'Car Service' };
-  const roleColors = { admin:'#c8f230', user:'#7090f0', carservice:'#f2a830' };
-  container.innerHTML = Object.entries(PINS).map(function(entry){
-    const pin = entry[0];
-    const user = entry[1];
-    const isMe = user.name === currentUser;
-    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0d1228;border:1px solid #1a2040;border-radius:6px;">'
-      +'<span style="flex:1;font-family:\'DM Mono\',monospace;font-size:12px;color:#efefef;">'+user.name+(isMe?' <span style="font-size:9px;color:#555;">(you)</span>':'')+'</span>'
-      +'<span style="font-size:9px;padding:2px 8px;border-radius:100px;background:#1a1a2e;color:'+(roleColors[user.role]||'#888')+';border:1px solid #2a2a4a;letter-spacing:1px;">'+( roleLabels[user.role]||user.role)+'</span>'
-      +'<span style="font-family:\'DM Mono\',monospace;font-size:13px;color:#c8f230;letter-spacing:3px;">'+pin+'</span>'
-      +'<button onclick="editLoginUser(\''+pin+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:#888;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">Edit</button>'
-      +(!isMe ? '<button onclick="deleteLoginUser(\''+pin+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:3px 8px;color:#555;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">✕</button>' : '')
-    +'</div>';
-  }).join('');
-}
-
-function setLumRole(role, btn){
-  lumSelRole = role;
-  document.getElementById('lumRole').value = role;
-  ['user','admin','carservice'].forEach(function(r){
-    const b = document.getElementById('lumRole'+r.charAt(0).toUpperCase()+r.slice(1));
-    if(!b) return;
-    if(r === role){
-      b.style.borderColor = '#c8f230'; b.style.background = '#1a2e00'; b.style.color = '#c8f230';
-    } else {
-      b.style.borderColor = 'var(--border)'; b.style.background = 'none'; b.style.color = 'var(--muted)';
-    }
-  });
-}
-
-function addLoginUser(){
-  lumSelRole = 'user';
-  document.getElementById('loginUserModalTitle').textContent = '🔐 Add Login User';
-  document.getElementById('lumName').value = '';
-  document.getElementById('lumPin').value = '';
-  document.getElementById('lumOldPin').value = '';
-  document.getElementById('lumStatus').textContent = '';
-  setLumRole('user', null);
-  document.getElementById('loginUserModal').classList.add('active');
-}
-
-function editLoginUser(pin){
-  const user = PINS[pin];
-  if(!user) return;
-  lumSelRole = user.role;
-  document.getElementById('loginUserModalTitle').textContent = '✏️ Edit Login User';
-  document.getElementById('lumName').value = user.name;
-  document.getElementById('lumPin').value = pin;
-  document.getElementById('lumOldPin').value = pin;
-  document.getElementById('lumStatus').textContent = '';
-  setLumRole(user.role, null);
-  document.getElementById('loginUserModal').classList.add('active');
-}
-
-function saveLoginUser(){
-  const name = document.getElementById('lumName').value.trim();
-  const pin = document.getElementById('lumPin').value.trim();
-  const oldPin = document.getElementById('lumOldPin').value.trim();
-  const role = document.getElementById('lumRole').value || 'user';
-  const status = document.getElementById('lumStatus');
-
-  if(!name){ status.style.color='#f23060'; status.textContent='Enter a name.'; return; }
-  if(!/^\d{4}$/.test(pin)){ status.style.color='#f23060'; status.textContent='PIN must be exactly 4 digits.'; return; }
-  if(PINS[pin] && pin !== oldPin){
-    status.style.color='#f23060'; status.textContent='That PIN is already used by '+PINS[pin].name+'.'; return;
-  }
-  if(oldPin && oldPin !== pin) delete PINS[oldPin];
-  PINS[pin] = { role, name };
-  savePINS(PINS);
-  closeModal('loginUserModal');
-  renderLoginUserRows();
-  showBackupReminder('Login users updated');
-}
-
-function deleteLoginUser(pin){
-  const user = PINS[pin];
-  if(!user) return;
-  if(user.name === currentUser){ alert('You can\'t delete your own login.'); return; }
-  if(!confirm('Remove login access for '+user.name+'? Their data stays, they just can\'t log in.')) return;
-  delete PINS[pin];
-  savePINS(PINS);
-  renderLoginUserRows();
 }
 
 // ══ CASH FLOW ══
@@ -964,12 +847,19 @@ function setCfBank(bank, btn){
   document.getElementById('cfEntryBank').value = bank;
   var fnbBtn  = document.getElementById('cfBankFNB');
   var tymeBtn = document.getElementById('cfBankTyme');
+  var cashBtn = document.getElementById('cfBankCash');
+  // FNB (blue)
   if(fnbBtn){  fnbBtn.style.borderColor  = bank==='FNB'     ? '#4a7aaa' : 'var(--border)';
                fnbBtn.style.background   = bank==='FNB'     ? '#0a0f1a' : 'none';
                fnbBtn.style.color        = bank==='FNB'     ? '#4a9aff' : 'var(--muted)'; }
+  // TymeBank (orange)
   if(tymeBtn){ tymeBtn.style.borderColor = bank==='TymeBank'? '#aa8a00' : 'var(--border)';
                tymeBtn.style.background  = bank==='TymeBank'? '#1a1000' : 'none';
                tymeBtn.style.color       = bank==='TymeBank'? '#f2a830' : 'var(--muted)'; }
+  // Cash (lime)
+  if(cashBtn){ cashBtn.style.borderColor = bank==='Cash'    ? '#3a5a00' : 'var(--border)';
+               cashBtn.style.background  = bank==='Cash'    ? '#0d1a00' : 'none';
+               cashBtn.style.color       = bank==='Cash'    ? '#c8f230' : 'var(--muted)'; }
 }
 
 function setCfRecur(val, btn){
@@ -1000,6 +890,290 @@ function buildCfIconGrid(){
 }
 
 function openCfEntryModal(type, editId){
+  // ── HARD-BLOCK GUARD: editing a Money-In-linked CF entry (2026-05-20) ──
+  // If the user taps ✎ on a CF line that belongs to a Money In record, editing
+  // the amount or bank here without re-splitting the pockets would drift the
+  // model. Redirect them to Money In's own edit flow, which reverses the old
+  // group atomically and applies the new one.
+  if(editId){
+    try{
+      var _peekCF = loadCFData();
+      var _peekMk = cfKey();
+      var _peekSec = type === 'income' ? 'income' : 'expenses';
+      var _peekEntry = null;
+      if(_peekCF[_peekMk] && _peekCF[_peekMk][_peekSec]){
+        _peekEntry = _peekCF[_peekMk][_peekSec].find(function(e){ return e.id===editId; });
+      }
+      if(!_peekEntry && _peekCF.recurring && _peekCF.recurring[_peekSec]){
+        _peekEntry = _peekCF.recurring[_peekSec].find(function(e){ return e.id===editId; });
+      }
+      if(_peekEntry && _peekEntry.moneyInId){
+        var _miList = [];
+        try{ _miList = JSON.parse(lsGet('yb_moneyin_v1')||'[]'); }catch(e){}
+        var _miRec = _miList.find(function(r){ return r.id === _peekEntry.moneyInId; });
+        if(_miRec){
+          var _miLabel = (_miRec.note || 'Money In') + ' · ' + fmtR(_miRec.amount);
+          var _bodyMsg =
+            'This line is part of:\n  '+_miLabel+'\n\n'+
+            'Editing here would only change this line — the linked income, house and pocket deposits would no longer match.';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from Money In instead',
+              body:  _bodyMsg,
+              dangerLabel: '✎ Open Money In to edit',
+              safeLabel:   'Leave it alone'
+            }, function(goEdit){
+              if(goEdit && typeof openMoneyIn === 'function'){
+                openMoneyIn(_peekEntry.moneyInId);
+              }
+            });
+          } else {
+            if(confirm('🔒 Edit from Money In instead\n\n'+_bodyMsg+'\n\nTap OK to open Money In.\nTap Cancel to leave it alone.')){
+              if(typeof openMoneyIn === 'function') openMoneyIn(_peekEntry.moneyInId);
+            }
+          }
+          return; // Either way, do NOT open the regular CF edit modal.
+        }
+      }
+
+      // ── Same guard for Spend records ──
+      if(_peekEntry && _peekEntry.spendId){
+        var _spList = [];
+        try{ _spList = JSON.parse(lsGet('yb_spend_v1')||'[]'); }catch(e){}
+        var _spRec = _spList.find(function(r){ return r.id === _peekEntry.spendId; });
+        if(_spRec){
+          var _spLabel = (_spRec.label || 'Spend') + ' · ' + fmtR(_spRec.amount);
+          var _spBody =
+            'This line is part of:\n  '+_spLabel+'\n\n'+
+            'Editing here would only change the Cash Flow line — the pocket would no longer match. Edit the Spend itself instead.';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from Spend instead',
+              body:  _spBody,
+              dangerLabel: '✎ Open Spend to edit',
+              safeLabel:   'Leave it alone'
+            }, function(goEdit){
+              if(goEdit && typeof openSpend === 'function'){
+                openSpend(_peekEntry.spendId);
+              }
+            });
+          } else {
+            if(confirm('🔒 Edit from Spend instead\n\n'+_spBody+'\n\nTap OK to open Spend.\nTap Cancel to leave it alone.')){
+              if(typeof openSpend === 'function') openSpend(_peekEntry.spendId);
+            }
+          }
+          return;
+        }
+      }
+
+      // ── v108-patch2 — Lend records (carpool + external) ──
+      // Editing the CF line in isolation would let the pocket out-deposit, the
+      // borrow entry, and the bank doorway drift apart. Send the user to
+      // Money Owed where the loan can be reversed atomically via _lendReverse.
+      if(_peekEntry && _peekEntry.lendId){
+        var _lndEditList = [];
+        try{ _lndEditList = JSON.parse(lsGet('yb_lends_v1')||'[]'); }catch(e){}
+        var _lndEditRec = _lndEditList.find(function(r){ return r.id === _peekEntry.lendId; });
+        if(_lndEditRec){
+          var _lndPersonE = _lndEditRec.personName || _lndEditRec.passenger || 'someone';
+          var _lndBodyE =
+            'This line is part of a loan:\n  💸 Lent '+fmtR(_lndEditRec.amount)+' to '+_lndPersonE+' · '+_lndEditRec.date+'\n\n'+
+            'Editing here would only change the Cash Flow line — the pocket and the loan record would stop matching. Manage it on the Money Owed tab instead (edit or reverse from the loan card).';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from Money Owed instead',
+              body:  _lndBodyE,
+              dangerLabel: '🤝 Go to Money Owed',
+              safeLabel:   'Leave it alone'
+            }, function(goEdit){
+              if(goEdit && typeof goToTab === 'function') goToTab('money');
+            });
+          } else {
+            if(confirm('🔒 Edit from Money Owed instead\n\n'+_lndBodyE+'\n\nTap OK to go to Money Owed.\nTap Cancel to leave it alone.')){
+              if(typeof goToTab === 'function') goToTab('money');
+            }
+          }
+          return;
+        }
+        // Orphan → fall through to legacy edit
+      }
+
+      // ── Carpool payment guard (2026-05-23) ──
+      if(_peekEntry && _peekEntry.carpoolPaymentId){
+        var _cpList = [];
+        try{ _cpList = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); }catch(e){}
+        var _cpRec = _cpList.find(function(r){ return r.id === _peekEntry.carpoolPaymentId; });
+        if(_cpRec){
+          var _cpLabel = (_cpRec.smartNote || 'Carpool payment') + ' · ' + fmtR(_cpRec.amount);
+          var _cpBody =
+            'This line is part of:\n  '+_cpLabel+'\n\n'+
+            'Editing here would only change the Cash Flow line — the trips would still show paid in Carpool, and the linked pocket/maintenance deposit would not match. Reverse the whole payment instead, then log it again from the Carpool tab.';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from Carpool instead',
+              body:  _cpBody,
+              dangerLabel: '↩ Reverse the whole payment',
+              safeLabel:   'Leave it alone'
+            }, function(go){
+              if(go && typeof _carpoolPaymentReverse === 'function'){
+                _carpoolPaymentReverse(_peekEntry.carpoolPaymentId);
+                try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+                if(typeof softDeleteToast === 'function'){
+                  softDeleteToast({ message:'Carpool payment reversed · '+fmtR(_cpRec.amount), duration:3000 });
+                }
+              }
+            });
+          } else {
+            if(confirm('🔒 Edit from Carpool instead\n\n'+_cpBody+'\n\nTap OK to reverse the whole payment now.\nTap Cancel to leave it alone.')){
+              if(typeof _carpoolPaymentReverse === 'function') _carpoolPaymentReverse(_peekEntry.carpoolPaymentId);
+            }
+          }
+          return;
+        }
+      }
+      // ── v84 Step 4 — Repayment hard-block (edit) ─────────────────────
+      if(_peekEntry && _peekEntry.repayId){
+        var _rpList = [];
+        try{ _rpList = JSON.parse(lsGet('yb_repayments_v1')||'[]'); }catch(e){}
+        var _rpRec = _rpList.find(function(r){ return r.id === _peekEntry.repayId; });
+        if(_rpRec){
+          var _rpLabel = '↩ Repayment from '+_rpRec.passenger+' · '+fmtR(_rpRec.amount);
+          var _rpBody =
+            'This line is part of:\n  '+_rpLabel+'\n\n'+
+            'Editing here would only change the Cash Flow line — the pocket deposit and borrow record would still show repaid. Reverse the whole repayment instead, then log it again from the Money Owed tab.';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from Money Owed instead',
+              body:  _rpBody,
+              dangerLabel: '↩ Reverse the whole repayment',
+              safeLabel:   'Leave it alone'
+            }, function(go){
+              if(go && typeof window._repaymentReverse === 'function'){
+                window._repaymentReverse(_peekEntry.repayId);
+                try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+                if(typeof softDeleteToast === 'function'){
+                  softDeleteToast({ message:'Repayment reversed · '+fmtR(_rpRec.amount), duration:3000 });
+                }
+              }
+            });
+          } else {
+            if(confirm('🔒 Edit from Money Owed instead\n\n'+_rpBody+'\n\nTap OK to reverse the whole repayment now.\nTap Cancel to leave it alone.')){
+              if(typeof window._repaymentReverse === 'function') window._repaymentReverse(_peekEntry.repayId);
+            }
+          }
+          return;
+        }
+      }
+      // ── Step 7 (2026-05-28) — Car-expense hard-block (CF edit side) ──
+      if(_peekEntry && _peekEntry.carExpenseId){
+        var _ceCarList2 = [];
+        try{ _ceCarList2 = (typeof loadCarsData === 'function') ? loadCarsData() : (JSON.parse(lsGet('cars')||'[]')); }catch(e){}
+        var _ceCar2 = null, _ceExp2 = null;
+        for(var _cci2=0; _cci2<_ceCarList2.length; _cci2++){
+          var _ceExps2 = _ceCarList2[_cci2].expenses || [];
+          for(var _cei2=0; _cei2<_ceExps2.length; _cei2++){
+            if(_ceExps2[_cei2] && _ceExps2[_cei2].carExpenseId === _peekEntry.carExpenseId){
+              _ceCar2 = _ceCarList2[_cci2];
+              _ceExp2 = _ceExps2[_cei2];
+              break;
+            }
+          }
+          if(_ceExp2) break;
+        }
+        if(_ceExp2){
+          var _ceNm2  = _ceCar2 ? _ceCar2.name : 'the car';
+          var _ceCat2 = Array.isArray(_ceExp2.category) ? _ceExp2.category.join(' ') : (_ceExp2.category||'');
+          var _ceDsc2 = _ceExp2.desc || _ceCat2 || 'Expense';
+          var _ceBody2 =
+            'This line is part of a car expense:\n  🔧 '+_ceDsc2+' · '+fmtR(_ceExp2.amt)+' · '+_ceNm2+'\n\n'+
+            'Editing here would only change the Cash Flow line — the pocket deduction and the car-history entry would still show the old amount. Edit it from the Cars tab instead (or reverse the whole car expense and re-log it).';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from the Cars tab instead',
+              body:  _ceBody2,
+              dangerLabel: '↩ Reverse the whole car expense',
+              safeLabel:   'Leave it alone'
+            }, function(go){
+              if(go){
+                if(typeof _carExpenseReverse === 'function') _carExpenseReverse(_ceExp2, { silent: true });
+                try{
+                  var _cars6 = loadCarsData();
+                  var _car6  = _cars6.find(function(c){ return c.id === _ceCar2.id; });
+                  if(_car6){
+                    _car6.expenses = (_car6.expenses || []).filter(function(e){ return e.id !== _ceExp2.id; });
+                    saveCarsData(_cars6);
+                  }
+                }catch(e){}
+                try{ if(typeof renderCars === 'function') renderCars(); }catch(e){}
+                try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+                try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+                if(typeof softDeleteToast === 'function'){
+                  softDeleteToast({ message:'Car expense reversed · '+fmtR(_ceExp2.amt), duration:3000 });
+                }
+              }
+            });
+          } else {
+            if(confirm('🔒 Edit from the Cars tab instead\n\n'+_ceBody2+'\n\nTap OK to reverse the whole car expense now.\nTap Cancel to leave it alone.')){
+              if(typeof _carExpenseReverse === 'function') _carExpenseReverse(_ceExp2, { silent: true });
+              try{
+                var _cars7 = loadCarsData();
+                var _car7  = _cars7.find(function(c){ return c.id === _ceCar2.id; });
+                if(_car7){
+                  _car7.expenses = (_car7.expenses || []).filter(function(e){ return e.id !== _ceExp2.id; });
+                  saveCarsData(_cars7);
+                }
+              }catch(e){}
+              try{ if(typeof renderCars === 'function') renderCars(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+              try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+            }
+          }
+          return;
+        }
+      }
+
+      // ── Step 8 v93 (2026-05-29) — Instalment-payment hard-block (CF edit side) ──
+      if(_peekEntry && _peekEntry.instalmentPayId && _peekEntry.planId){
+        var _ceInstPlans = (typeof loadInst === 'function') ? loadInst() : [];
+        var _ceInstPlan  = _ceInstPlans.find(function(p){ return p.id === _peekEntry.planId; });
+        var _ceInstEntry = _ceInstPlan ? (_ceInstPlan.paid||[]).find(function(x){ return x.instalmentPayId === _peekEntry.instalmentPayId; }) : null;
+        if(_ceInstPlan && _ceInstEntry){
+          var _ceInstL = _ceInstPlan.desc + ' · ' + _ceInstPlan.provider;
+          var _ceBody  =
+            'This line is part of an instalment payment:\n  🛍 '+_ceInstL+' · '+fmtR(_ceInstEntry.amount || _ceInstPlan.amt)+'\n\n'+
+            'Editing here would only change the Cash Flow line — the pocket deduction and the plan\'s paid tick would still show the old amount. Edit the plan from the Instalments tab instead (or mark it unpaid and re-log the payment).';
+          if(typeof mihbConfirm === 'function'){
+            mihbConfirm({
+              title: '🔒 Edit from the Instalments tab instead',
+              body:  _ceBody,
+              dangerLabel: '↩ Mark unpaid on the plan',
+              safeLabel:   'Leave it alone'
+            }, function(go){
+              if(go){
+                if(typeof _instalmentPayReverse === 'function'){
+                  _instalmentPayReverse(_ceInstPlan.id, _ceInstEntry.index, { silent: true });
+                }
+                try{ if(typeof renderInst === 'function') renderInst(); }catch(e){}
+                try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+                try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+                if(typeof softDeleteToast === 'function'){
+                  softDeleteToast({ message:'Reversed · '+fmtR(_ceInstEntry.amount || _ceInstPlan.amt), duration:2500 });
+                }
+              }
+            });
+          } else {
+            if(confirm('🔒 Edit from the Instalments tab instead\n\n'+_ceBody+'\n\nTap OK to mark unpaid on the plan now.\nTap Cancel to leave it alone.')){
+              if(typeof _instalmentPayReverse === 'function'){
+                _instalmentPayReverse(_ceInstPlan.id, _ceInstEntry.index, { silent: false });
+              }
+            }
+          }
+          return;
+        }
+      }
+    }catch(e){ console.warn('[cfEdit] money-in guard error', e); }
+  }
+
   const isIncome = type === 'income';
   cfSelIcon = isIncome ? '💰' : '💸';
   cfRecur = true;
@@ -1032,6 +1206,11 @@ function openCfEntryModal(type, editId){
       document.getElementById('cfEntryAmount').value = entry.amount;
       cfSelIcon = entry.icon || cfSelIcon;
       if(entry.date) dateInput.value = entry.date;
+      // Restore destBank if present (May 2026 redesign); fallback to account
+      // which used to store the bank choice for cash-flow entries.
+      var savedBank = entry.destBank || (['FNB','TymeBank','Cash'].indexOf(entry.account)>-1 ? entry.account : 'FNB');
+      document.getElementById('cfEntryBank').value = savedBank;
+      setCfBank(savedBank, null);
       const isRec = !!recurring.find(function(e){ return e.id===editId; });
       setCfRecur(isRec, null);
     }
@@ -1057,7 +1236,27 @@ function saveCfEntry(){
 
   const entryDate = document.getElementById('cfEntryDate').value || localDateStr(new Date());
   const cfBank = document.getElementById('cfEntryBank') ? document.getElementById('cfEntryBank').value : 'FNB';
-  const entry = { id: editId || uid(), label, amount, icon: cfSelIcon, auto: false, account: cfBank };
+  // destBank is the dedicated "where the money lands" field added in the May 2026
+  // redesign. The older `account` field is kept untouched for back-compat (carpool
+  // auto-imports etc. stored passenger names there). destBank is the source of
+  // truth for bank-balance math.
+  // createdAt is a full ISO timestamp used by the bank-bucket math to decide
+  // whether this entry is "after the baseline" (only entries newer than the
+  // baseline snapshot adjust the running bank total).
+  // ── Capture the OLD version of this entry BEFORE we overwrite it, so we
+  // can reverse its previous bank-baseline effect. Without this, editing an
+  // entry (e.g. R110→R100, or Tyme→Cash) silently desyncs the bank tiles
+  // because the original delta was never undone. (May 2026 fix)
+  var _oldEntry = null;
+  if(editId){
+    var _od = data[mk];
+    if(_od && _od[section]) _oldEntry = (_od[section]||[]).find(function(e){ return e.id===editId; }) || null;
+    if(!_oldEntry && data.recurring && data.recurring[section]){
+      _oldEntry = (data.recurring[section]||[]).find(function(e){ return e.id===editId; }) || null;
+    }
+  }
+
+  const entry = { id: editId || uid(), label, amount, icon: cfSelIcon, auto: false, account: cfBank, destBank: cfBank, createdAt: new Date().toISOString() };
   if(entryDate) entry.date = entryDate;
 
   if(recur){
@@ -1082,11 +1281,415 @@ function saveCfEntry(){
   }
 
   saveCFData(data);
+  // ── Adjust live bank-bucket baseline (May 2026 Redesign — edit fix) ──
+  // The bank tiles (FNB/Tyme/Cash) are a running baseline that each tagged
+  // transaction nudges. Previously ONLY new entries nudged it; edits were
+  // skipped, so changing an amount or destination silently desynced the
+  // tiles (only a manual Rebuild fixed it). Now we reverse the OLD effect
+  // then apply the NEW one — net-correct for amount changes, bank changes,
+  // and income⇄expense changes. Savings-allocation / auto entries are left
+  // out of bank math (same rule used elsewhere).
+  if(typeof window._adjustBaselineForBank === 'function'){
+    // 1) Reverse the old entry's effect (only on edit, only if it was bank-tagged)
+    if(editId && _oldEntry && !cfIsSavingsAlloc(_oldEntry)){
+      var _oldBank = _oldEntry.destBank
+        || (['FNB','TymeBank','Cash'].indexOf(_oldEntry.account)>-1 ? _oldEntry.account : null);
+      if(_oldBank){
+        // section here is the NEW section; the old entry's direction is
+        // whatever it was. Infer from its presence: if it was income it
+        // added, if expense it subtracted. We stored type via section at
+        // create time, so re-derive from the old entry's own data when
+        // possible, else fall back to current type.
+        var _oldType = _oldEntry._cfType || type; // _cfType set below for future edits
+        var _oldDelta = (_oldType === 'income') ? Number(_oldEntry.amount||0) : -Number(_oldEntry.amount||0);
+        window._adjustBaselineForBank(_oldBank, -_oldDelta); // undo it
+      }
+    }
+    // 2) Apply the new entry's effect
+    if(cfBank && !cfIsSavingsAlloc(entry)){
+      var delta = (type === 'income') ? amount : -amount;
+      window._adjustBaselineForBank(cfBank, delta);
+    }
+  }
+  // Tag the saved entry with its direction so a FUTURE edit can reverse it
+  // accurately (income vs expense) even if the section is ambiguous.
+  entry._cfType = type;
+  saveCFData(data);
   closeModal('cfEntryModal');
   renderCashFlow();
 }
 
 function deleteCfEntry(id, type){
+  // ── HARD-BLOCK GUARD: Money In linked entries (2026-05-20) ────────────
+  // If this CF entry is part of a Money In record, deleting from here would
+  // orphan the other half (income, house, pocket splits) and drift the bank.
+  // The locked rule: one record, one HOME tab. Money In is the home for these
+  // entries. Deleting from a mirror is refused; user is redirected to delete
+  // from the Money In side, which cascades correctly.
+  //
+  // Exception: true orphans (the Money In record no longer exists) ARE allowed
+  // to delete silently — only stray data, nothing to protect anymore.
+  try{
+    var _peekCF = loadCFData();
+    var _peekMk = cfKey();
+    var _peekSec = type === 'income' ? 'income' : 'expenses';
+    var _peekEntry = null;
+    if(_peekCF[_peekMk] && _peekCF[_peekMk][_peekSec]){
+      _peekEntry = _peekCF[_peekMk][_peekSec].find(function(e){ return e.id===id; });
+    }
+    if(!_peekEntry && _peekCF.recurring && _peekCF.recurring[_peekSec]){
+      _peekEntry = _peekCF.recurring[_peekSec].find(function(e){ return e.id===id; });
+    }
+    if(_peekEntry && _peekEntry.moneyInId){
+      // Is the Money In record still alive?
+      var _miList = [];
+      try{ _miList = JSON.parse(lsGet('yb_moneyin_v1')||'[]'); }catch(e){}
+      var _miRec = _miList.find(function(r){ return r.id === _peekEntry.moneyInId; });
+      if(_miRec){
+        // Real record exists → HARD BLOCK with custom redirect dialog
+        var _miLabel = (_miRec.note || 'Money In') + ' · ' + fmtR(_miRec.amount) + ' · ' + _miRec.date;
+        var _bodyMsg =
+          'This is part of a Money In entry:\n  '+_miLabel+'\n\n'+
+          'Deleting just this line would leave the rest behind (the income line, the pocket deposits, or the house expense) and the bank would drift.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _bodyMsg,
+            dangerLabel: '↩ Reverse the whole Money In',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse && typeof _moneyInReverse === 'function'){
+              _moneyInReverse(_peekEntry.moneyInId);
+              // Defensive re-render so the deleted line clears immediately.
+              try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Money In reversed · '+fmtR(_miRec.amount), duration:3000 });
+              }
+            }
+          });
+        } else {
+          // Fallback to native confirm if helper not loaded yet
+          if(confirm('🔒 Can\'t delete it here\n\n'+_bodyMsg+'\n\nTap OK to reverse the whole Money In entry now.\nTap Cancel to leave it alone.')){
+            if(typeof _moneyInReverse === 'function') _moneyInReverse(_peekEntry.moneyInId);
+          }
+        }
+        return; // Either way, stop here. Don't run the legacy CF delete.
+      }
+      // No live record → true orphan → fall through to normal delete below
+    }
+
+    // ── Same hard-block guard for Spend records (added 2026-05-22, step 2) ──
+    if(_peekEntry && _peekEntry.spendId){
+      var _spList = [];
+      try{ _spList = JSON.parse(lsGet('yb_spend_v1')||'[]'); }catch(e){}
+      var _spRec = _spList.find(function(r){ return r.id === _peekEntry.spendId; });
+      if(_spRec){
+        var _spPocket = (typeof funds !== 'undefined') ? funds.find(function(f){ return f.id === _spRec.pocketId; }) : null;
+        var _spPName = _spPocket ? _spPocket.name : 'the pocket';
+        var _spLabel = (_spRec.label || 'Spend') + ' · ' + fmtR(_spRec.amount) + ' · ' + _spRec.date;
+        var _spBody =
+          'This is part of a Spend entry:\n  '+_spLabel+'\n\n'+
+          'Deleting just this line would leave '+_spPName+' missing '+fmtR(_spRec.amount)+'. Reverse the whole Spend instead — that returns the money to '+_spPName+' cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _spBody,
+            dangerLabel: '↩ Reverse the whole Spend',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse && typeof _spendReverse === 'function'){
+              _spendReverse(_peekEntry.spendId);
+              try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Spend reversed · '+fmtR(_spRec.amount)+' back to '+_spPName, duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_spBody+'\n\nTap OK to reverse the whole Spend now.\nTap Cancel to leave it alone.')){
+            if(typeof _spendReverse === 'function') _spendReverse(_peekEntry.spendId);
+          }
+        }
+        return;
+      }
+      // No live Spend record → orphan → fall through
+    }
+
+    // ── Bank Feed records (bankfeedId guard, 2026-06-15) ──
+    // A Bank Feed CF row is the mirror of a pocket deposit (txnType:'out').
+    // Deleting just the CF row leaves the pocket deducted with no record.
+    // Reverse atomically via _bfEntryReverse which removes both sides.
+    if(_peekEntry && _peekEntry.bankfeedId){
+      var _bfPocket = null;
+      if(typeof funds !== 'undefined' && _peekEntry.destPocketId){
+        _bfPocket = funds.find(function(f){ return f.id === _peekEntry.destPocketId; });
+      }
+      var _bfPName = _bfPocket ? _bfPocket.name : 'the pocket';
+      var _bfBody =
+        'This was logged by Bank Feed from your bank statement.\n\n'+
+        'Deleting just this line would leave '+_bfPName+' still deducted by '+fmtR(_peekEntry.amount)+'. Reverse it instead — that returns the money to '+_bfPName+' cleanly.';
+      if(typeof mihbConfirm === 'function'){
+        mihbConfirm({
+          title: '🔒 Can\'t delete it here',
+          body:  _bfBody,
+          dangerLabel: '↩ Reverse the Bank Feed entry',
+          safeLabel:   'Leave it alone'
+        }, function(goReverse){
+          if(goReverse && typeof _bfEntryReverse === 'function'){
+            _bfEntryReverse(_peekEntry.bankfeedId, _peekEntry.destPocketId, _peekEntry.amount);
+            try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+            try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+            if(typeof softDeleteToast === 'function'){
+              softDeleteToast({ message:'Bank Feed entry reversed · '+fmtR(_peekEntry.amount)+' back to '+_bfPName, duration:3000 });
+            }
+          }
+        });
+      } else {
+        if(confirm('🔒 Can\'t delete it here\n\n'+_bfBody+'\n\nTap OK to reverse now.\nTap Cancel to leave it alone.')){
+          if(typeof _bfEntryReverse === 'function') _bfEntryReverse(_peekEntry.bankfeedId, _peekEntry.destPocketId, _peekEntry.amount);
+        }
+      }
+      return;
+    }
+
+    // ── v108-patch2 — Lend records (carpool + external) ──
+    // The CF "Lent to X" expense is the doorway-tagged side of a pocket-first
+    // loan. Deleting it on its own would orphan the pocket OUT-deposit AND
+    // re-credit the bank via the legacy removeFromCF path → drift. Route
+    // through _lendReverse so the pocket is refunded, the borrow entry is
+    // removed, and the bank baseline stays untouched (forward doorway was 0).
+    if(_peekEntry && _peekEntry.lendId){
+      var _lndDelList = [];
+      try{ _lndDelList = JSON.parse(lsGet('yb_lends_v1')||'[]'); }catch(e){}
+      var _lndDelRec = _lndDelList.find(function(r){ return r.id === _peekEntry.lendId; });
+      if(_lndDelRec){
+        var _lndPersonD = _lndDelRec.personName || _lndDelRec.passenger || 'someone';
+        var _lndPocketD = (typeof funds !== 'undefined') ? funds.find(function(f){ return f.id === _lndDelRec.pocketId; }) : null;
+        var _lndPNameD  = _lndPocketD ? _lndPocketD.name : 'its pocket';
+        var _lndBodyD =
+          'This is part of a loan:\n  💸 Lent '+fmtR(_lndDelRec.amount)+' to '+_lndPersonD+' · '+_lndDelRec.date+'\n\n'+
+          'Reversing puts '+fmtR(_lndDelRec.amount)+' back into '+_lndPNameD+', removes the Cash Flow record, and clears the loan. The bank stays at R0.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Reverse the whole loan?',
+            body:  _lndBodyD,
+            dangerLabel: '↩ Reverse the whole loan',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse && typeof _lendReverse === 'function'){
+              _lendReverse(_peekEntry.lendId);
+              try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Loan reversed · '+fmtR(_lndDelRec.amount)+' back to '+_lndPNameD, duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Reverse the whole loan?\n\n'+_lndBodyD+'\n\nTap OK to reverse the whole loan now.\nTap Cancel to leave it alone.')){
+            if(typeof _lendReverse === 'function') _lendReverse(_peekEntry.lendId);
+          }
+        }
+        return;
+      }
+      // No live lend record → orphan → fall through
+    }
+
+    // ── Same hard-block guard for Carpool payments (added 2026-05-23) ──
+    if(_peekEntry && _peekEntry.carpoolPaymentId){
+      var _cpList = [];
+      try{ _cpList = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); }catch(e){}
+      var _cpRec = _cpList.find(function(r){ return r.id === _peekEntry.carpoolPaymentId; });
+      if(_cpRec){
+        var _cpLabel = (_cpRec.smartNote || 'Carpool payment') + ' · ' + fmtR(_cpRec.amount) + ' · ' + _cpRec.date;
+        var _cpTripCount = (_cpRec.paidDates||[]).length;
+        var _cpBorrowCount = (_cpRec.paidBorrowIds||[]).length;
+        var _cpExtras = [];
+        if(_cpTripCount) _cpExtras.push(_cpTripCount + ' trip' + (_cpTripCount === 1 ? '' : 's'));
+        if(_cpBorrowCount) _cpExtras.push(_cpBorrowCount + ' borrow' + (_cpBorrowCount === 1 ? '' : 's'));
+        var _cpExtrasStr = _cpExtras.length ? ' (' + _cpExtras.join(' + ') + ' marked paid)' : '';
+        var _cpBody =
+          'This is part of a Carpool payment:\n  '+_cpLabel+_cpExtrasStr+'\n\n'+
+          'Deleting just this line would leave the carpool trips marked paid and any linked pocket/maintenance deposit dangling. Reverse the whole payment instead — that un-marks the trips, returns any deposit, and clears the Cash Flow line cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _cpBody,
+            dangerLabel: '↩ Reverse the whole payment',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse && typeof _carpoolPaymentReverse === 'function'){
+              _carpoolPaymentReverse(_peekEntry.carpoolPaymentId);
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Carpool payment reversed · '+fmtR(_cpRec.amount), duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_cpBody+'\n\nTap OK to reverse the whole payment now.\nTap Cancel to leave it alone.')){
+            if(typeof _carpoolPaymentReverse === 'function') _carpoolPaymentReverse(_peekEntry.carpoolPaymentId);
+          }
+        }
+        return;
+      }
+      // No live payment record → orphan → fall through
+    }
+
+    // ── v84 Step 4 — Repayment hard-block (delete) ───────────────────
+    if(_peekEntry && _peekEntry.repayId){
+      var _rpList = [];
+      try{ _rpList = JSON.parse(lsGet('yb_repayments_v1')||'[]'); }catch(e){}
+      var _rpRec = _rpList.find(function(r){ return r.id === _peekEntry.repayId; });
+      if(_rpRec){
+        var _rpLabel = '↩ Repayment from '+_rpRec.passenger+' · '+fmtR(_rpRec.amount)+' · '+_rpRec.date;
+        var _rpBody =
+          'This is part of a Repayment:\n  '+_rpLabel+'\n\n'+
+          'Deleting just this line would leave the borrow showing repaid and the pocket deposit dangling. Reverse the whole repayment instead — that undoes the pocket deposit, marks the borrow back to owing, and clears the Cash Flow line cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _rpBody,
+            dangerLabel: '↩ Reverse the whole repayment',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse && typeof window._repaymentReverse === 'function'){
+              window._repaymentReverse(_peekEntry.repayId);
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Repayment reversed · '+fmtR(_rpRec.amount), duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_rpBody+'\n\nTap OK to reverse the whole repayment now.\nTap Cancel to leave it alone.')){
+            if(typeof window._repaymentReverse === 'function') window._repaymentReverse(_peekEntry.repayId);
+          }
+        }
+        return;
+      }
+      // No live repayment record → orphan → fall through
+    }
+
+    // ── Step 7 (2026-05-28) — Car-expense hard-block (CF delete side) ──
+    // The CF row is one of three linked records: pocket deposit ↔ car
+    // history ↔ this CF row, tied by carExpenseId. Deleting the CF row
+    // alone would leave the deduction in the pocket + the history entry
+    // on the car. Redirect to reverse the whole car expense (which deletes
+    // all three together and puts money back in the pocket).
+    if(_peekEntry && _peekEntry.carExpenseId){
+      var _ceCarList = [];
+      try{ _ceCarList = (typeof loadCarsData === 'function') ? loadCarsData() : (JSON.parse(lsGet('cars')||'[]')); }catch(e){}
+      var _ceCar = null, _ceExp = null;
+      for(var _cci=0; _cci<_ceCarList.length; _cci++){
+        var _ceExps = _ceCarList[_cci].expenses || [];
+        for(var _cei=0; _cei<_ceExps.length; _cei++){
+          if(_ceExps[_cei] && _ceExps[_cei].carExpenseId === _peekEntry.carExpenseId){
+            _ceCar = _ceCarList[_cci];
+            _ceExp = _ceExps[_cei];
+            break;
+          }
+        }
+        if(_ceExp) break;
+      }
+      if(_ceExp){
+        var _cePk  = (typeof funds !== 'undefined') ? funds.find(function(f){ return f.id === _ceExp.pocketId; }) : null;
+        var _cePn  = _cePk ? _cePk.name : 'the pocket';
+        var _ceNm  = _ceCar ? _ceCar.name : 'the car';
+        var _ceCat = Array.isArray(_ceExp.category) ? _ceExp.category.join(' ') : (_ceExp.category||'');
+        var _ceDsc = _ceExp.desc || _ceCat || 'Expense';
+        var _ceBody =
+          'This is part of a car expense:\n  🔧 '+_ceDsc+' · '+fmtR(_ceExp.amt)+' · '+_ceNm+' · '+(_ceExp.date||'')+'\n\n'+
+          'Deleting just this line would leave the pocket deducted and the car-history entry behind. Reverse the whole car expense instead — that puts '+fmtR(_ceExp.amt)+' back in '+_cePn+', removes the car-history line, and clears this Cash Flow row cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _ceBody,
+            dangerLabel: '↩ Reverse the whole car expense',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse){
+              if(typeof _carExpenseReverse === 'function') _carExpenseReverse(_ceExp, { silent: true });
+              try{
+                var _cars4 = loadCarsData();
+                var _car4  = _cars4.find(function(c){ return c.id === _ceCar.id; });
+                if(_car4){
+                  _car4.expenses = (_car4.expenses || []).filter(function(e){ return e.id !== _ceExp.id; });
+                  saveCarsData(_cars4);
+                }
+              }catch(e){}
+              try{ if(typeof renderCars === 'function') renderCars(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+              try{ renderCashFlow(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Car expense reversed · '+fmtR(_ceExp.amt)+' back to '+_cePn, duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_ceBody+'\n\nTap OK to reverse the whole car expense now.\nTap Cancel to leave it alone.')){
+            if(typeof _carExpenseReverse === 'function') _carExpenseReverse(_ceExp, { silent: true });
+            try{
+              var _cars5 = loadCarsData();
+              var _car5  = _cars5.find(function(c){ return c.id === _ceCar.id; });
+              if(_car5){
+                _car5.expenses = (_car5.expenses || []).filter(function(e){ return e.id !== _ceExp.id; });
+                saveCarsData(_cars5);
+              }
+            }catch(e){}
+            try{ if(typeof renderCars === 'function') renderCars(); }catch(e){}
+            try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+            try{ renderCashFlow(); }catch(e){}
+          }
+        }
+        return;
+      }
+      // No live car expense → orphan → fall through
+    }
+
+    // ── Step 8 v93 (2026-05-29) — Instalment-payment hard-block (CF delete side) ──
+    if(_peekEntry && _peekEntry.instalmentPayId && _peekEntry.planId){
+      var _cfInstPlans = (typeof loadInst === 'function') ? loadInst() : [];
+      var _cfInstPlan  = _cfInstPlans.find(function(p){ return p.id === _peekEntry.planId; });
+      var _cfInstEntry = _cfInstPlan ? (_cfInstPlan.paid||[]).find(function(x){ return x.instalmentPayId === _peekEntry.instalmentPayId; }) : null;
+      if(_cfInstPlan && _cfInstEntry){
+        var _cfPk    = (typeof funds !== 'undefined') ? funds.find(function(f){ return f.id === _cfInstEntry.pocketId; }) : null;
+        var _cfPkN   = _cfPk ? _cfPk.name : 'the pocket';
+        var _cfInstL = _cfInstPlan.desc + ' · ' + _cfInstPlan.provider;
+        var _cfBody  =
+          'This line is part of an instalment payment:\n  🛍 '+_cfInstL+' · '+fmtR(_cfInstEntry.amount || _cfInstPlan.amt)+' · '+(_cfInstEntry.date||'')+'\n\n'+
+          'Deleting just this line would leave the pocket deducted and the plan still showing ✓ Paid. Mark it unpaid on the plan instead — that puts '+fmtR(_cfInstEntry.amount || _cfInstPlan.amt)+' back in '+_cfPkN+', clears the paid tick, and removes this Cash Flow row cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _cfBody,
+            dangerLabel: '↩ Mark unpaid on the plan',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse){
+              if(typeof _instalmentPayReverse === 'function'){
+                _instalmentPayReverse(_cfInstPlan.id, _cfInstEntry.index, { silent: true });
+              }
+              try{ if(typeof renderInst === 'function') renderInst(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+              try{ renderCashFlow(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Reversed · '+fmtR(_cfInstEntry.amount || _cfInstPlan.amt)+' back to '+_cfPkN, duration:2800 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_cfBody+'\n\nTap OK to mark unpaid on the plan now.\nTap Cancel to leave it alone.')){
+            if(typeof _instalmentPayReverse === 'function'){
+              _instalmentPayReverse(_cfInstPlan.id, _cfInstEntry.index, { silent: false });
+            }
+          }
+        }
+        return;
+      }
+    }
+  }catch(e){ console.warn('[cfDelete] money-in guard error', e); }
+
   if(!confirm('Remove this entry?')) return;
 
   // ── Find the entry first so we can reverse any linked fund/maintenance deposit ──
@@ -1158,6 +1761,20 @@ function deleteCfEntry(id, type){
   if(cfData[mk]) cfData[mk][section] = (cfData[mk][section]||[]).filter(function(e){ return e.id!==id; });
   if(cfData.recurring) cfData.recurring[section] = (cfData.recurring[section]||[]).filter(function(e){ return e.id!==id; });
   saveCFData(cfData);
+
+  // ── Reverse the deleted entry's bank-baseline effect (May 2026 fix) ──
+  // Deleting an entry must give the money back to (or take it from) the
+  // bank tile, otherwise the tiles drift until a manual Rebuild. Mirrors
+  // the edit-side reversal. Savings-allocation / auto entries excluded.
+  if(entry && typeof window._adjustBaselineForBank === 'function' && !cfIsSavingsAlloc(entry)){
+    var _delBank = entry.destBank
+      || (['FNB','TymeBank','Cash'].indexOf(entry.account)>-1 ? entry.account : null);
+    if(_delBank){
+      var _delType = entry._cfType || type;
+      var _delDelta = (_delType === 'income') ? Number(entry.amount||0) : -Number(entry.amount||0);
+      window._adjustBaselineForBank(_delBank, -_delDelta); // undo the original effect
+    }
+  }
   renderCashFlow();
 }
 
