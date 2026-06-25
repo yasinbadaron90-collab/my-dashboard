@@ -1,5 +1,5 @@
 // ============================================================================
-//  My Dashboard V34 — school.js  (v88 rebuild, 2026-05-27)
+//  My Dashboard — school.js  (v88 rebuild, 2026-05-27)
 // ============================================================================
 //  REBUILD GOAL:
 //  Replace the broken 1000-row append-on-save model with a clean

@@ -1,6 +1,6 @@
 // Core: storage, keys, auth, PIN, launch menu, drawer, theme
 
-/* My Dashboard V34 — Application Logic */
+/* My Dashboard — Application Logic */
 /* Auto-extracted from single-file HTML */
 
 // ── Robust storage: tries localStorage → sessionStorage → memory ──
