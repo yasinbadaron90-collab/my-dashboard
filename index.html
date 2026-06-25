@@ -3057,6 +3057,102 @@ function _showUpdateToast(worker){
     <div id="odinScannerContent" style="padding:20px;max-height:75vh;overflow-y:auto;"></div>
   </div>
 </div>
+
+<!-- ══ SAVINGS MODALS (fund, deposit, history, edit deposit, card type picker) ══ -->
+
+<!-- Fund Modal (new/edit pocket) -->
+<div class="overlay" id="fundModal">
+  <div class="modal">
+    <h2 id="modalTitle">New Fund</h2>
+    <div class="field"><label>Fund Name</label><input type="text" id="fName" placeholder="e.g. Emergency Fund"/></div>
+    <div class="field"><label>Icon</label><div class="emoji-grid" id="emojiGrid"></div></div>
+    <div class="field"><label>Colour</label><div class="color-grid" id="colorGrid"></div></div>
+    <div class="field"><label>Goal Amount (R)</label><input type="number" id="fGoal"/></div>
+    <div class="field">
+      <label>Target Type</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button type="button" id="btnWeekly" onclick="setTargetType('weekly')" style="flex:1;padding:9px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:1px solid #c8f230;background:#1a2e00;color:#c8f230;transition:all .15s">Weekly</button>
+        <button type="button" id="btnMonthly" onclick="setTargetType('monthly')" style="flex:1;padding:9px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);transition:all .15s">Monthly</button>
+      </div>
+      <input type="number" id="fWeekly" placeholder="e.g. 200" oninput="updateTargetHint()"/>
+      <div id="fTargetHint" style="font-size:10px;color:var(--muted);margin-top:6px;letter-spacing:1px;min-height:16px"></div>
+    </div>
+    <div class="field"><label>Start Date</label><input type="date" id="fStart"/></div>
+    <div class="field" style="display:none">
+      <label>Goal Deadline (optional)</label>
+      <input type="date" id="fDeadline"/>
+      <div id="fDeadlineHint" style="font-size:10px;color:var(--muted);margin-top:4px;min-height:14px"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('fundModal')">Cancel</button>
+      <button class="btn primary" onclick="saveFund()">Save Fund</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deposit Modal -->
+<div class="overlay" id="depModal">
+  <div class="modal">
+    <h2>Log Deposit</h2>
+    <div class="dep-fund-name" id="depFundName"></div>
+    <div class="field"><label>Amount (R)</label><input type="number" id="depAmount"/></div>
+    <div class="field"><label>Date</label><input type="date" id="depDate"/></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="depNote" placeholder="e.g. weekly drop"/></div>
+    <div class="field" style="display:none">
+      <input type="hidden" id="depBank" value="FNB"/>
+      <button type="button" id="depBankFNB" style="display:none"></button>
+      <button type="button" id="depBankTyme" style="display:none"></button>
+      <button type="button" id="depBankCash" style="display:none"></button>
+    </div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('depModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmDeposit()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div class="overlay" id="histModal">
+  <div class="modal">
+    <h2 id="histTitle">History</h2>
+    <div id="histContent" style="margin-top:4px;max-height:60vh;overflow-y:auto"></div>
+    <div class="modal-btns" style="margin-top:20px">
+      <button class="btn ghost" onclick="closeModal('histModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Deposit Modal -->
+<div class="overlay" id="editDepModal">
+  <div class="modal">
+    <h2>Edit Entry</h2>
+    <div id="editDepLinkedBanner" style="display:none;background:#1a2000;border:1px solid #4a6000;border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#c8f230;">
+      🔗 Linked entry — <span id="editDepLinkLabel"></span>
+    </div>
+    <div id="editDepAmountLockNote" style="display:none;font-size:10px;color:var(--muted);margin-bottom:10px;letter-spacing:0.5px;">Amount is locked because this deposit is linked to a money flow. To change the amount, reverse the original transaction.</div>
+    <div class="field"><label>Amount (R)</label><input type="number" id="editDepAmount"/></div>
+    <div class="field"><label>Date</label><input type="date" id="editDepDate"/></div>
+    <div class="field"><label>Note</label><input type="text" id="editDepNote" placeholder="e.g. weekly drop"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('editDepModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmEditDeposit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Card Type Picker (savings vs expense tracker) -->
+<div class="overlay" id="cardTypePicker" style="align-items:flex-end;padding:0">
+  <div style="background:var(--surface);border-top:1px solid var(--border);border-radius:12px 12px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;margin:0 auto">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--text);margin-bottom:6px">New Pocket</div>
+    <div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:20px">What kind of pocket?</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onclick="openNewFundDirect()" style="padding:16px;background:#1a2e00;border:1px solid #3a5a00;border-radius:8px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-align:left">💰 Savings Goal<br><span style="font-size:10px;color:#5a8800;letter-spacing:0">Track money you're saving toward a goal</span></button>
+      <button onclick="openNewExpenseTracker()" style="padding:16px;background:#1a0a00;border:1px solid #5a3000;border-radius:8px;color:#f2a830;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-align:left">📊 Expense Tracker<br><span style="font-size:10px;color:#8a5000;letter-spacing:0">Track spending from a funded bucket</span></button>
+    </div>
+    <button onclick="closeModal('cardTypePicker')" style="margin-top:16px;width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer">Cancel</button>
+  </div>
+</div>
+
 </body>
 <div class="overlay" id="bankFeedModal">
   <div class="modal" style="max-width:460px;padding:0;overflow:hidden;">
@@ -3111,6 +3207,102 @@ function _showUpdateToast(worker){
     <div id="payDestOptions" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;margin-bottom:14px;"></div>
     <!-- Confirm -->
     <button class="btn primary" style="width:100%;padding:13px;" onclick="confirmPayDest()">Confirm Payment ✓</button>
+  </div>
+</div>
+
+
+<!-- ══ SAVINGS MODALS (fund, deposit, history, edit deposit, card type picker) ══ -->
+
+<!-- Fund Modal (new/edit pocket) -->
+<div class="overlay" id="fundModal">
+  <div class="modal">
+    <h2 id="modalTitle">New Fund</h2>
+    <div class="field"><label>Fund Name</label><input type="text" id="fName" placeholder="e.g. Emergency Fund"/></div>
+    <div class="field"><label>Icon</label><div class="emoji-grid" id="emojiGrid"></div></div>
+    <div class="field"><label>Colour</label><div class="color-grid" id="colorGrid"></div></div>
+    <div class="field"><label>Goal Amount (R)</label><input type="number" id="fGoal"/></div>
+    <div class="field">
+      <label>Target Type</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button type="button" id="btnWeekly" onclick="setTargetType('weekly')" style="flex:1;padding:9px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:1px solid #c8f230;background:#1a2e00;color:#c8f230;transition:all .15s">Weekly</button>
+        <button type="button" id="btnMonthly" onclick="setTargetType('monthly')" style="flex:1;padding:9px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);transition:all .15s">Monthly</button>
+      </div>
+      <input type="number" id="fWeekly" placeholder="e.g. 200" oninput="updateTargetHint()"/>
+      <div id="fTargetHint" style="font-size:10px;color:var(--muted);margin-top:6px;letter-spacing:1px;min-height:16px"></div>
+    </div>
+    <div class="field"><label>Start Date</label><input type="date" id="fStart"/></div>
+    <div class="field" style="display:none">
+      <label>Goal Deadline (optional)</label>
+      <input type="date" id="fDeadline"/>
+      <div id="fDeadlineHint" style="font-size:10px;color:var(--muted);margin-top:4px;min-height:14px"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('fundModal')">Cancel</button>
+      <button class="btn primary" onclick="saveFund()">Save Fund</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deposit Modal -->
+<div class="overlay" id="depModal">
+  <div class="modal">
+    <h2>Log Deposit</h2>
+    <div class="dep-fund-name" id="depFundName"></div>
+    <div class="field"><label>Amount (R)</label><input type="number" id="depAmount"/></div>
+    <div class="field"><label>Date</label><input type="date" id="depDate"/></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="depNote" placeholder="e.g. weekly drop"/></div>
+    <div class="field" style="display:none">
+      <input type="hidden" id="depBank" value="FNB"/>
+      <button type="button" id="depBankFNB" style="display:none"></button>
+      <button type="button" id="depBankTyme" style="display:none"></button>
+      <button type="button" id="depBankCash" style="display:none"></button>
+    </div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('depModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmDeposit()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div class="overlay" id="histModal">
+  <div class="modal">
+    <h2 id="histTitle">History</h2>
+    <div id="histContent" style="margin-top:4px;max-height:60vh;overflow-y:auto"></div>
+    <div class="modal-btns" style="margin-top:20px">
+      <button class="btn ghost" onclick="closeModal('histModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Deposit Modal -->
+<div class="overlay" id="editDepModal">
+  <div class="modal">
+    <h2>Edit Entry</h2>
+    <div id="editDepLinkedBanner" style="display:none;background:#1a2000;border:1px solid #4a6000;border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#c8f230;">
+      🔗 Linked entry — <span id="editDepLinkLabel"></span>
+    </div>
+    <div id="editDepAmountLockNote" style="display:none;font-size:10px;color:var(--muted);margin-bottom:10px;letter-spacing:0.5px;">Amount is locked because this deposit is linked to a money flow. To change the amount, reverse the original transaction.</div>
+    <div class="field"><label>Amount (R)</label><input type="number" id="editDepAmount"/></div>
+    <div class="field"><label>Date</label><input type="date" id="editDepDate"/></div>
+    <div class="field"><label>Note</label><input type="text" id="editDepNote" placeholder="e.g. weekly drop"/></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closeModal('editDepModal')">Cancel</button>
+      <button class="btn primary" onclick="confirmEditDeposit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Card Type Picker (savings vs expense tracker) -->
+<div class="overlay" id="cardTypePicker" style="align-items:flex-end;padding:0">
+  <div style="background:var(--surface);border-top:1px solid var(--border);border-radius:12px 12px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;margin:0 auto">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--text);margin-bottom:6px">New Pocket</div>
+    <div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:20px">What kind of pocket?</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onclick="openNewFundDirect()" style="padding:16px;background:#1a2e00;border:1px solid #3a5a00;border-radius:8px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-align:left">💰 Savings Goal<br><span style="font-size:10px;color:#5a8800;letter-spacing:0">Track money you're saving toward a goal</span></button>
+      <button onclick="openNewExpenseTracker()" style="padding:16px;background:#1a0a00;border:1px solid #5a3000;border-radius:8px;color:#f2a830;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-align:left">📊 Expense Tracker<br><span style="font-size:10px;color:#8a5000;letter-spacing:0">Track spending from a funded bucket</span></button>
+    </div>
+    <button onclick="closeModal('cardTypePicker')" style="margin-top:16px;width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer">Cancel</button>
   </div>
 </div>
 
