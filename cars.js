@@ -399,14 +399,19 @@ function openAllRecords(carId){
 // Wrapper around deleteExpense that re-renders the modal after deletion
 // instead of just closing it. Keeps the user in context to delete more.
 function deleteExpenseFromAllRecords(carId, expId){
-  if(!confirm('Delete this expense?')) return;
-  var cars = loadCarsData();
-  var car = cars.find(function(c){ return c.id === carId; });
-  if(!car || !car.expenses) return;
-  car.expenses = car.expenses.filter(function(e){ return e.id !== expId; });
-  saveCarsData(cars);
-  renderCars();
-  openAllRecords(carId);
+  // Route through deleteExpense which has the full hard-block guard (mihbConfirm).
+  // After the delete completes, re-open the All Records modal to stay in context.
+  var _origRenderCars = typeof renderCars === 'function' ? renderCars : null;
+  var _wrapped = false;
+  if(!_wrapped && _origRenderCars){
+    window._deleteExpenseFromAllRecords_pending = { carId: carId };
+  }
+  deleteExpense(carId, expId);
+  // Re-open after a short delay to allow the delete + render to settle
+  setTimeout(function(){
+    var pending = window._deleteExpenseFromAllRecords_pending;
+    if(pending){ openAllRecords(pending.carId); window._deleteExpenseFromAllRecords_pending = null; }
+  }, 400);
 }
 
 // ── Expense date input mode toggle ──
