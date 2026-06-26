@@ -3114,10 +3114,10 @@ function _showUpdateToast(worker){
 <!-- History Modal -->
 <div class="overlay" id="histModal">
   <div class="modal">
-    <h2 id="histTitle">History</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><h2 id="histTitle" style="margin:0;font-size:18px">History</h2><button id="histStmtBtn" onclick="openPocketStatement(window._currentHistFundId);closeModal('histModal')" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700">📄 STATEMENT</button></div>
     <div id="histContent" style="margin-top:4px;max-height:60vh;overflow-y:auto"></div>
     <div class="modal-btns" style="margin-top:20px">
-      <button class="btn ghost" onclick="openPocketStatement(window._currentHistFundId);closeModal('histModal')">📄 Statement</button><button class="btn ghost" onclick="closeModal('histModal')">Close</button>
+      <button class="btn ghost" onclick="closeModal('histModal')">Close</button>
     </div>
   </div>
 </div>
