@@ -3153,6 +3153,37 @@ function _showUpdateToast(worker){
   </div>
 </div>
 
+
+<!-- Pocket Statement Modal -->
+<div class="overlay" id="pocketStmtModal">
+  <div class="modal" style="max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 id="pocketStmtTitle" style="font-size:18px">📄 Statement</h2>
+      <button onclick="closePocketStatement()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:32px;height:32px;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <div style="flex:1">
+        <label style="display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">From</label>
+        <input type="date" id="stmtFrom" onchange="onStmtDateChange()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:4px;outline:none"/>
+      </div>
+      <div style="flex:1">
+        <label style="display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">To</label>
+        <input type="date" id="stmtTo" onchange="onStmtDateChange()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:4px;outline:none"/>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="stmt-preset" data-preset="all" onclick="applyPocketStmtPreset('all')" style="padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:100px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">All time</button>
+      <button class="stmt-preset" data-preset="month" onclick="applyPocketStmtPreset('month')" style="padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:100px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">This month</button>
+      <button class="stmt-preset" data-preset="30days" onclick="applyPocketStmtPreset('30days')" style="padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:100px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">Last 30 days</button>
+    </div>
+    <div id="stmtPreview" style="max-height:50vh;overflow-y:auto;margin-bottom:14px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button onclick="pocketStmtExportPDF()" style="padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:4px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">📄 Export PDF</button>
+      <button onclick="pocketStmtExportCSV()" style="padding:10px;background:#1a1a00;border:1px solid #3a3a00;border-radius:4px;color:#f2a830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">📊 Export CSV</button>
+    </div>
+  </div>
+</div>
+
 </body>
 <div class="overlay" id="bankFeedModal">
   <div class="modal" style="max-width:460px;padding:0;overflow:hidden;">
@@ -3303,6 +3334,37 @@ function _showUpdateToast(worker){
       <button onclick="openNewExpenseTracker()" style="padding:16px;background:#1a0a00;border:1px solid #5a3000;border-radius:8px;color:#f2a830;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-align:left">📊 Expense Tracker<br><span style="font-size:10px;color:#8a5000;letter-spacing:0">Track spending from a funded bucket</span></button>
     </div>
     <button onclick="closeModal('cardTypePicker')" style="margin-top:16px;width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer">Cancel</button>
+  </div>
+</div>
+
+
+<!-- Pocket Statement Modal -->
+<div class="overlay" id="pocketStmtModal">
+  <div class="modal" style="max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 id="pocketStmtTitle" style="font-size:18px">📄 Statement</h2>
+      <button onclick="closePocketStatement()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:32px;height:32px;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <div style="flex:1">
+        <label style="display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">From</label>
+        <input type="date" id="stmtFrom" onchange="onStmtDateChange()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:4px;outline:none"/>
+      </div>
+      <div style="flex:1">
+        <label style="display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">To</label>
+        <input type="date" id="stmtTo" onchange="onStmtDateChange()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:4px;outline:none"/>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="stmt-preset" data-preset="all" onclick="applyPocketStmtPreset('all')" style="padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:100px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">All time</button>
+      <button class="stmt-preset" data-preset="month" onclick="applyPocketStmtPreset('month')" style="padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:100px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">This month</button>
+      <button class="stmt-preset" data-preset="30days" onclick="applyPocketStmtPreset('30days')" style="padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:100px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">Last 30 days</button>
+    </div>
+    <div id="stmtPreview" style="max-height:50vh;overflow-y:auto;margin-bottom:14px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button onclick="pocketStmtExportPDF()" style="padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:4px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">📄 Export PDF</button>
+      <button onclick="pocketStmtExportCSV()" style="padding:10px;background:#1a1a00;border:1px solid #3a3a00;border-radius:4px;color:#f2a830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">📊 Export CSV</button>
+    </div>
   </div>
 </div>
 
