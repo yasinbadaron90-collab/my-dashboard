@@ -3117,7 +3117,7 @@ function _showUpdateToast(worker){
     <h2 id="histTitle">History</h2>
     <div id="histContent" style="margin-top:4px;max-height:60vh;overflow-y:auto"></div>
     <div class="modal-btns" style="margin-top:20px">
-      <button class="btn ghost" onclick="closeModal('histModal')">Close</button>
+      <button class="btn ghost" onclick="openPocketStatement(window._currentHistFundId);closeModal('histModal')">📄 Statement</button><button class="btn ghost" onclick="closeModal('histModal')">Close</button>
     </div>
   </div>
 </div>
