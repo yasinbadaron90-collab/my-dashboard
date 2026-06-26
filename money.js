@@ -1370,25 +1370,10 @@ function loadBorrowReport() {
   let totalRepaid = 0;
   const byPerson = {}; // { name: { borrowed, repaid, tag } }
 
-  // 1) Carpool passengers
-  Object.keys(raw).forEach(function(passenger) {
-    const entries = raw[passenger] || [];
-    entries.forEach(function(b) {
-      if(b.type === 'repay'){
-        totalRepaid += Number(b.amount || 0);
-        if (!byPerson[passenger]) byPerson[passenger] = { borrowed: 0, repaid: 0, tag: 'carpool' };
-        byPerson[passenger].repaid += Number(b.amount || 0);
-      } else {
-        const amount = Number(b.amount || 0);
-        const repaid = b.paid ? amount : 0;
-        totalBorrowed += amount;
-        totalRepaid += repaid;
-        if (!byPerson[passenger]) byPerson[passenger] = { borrowed: 0, repaid: 0, tag: 'carpool' };
-        byPerson[passenger].borrowed += amount;
-        byPerson[passenger].repaid += repaid;
-      }
-    });
-  });
+  // 1) Carpool passengers — excluded from Money Owed report to match the
+  //    Money Owed tab header which only shows personal (external) borrows.
+  //    Carpool borrows are tracked separately in the Carpool tab.
+  void raw;
 
   // 2) External / Personal borrows — yb_external_borrows_v1
   const extData = loadExternalBorrows();
