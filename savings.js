@@ -1026,6 +1026,7 @@ function postToCF(opts){
   // repayments). Always extend this list when adding a new flow.
   if(opts.instalmentPayId)  rec.instalmentPayId  = opts.instalmentPayId;
   if(opts.planId)           rec.planId           = opts.planId;
+  if(opts.settleId)         rec.settleId         = opts.settleId;
   // ────────────────────────────────────────────────────────────────────
   cfData[mk][section].push(rec);
   saveCFData(cfData);
