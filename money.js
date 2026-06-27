@@ -997,9 +997,13 @@ function renderMoneyOwed(){
     people.push({ name: p.name, tag:'external', entries: visEntries, borrowed, repaid, key });
   });
 
-  // ── Summary totals ──
+  // ── Summary totals — personal only (carpool excluded to match Reports) ──
   let grandLent = 0, grandRepaid = 0;
-  people.forEach(function(p){ grandLent += p.borrowed; grandRepaid += p.repaid; });
+  people.forEach(function(p){
+    if(p.tag === 'carpool') return; // carpool borrows excluded from header totals
+    grandLent += p.borrowed;
+    grandRepaid += p.repaid;
+  });
   const grandOwing = grandLent - grandRepaid;
   const moTL = document.getElementById('moTotalLent');
   const moTR = document.getElementById('moTotalRepaid');
