@@ -1897,17 +1897,16 @@ function renderSavingsChart() {
     if (hint)  hint.textContent  = 'Tap a slice to highlight';
     if (_savDonutChart) { _savDonutChart.destroy(); _savDonutChart = null; }
     if (_savBarChart)   { _savBarChart.destroy();   _savBarChart   = null; }
-    var wrapW = donutCanvas.parentElement.offsetWidth || 320;
-    donutCanvas.width  = wrapW;
-    donutCanvas.height = 220;
-    donutCanvas.style.width  = wrapW + 'px';
-    donutCanvas.style.height = '220px';
+    var wrapEl = document.getElementById('savChartWrap');
+    var wrapW  = (wrapEl ? wrapEl.clientWidth : 320) || 320;
+    donutCanvas.setAttribute('width',  wrapW);
+    donutCanvas.setAttribute('height', 220);
     _savDonutChart = new Chart(donutCanvas.getContext('2d'), {
       type: 'doughnut',
       data: { labels: labels, datasets: [{ data: data, backgroundColor: colors,
         borderColor: isDark ? '#1a1a1a' : '#f0f0f0', borderWidth: 2, hoverOffset: 8 }] },
       options: {
-        responsive: true, maintainAspectRatio: false, cutout: '62%',
+        responsive: false, maintainAspectRatio: false, cutout: '62%',
         plugins: { legend: { display: false },
           tooltip: { callbacks: { label: function(ctx) {
             var total = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
@@ -1945,17 +1944,16 @@ function renderSavingsChart() {
         return sum + Math.max(0, bal);
       }, 0);
     });
-    var wrapW2 = barCanvas.parentElement.offsetWidth || 320;
-    barCanvas.width  = wrapW2;
-    barCanvas.height = 220;
-    barCanvas.style.width  = wrapW2 + 'px';
-    barCanvas.style.height = '220px';
+    var wrapEl2 = document.getElementById('savChartWrap');
+    var wrapW2  = (wrapEl2 ? wrapEl2.clientWidth : 320) || 320;
+    barCanvas.setAttribute('width',  wrapW2);
+    barCanvas.setAttribute('height', 220);
     _savBarChart = new Chart(barCanvas.getContext('2d'), {
       type: 'bar',
       data: { labels: monthLabels, datasets: [{ label: 'Total Saved', data: monthTotals,
         backgroundColor: '#c8f23088', borderColor: '#c8f230', borderWidth: 1, borderRadius: 5 }] },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: false, maintainAspectRatio: false,
         plugins: { legend: { display: false },
           tooltip: { callbacks: { label: function(ctx){ return ' R' + ctx.raw.toLocaleString('en-ZA'); } } } },
         scales: {
