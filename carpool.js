@@ -1928,7 +1928,11 @@ function renderSavingsChart() {
       monthKeys.push(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'));
     }
     var monthTotals = monthKeys.map(function(mk) {
-      var cutoff = mk + '-31';
+      // Use last day of the month as cutoff for cumulative balance
+      var yr = parseInt(mk.slice(0,4));
+      var mo = parseInt(mk.slice(5,7));
+      var lastDay = new Date(yr, mo, 0).getDate(); // last day of month
+      var cutoff = mk + '-' + String(lastDay).padStart(2,'0');
       return (typeof funds !== 'undefined' ? funds : []).reduce(function(sum, f) {
         if (f.isExpense) return sum;
         var bal = (f.deposits||[]).filter(function(d){ return d.date <= cutoff; })
