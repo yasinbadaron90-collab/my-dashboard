@@ -749,8 +749,14 @@ function restoreData(input){
         lsSet('yasin_theme_light', backup.themeLight);
       }
       status.style.color='#c8f230';
-      status.textContent='✓ Restored from '+backup.exported+'. Reloading…';
-      setTimeout(function(){ location.reload(); }, 1200);
+      status.textContent='✓ Restored from '+backup.exported+'. Syncing to cloud…';
+      // Push imported data to Firebase so all devices get the update
+      if(typeof fbPushAll === 'function'){
+        fbPushAll(true); // silent push, no alert
+        setTimeout(function(){ location.reload(); }, 2000);
+      } else {
+        setTimeout(function(){ location.reload(); }, 1200);
+      }
     } catch(err){
       status.style.color='#f23060';
       status.textContent='✕ Invalid file — '+err.message;

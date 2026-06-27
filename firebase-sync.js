@@ -251,15 +251,10 @@ function _fbPullAll(){
         if(!data || !data.value) return;
         if(FB_SYNC_KEYS.indexOf(key) < 0) return;
 
-        // Only overwrite local if cloud is newer
-        // Simple strategy: if local is empty/null, always use cloud
-        var local = lsGet(key);
-        if(!local || local === 'null' || local === '[]' || local === '{}'){
-          _originalLsSet(key, data.value);
-          merged++;
-        }
-        // If both exist, cloud wins for initial load
-        // (user can manually push local → cloud via Settings)
+        // Cloud always wins on manual pull — this is intentional
+        // Auto-pull on startup still uses the cautious strategy (see _fbPullAll)
+        _originalLsSet(key, data.value);
+        merged++;
       });
       _fbUpdateStatus('synced');
       if(merged > 0){
@@ -280,9 +275,9 @@ function _fbPullAll(){
 }
 
 // ── Manual push — upload all local data to cloud ─────────────────────────────
-function fbPushAll(){
+function fbPushAll(silent){
   if(!_fb.ready || !_fb.uid){
-    alert('Firebase not ready. Check your connection.');
+    if(!silent) alert('Firebase not ready. Check your connection.');
     return;
   }
   _fbUpdateStatus('syncing');
@@ -294,9 +289,11 @@ function fbPushAll(){
       pushed++;
     }
   });
-  setTimeout(function(){
-    alert('Pushed ' + pushed + ' data sets to Firebase ✓');
-  }, 3000);
+  if(!silent){
+    setTimeout(function(){
+      alert('Pushed ' + pushed + ' data sets to Firebase ✓');
+    }, 3000);
+  }
 }
 
 // ── Manual pull — download all cloud data to local ───────────────────────────
