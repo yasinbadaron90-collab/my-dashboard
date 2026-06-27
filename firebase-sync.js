@@ -69,7 +69,16 @@ var FB_SYNC_KEYS = [
   'yb_repayments_v1',
   'yb_carpool_payments_v1',
   'yb_bankfeed_merchants_v1',
-  'yb_alert_state_v1'
+  'yb_alert_state_v1',
+  // School extras
+  'yasin_school_events_v1',
+  'yasin_school_done_v1',
+  // Carpool archived
+  'yb_carpool_archived',
+  // Manual balances
+  'yb_manual_balances_v1',
+  // Cars (actual key used)
+  'yasin_cars_v1'
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
