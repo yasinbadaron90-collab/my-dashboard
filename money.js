@@ -997,13 +997,9 @@ function renderMoneyOwed(){
     people.push({ name: p.name, tag:'external', entries: visEntries, borrowed, repaid, key });
   });
 
-  // ── Summary totals — personal only (carpool excluded to match Reports) ──
+  // ── Summary totals ──
   let grandLent = 0, grandRepaid = 0;
-  people.forEach(function(p){
-    if(p.tag === 'carpool') return; // carpool borrows excluded from header totals
-    grandLent += p.borrowed;
-    grandRepaid += p.repaid;
-  });
+  people.forEach(function(p){ grandLent += p.borrowed; grandRepaid += p.repaid; });
   const grandOwing = grandLent - grandRepaid;
   const moTL = document.getElementById('moTotalLent');
   const moTR = document.getElementById('moTotalRepaid');
@@ -1374,10 +1370,25 @@ function loadBorrowReport() {
   let totalRepaid = 0;
   const byPerson = {}; // { name: { borrowed, repaid, tag } }
 
-  // 1) Carpool passengers — excluded from Money Owed report to match the
-  //    Money Owed tab header which only shows personal (external) borrows.
-  //    Carpool borrows are tracked separately in the Carpool tab.
-  void raw;
+  // 1) Carpool passengers
+  Object.keys(raw).forEach(function(passenger) {
+    const entries = raw[passenger] || [];
+    entries.forEach(function(b) {
+      if(b.type === 'repay'){
+        totalRepaid += Number(b.amount || 0);
+        if (!byPerson[passenger]) byPerson[passenger] = { borrowed: 0, repaid: 0, tag: 'carpool' };
+        byPerson[passenger].repaid += Number(b.amount || 0);
+      } else {
+        const amount = Number(b.amount || 0);
+        const repaid = b.paid ? amount : 0;
+        totalBorrowed += amount;
+        totalRepaid += repaid;
+        if (!byPerson[passenger]) byPerson[passenger] = { borrowed: 0, repaid: 0, tag: 'carpool' };
+        byPerson[passenger].borrowed += amount;
+        byPerson[passenger].repaid += repaid;
+      }
+    });
+  });
 
   // 2) External / Personal borrows — yb_external_borrows_v1
   const extData = loadExternalBorrows();
