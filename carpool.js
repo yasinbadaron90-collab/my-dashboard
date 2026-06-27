@@ -1897,8 +1897,11 @@ function renderSavingsChart() {
     if (hint)  hint.textContent  = 'Tap a slice to highlight';
     if (_savDonutChart) { _savDonutChart.destroy(); _savDonutChart = null; }
     if (_savBarChart)   { _savBarChart.destroy();   _savBarChart   = null; }
-    donutCanvas.width  = donutCanvas.parentElement.offsetWidth;
+    var wrapW = donutCanvas.parentElement.offsetWidth || 320;
+    donutCanvas.width  = wrapW;
     donutCanvas.height = 220;
+    donutCanvas.style.width  = wrapW + 'px';
+    donutCanvas.style.height = '220px';
     _savDonutChart = new Chart(donutCanvas.getContext('2d'), {
       type: 'doughnut',
       data: { labels: labels, datasets: [{ data: data, backgroundColor: colors,
@@ -1942,8 +1945,11 @@ function renderSavingsChart() {
         return sum + Math.max(0, bal);
       }, 0);
     });
-    barCanvas.width  = barCanvas.parentElement.offsetWidth;
+    var wrapW2 = barCanvas.parentElement.offsetWidth || 320;
+    barCanvas.width  = wrapW2;
     barCanvas.height = 220;
+    barCanvas.style.width  = wrapW2 + 'px';
+    barCanvas.style.height = '220px';
     _savBarChart = new Chart(barCanvas.getContext('2d'), {
       type: 'bar',
       data: { labels: monthLabels, datasets: [{ label: 'Total Saved', data: monthTotals,
