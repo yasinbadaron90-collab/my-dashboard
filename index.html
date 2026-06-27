@@ -739,9 +739,9 @@ function _showUpdateToast(worker){
           </div>
         </div>
         <div id="savChartLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;"></div>
-        <div id="savChartWrap" style="position:relative;width:100%;height:220px;overflow:hidden;">
-          <canvas id="savDonutChart" style="position:absolute;top:0;left:0;width:100%!important;height:220px!important;display:block;"></canvas>
-          <canvas id="savBarChart" style="position:absolute;top:0;left:0;width:100%!important;height:220px!important;display:none;"></canvas>
+        <div id="savChartWrap" style="width:100%;height:220px;">
+          <canvas id="savDonutChart" style="display:block;"></canvas>
+          <canvas id="savBarChart" style="display:none;"></canvas>
           <div id="savChartEmpty" style="display:none;text-align:center;padding:40px;color:var(--muted);font-size:12px;">No data yet</div>
         </div>
         <div style="font-size:9px;color:var(--muted);text-align:center;margin-top:6px;letter-spacing:1px;" id="savChartHint">Tap a slice to highlight</div>
