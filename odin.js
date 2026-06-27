@@ -278,8 +278,12 @@ function buildOdinLaunchAlerts(){
   // ── Cash flow ──
   try{
     var snap = (typeof getLendingSnapshot==='function') ? getLendingSnapshot() : null;
-    if(snap && snap.net < 0){
-      alerts.push({ level:'red', text:'Cash flow deficit — '+fmtR(Math.abs(snap.net))+' over budget', tab:'cashflow',
+    if(snap && snap.net < -5000){
+      alerts.push({ level:'red', text:'Spent '+fmtR(Math.abs(snap.net))+' more than earned this month', tab:'cashflow',
+        actions:[{ label:'View', fn: function(){ goToTab('cashflow'); } }]
+      });
+    } else if(snap && snap.net < 0){
+      alerts.push({ level:'amber', text:'Spent '+fmtR(Math.abs(snap.net))+' more than earned this month', tab:'cashflow',
         actions:[{ label:'View', fn: function(){ goToTab('cashflow'); } }]
       });
     } else if(snap && snap.net > 0){
