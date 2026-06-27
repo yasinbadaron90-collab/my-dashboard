@@ -1898,7 +1898,8 @@ function renderSavingsChart() {
     if (_savDonutChart) { _savDonutChart.destroy(); _savDonutChart = null; }
     if (_savBarChart)   { _savBarChart.destroy();   _savBarChart   = null; }
     var wrapEl = document.getElementById('savChartWrap');
-    var wrapW  = (wrapEl ? wrapEl.clientWidth : 320) || 320;
+    var wrapW  = (wrapEl ? wrapEl.offsetWidth : 320) || 320;
+    if(wrapW < 10) wrapW = window.innerWidth - 64;
     donutCanvas.setAttribute('width',  wrapW);
     donutCanvas.setAttribute('height', 220);
     _savDonutChart = new Chart(donutCanvas.getContext('2d'), {
@@ -1945,7 +1946,8 @@ function renderSavingsChart() {
       }, 0);
     });
     var wrapEl2 = document.getElementById('savChartWrap');
-    var wrapW2  = (wrapEl2 ? wrapEl2.clientWidth : 320) || 320;
+    var wrapW2  = (wrapEl2 ? wrapEl2.offsetWidth : 320) || 320;
+    if(wrapW2 < 10) wrapW2 = window.innerWidth - 64;
     barCanvas.setAttribute('width',  wrapW2);
     barCanvas.setAttribute('height', 220);
     _savBarChart = new Chart(barCanvas.getContext('2d'), {
