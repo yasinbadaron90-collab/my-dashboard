@@ -1450,6 +1450,7 @@ function rptUpdateFolderMeta() {
   setTimeout(function() {
     // Savings
     var savEl = document.getElementById('rptFolderSavingsMeta');
+    setTimeout(renderSavingsChart, 80); // re-render chart when folder opens (canvas must be visible)
     var savVal = document.getElementById('rptTotalSaved');
     if (savEl && savVal) savEl.textContent = savVal.textContent;
 
@@ -1681,6 +1682,7 @@ function renderReports(){
     document.getElementById('rptTotalSaved').textContent=fmtR(totalSaved);
     document.getElementById('rptFundCount').textContent=funds.length;
     document.getElementById('rptSavingsRows').innerHTML=savingsRows;
+    setTimeout(renderSavingsChart, 50);
   }
 
   // CARPOOL
@@ -1821,6 +1823,136 @@ function renderReports(){
 var _nwChartMode = 'donut'; // 'donut' | 'line'
 var _nwDonutChart = null;
 var _nwLineChart = null;
+
+// ── Savings charts ────────────────────────────────────────────────────────────
+var _savDonutChart = null;
+var _savBarChart   = null;
+var _savChartMode  = 'donut';
+
+function setSavChartMode(mode) {
+  _savChartMode = mode;
+  var btnDonut = document.getElementById('savBtnDonut');
+  var btnBar   = document.getElementById('savBtnBar');
+  if (btnDonut && btnBar) {
+    btnDonut.style.background = mode === 'donut' ? '#c8f230' : 'transparent';
+    btnDonut.style.color      = mode === 'donut' ? '#000' : 'var(--muted)';
+    btnBar.style.background   = mode === 'bar'   ? '#c8f230' : 'transparent';
+    btnBar.style.color        = mode === 'bar'   ? '#000' : 'var(--muted)';
+  }
+  renderSavingsChart();
+}
+
+function renderSavingsChart() {
+  var donutCanvas = document.getElementById('savDonutChart');
+  var barCanvas   = document.getElementById('savBarChart');
+  var emptyMsg    = document.getElementById('savChartEmpty');
+  var legend      = document.getElementById('savChartLegend');
+  var hint        = document.getElementById('savChartHint');
+  var title       = document.getElementById('savChartTitle');
+  if (!donutCanvas || !barCanvas) return;
+
+  var isDark    = !document.documentElement.classList.contains('light');
+  var gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  var textColor = isDark ? '#888' : '#666';
+
+  var activeFunds = (typeof funds !== 'undefined' ? funds : []).filter(function(f) {
+    var bal;
+    if (f.isExpense) {
+      var tin  = (f.deposits||[]).filter(function(d){return d.txnType==='in';}).reduce(function(s,d){return s+d.amount;},0);
+      var tout = (f.deposits||[]).filter(function(d){return d.txnType==='out';}).reduce(function(s,d){return s+d.amount;},0);
+      bal = tin - tout;
+    } else {
+      bal = (f.deposits||[]).reduce(function(s,d){return s+(d.txnType==='out'?-d.amount:d.amount);},0);
+    }
+    f._chartBal = bal;
+    return bal > 0;
+  });
+
+  if (activeFunds.length === 0) {
+    donutCanvas.style.display = 'none';
+    barCanvas.style.display   = 'none';
+    if (emptyMsg) emptyMsg.style.display = 'block';
+    if (legend)   legend.innerHTML = '';
+    return;
+  }
+  if (emptyMsg) emptyMsg.style.display = 'none';
+
+  var palette = ['#c8f230','#f2a830','#30c8f2','#a830f2','#f23060','#30f2a8','#f230c8','#ffb830','#5af2c8','#f2f230'];
+  var labels  = activeFunds.map(function(f){ return f.emoji + ' ' + f.name; });
+  var data    = activeFunds.map(function(f){ return Math.round(f._chartBal); });
+  var colors  = activeFunds.map(function(f, i){ return f.color || palette[i % palette.length]; });
+
+  if (legend) {
+    legend.innerHTML = activeFunds.map(function(f, i) {
+      return '<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);">'
+        + '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + colors[i] + ';flex-shrink:0;"></span>'
+        + f.name + '</div>';
+    }).join('');
+  }
+
+  if (_savChartMode === 'donut') {
+    donutCanvas.style.display = 'block';
+    barCanvas.style.display   = 'none';
+    if (title) title.textContent = 'Pocket Distribution';
+    if (hint)  hint.textContent  = 'Tap a slice to highlight';
+    if (_savDonutChart) { _savDonutChart.destroy(); _savDonutChart = null; }
+    if (_savBarChart)   { _savBarChart.destroy();   _savBarChart   = null; }
+    _savDonutChart = new Chart(donutCanvas.getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors,
+        borderColor: isDark ? '#1a1a1a' : '#f0f0f0', borderWidth: 2, hoverOffset: 8 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '62%',
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: function(ctx) {
+            var total = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+            var pct = total > 0 ? ((ctx.raw/total)*100).toFixed(1) : 0;
+            return ' R' + ctx.raw.toLocaleString('en-ZA') + ' (' + pct + '%)';
+          }}}}
+      }
+    });
+  } else {
+    donutCanvas.style.display = 'none';
+    barCanvas.style.display   = 'block';
+    if (title) title.textContent = 'Monthly Growth';
+    if (hint)  hint.textContent  = 'Total across all pockets per month';
+    if (_savDonutChart) { _savDonutChart.destroy(); _savDonutChart = null; }
+    if (_savBarChart)   { _savBarChart.destroy();   _savBarChart   = null; }
+
+    var now = new Date();
+    var MS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var monthLabels = [], monthKeys = [];
+    for (var i = 5; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthLabels.push(MS[d.getMonth()] + " '" + String(d.getFullYear()).slice(2));
+      monthKeys.push(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'));
+    }
+    var monthTotals = monthKeys.map(function(mk) {
+      var cutoff = mk + '-31';
+      return (typeof funds !== 'undefined' ? funds : []).reduce(function(sum, f) {
+        if (f.isExpense) return sum;
+        var bal = (f.deposits||[]).filter(function(d){ return d.date <= cutoff; })
+          .reduce(function(s,d){ return s + (d.txnType==='out' ? -d.amount : d.amount); }, 0);
+        return sum + Math.max(0, bal);
+      }, 0);
+    });
+    _savBarChart = new Chart(barCanvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels: monthLabels, datasets: [{ label: 'Total Saved', data: monthTotals,
+        backgroundColor: '#c8f23088', borderColor: '#c8f230', borderWidth: 1, borderRadius: 5 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: function(ctx){ return ' R' + ctx.raw.toLocaleString('en-ZA'); } } } },
+        scales: {
+          x: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 9 } } },
+          y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 9 },
+            callback: function(v){ return 'R'+(v>=1000?(v/1000).toFixed(0)+'k':v); } } }
+        }
+      }
+    });
+  }
+}
 
 function setNwChartMode(mode) {
   _nwChartMode = mode;
