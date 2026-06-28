@@ -1964,7 +1964,29 @@ function _renderNwLine(d) {
   // Calculate net worth at end of each month
   var currentNw = d.netWorth;
   // Projected: assume R1000/month repayment going forward (from last repayment pattern)
-  var lastRepayAmt = allRepays.length > 0 ? allRepays[allRepays.length-1].amount : 1000;
+  var _defaultRepay = allRepays.length > 0 ? allRepays[allRepays.length-1].amount : 1000;
+  var _sliderEl = document.getElementById('nwRepayInput');
+  var lastRepayAmt = _sliderEl && parseFloat(_sliderEl.value) > 0 ? parseFloat(_sliderEl.value) : _defaultRepay;
+  // Inject slider if not present
+  var _sliderWrap = document.getElementById('nwSliderWrap');
+  if (!_sliderWrap) {
+    var _lineWrap = document.getElementById('nwLineWrap');
+    if (_lineWrap) {
+      var _sw = document.createElement('div');
+      _sw.id = 'nwSliderWrap';
+      _sw.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);';
+      _sw.innerHTML = '<span style="font-size:10px;letter-spacing:1px;color:var(--muted);white-space:nowrap;">Monthly repayment</span>'
+        + '<span style="font-size:13px;color:var(--muted);">R</span>'
+        + '<input id="nwRepayInput" type="number" min="100" step="100" value="' + _defaultRepay + '"'
+        + ' style="flex:1;background:#111;border:1px solid var(--border);color:var(--text);font-family:DM Mono,monospace;font-size:14px;font-weight:700;padding:6px 10px;border-radius:4px;outline:none;width:100px;"'
+        + ' oninput="renderNetWorth()" />'
+        + '<span id="nwPayoffLabel" style="font-size:10px;color:#5a8800;letter-spacing:1px;white-space:nowrap;"></span>';
+      _lineWrap.insertBefore(_sw, _lineWrap.firstChild);
+    }
+  } else if (_sliderEl) {
+    // Update default hint if input is empty/zero
+    if (!_sliderEl.value || parseFloat(_sliderEl.value) <= 0) _sliderEl.value = _defaultRepay;
+  }
   var todayStr = today.toISOString().slice(0,7);
 
   var labels2 = [], dataVals2 = [], pointColors2 = [];
@@ -1996,6 +2018,22 @@ function _renderNwLine(d) {
     dataVals2.push(Math.round(nwAtMonth));
     pointColors2.push(isFuture ? '#3a5a00' : (nwAtMonth >= 0 ? '#c8f230' : '#f23060'));
   });
+
+  // Update payoff label
+  var _payoffEl = document.getElementById('nwPayoffLabel');
+  if (_payoffEl && lastRepayAmt > 0) {
+    var _owing = Math.abs(d.netWorth < 0 ? d.netWorth : 0);
+    if (_owing > 0) {
+      var _months = Math.ceil(_owing / lastRepayAmt);
+      var _yrs = Math.floor(_months / 12);
+      var _mos = _months % 12;
+      var _label = _yrs > 0 ? _yrs + 'y ' + (_mos > 0 ? _mos + 'm' : '') : _mos + ' months';
+      _payoffEl.textContent = '→ clear in ~' + _label.trim();
+    } else {
+      _payoffEl.textContent = '✓ clear';
+      _payoffEl.style.color = '#c8f230';
+    }
+  }
 
   if (typeof Chart === 'undefined') return;
   _nwLineChart = new Chart(ctx, {
