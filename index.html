@@ -727,6 +727,27 @@ function _showUpdateToast(worker){
         </div>
       </div>
       
+      <!-- SAVINGS CHARTS -->
+      <div id="savChartsSection" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px 10px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">VISUAL BREAKDOWN</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;" id="savChartTitle">Pocket Distribution</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button id="savBtnDonut" onclick="setSavChartMode('donut')" style="padding:5px 12px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;border:1px solid var(--border);background:#c8f230;color:#000;transition:all .15s;">DONUT</button>
+            <button id="savBtnBar" onclick="setSavChartMode('bar')" style="padding:5px 12px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s;">BAR</button>
+          </div>
+        </div>
+        <div id="savChartLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;"></div>
+        <div style="width:100%;height:220px;overflow:hidden;">
+          <canvas id="savDonutChart"></canvas>
+          <canvas id="savBarChart" style="display:none;"></canvas>
+          <div id="savChartEmpty" style="display:none;text-align:center;padding:60px 0;color:var(--muted);font-size:12px;">No data</div>
+        </div>
+        <div style="font-size:9px;color:var(--muted);text-align:center;margin-top:6px;letter-spacing:1px;" id="savChartHint">Tap a slice to see details</div>
+      </div>
+
       <div id="savCompareCards" style="display:none;margin-bottom:12px;">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
           <div style="background:var(--surface);border-radius:8px;padding:10px;">
