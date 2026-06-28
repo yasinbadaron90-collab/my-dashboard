@@ -2054,9 +2054,12 @@ function renderNetWorth() {
   var liabilityRows = [], totalLiabilities = 0;
   Object.keys(extData).forEach(function(key) {
     var person = extData[key];
-    if (!person.isHistorical) return;
+    var entries = person.entries || [];
+    // isHistorical lives on the borrow entry, not the person object
+    var isHist = person.isHistorical || entries.some(function(e){ return e.isHistorical; });
+    if (!isHist) return;
     var borrowed = 0, repaid = 0;
-    (person.entries || []).forEach(function(e) {
+    entries.forEach(function(e) {
       if (e.type === 'repay') repaid += Number(e.amount || 0);
       else borrowed += Number(e.amount || 0);
     });
