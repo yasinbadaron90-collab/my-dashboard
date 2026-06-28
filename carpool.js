@@ -2028,6 +2028,94 @@ function _renderNwLine(d) {
 }
 
 
+
+
+// ── renderNetWorth ──
+function renderNetWorth() {
+  var rawFunds = [];
+  try { rawFunds = JSON.parse(localStorage.getItem('yasin_funds_v16') || '[]'); } catch(e) {}
+
+  var assetRows = [], totalAssets = 0;
+  rawFunds.forEach(function(f) {
+    if (f.isExpense) return;
+    var bal = 0;
+    (f.deposits || []).forEach(function(dep) {
+      bal += dep.txnType === 'out' ? -(dep.amount || 0) : (dep.amount || 0);
+    });
+    if (bal > 0) {
+      assetRows.push({ label: (f.emoji || '') + ' ' + (f.name || ''), amount: bal });
+      totalAssets += bal;
+    }
+  });
+
+  var extData = {};
+  try { extData = JSON.parse(localStorage.getItem('yb_external_borrows_v1') || '{}'); } catch(e) {}
+
+  var liabilityRows = [], totalLiabilities = 0;
+  Object.keys(extData).forEach(function(key) {
+    var person = extData[key];
+    if (!person.isHistorical) return;
+    var borrowed = 0, repaid = 0;
+    (person.entries || []).forEach(function(e) {
+      if (e.type === 'repay') repaid += Number(e.amount || 0);
+      else borrowed += Number(e.amount || 0);
+    });
+    var owing = borrowed - repaid;
+    if (owing > 0) {
+      liabilityRows.push({ label: person.name || key, amount: owing });
+      totalLiabilities += owing;
+    }
+  });
+
+  var netWorth = totalAssets - totalLiabilities;
+
+  var nwTotalEl = document.getElementById('nwTotal');
+  if (nwTotalEl) { nwTotalEl.textContent = fmtR(netWorth); nwTotalEl.style.color = netWorth >= 0 ? '#c8f230' : '#f23060'; }
+  var nwAssetsEl = document.getElementById('nwAssets');
+  if (nwAssetsEl) nwAssetsEl.textContent = fmtR(totalAssets);
+  var nwLiabEl = document.getElementById('nwLiabilities');
+  if (nwLiabEl) nwLiabEl.textContent = fmtR(totalLiabilities);
+
+  var nwAssetRowsEl = document.getElementById('nwAssetRows');
+  if (nwAssetRowsEl) {
+    nwAssetRowsEl.innerHTML = assetRows.length
+      ? assetRows.map(function(r) { return '<div class="rpt-row" style="grid-template-columns:2fr 1fr"><span style="color:var(--muted)">' + r.label + '</span><span style="color:#c8f230;font-weight:500">' + fmtR(r.amount) + '</span></div>'; }).join('')
+      : '<div style="padding:14px;color:var(--muted);font-size:12px">No pockets found</div>';
+  }
+
+  var nwLiabRowsEl = document.getElementById('nwLiabilityRows');
+  if (nwLiabRowsEl) {
+    nwLiabRowsEl.innerHTML = liabilityRows.length
+      ? liabilityRows.map(function(r) { return '<div class="rpt-row" style="grid-template-columns:2fr 1fr"><span style="color:var(--muted)">' + r.label + '</span><span style="color:#f23060;font-weight:500">' + fmtR(r.amount) + '</span></div>'; }).join('')
+      : '<div style="padding:14px;color:var(--muted);font-size:12px">No historical liabilities</div>';
+  }
+
+  var d = { assetRows: assetRows, liabilityRows: liabilityRows, netWorth: netWorth };
+  if (_nwChartMode === 'donut') _renderNwDonut(d);
+  else _renderNwLine(d);
+}
+
+// ── setNwChartMode ──
+function setNwChartMode(mode) {
+  _nwChartMode = mode;
+  var btnDonut  = document.getElementById('nwBtnDonut');
+  var btnLine   = document.getElementById('nwBtnLine');
+  var donutWrap = document.getElementById('nwDonutWrap');
+  var lineWrap  = document.getElementById('nwLineWrap');
+  if (mode === 'donut') {
+    if (donutWrap) donutWrap.style.display = 'block';
+    if (lineWrap)  lineWrap.style.display  = 'none';
+    if (btnDonut) { btnDonut.style.background = '#1a2e00'; btnDonut.style.borderColor = '#c8f230'; btnDonut.style.color = '#c8f230'; }
+    if (btnLine)  { btnLine.style.background  = 'none';   btnLine.style.borderColor  = '#333';    btnLine.style.color  = '#555'; }
+  } else {
+    if (donutWrap) donutWrap.style.display = 'none';
+    if (lineWrap)  lineWrap.style.display  = 'block';
+    if (btnLine)  { btnLine.style.background  = '#1a2e00'; btnLine.style.borderColor  = '#c8f230'; btnLine.style.color  = '#c8f230'; }
+    if (btnDonut) { btnDonut.style.background = 'none';    btnDonut.style.borderColor = '#333';    btnDonut.style.color = '#555'; }
+  }
+  renderNetWorth();
+}
+
 // ── CARPOOL INCOME CHART ──
 var _cpChart = null;
 var _cpChartMode = 'bar';
