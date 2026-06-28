@@ -284,25 +284,36 @@ function _fbPullAll(){
 }
 
 // ── Manual push — upload all local data to cloud ─────────────────────────────
-function fbPushAll(silent){
+function fbPushAll(silent, onDone){
   if(!_fb.ready || !_fb.uid){
     if(!silent) alert('Firebase not ready. Check your connection.');
+    if(onDone) onDone();
     return;
   }
   _fbUpdateStatus('syncing');
-  var pushed = 0;
+  var promises = [];
   FB_SYNC_KEYS.forEach(function(key){
     var val = lsGet(key);
     if(val && val !== 'null'){
-      _fbWrite(key, val);
-      pushed++;
+      var p = _fb.db
+        .collection('users').doc(_fb.uid)
+        .collection('data').doc(key)
+        .set({
+          value:     val,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      promises.push(p);
     }
   });
-  if(!silent){
-    setTimeout(function(){
-      alert('Pushed ' + pushed + ' data sets to Firebase ✓');
-    }, 3000);
-  }
+  Promise.all(promises).then(function(){
+    _fbUpdateStatus('synced');
+    if(!silent) alert('Pushed ' + promises.length + ' data sets to Firebase ✓');
+    if(onDone) onDone();
+  }).catch(function(e){
+    console.warn('[Firebase] Push failed:', e);
+    _fbUpdateStatus('error');
+    if(onDone) onDone();
+  });
 }
 
 // ── Manual pull — download all cloud data to local ───────────────────────────
