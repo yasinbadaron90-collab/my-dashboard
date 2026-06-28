@@ -1967,25 +1967,22 @@ function _renderNwLine(d) {
   var _defaultRepay = allRepays.length > 0 ? allRepays[allRepays.length-1].amount : 1000;
   var _sliderEl = document.getElementById('nwRepayInput');
   var lastRepayAmt = _sliderEl && parseFloat(_sliderEl.value) > 0 ? parseFloat(_sliderEl.value) : _defaultRepay;
-  // Inject slider if not present
-  var _sliderWrap = document.getElementById('nwSliderWrap');
-  if (!_sliderWrap) {
+  // Inject slider once only — never recreate it (would break typing)
+  if (!document.getElementById('nwSliderWrap')) {
     var _lineWrap = document.getElementById('nwLineWrap');
     if (_lineWrap) {
       var _sw = document.createElement('div');
       _sw.id = 'nwSliderWrap';
-      _sw.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);';
-      _sw.innerHTML = '<span style="font-size:10px;letter-spacing:1px;color:var(--muted);white-space:nowrap;">Monthly repayment</span>'
+      _sw.style.cssText = 'margin-bottom:12px;';
+      _sw.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border-radius:6px 6px 0 0;border:1px solid var(--border);border-bottom:none;">'
+        + '<span style="font-size:10px;letter-spacing:1px;color:var(--muted);white-space:nowrap;">Monthly repayment</span>'
         + '<span style="font-size:13px;color:var(--muted);">R</span>'
         + '<input id="nwRepayInput" type="number" min="100" step="100" value="' + _defaultRepay + '"'
-        + ' style="flex:1;background:#111;border:1px solid var(--border);color:var(--text);font-family:DM Mono,monospace;font-size:14px;font-weight:700;padding:6px 10px;border-radius:4px;outline:none;width:100px;"'
-        + ' oninput="renderNetWorth()" />'
-        + '<span id="nwPayoffLabel" style="font-size:10px;color:#5a8800;letter-spacing:1px;white-space:nowrap;"></span>';
+        + ' style="flex:1;background:#111;border:1px solid #333;color:var(--text);font-family:DM Mono,monospace;font-size:15px;font-weight:700;padding:6px 10px;border-radius:4px;outline:none;"'
+        + ' onchange="_nwRepayChanged(this.value)" onblur="_nwRepayChanged(this.value)" /></div>'
+        + '<div id="nwPayoffLabel" style="padding:7px 14px;background:var(--surface2);border-radius:0 0 6px 6px;border:1px solid var(--border);border-top:none;font-size:11px;color:#5a8800;letter-spacing:1px;min-height:28px;"></div>';
       _lineWrap.insertBefore(_sw, _lineWrap.firstChild);
     }
-  } else if (_sliderEl) {
-    // Update default hint if input is empty/zero
-    if (!_sliderEl.value || parseFloat(_sliderEl.value) <= 0) _sliderEl.value = _defaultRepay;
   }
   var todayStr = today.toISOString().slice(0,7);
 
@@ -2027,10 +2024,11 @@ function _renderNwLine(d) {
       var _months = Math.ceil(_owing / lastRepayAmt);
       var _yrs = Math.floor(_months / 12);
       var _mos = _months % 12;
-      var _label = _yrs > 0 ? _yrs + 'y ' + (_mos > 0 ? _mos + 'm' : '') : _mos + ' months';
-      _payoffEl.textContent = '→ clear in ~' + _label.trim();
+      var _label = _yrs > 0 ? (_yrs + ' year' + (_yrs>1?'s':'') + (_mos > 0 ? ' ' + _mos + ' month' + (_mos>1?'s':'') : '')) : (_mos + ' month' + (_mos>1?'s':''));
+      _payoffEl.textContent = 'At R' + Math.round(lastRepayAmt).toLocaleString('en-ZA') + '/month → debt clear in ~' + _label;
+      _payoffEl.style.color = '#5a8800';
     } else {
-      _payoffEl.textContent = '✓ clear';
+      _payoffEl.textContent = '✓ Debt cleared!';
       _payoffEl.style.color = '#c8f230';
     }
   }
@@ -2134,6 +2132,13 @@ function renderNetWorth() {
   var d = { assetRows: assetRows, liabilityRows: liabilityRows, netWorth: netWorth };
   if (_nwChartMode === 'donut') _renderNwDonut(d);
   else _renderNwLine(d);
+}
+
+// ── _nwRepayChanged ──
+function _nwRepayChanged(val) {
+  var v = parseFloat(val);
+  if (!v || v < 0) return;
+  renderNetWorth();
 }
 
 // ── setNwChartMode ──
