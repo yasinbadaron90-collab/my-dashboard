@@ -1450,7 +1450,7 @@ function rptUpdateFolderMeta() {
   setTimeout(function() {
     // Savings
     var savEl = document.getElementById('rptFolderSavingsMeta');
-    setTimeout(renderSavingsChart, 80); // re-render chart when folder opens (canvas must be visible)
+    setTimeout(renderSavingsChart, 200); // re-render chart when folder opens (canvas must be visible)
     var savVal = document.getElementById('rptTotalSaved');
     if (savEl && savVal) savEl.textContent = savVal.textContent;
 
@@ -1682,7 +1682,7 @@ function renderReports(){
     document.getElementById('rptTotalSaved').textContent=fmtR(totalSaved);
     document.getElementById('rptFundCount').textContent=funds.length;
     document.getElementById('rptSavingsRows').innerHTML=savingsRows;
-    setTimeout(renderSavingsChart, 50);
+    setTimeout(renderSavingsChart, 150);
   }
 
   // CARPOOL
@@ -1839,7 +1839,8 @@ function setSavChartMode(mode) {
     btnBar.style.background   = mode === 'bar'   ? '#c8f230' : 'transparent';
     btnBar.style.color        = mode === 'bar'   ? '#000' : 'var(--muted)';
   }
-  renderSavingsChart();
+  // Defer to ensure canvas is visible before Chart.js measures it
+  setTimeout(renderSavingsChart, 50);
 }
 
 function renderSavingsChart() {
@@ -1897,9 +1898,7 @@ function renderSavingsChart() {
     if (hint)  hint.textContent  = 'Tap a slice to highlight';
     if (_savDonutChart) { _savDonutChart.destroy(); _savDonutChart = null; }
     if (_savBarChart)   { _savBarChart.destroy();   _savBarChart   = null; }
-    var wrapEl = document.getElementById('savChartWrap');
-    var wrapW  = (wrapEl ? wrapEl.offsetWidth : 320) || 320;
-    if(wrapW < 10) wrapW = window.innerWidth - 64;
+    var wrapW = window.innerWidth - 64;
     donutCanvas.setAttribute('width',  wrapW);
     donutCanvas.setAttribute('height', 220);
     _savDonutChart = new Chart(donutCanvas.getContext('2d'), {
@@ -1945,9 +1944,7 @@ function renderSavingsChart() {
         return sum + Math.max(0, bal);
       }, 0);
     });
-    var wrapEl2 = document.getElementById('savChartWrap');
-    var wrapW2  = (wrapEl2 ? wrapEl2.offsetWidth : 320) || 320;
-    if(wrapW2 < 10) wrapW2 = window.innerWidth - 64;
+    var wrapW2 = window.innerWidth - 64;
     barCanvas.setAttribute('width',  wrapW2);
     barCanvas.setAttribute('height', 220);
     _savBarChart = new Chart(barCanvas.getContext('2d'), {
