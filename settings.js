@@ -750,10 +750,11 @@ function restoreData(input){
       }
       status.style.color='#c8f230';
       status.textContent='✓ Restored from '+backup.exported+'. Syncing to cloud…';
-      // Push imported data to Firebase so all devices get the update
+      // Push imported data to Firebase FIRST, then reload once push completes
       if(typeof fbPushAll === 'function'){
         fbPushAll(true); // silent push, no alert
-        setTimeout(function(){ location.reload(); }, 2000);
+        // Give Firebase 3s to finish writing before reload (prevents pull-overwrite race)
+        setTimeout(function(){ location.reload(); }, 3500);
       } else {
         setTimeout(function(){ location.reload(); }, 1200);
       }
