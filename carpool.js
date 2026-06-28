@@ -2073,7 +2073,7 @@ function renderNetWorth() {
 
   var assetRows = [], totalAssets = 0;
   rawFunds.forEach(function(f) {
-    if (f.isExpense) return;
+    // isExpense funds still hold real money — include in assets
     var bal = 0;
     (f.deposits || []).forEach(function(dep) {
       bal += dep.txnType === 'out' ? -(dep.amount || 0) : (dep.amount || 0);
