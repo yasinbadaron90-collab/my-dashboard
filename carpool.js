@@ -12,8 +12,9 @@ function renderSavingsChart() {
   var textColor = isDark ? '#888' : '#666';
 
   // Locked rule: offsetWidth with fallback
-  var W = canvas.parentElement ? (canvas.parentElement.offsetWidth || (window.innerWidth - 64)) : (window.innerWidth - 64);
-  if (W < 10) W = window.innerWidth - 64;
+  var W = canvas.parentElement ? (canvas.parentElement.offsetWidth || (window.innerWidth - 32)) : (window.innerWidth - 32);
+  if (W < 10) W = window.innerWidth - 32;
+  W = Math.min(W, window.innerWidth - 32); // never overflow screen
 
   var MS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var now = new Date();
