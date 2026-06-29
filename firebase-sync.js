@@ -268,8 +268,17 @@ function _fbPullAll(){
       _fbUpdateStatus('synced');
       if(merged > 0){
         console.log('[Firebase] Merged', merged, 'keys from cloud');
-        // Full reload so every tab renders fresh from cloud data
-        setTimeout(function(){ location.reload(); }, 800);
+        // Only reload once — set a flag first so the next load skips the reload
+        if(!sessionStorage.getItem('_fbPullDone')){
+          sessionStorage.setItem('_fbPullDone', '1');
+          setTimeout(function(){ location.reload(); }, 800);
+        } else {
+          // Already reloaded once this session — just refresh UI without reload
+          if(typeof loadFunds === 'function') loadFunds();
+          if(typeof renderFunds === 'function') renderFunds();
+          if(typeof renderCashFlow === 'function') renderCashFlow();
+          if(typeof renderCarpool === 'function') renderCarpool();
+        }
       }
     })
     .catch(function(e){
