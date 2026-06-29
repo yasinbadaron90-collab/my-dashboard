@@ -268,13 +268,8 @@ function _fbPullAll(){
       _fbUpdateStatus('synced');
       if(merged > 0){
         console.log('[Firebase] Merged', merged, 'keys from cloud');
-        // Refresh the UI after merging cloud data
-        setTimeout(function(){
-          if(typeof loadFunds === 'function') loadFunds();
-          if(typeof renderFunds === 'function') renderFunds();
-          if(typeof renderCashFlow === 'function') renderCashFlow();
-          if(typeof renderCarpool === 'function') renderCarpool();
-        }, 500);
+        // Full reload so every tab renders fresh from cloud data
+        setTimeout(function(){ location.reload(); }, 800);
       }
     })
     .catch(function(e){
