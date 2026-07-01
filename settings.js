@@ -106,6 +106,22 @@ function renderReconPanel(){
     savingsContainer.appendChild(row);
   });
 
+  // Carpool fund (isExpense:true, so excluded from the loop above — add it back)
+  try{
+    var carFundRecon = (funds||[]).find(function(f){ return f.isExpense; });
+    if(carFundRecon){
+      var carSaved = fundTotal(carFundRecon);
+      if(carSaved > 0){
+        totalSaved += carSaved;
+        var carRow = document.createElement('div');
+        carRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1a3a00;';
+        carRow.innerHTML = '<span style="font-size:12px;color:#efefef;">'+(carFundRecon.emoji||'🚗')+' '+carFundRecon.name+'</span>'
+          +'<span style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#c8f230;">'+fmtR(carSaved)+'</span>';
+        savingsContainer.appendChild(carRow);
+      }
+    }
+  }catch(e){}
+
   // Custom maintenance cards
   try{
     var mcards = JSON.parse(lsGet(CUSTOM_MAINT_KEY)||'[]');
