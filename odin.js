@@ -338,7 +338,9 @@ function buildOdinLaunchAlerts(){
         else { b+=Number(e.amount||0); if(e.paid) r+=Number(e.amount||0); }
       });
       var owed = Math.max(0,b-r);
-      if(owed>0){
+      // Skip historical debts (money YOU owe, not owed to you)
+      var isHistoricalDebt = (p.entries||[]).some(function(e){ return e.isHistorical; });
+      if(owed>0 && !isHistoricalDebt){
         var unpaid = (p.entries||[]).filter(function(e){ return e.type!=='repay'; });
         var latest = unpaid.length ? unpaid[unpaid.length-1] : null;
         var pKey = key;

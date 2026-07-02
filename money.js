@@ -990,6 +990,9 @@ function renderMoneyOwed(){
   Object.keys(extData).forEach(function(key){
     const p = extData[key];
     if(p.archived) return; // skip archived
+    // Skip historical debts (money YOU owe, not owed to you — tracked in Net Worth liabilities)
+    var isHistoricalDebt = (p.entries||[]).some(function(e){ return e.isHistorical; });
+    if(isHistoricalDebt) return;
     // Same filter for external borrowers
     const visEntries = (p.entries || []).filter(function(e){ return !e._deleted; });
     const { borrowed, repaid } = calcPersonTotals(visEntries);
