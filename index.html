@@ -983,10 +983,21 @@ function _showUpdateToast(worker){
           <span>⛽ Fuel Log</span><span style="font-size:11px;">▸</span>
         </summary>
         <div style="padding:14px;border-top:1px solid var(--border);">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+          <!-- Entry type toggle -->
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <button onclick="fuelSetType('petrol',this)" id="fuelBtnPetrol" style="flex:1;padding:7px;border-radius:6px;border:1px solid #a78bfa;background:#1a0a26;color:#a78bfa;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">⛽ Petrol</button>
+            <button onclick="fuelSetType('uber',this)" id="fuelBtnUber" style="flex:1;padding:7px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">🚗 Uber</button>
+            <input type="hidden" id="fuelEntryType" value="petrol">
+          </div>
+          <div id="fuelPetrolFields" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
             <input id="fuelDate" type="date" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
             <input id="fuelPrice" type="number" placeholder="R/litre" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
             <input id="fuelAmount" type="number" placeholder="Total cost" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
+          </div>
+          <div id="fuelUberFields" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <input id="fuelDateUber" type="date" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
+            <input id="fuelAmountUber" type="number" placeholder="Uber fare (R)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
+            <input id="fuelNote" type="text" placeholder="Note (optional)" style="grid-column:span 2;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
           </div>
           <button onclick="addFuelEntry()" class="admin-only" style="padding:8px 14px;border:none;border-radius:6px;background:#a78bfa;color:#000;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;margin-bottom:12px;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">+ Add Entry</button>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">

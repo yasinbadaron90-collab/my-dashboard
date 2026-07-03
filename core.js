@@ -914,17 +914,47 @@ function rptScrollTo(sectionId){
   }
 }
 
+function fuelSetType(type, btn) {
+  document.getElementById('fuelEntryType').value = type;
+  var pBtn = document.getElementById('fuelBtnPetrol');
+  var uBtn = document.getElementById('fuelBtnUber');
+  var pFields = document.getElementById('fuelPetrolFields');
+  var uFields = document.getElementById('fuelUberFields');
+  if (type === 'uber') {
+    if (pBtn) { pBtn.style.border='1px solid var(--border)'; pBtn.style.background='none'; pBtn.style.color='var(--muted)'; }
+    if (uBtn) { uBtn.style.border='1px solid #f2a830'; uBtn.style.background='#1a1000'; uBtn.style.color='#f2a830'; }
+    if (pFields) pFields.style.display = 'none';
+    if (uFields) uFields.style.display = 'grid';
+  } else {
+    if (pBtn) { pBtn.style.border='1px solid #a78bfa'; pBtn.style.background='#1a0a26'; pBtn.style.color='#a78bfa'; }
+    if (uBtn) { uBtn.style.border='1px solid var(--border)'; uBtn.style.background='none'; uBtn.style.color='var(--muted)'; }
+    if (pFields) pFields.style.display = 'grid';
+    if (uFields) uFields.style.display = 'none';
+  }
+}
 function addFuelEntry() {
-  var date = document.getElementById('fuelDate').value;
-  var price = Number(document.getElementById('fuelPrice').value);
-  var amount = Number(document.getElementById('fuelAmount').value);
-  if (!date || !price || !amount) return;
+  var entryType = document.getElementById('fuelEntryType') ? document.getElementById('fuelEntryType').value : 'petrol';
   var data = JSON.parse(lsGet(FUEL_KEY) || '[]');
-  data.push({ id: uid(), date: date, price: price, amount: amount });
+  if (entryType === 'uber') {
+    var date = document.getElementById('fuelDateUber') ? document.getElementById('fuelDateUber').value : '';
+    var amount = Number(document.getElementById('fuelAmountUber') ? document.getElementById('fuelAmountUber').value : 0);
+    var note = (document.getElementById('fuelNote') ? document.getElementById('fuelNote').value.trim() : '') || 'Nurjahan Uber';
+    if (!date || !amount) return;
+    data.push({ id: uid(), date: date, amount: amount, type: 'uber', note: note });
+    if (document.getElementById('fuelDateUber')) document.getElementById('fuelDateUber').value = '';
+    if (document.getElementById('fuelAmountUber')) document.getElementById('fuelAmountUber').value = '';
+    if (document.getElementById('fuelNote')) document.getElementById('fuelNote').value = '';
+  } else {
+    var date = document.getElementById('fuelDate') ? document.getElementById('fuelDate').value : '';
+    var price = Number(document.getElementById('fuelPrice') ? document.getElementById('fuelPrice').value : 0);
+    var amount = Number(document.getElementById('fuelAmount') ? document.getElementById('fuelAmount').value : 0);
+    if (!date || !price || !amount) return;
+    data.push({ id: uid(), date: date, price: price, amount: amount, type: 'petrol' });
+    if (document.getElementById('fuelDate')) document.getElementById('fuelDate').value = '';
+    if (document.getElementById('fuelPrice')) document.getElementById('fuelPrice').value = '';
+    if (document.getElementById('fuelAmount')) document.getElementById('fuelAmount').value = '';
+  }
   lsSet(FUEL_KEY, JSON.stringify(data));
-  document.getElementById('fuelDate').value = '';
-  document.getElementById('fuelPrice').value = '';
-  document.getElementById('fuelAmount').value = '';
   loadFuelReport();
 }
 function deleteFuelEntry(id) {
@@ -1059,9 +1089,12 @@ function loadFuelReport() {
       fuelData.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).forEach(function(x){
         var row = document.createElement('div');
         row.style.cssText = 'display:grid;grid-template-columns:1.5fr 1fr 1fr 28px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px;align-items:center;';
-        var litres = x.price > 0 ? (x.amount/x.price).toFixed(1)+'L' : '-';
+        var isUber = x.type === 'uber';
+        var midCol = isUber
+          ? '<span style="color:#f2a830;font-size:11px;">🚗 '+(x.note||'Nurjahan Uber')+'</span>'
+          : '<span style="color:var(--text)">R'+Number(x.price||0).toFixed(2)+' <span style="color:var(--muted);font-size:10px;">('+(x.price>0?(x.amount/x.price).toFixed(1)+'L':'-')+')</span></span>';
         row.innerHTML = '<span style="color:var(--muted)">'+x.date+'</span>'
-          +'<span style="color:var(--text)">R'+Number(x.price).toFixed(2)+' <span style="color:var(--muted);font-size:10px;">('+litres+')</span></span>'
+          +midCol
           +'<span style="color:#a78bfa;font-weight:500">'+fmtR(x.amount)+'</span>'
           +'<span onclick="deleteFuelEntry(\''+x.id+'\')" style="color:var(--muted);cursor:pointer;font-size:18px;line-height:1;text-align:center;">&times;</span>';
         fuelRowsEl.appendChild(row);
