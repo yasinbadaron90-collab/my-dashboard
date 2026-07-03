@@ -473,9 +473,8 @@ function saveFund(){
   const start=document.getElementById('fStart').value;
   const deadline=document.getElementById('fDeadline').value;
   if(!name||!goal||!start){ alert('Please fill in name, goal, and start date.'); return; }
-  if(!deadline){ alert('Please pick a deadline — when do you need this money by?'); return; }
-  // Sanity: deadline must be in the future at creation time
-  if(new Date(deadline+'T23:59:59') < new Date()){
+  // Deadline is optional — if set, warn if in the past
+  if(deadline && new Date(deadline+'T23:59:59') < new Date()){
     if(!confirm('That deadline is in the past. Save anyway?')) return;
   }
   const isNew=!editingId;
