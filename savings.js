@@ -401,8 +401,8 @@ function updateTargetHint(){
   else{hint.textContent='= approx R'+(val/4.33).toFixed(0)+'/week';}
 }
 function openNewFund(){
-  // Show type picker first
-  document.getElementById('cardTypePicker').classList.add('active');
+  // Skip type picker — go straight to savings goal form
+  openNewFundDirect();
 }
 function openNewFundDirect(){
   // Original new fund logic
