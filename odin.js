@@ -137,19 +137,6 @@ function _renderOdinTabSnapshot(mk){
     });
   }
 
-  // Maintenance fund this month
-  try{
-    var mdata = getMaintData();
-    var mThisMonth = mdata.filter(function(e){ return e.date&&e.date.startsWith(mk); }).reduce(function(s,e){ return s+e.amount; },0);
-    var liveMaintLabel = (typeof getMaintFundName === 'function') ? getMaintFundName() : 'Maintenance Fund';
-    tiles.push({
-      label: liveMaintLabel,
-      value: fmtR(mThisMonth)+' / '+fmtR(MAINT_TARGET),
-      color: mThisMonth>=MAINT_TARGET?'#c8f230':'#f2a830',
-      bg:'#1a1000', border:'#3a2a00', tab:'savings'
-    });
-  }catch(e){}
-
   // Total owed to you
   try{
     var totalOwed = 0;
@@ -452,23 +439,6 @@ function buildOdinLaunchAlerts(){
         });
       }
     });
-  }catch(e){}
-
-  // ── Maintenance fund ──
-  try{
-    var mdata = getMaintData();
-    var mThisMonth = mdata.filter(function(e){ return e.date&&e.date.startsWith(mk); }).reduce(function(s,e){ return s+e.amount; },0);
-    var liveMaintNameOdin = (typeof getMaintFundName === 'function') ? getMaintFundName() : 'Maintenance Fund';
-    var mShort = Math.max(0, MAINT_TARGET - mThisMonth);
-    if(mShort > 0){
-      alerts.push({ level:'amber', text:liveMaintNameOdin+' — R'+mShort.toFixed(0)+' short this month', tab:'savings',
-        actions:[{ label:'View', fn: function(){ goToTab('savings'); } }]
-      });
-    } else {
-      alerts.push({ level:'green', text:liveMaintNameOdin+' — target met this month', tab:'savings',
-        actions:[{ label:'View', fn: function(){ goToTab('savings'); } }]
-      });
-    }
   }catch(e){}
 
   // ── School onboarding (first-run) ──

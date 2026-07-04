@@ -829,41 +829,6 @@ function forceReloadApp(){
 }
 window.forceReloadApp = forceReloadApp;
 
-// ══ MAINTENANCE CARD VISIBILITY TOGGLE ══════════════════════════════════
-// User has stopped using the dedicated Maintenance Fund card in favour of
-// a generic expense-flagged savings card (Ee90). The card is hidden by
-// default; this toggle in the hamburger drawer flips it back if they ever
-// want it. Persists in localStorage so it survives reloads.
-var MAINT_CARD_VIS_KEY = 'yb_show_maint_card_v1';
-
-function toggleMaintCardVisibility(){
-  var current = (lsGet(MAINT_CARD_VIS_KEY) === '1');
-  var next = !current;
-  lsSet(MAINT_CARD_VIS_KEY, next ? '1' : '0');
-  applyMaintCardVisibility();
-  // Quick label update so the user sees the change reflected in the drawer
-  var label = document.getElementById('maintCardToggleLabel');
-  if(label) label.textContent = next ? 'Hide Maintenance Card' : 'Show Maintenance Card';
-}
-
-function applyMaintCardVisibility(){
-  var wrap = document.getElementById('maintCardWrap');
-  if(!wrap) return;
-  var visible = (lsGet(MAINT_CARD_VIS_KEY) === '1');
-  wrap.style.display = visible ? '' : 'none';
-  // Mirror the label state at startup too
-  var label = document.getElementById('maintCardToggleLabel');
-  if(label) label.textContent = visible ? 'Hide Maintenance Card' : 'Show Maintenance Card';
-}
-
-// Apply on first load so the saved preference takes effect
-if(typeof window !== 'undefined'){
-  // Defer to next tick so DOM is ready
-  setTimeout(function(){ try { applyMaintCardVisibility(); } catch(e){} }, 100);
-}
-window.toggleMaintCardVisibility = toggleMaintCardVisibility;
-window.applyMaintCardVisibility = applyMaintCardVisibility;
-
 // ══ REBUILD BANK BALANCES (May 2026 Round 2) ═════════════════════════════
 // User can drift from reality if they don't log every transaction (e.g.
 // bank fees, untracked cash spends, missed deposits). This modal lets

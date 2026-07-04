@@ -266,10 +266,6 @@ function _showUpdateToast(worker){
       <button class="hbg-item admin-only" onclick="closeDrawer();openSettings();">
         <span class="hbg-icon">⚙️</span> Settings & PINs
       </button>
-      <button class="hbg-item admin-only" id="maintCardToggleBtn" onclick="toggleMaintCardVisibility()">
-        <span class="hbg-icon">🔧</span>
-        <span id="maintCardToggleLabel">Show Maintenance Card</span>
-      </button>
       <button class="theme-toggle" onclick="toggleTheme()">
         <div class="theme-toggle-track"><div class="theme-toggle-thumb"></div></div>
         <span id="themeLabel">Light Mode</span>
@@ -330,64 +326,6 @@ function _showUpdateToast(worker){
   </div>
   <div class="fund-grid" id="fundGrid"></div>
   <button class="add-global-btn admin-only" onclick="openNewFund()">+ New Savings Fund</button>
-
-  <!-- MAINTENANCE FUND CARD ── hidden by default (May 2026).
-       User isn't using the maintenance system; Ee90 expense card on the
-       Savings list does the job. Toggle visibility from Settings →
-       "Show Maintenance Card" if you want it back. The flag lives at
-       localStorage 'yb_show_maint_card_v1'. -->
-  <div style="max-width:720px;margin:14px auto 60px;padding:0 0px;display:none;" id="maintCardWrap">
-    <div class="fund-card" style="border-color:#2a3a00;">
-      <div class="fund-top" style="border-bottom-color:#2a3a00;">
-        <div>
-          <span class="fund-emoji">🔧</span>
-          <div class="fund-name" id="maintFundName">Maintenance Fund</div>
-          <div class="fund-weekly" id="maintTargetLabel" style="color:#8ab820;">R1500/month target · carpool contributions</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <button class="collapse-btn" id="maintCollapseBtn" onclick="toggleMaintCard(this)" title="Collapse"><span class="chev">&#8964;</span></button>
-          <div class="fund-actions admin-only" style="display:flex;gap:6px">
-            <button class="icon-btn" onclick="openMaintSettings()" title="Edit name and target">✎</button>
-            <button class="icon-btn" onclick="openMaintHistory()" title="History">☰</button>
-            <button class="icon-btn" onclick="openMaintContrib()" style="border-color:#3a5a00;color:#c8f230;" title="Add contribution">＋</button>
-            <button class="icon-btn admin-only" onclick="openUseFunds('maint',null)" style="border-color:#5a3a00;color:#f2a830;" title="Use funds / log spend">💸</button>
-            <button class="icon-btn danger admin-only" onclick="deleteMaintCard()" title="Delete this card">✕</button>
-          </div>
-        </div>
-      </div>
-      <div class="fund-body-wrap expanded" id="maintBodyWrap" style="max-height:2000px;opacity:1;">
-      <div class="fund-body">
-        <!-- 3 stat boxes -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border);margin:-16px -18px 0;padding:0">
-          <div style="padding:12px 14px;border-right:1px solid var(--border)">
-            <div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">This Month</div>
-            <div id="maintMonthAmt" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#c8f230;">R0</div>
-          </div>
-          <div style="padding:12px 10px;border-right:1px solid var(--border)">
-            <div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Total Saved</div>
-            <div id="maintTotalAmt" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#c8f230;">R0</div>
-          </div>
-          <div style="padding:12px 10px">
-            <div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Status</div>
-            <div id="maintStatus" style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#f2a830;">—</div>
-          </div>
-        </div>
-        <!-- Progress bar -->
-        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
-          <div style="height:5px;background:#2a2a2a;border-radius:3px;overflow:hidden">
-            <div id="maintProgBar" style="width:0%;height:100%;background:#c8f230;border-radius:3px;transition:width .5s ease;box-shadow:0 0 8px #c8f23055;"></div>
-          </div>
-          <div id="maintProgLabel" style="font-size:10px;color:var(--muted);margin-top:5px;letter-spacing:1px;">Loading...</div>
-        </div>
-        <!-- Per-person breakdown — rendered dynamically -->
-        <div style="display:flex;border-bottom:1px solid var(--border);margin:0 -18px;" id="maintPersonBreakdown"></div>
-        <!-- Recent entries -->
-        <div id="maintRecentRows" style="padding-top:8px;"></div>
-      </div>
-      </div><!-- end fund-body-wrap -->
-    </div>
-  </div>
-  <div id="customMaintCardsWrap" style="max-width:720px;margin:0 auto;"></div>
 </div>
 
 <!-- CARPOOL -->
@@ -1557,47 +1495,6 @@ function _showUpdateToast(worker){
   </div>
 </div>
 
-<!-- MAINTENANCE CONTRIB MODAL -->
-<div class="overlay" id="maintModal">
-  <div class="modal">
-    <h2 style="color:#c8f230;">🔧 Log Contribution</h2>
-    <div class="field"><label>From</label>
-      <select id="maintPerson" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;">
-      </select>
-    </div>
-    <div class="field"><label>Amount (R)</label><input type="number" id="maintAmt" placeholder="e.g. 200" inputmode="decimal"/></div>
-    <div class="field"><label>Date</label><input type="date" id="maintDate"/></div>
-    <div class="field"><label>Note (optional)</label><input type="text" id="maintNote" placeholder="e.g. Weekly contribution"/></div>
-    <div id="maintModalStatus" style="font-size:11px;min-height:16px;margin-top:8px;letter-spacing:1px;"></div>
-    <div class="modal-btns">
-      <button type="button" class="btn ghost" style="flex:1;" onclick="closeModal('maintModal')">Cancel</button>
-      <button type="button" class="btn" style="background:#c8f230;color:#000;flex:1;padding:11px;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;" onclick="confirmMaintContrib()">Save</button>
-    </div>
-  </div>
-</div>
-<!-- MAINTENANCE HISTORY MODAL -->
-<div class="overlay" id="maintHistModal">
-  <div class="modal" style="max-width:480px;">
-    <h2 style="color:#c8f230;">🔧 Maintenance History</h2>
-    <div id="maintHistContent" style="max-height:60vh;overflow-y:auto;margin-bottom:16px;"></div>
-    <div class="modal-btns">
-      <button class="btn ghost" onclick="closeModal('maintHistModal')" style="width:100%;">Close</button>
-    </div>
-  </div>
-</div>
-<!-- MAINTENANCE FUND SETTINGS MODAL -->
-<div class="overlay" id="maintEditModal">
-  <div class="modal">
-    <h2 style="color:#c8f230;">✎ Edit Maintenance Fund</h2>
-    <div class="field"><label>Fund name</label><input type="text" id="maintEditName" placeholder="e.g. Maintenance Fund" maxlength="40"/></div>
-    <div class="field"><label>Monthly target (R)</label><input type="number" id="maintEditTarget" placeholder="e.g. 10000" inputmode="decimal" min="0" step="50"/></div>
-    <div id="maintEditStatus" style="font-size:11px;min-height:16px;margin-top:8px;letter-spacing:1px;"></div>
-    <div class="modal-btns">
-      <button type="button" class="btn ghost" style="flex:1;" onclick="closeMaintSettings()">Cancel</button>
-      <button type="button" class="btn" style="background:#c8f230;color:#000;flex:1;padding:11px;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;" onclick="saveMaintSettings()">Save</button>
-    </div>
-  </div>
-</div>
 <div class="overlay" id="borrowModal">
   <div class="modal">
     <h2 style="color:#a78bfa;">🤝 Log Money Lent <button class="info-btn" onclick="openInfo('Lend to a carpool person', 'Carpool person needs cash. Pick them, amount, the pocket it comes from. Adds to their carpool tab — they\'ll see it owed next time you settle with them.')">ⓘ</button></h2>
@@ -2433,6 +2330,7 @@ function _showUpdateToast(worker){
 </div>
   <!-- App modules — load order matters -->
   <script src="core.js"></script>
+  <script src="maint.js"></script>
   <script src="passengers.js"></script>
   <script src="money.js"></script>
   <script src="odin.js"></script>
@@ -2442,7 +2340,6 @@ function _showUpdateToast(worker){
   <script src="settings.js"></script>
   <script src="borrow.js"></script>
   <script src="prayer.js"></script>
-  <script src="maint.js"></script>
   <script src="odin_chat.js"></script>
   <script src="cars.js"></script>
   <script src="school.js"></script>
