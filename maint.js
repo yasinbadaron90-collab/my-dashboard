@@ -462,6 +462,36 @@ function openMaintHistory(){
   document.getElementById('maintHistModal').classList.add('active');
 }
 
+// Deletes the whole card (not just one entry) — clears every contribution,
+// cascades removeFromCF for each so nothing orphans in Cash Flow, resets the
+// name/target back to defaults, and hides the card (same flag the Settings
+// drawer "Show Maintenance Card" toggle uses) so it returns to its pristine
+// hidden state. Uses the app-wide mihbConfirm dialog instead of native
+// confirm() to match every other delete in the app.
+function deleteMaintCard(){
+  var name = getMaintFundName();
+  var data = getMaintData();
+  var total = data.reduce(function(s,e){ return s + (e.amount||0); }, 0);
+  var count = data.length;
+  mihbConfirm({
+    title: 'Delete ' + name + '?',
+    body: 'This removes the card, ' + count + ' logged contribution' + (count===1?'':'s') + ' (' + fmtR(total) + ' total), and any linked Cash Flow entries. This can\'t be undone.',
+    dangerLabel: '🗑 Delete',
+    safeLabel: 'Cancel'
+  }, function(confirmed){
+    if(!confirmed) return;
+    data.forEach(function(e){ if(e.cfId) removeFromCF(e.cfId); });
+    saveMaintData([]);
+    setMaintSettings('Maintenance Fund', 1500);
+    lsSet(MAINT_CARD_VIS_KEY, '0');
+    try { applyMaintCardVisibility(); } catch(e){}
+    try { renderMaintCard(); } catch(e){}
+    try { odinRefreshIfOpen(); } catch(e){}
+    try { showBackupReminder('Maintenance fund deleted'); } catch(e){}
+  });
+}
+window.deleteMaintCard = deleteMaintCard;
+
 function deleteMaintEntry(id){
   const all = getMaintData();
   const entry=all.find(function(e){return e.id===id;});
