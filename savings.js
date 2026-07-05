@@ -852,6 +852,47 @@ function deleteDeposit(fid,did){
     }catch(e){ console.warn('[deleteDeposit] lend guard error', e); }
   }
 
+  // ── FIX 2026-07-05 — Pay Debt hard-block (pocket deposit side) ─────────
+  // A debt repayment ("Paid X") links this pocket deposit ↔ a CF expense ↔
+  // an external-borrow repay entry via payDebtId. This flow had NO guard at
+  // all — deleting just this deposit silently shrank the pocket with the
+  // debt still marked reduced and no Cash Flow trace left.
+  if(dep && dep.payDebtId){
+    try{
+      var _pdRec2 = (typeof _payDebtFind === 'function') ? _payDebtFind(dep.payDebtId) : null;
+      if(_pdRec2){
+        var _pdPk2 = funds.find(function(x){ return x.id === _pdRec2.entry.pocketId; });
+        var _pdPn2 = _pdPk2 ? _pdPk2.name : 'this pocket';
+        var _pdBody2 =
+          'This deposit is part of a debt repayment:\n  ↑ Paid '+fmtR(_pdRec2.entry.amount)+' to '+_pdRec2.personName+' · '+_pdRec2.entry.date+'\n\n'+
+          'Deleting just this would leave the pocket short with no trace. Reverse the whole payment instead — that puts '+fmtR(_pdRec2.entry.amount)+' back in '+_pdPn2+', removes the Cash Flow record, and restores the debt in Money Owed.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _pdBody2,
+            dangerLabel: '↩ Reverse the payment',
+            safeLabel:   'Leave it alone'
+          }, function(go){
+            if(go && typeof window._payDebtReverse === 'function'){
+              window._payDebtReverse(dep.payDebtId);
+              try{ if(typeof closeModal === 'function') closeModal('histModal'); }catch(e){}
+              try{ renderFunds(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Payment reversed · '+fmtR(_pdRec2.entry.amount)+' back to '+_pdPn2, duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Can\'t delete it here\n\n'+_pdBody2+'\n\nTap OK to reverse the payment now.\nTap Cancel to leave it alone.')){
+            if(typeof window._payDebtReverse === 'function') window._payDebtReverse(dep.payDebtId);
+          }
+        }
+        return;
+      }
+      // Live record gone → orphan → fall through to normal delete
+    }catch(e){ console.warn('[deleteDeposit] payDebt guard error', e); }
+  }
+
   // ── Step 7 (2026-05-28) — Car-expense hard-block (pocket deposit side) ──
   // A funded car expense links this pocket deposit ↔ a CF expense ↔ a row
   // inside car.expenses via a carExpenseId. Deleting just this deposit would
@@ -1026,6 +1067,12 @@ function postToCF(opts){
   if(opts.instalmentPayId)  rec.instalmentPayId  = opts.instalmentPayId;
   if(opts.planId)           rec.planId           = opts.planId;
   if(opts.settleId)         rec.settleId         = opts.settleId;
+  // ── FIX 2026-07-05 — Pay Debt flow ("I owe them" repayments) ──
+  // payDebtId links the CF expense row ↔ pocket deposit ↔ external-borrow
+  // repay entry. Was being silently dropped here, meaning the hard-block
+  // guard on delete could never fire — a "Paid Nuri"-style entry could be
+  // deleted with zero reversal and zero warning. See _payDebtReverse.
+  if(opts.payDebtId)        rec.payDebtId        = opts.payDebtId;
   // ────────────────────────────────────────────────────────────────────
   cfData[mk][section].push(rec);
   saveCFData(cfData);

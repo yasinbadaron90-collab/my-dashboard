@@ -1497,6 +1497,45 @@ function deleteCfEntry(id, type){
       // No live lend record → orphan → fall through
     }
 
+    // ── FIX 2026-07-05 — Pay Debt records (CF side) ──
+    // "Paid X" expense rows (repaying money you owe someone) mirror a
+    // pocket deposit + an external-borrow repay entry via payDebtId. This
+    // never had a guard at all before — deleting the CF row silently left
+    // the pocket short and the debt permanently reduced with no way back.
+    if(_peekEntry && _peekEntry.payDebtId){
+      var _pdRec = (typeof _payDebtFind === 'function') ? _payDebtFind(_peekEntry.payDebtId) : null;
+      if(_pdRec){
+        var _pdPocket = (typeof funds !== 'undefined') ? funds.find(function(f){ return f.id === _pdRec.entry.pocketId; }) : null;
+        var _pdPName  = _pdPocket ? _pdPocket.name : 'its pocket';
+        var _pdBody =
+          'This is part of a debt repayment:\n  ↑ Paid '+fmtR(_pdRec.entry.amount)+' to '+_pdRec.personName+' · '+_pdRec.entry.date+'\n\n'+
+          'Reversing puts '+fmtR(_pdRec.entry.amount)+' back into '+_pdPName+', removes the Cash Flow record, and puts the debt back in Money Owed.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Reverse this payment?',
+            body:  _pdBody,
+            dangerLabel: '↩ Reverse the payment',
+            safeLabel:   'Leave it alone'
+          }, function(goReverse){
+            if(goReverse && typeof _payDebtReverse === 'function'){
+              _payDebtReverse(_peekEntry.payDebtId);
+              try{ if(typeof renderCashFlow === 'function') renderCashFlow(); }catch(e){}
+              try{ if(typeof renderFunds === 'function') renderFunds(); }catch(e){}
+              if(typeof softDeleteToast === 'function'){
+                softDeleteToast({ message:'Payment reversed · '+fmtR(_pdRec.entry.amount)+' back to '+_pdPName, duration:3000 });
+              }
+            }
+          });
+        } else {
+          if(confirm('🔒 Reverse this payment?\n\n'+_pdBody+'\n\nTap OK to reverse now.\nTap Cancel to leave it alone.')){
+            if(typeof _payDebtReverse === 'function') _payDebtReverse(_peekEntry.payDebtId);
+          }
+        }
+        return;
+      }
+      // No live record → orphan → fall through
+    }
+
     // ── Same hard-block guard for Carpool payments (added 2026-05-23) ──
     if(_peekEntry && _peekEntry.carpoolPaymentId){
       var _cpList = [];

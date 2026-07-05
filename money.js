@@ -286,6 +286,78 @@ function _lendReverse(lendId, opts){
 }
 if(typeof window !== 'undefined') window._lendReverse = _lendReverse;
 
+// ── FIX 2026-07-05 — Pay Debt hard-block (mirrors _lendReverse) ──────────
+// The Pay Debt flow ("I owe them" repayments, e.g. paying back Nuri/Tariq)
+// links a repay entry (externalBorrows) ↔ a pocket deposit ↔ a CF expense
+// row via payDebtId. Unlike Lend, there's no separate yb_paydebt_v1 store —
+// payDebtId lives directly on all three records, so we search for it there.
+function _payDebtFind(payDebtId){
+  var data = {};
+  try { data = loadExternalBorrows(); } catch(e){ return null; }
+  var result = null;
+  Object.keys(data).forEach(function(k){
+    (data[k].entries||[]).forEach(function(e){
+      if(e.payDebtId === payDebtId){
+        result = { key:k, entry:e, personName: data[k].name || k };
+      }
+    });
+  });
+  return result;
+}
+if(typeof window !== 'undefined') window._payDebtFind = _payDebtFind;
+
+function _payDebtReverse(payDebtId, opts){
+  opts = opts || {};
+  var found = _payDebtFind(payDebtId);
+  if(!found){ console.warn('[paydebt-reverse] no record for', payDebtId); return false; }
+  var key = found.key, entry = found.entry;
+
+  // 1) Remove the repay entry (the debt goes back up in Money Owed)
+  var data = loadExternalBorrows();
+  if(data[key] && data[key].entries){
+    data[key].entries = data[key].entries.filter(function(e){ return e.payDebtId !== payDebtId; });
+    saveExternalBorrows(data);
+  }
+
+  // 2) Remove the pocket deposit (the money goes back into the pocket)
+  var pocket = (entry.pocketId && typeof funds !== 'undefined') ? funds.find(function(f){ return f.id === entry.pocketId; }) : null;
+  if(pocket){
+    pocket.deposits = (pocket.deposits||[]).filter(function(d){ return d.payDebtId !== payDebtId; });
+    saveFunds();
+  }
+
+  // 3) Remove the CF expense row directly (no removeFromCF → no bank touch,
+  //    matching Lend's pattern — the forward doorway never touched the bank)
+  if(typeof loadCFData === 'function' && typeof saveCFData === 'function'){
+    var cfData = loadCFData();
+    var mk = (entry.date||'').slice(0,7);
+    var removed = 0;
+    ['expenses'].forEach(function(sec){
+      if(cfData[mk] && cfData[mk][sec]){
+        var b = cfData[mk][sec].length;
+        cfData[mk][sec] = cfData[mk][sec].filter(function(e){ return e.payDebtId !== payDebtId; });
+        removed += (b - cfData[mk][sec].length);
+      }
+      if(cfData.recurring && cfData.recurring[sec]){
+        var rb = cfData.recurring[sec].length;
+        cfData.recurring[sec] = cfData.recurring[sec].filter(function(e){ return e.payDebtId !== payDebtId; });
+        removed += (rb - cfData.recurring[sec].length);
+      }
+    });
+    if(removed > 0) saveCFData(cfData);
+  }
+
+  if(!opts.silent){
+    try { renderMoneyOwed(); } catch(e){}
+    try { renderFunds(); } catch(e){}
+    try { if(typeof renderCashFlow === 'function') renderCashFlow(); } catch(e){}
+    try { if(typeof odinRefreshIfOpen === 'function') odinRefreshIfOpen(); } catch(e){}
+  }
+  return true;
+}
+if(typeof window !== 'undefined') window._payDebtReverse = _payDebtReverse;
+
+
 
 // ── LOG BORROW AS CASHFLOW EXPENSE ──
 // Returns the CF entry id so callers can stamp cfId onto the borrow entry for cascade delete
