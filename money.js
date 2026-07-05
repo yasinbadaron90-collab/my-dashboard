@@ -1062,9 +1062,16 @@ function renderMoneyOwed(){
   Object.keys(extData).forEach(function(key){
     const p = extData[key];
     if(p.archived) return; // skip archived
-    // Skip historical debts (money YOU owe, not owed to you — tracked in Net Worth liabilities)
-    var isHistoricalDebt = (p.entries||[]).some(function(e){ return e.isHistorical; });
-    if(isHistoricalDebt) return;
+    // ── FIX 2026-07-05 ──
+    // REMOVED: a skip here checked isHistorical and hid the whole person
+    // if any entry had it. That was wrong — isHistorical just means "this
+    // debt pre-dates the app's tracking", not "reverse direction". Reverse
+    // direction (money YOU owe them) is what iOwe/type:'iowe' is for, and
+    // that's already correctly excluded inside calcPersonTotals. This bug
+    // made Nuri's entire R95,152 debt invisible in Money Owed, and made
+    // the "↑ Pay her" button below (v142d) permanently unreachable dead
+    // code, since a person with isHistorical entries never made it into
+    // the rendered list in the first place.
     // Same filter for external borrowers
     const visEntries = (p.entries || []).filter(function(e){ return !e._deleted; });
     const { borrowed, repaid } = calcPersonTotals(visEntries);
