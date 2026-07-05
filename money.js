@@ -463,7 +463,7 @@ function openAddMoreBorrowModal(key, tag){
   if(tag === 'carpool'){
     personName = key;
     var entries = borrowData[key] || [];
-    var ct = calcPersonTotals(entries);
+    var ct = calcPersonTotals(entries, true);
     currentTotal = ct.borrowed - ct.repaid;
   } else {
     var extData = loadExternalBorrows();
@@ -859,7 +859,7 @@ function showRepayToast(name, amount, fundName){
   setTimeout(function(){ if(toast.parentNode) toast.remove(); }, 5000);
 }
 
-function calcPersonTotals(entries){
+function calcPersonTotals(entries, isCarpool){
   let borrowed = 0, repaid = 0;
   (entries||[]).forEach(function(e){
     // Skip "I owe them" refund entries — those are debts in the OTHER
@@ -867,13 +867,19 @@ function calcPersonTotals(entries){
     if(e.iOwe || e.type === 'iowe') return;
     if(e.type === 'repay') repaid += Number(e.amount||0);
     else {
+      // ── FIX 2026-07-05 ──
+      // A settled carpool trip-fare debt (paid:true, set by Carpool's Mark
+      // Paid flow, no separate repay record) is excluded entirely from the
+      // gross Borrowed/Repaid totals — not added to both. It nets to R0
+      // owing either way, but leaving it in inflated "Total Lent" / "Total
+      // Repaid" with a fare that was never a standing loan. Personal
+      // (non-carpool) borrows are unaffected — only isCarpool callers skip.
+      if(isCarpool && e.paid) return;
       borrowed += Number(e.amount||0);
       // ── FIX 2026-05-26 ──
       // A borrow with paid:true (set by Carpool's Mark Paid flow) is
-      // equivalent to a full repayment. Without this, the Money Owed UI
-      // shows borrows as still owed even after they've been marked paid
-      // via carpool. type:'repay' entries (manual Repayment button) are
-      // already handled above.
+      // equivalent to a full repayment. type:'repay' entries (manual
+      // Repayment button) are already handled above.
       if(e.paid) repaid += Number(e.amount||0);
     }
   });
@@ -1049,7 +1055,7 @@ function renderMoneyOwed(){
     // on the next render.
     const entries = (borrowData[name] || []).filter(function(e){ return !e._deleted; });
     if(entries.length === 0) return;
-    const { borrowed, repaid } = calcPersonTotals(entries);
+    const { borrowed, repaid } = calcPersonTotals(entries, true);
     if(borrowed === 0) return;
     // Check if archived
     var carpoolArchived = JSON.parse(lsGet('yb_carpool_archived')||'[]');
@@ -1461,13 +1467,15 @@ function loadBorrowReport() {
         if (!byPerson[passenger]) byPerson[passenger] = { borrowed: 0, repaid: 0, tag: 'carpool' };
         byPerson[passenger].repaid += Number(b.amount || 0);
       } else {
+        // ── FIX 2026-07-05 ── same rule as calcPersonTotals: a settled
+        // carpool trip-fare debt (paid:true, no separate repay record) is
+        // excluded entirely, not added to both borrowed+repaid — keeps
+        // this report's gross figures matching the Money Owed tab.
+        if(b.paid) return;
         const amount = Number(b.amount || 0);
-        const repaid = b.paid ? amount : 0;
         totalBorrowed += amount;
-        totalRepaid += repaid;
         if (!byPerson[passenger]) byPerson[passenger] = { borrowed: 0, repaid: 0, tag: 'carpool' };
         byPerson[passenger].borrowed += amount;
-        byPerson[passenger].repaid += repaid;
       }
     });
   });
