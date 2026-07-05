@@ -563,6 +563,47 @@ function deleteBorrowEntryUnified(passengerVal, entryId){
     }
   }
 
+  // ── FIX 2026-07-05 — payDebtId (Pay Debt repayments) ────────────────
+  // Same class of bug as the lendId guard above: a debt repayment ("Paid
+  // Nuri") links a repay entry ↔ pocket deposit ↔ CF row via payDebtId.
+  // This function is called from the Repayments Manager modal and had NO
+  // guard for this at all — deleting from there silently reduced the debt
+  // with no reversal, no CF cleanup beyond the generic cfId removal below,
+  // and no warning.
+  if(passengerVal.startsWith('__ext__')){
+    var _pdk = passengerVal.replace('__ext__','');
+    var _pdd = loadExternalBorrows();
+    var _pde = (_pdd[_pdk]&&_pdd[_pdk].entries||[]).find(function(e){ return e.id === entryId; });
+    if(_pde && _pde.payDebtId){
+      var _pdFound = (typeof _payDebtFind === 'function') ? _payDebtFind(_pde.payDebtId) : null;
+      if(_pdFound){
+        var _pdPk = funds.find(function(f){ return f.id === _pdFound.entry.pocketId; });
+        var _pdPn = _pdPk ? _pdPk.name : 'its pocket';
+        var _pdBody = '↑ Paid ' + fmtR(_pdFound.entry.amount) + ' to ' + _pdFound.personName + ' · ' + _pdFound.entry.date +
+                    '\n\nReversing puts ' + fmtR(_pdFound.entry.amount) + ' back into ' + _pdPn + ', removes the Cash Flow record, and puts the debt back in Money Owed.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Reverse this payment?',
+            body: _pdBody,
+            dangerLabel: '↩ Reverse the payment',
+            safeLabel: 'Leave it alone'
+          }, function(go){
+            if(go && typeof _payDebtReverse === 'function'){
+              _payDebtReverse(_pde.payDebtId);
+              if(typeof softDeleteToast === 'function') softDeleteToast({ message:'Payment reversed · '+fmtR(_pdFound.entry.amount)+' back to '+_pdPn, duration:3000 });
+            }
+          });
+        } else {
+          if(confirm('🔒 Reverse this payment?\n\n'+_pdBody)){
+            if(typeof _payDebtReverse === 'function') _payDebtReverse(_pde.payDebtId);
+          }
+        }
+        return;
+      }
+      // Live record gone → orphan → fall through to normal delete below.
+    }
+  }
+
   var hasCF = false;
   if(passengerVal.startsWith('__ext__')){
     var _ck = passengerVal.replace('__ext__','');
