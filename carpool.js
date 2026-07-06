@@ -94,7 +94,7 @@ function renderSavingsChart() {
         tooltip: { callbacks: { label: function(ctx){ return ' R' + ctx.raw.toLocaleString('en-ZA'); } } }
       },
       scales: {
-        x: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 9 } } },
+        x: { offset: true, grid: { color: gridColor, offset: true }, ticks: { color: textColor, font: { size: 9 } } },
         y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 9 },
           callback: function(v){ return 'R' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v); } } }
       }
