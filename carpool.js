@@ -89,6 +89,7 @@ function renderSavingsChart() {
     },
     options: {
       responsive: false, maintainAspectRatio: false,
+      layout: { padding: { left: 6, right: 10, top: 4, bottom: 0 } },
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: function(ctx){ return ' R' + ctx.raw.toLocaleString('en-ZA'); } } }
