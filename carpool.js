@@ -2,6 +2,34 @@
 // ── Savings bar chart ──────────────────────────────────────────────────────────
 var _savBarChart = null;
 
+// FIX 2026-07-06 -- setTimeout(fn, 0) only waits for the current JS to
+// finish, NOT for the browser to actually finish laying out a just-expanded
+// container. Reading offsetWidth too early bakes in a stale/narrow width
+// that Chart.js then draws into permanently. Double requestAnimationFrame
+// guarantees at least one real layout+paint has happened first -- mobile
+// got away with the old timing more often because of a simpler layout
+// tree; desktop's wider/more complex reflow made the race far more visible.
+function _deferRenderSavingsChart(){
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      renderSavingsChart();
+    });
+  });
+}
+
+// Also missing before: nothing re-rendered the chart if the browser window
+// was resized after it first drew -- far more likely on desktop than
+// mobile. Debounced so a drag-resize doesn't rebuild the chart 50 times.
+var _savChartResizeTimer = null;
+window.addEventListener('resize', function(){
+  clearTimeout(_savChartResizeTimer);
+  _savChartResizeTimer = setTimeout(function(){
+    var c = document.getElementById('savBarChart');
+    // Only bother if the chart is actually visible right now.
+    if(c && c.offsetParent !== null) renderSavingsChart();
+  }, 200);
+});
+
 function renderSavingsChart() {
   var canvas   = document.getElementById('savBarChart');
   var emptyMsg = document.getElementById('savChartEmpty');
@@ -1526,7 +1554,7 @@ function rptUpdateFolderMeta() {
   setTimeout(function() {
     // Savings
     var savEl = document.getElementById('rptFolderSavingsMeta');
-    setTimeout(renderSavingsChart, 0);
+    _deferRenderSavingsChart();
     var savVal = document.getElementById('rptTotalSaved');
     if (savEl && savVal) savEl.textContent = savVal.textContent;
 
@@ -1758,7 +1786,7 @@ function renderReports(){
     document.getElementById('rptTotalSaved').textContent=fmtR(totalSaved);
     document.getElementById('rptFundCount').textContent=funds.length;
     document.getElementById('rptSavingsRows').innerHTML=savingsRows;
-    setTimeout(renderSavingsChart, 0);
+    _deferRenderSavingsChart();
   }
 
   // CARPOOL
