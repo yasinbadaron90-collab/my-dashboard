@@ -78,7 +78,11 @@ var FB_SYNC_KEYS = [
   // Manual balances
   'yb_manual_balances_v1',
   // Cars (actual key used)
-  'yasin_cars_v1'
+  'yasin_cars_v1',
+  // Fuel Log -- FIX 2026-07-07: this was never in the sync list at all,
+  // so fuel entries stayed 100% device-local. Phone had 3 entries, PC had
+  // none, because Firebase never even attempted to carry this key.
+  'yasin_fuel_v1'
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
