@@ -682,12 +682,23 @@ function renderExtRepayPocketPicker(){
     var tag = isOrigin
       ? '<span style="font-size:8px;background:#3a5a00;color:#c8f230;border-radius:3px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
       : '';
-    return '<div onclick="selectExtRepayPocket(\''+f.id+'\')" '
+    return '<div data-pocket-id="'+f.id+'" onclick="selectExtRepayPocket(\''+f.id+'\')" '
       + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';">'
       + '<span style="font-size:12px;color:'+nameColor+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+f.name+tag+'</span>'
       + '<span style="font-size:10px;color:var(--muted);">R'+bal.toLocaleString('en-ZA')+'</span>'
       + '</div>';
   }).join('') || '<div style="font-size:11px;color:var(--muted);padding:8px;text-align:center;">No pockets exist yet.</div>';
+  // FIX 2026-07-07 -- add event listeners to pocket items since inline onclick
+  // doesn't fire on desktop clicks, only touch on mobile. Use proper listeners.
+  setTimeout(function(){
+    var items = picker.querySelectorAll('div[data-pocket-id]');
+    items.forEach(function(item){
+      item.addEventListener('click', function(){
+        var id = this.getAttribute('data-pocket-id');
+        selectExtRepayPocket(id);
+      });
+    });
+  }, 0);
 }
 
 function selectExtRepayPocket(id){
