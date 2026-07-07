@@ -82,7 +82,7 @@ function renderExtLendPocketPicker(){
       + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+border+';background:'+bg+';">'
       + '<span style="font-size:12px;color:'+nameC+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+escapeHtmlSafe(f.name)+'</span>'
       + '<span style="font-size:11px;color:'+balC+';font-family:Syne,sans-serif;font-weight:700;">'+fmtR(bal)+'</span>'
-      + '</div>';
+      + '</button>';
   }).join('');
 }
 
@@ -682,8 +682,8 @@ function renderExtRepayPocketPicker(){
     var tag = isOrigin
       ? '<span style="font-size:8px;background:#3a5a00;color:#c8f230;border-radius:3px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
       : '';
-    return '<div data-pocket-id="'+f.id+'" onclick="selectExtRepayPocket(\''+f.id+'\')" '
-      + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';">'
+    return '<button onclick="selectExtRepayPocket(\''+f.id+'\');" '
+      + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';width:100%;font-family:inherit;color:inherit;text-align:left;">'
       + '<span style="font-size:12px;color:'+nameColor+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+f.name+tag+'</span>'
       + '<span style="font-size:10px;color:var(--muted);">R'+bal.toLocaleString('en-ZA')+'</span>'
       + '</div>';
@@ -691,6 +691,18 @@ function renderExtRepayPocketPicker(){
   // FIX 2026-07-07 -- add delegated click listener on the container itself
   // so pocket selection works on both desktop and mobile. Re-rendering doesn't
   // require listener cleanup since we listen on the parent, not the children.
+  picker.onclick = function(e){
+    var item = e.target;
+    // Walk up the DOM tree to find the div with data-pocket-id
+    // (handles clicks on spans inside the pocket div)
+    while(item && item !== picker){
+      if(item.getAttribute && item.getAttribute('data-pocket-id')){
+        selectExtRepayPocket(item.getAttribute('data-pocket-id'));
+        return;
+      }
+      item = item.parentNode;
+    }
+  };
 }
 
 function selectExtRepayPocket(id){
