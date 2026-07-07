@@ -80,9 +80,15 @@ var FB_SYNC_KEYS = [
   // Cars (actual key used)
   'yasin_cars_v1',
   // Fuel Log -- FIX 2026-07-07: this was never in the sync list at all,
-  // so fuel entries stayed 100% device-local. Phone had 3 entries, PC had
-  // none, because Firebase never even attempted to carry this key.
-  'yasin_fuel_v1'
+  // so fuel entries stayed 100% device-local.
+  'yasin_fuel_v1',
+  // FIX 2026-07-07 (broader audit) -- these four were also missing.
+  // All are genuine user-entered data, not UI/device state, so they
+  // should sync same as everything else above.
+  'yasin_drivers_v1',        // carpool driver profiles
+  'yb_daily_fuel',           // daily fuel cost estimate (used by Odin)
+  'yb_recon_balances_v1',    // manually-entered FNB/Tyme reconciliation balances
+  'yb_spend_merchant_cats_v1' // merchant -> category mappings for spend categorization
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
