@@ -692,10 +692,15 @@ function renderExtRepayPocketPicker(){
   // so pocket selection works on both desktop and mobile. Re-rendering doesn't
   // require listener cleanup since we listen on the parent, not the children.
   picker.onclick = function(e){
-    var item = e.target.closest('div[data-pocket-id]');
-    if(item){
-      var id = item.getAttribute('data-pocket-id');
-      selectExtRepayPocket(id);
+    var item = e.target;
+    // Walk up the DOM tree to find the div with data-pocket-id
+    // (handles clicks on spans inside the pocket div)
+    while(item && item !== picker){
+      if(item.getAttribute && item.getAttribute('data-pocket-id')){
+        selectExtRepayPocket(item.getAttribute('data-pocket-id'));
+        return;
+      }
+      item = item.parentNode;
     }
   };
 }
