@@ -659,16 +659,23 @@ function _findDailyPocketId(){
   return daily ? daily.id : (funds && funds.length > 0 ? funds[0].id : null);
 }
 
-function renderExtRepayPocketPicker(){
+function renderExtRepayPocketPicker(resetToDefault){
   var picker = document.getElementById('extRepayPocketPicker');
   if(!picker) return;
   var key = document.getElementById('extRepayPersonKey').value;
   var originId = _findOriginPocketForExternal(key);
-  // Default selection: origin → daily → first pocket
-  if(originId && funds.find(function(f){ return f.id === originId; })){
-    _extRepaySelectedPocketId = originId;
-  } else {
-    _extRepaySelectedPocketId = _findDailyPocketId();
+  // FIX 2026-07-07 -- this used to recompute and OVERWRITE
+  // _extRepaySelectedPocketId on every render call, including the
+  // re-render triggered by selectExtRepayPocket() itself. That meant any
+  // click was immediately stomped back to the origin pocket, making it
+  // look like clicks did nothing at all. Now the default is only applied
+  // on the initial open (resetToDefault === true), never on a re-render.
+  if(resetToDefault){
+    if(originId && funds.find(function(f){ return f.id === originId; })){
+      _extRepaySelectedPocketId = originId;
+    } else {
+      _extRepaySelectedPocketId = _findDailyPocketId();
+    }
   }
   picker.innerHTML = (funds||[]).map(function(f){
     var bal = (f.deposits||[]).reduce(function(s,d){
@@ -682,32 +689,17 @@ function renderExtRepayPocketPicker(){
     var tag = isOrigin
       ? '<span style="font-size:8px;background:#3a5a00;color:#c8f230;border-radius:3px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
       : '';
-    return '<button onclick="selectExtRepayPocket(\''+f.id+'\');" '
+    return '<button type="button" onclick="selectExtRepayPocket(\''+f.id+'\')" '
       + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';width:100%;font-family:inherit;color:inherit;text-align:left;">'
       + '<span style="font-size:12px;color:'+nameColor+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+f.name+tag+'</span>'
       + '<span style="font-size:10px;color:var(--muted);">R'+bal.toLocaleString('en-ZA')+'</span>'
-      + '</div>';
+      + '</button>';
   }).join('') || '<div style="font-size:11px;color:var(--muted);padding:8px;text-align:center;">No pockets exist yet.</div>';
-  // FIX 2026-07-07 -- add delegated click listener on the container itself
-  // so pocket selection works on both desktop and mobile. Re-rendering doesn't
-  // require listener cleanup since we listen on the parent, not the children.
-  picker.onclick = function(e){
-    var item = e.target;
-    // Walk up the DOM tree to find the div with data-pocket-id
-    // (handles clicks on spans inside the pocket div)
-    while(item && item !== picker){
-      if(item.getAttribute && item.getAttribute('data-pocket-id')){
-        selectExtRepayPocket(item.getAttribute('data-pocket-id'));
-        return;
-      }
-      item = item.parentNode;
-    }
-  };
 }
 
 function selectExtRepayPocket(id){
   _extRepaySelectedPocketId = id;
-  renderExtRepayPocketPicker();
+  renderExtRepayPocketPicker(false);
 }
 
 function openExternalRepayModal(key){
@@ -732,7 +724,7 @@ function openExternalRepayModal(key){
     document.getElementById('extRepayOwingSummary').innerHTML =
       person.name + ' currently owes <strong style="color:#f2a830;font-size:13px;">R' + owing.toLocaleString('en-ZA') + '</strong>';
   }
-  renderExtRepayPocketPicker();
+  renderExtRepayPocketPicker(true);
   document.getElementById('externalRepayModal').classList.add('active');
 }
 

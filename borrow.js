@@ -655,7 +655,7 @@ function openRepayModal(){
   });
   sel.value = firstOwing || PASSENGERS[0];
   updateRepayOwingSummary();
-  renderRepayPocketPicker();   // v84 — Step 4
+  renderRepayPocketPicker(true);   // v84 — Step 4
   document.getElementById('repayModal').classList.add('active');
 }
 
@@ -680,18 +680,23 @@ function _findOriginPocketForPassenger(passenger){
   return unpaid[0].originPocket;
 }
 
-function renderRepayPocketPicker(){
+function renderRepayPocketPicker(resetToDefault){
   var picker = document.getElementById('repayPocketPicker');
   if(!picker) return;
   var passenger = document.getElementById('repayPassenger').value;
   var originId = _findOriginPocketForPassenger(passenger);
-  // Default selection: origin if present, else first pocket
-  if(originId && funds.find(function(f){ return f.id === originId; })){
-    _repaySelectedPocketId = originId;
-  } else if(funds.length > 0){
-    _repaySelectedPocketId = funds[0].id;
-  } else {
-    _repaySelectedPocketId = null;
+  // FIX 2026-07-07 -- same bug as money.js's external repay picker: this
+  // used to recompute the default on EVERY render, including the re-render
+  // triggered by selectRepayPocket() itself, silently overwriting any click
+  // back to the origin pocket. Now only applied on initial open.
+  if(resetToDefault){
+    if(originId && funds.find(function(f){ return f.id === originId; })){
+      _repaySelectedPocketId = originId;
+    } else if(funds.length > 0){
+      _repaySelectedPocketId = funds[0].id;
+    } else {
+      _repaySelectedPocketId = null;
+    }
   }
   picker.innerHTML = funds.map(function(f){
     var bal = (f.deposits||[]).reduce(function(s,d){
@@ -705,17 +710,17 @@ function renderRepayPocketPicker(){
     var tag = isOrigin
       ? '<span style="font-size:8px;background:#3a5a00;color:#c8f230;border-radius:3px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
       : '';
-    return '<div onclick="selectRepayPocket(\''+f.id+'\')" '
-      + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';">'
+    return '<button type="button" onclick="selectRepayPocket(\''+f.id+'\')" '
+      + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';width:100%;font-family:inherit;color:inherit;text-align:left;">'
       + '<span style="font-size:12px;color:'+nameColor+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+f.name+tag+'</span>'
       + '<span style="font-size:10px;color:var(--muted);">R'+bal.toLocaleString('en-ZA')+'</span>'
-      + '</div>';
+      + '</button>';
   }).join('') || '<div style="font-size:11px;color:var(--muted);padding:8px;text-align:center;">No pockets exist yet.</div>';
 }
 
 function selectRepayPocket(id){
   _repaySelectedPocketId = id;
-  renderRepayPocketPicker();
+  renderRepayPocketPicker(false);
 }
 
 function updateRepayOwingSummary(){
@@ -744,7 +749,7 @@ document.addEventListener('DOMContentLoaded', function(){
   const sel = document.getElementById('repayPassenger');
   if(sel) sel.addEventListener('change', function(){
     updateRepayOwingSummary();
-    renderRepayPocketPicker();   // v84 — re-suggest origin pocket
+    renderRepayPocketPicker(true);   // v84 — re-suggest origin pocket
   });
 });
 
