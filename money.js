@@ -688,17 +688,16 @@ function renderExtRepayPocketPicker(){
       + '<span style="font-size:10px;color:var(--muted);">R'+bal.toLocaleString('en-ZA')+'</span>'
       + '</div>';
   }).join('') || '<div style="font-size:11px;color:var(--muted);padding:8px;text-align:center;">No pockets exist yet.</div>';
-  // FIX 2026-07-07 -- add event listeners to pocket items since inline onclick
-  // doesn't fire on desktop clicks, only touch on mobile. Use proper listeners.
-  setTimeout(function(){
-    var items = picker.querySelectorAll('div[data-pocket-id]');
-    items.forEach(function(item){
-      item.addEventListener('click', function(){
-        var id = this.getAttribute('data-pocket-id');
-        selectExtRepayPocket(id);
-      });
-    });
-  }, 0);
+  // FIX 2026-07-07 -- add delegated click listener on the container itself
+  // so pocket selection works on both desktop and mobile. Re-rendering doesn't
+  // require listener cleanup since we listen on the parent, not the children.
+  picker.onclick = function(e){
+    var item = e.target.closest('div[data-pocket-id]');
+    if(item){
+      var id = item.getAttribute('data-pocket-id');
+      selectExtRepayPocket(id);
+    }
+  };
 }
 
 function selectExtRepayPocket(id){
