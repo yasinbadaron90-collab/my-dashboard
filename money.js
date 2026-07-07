@@ -82,7 +82,7 @@ function renderExtLendPocketPicker(){
       + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+border+';background:'+bg+';">'
       + '<span style="font-size:12px;color:'+nameC+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+escapeHtmlSafe(f.name)+'</span>'
       + '<span style="font-size:11px;color:'+balC+';font-family:Syne,sans-serif;font-weight:700;">'+fmtR(bal)+'</span>'
-      + '</button>';
+      + '</div>';
   }).join('');
 }
 
