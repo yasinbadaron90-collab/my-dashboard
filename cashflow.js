@@ -26,8 +26,8 @@ function buildCFMonthData(mk){
   const monthIncome   = (data[mk]&&data[mk].income)               || [];
   const monthExpenses = (data[mk]&&data[mk].expenses)              || [];
   const monthIds = new Set([...monthIncome,...monthExpenses].map(function(e){ return e.id; }));
-  const allIncome   = [...recurIncome.filter(function(e){ return !monthIds.has(e.id); }),...monthIncome];
-  const allExpenses = [...recurExpenses.filter(function(e){ return !monthIds.has(e.id); }),...monthExpenses];
+  const allIncome   = [...monthIncome];
+  const allExpenses = [...monthExpenses];
 
   // Carpool income is intentionally NOT auto-pulled here. Carpool entries on
   // the Carpool tab represent expected/projected earnings, not money received.
