@@ -318,9 +318,35 @@ function confirmInstalment(){
 }
 
 function deleteInstPlan(id){
-  if(!confirm('Remove this instalment plan?')) return;
-  var plans = loadInst().filter(function(p){ return p.id !== id; });
-  saveInst(plans);
+  var plans = loadInst();
+  var plan = plans.find(function(p){ return p.id === id; });
+  if(!plan) return;
+  
+  // ── HARD-BLOCK GUARD: Cannot delete plan with paid entries ────────────
+  // If payments have been made against this plan, they exist as CF rows +
+  // pocket deposits linked via cfId/depositId. Deleting the plan orphans them
+  // with no parent. The user must delete each payment first to cascade cleanup.
+  var hasPaid = plan.paid && plan.paid.length > 0;
+  if(hasPaid){
+    var _body = '🚫 Cannot remove this plan — ' + plan.paid.length + ' payment(s) already made.\n\n'
+              + 'The payments remain in your Cash Flow & pockets.\n'
+              + 'Delete each payment first, then the plan will be removable.';
+    if(typeof mihbConfirm === 'function'){
+      mihbConfirm({
+        title: '🚫 Plan has payments',
+        body: _body,
+        primaryBtn: 'Got it',
+        onConfirm: function(){}
+      });
+    } else {
+      alert(_body);
+    }
+    return;
+  }
+  
+  // Safe to delete — no payments exist
+  var filtered = plans.filter(function(p){ return p.id !== id; });
+  saveInst(filtered);
   renderInst();
 }
 
