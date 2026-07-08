@@ -126,6 +126,9 @@ function _routineSpendConfirm(task, pocket){
 
 function deleteRoutineTask(id){
   var tasks = loadRoutineTasks();
+  var task = tasks.find(function(x){ return x.id===id; });
+  if(!task) return;
+  if(!confirm('Delete this task?')) return;
   tasks = tasks.filter(function(x){ return x.id!==id; });
   saveRoutineTasks(tasks);
   renderRoutine();

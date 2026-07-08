@@ -959,6 +959,9 @@ function addFuelEntry() {
 }
 function deleteFuelEntry(id) {
   var data = JSON.parse(lsGet(FUEL_KEY) || '[]');
+  var entry = data.find(function(x){ return x.id === id; });
+  if(!entry) return;
+  if(!confirm('Delete this fuel entry?')) return;
   data = data.filter(function(x){ return x.id !== id; });
   lsSet(FUEL_KEY, JSON.stringify(data));
   loadFuelReport();
