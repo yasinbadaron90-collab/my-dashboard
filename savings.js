@@ -84,6 +84,11 @@ function deadlineStatus(f){
 
 function renderFunds(){
   const grid=document.getElementById('fundGrid');grid.innerHTML='';
+  // Add "+ New Pocket" button at the top
+  const newPocketBtn = document.createElement('div');
+  newPocketBtn.style.cssText = 'grid-column:1/-1;margin-bottom:8px;';
+  newPocketBtn.innerHTML = '<button onclick="openNewFund()" style="width:100%;padding:12px;background:#28a745;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">+ New Pocket</button>';
+  grid.appendChild(newPocketBtn);
   let grand=0;
   // Skip soft-deleted funds — they're hidden during the undo window
   // until either restored (flag removed) or purged (filtered from array).
