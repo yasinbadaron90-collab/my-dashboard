@@ -1,7 +1,3 @@
-https://raw.githubusercontent.com/yasinbadaron90-collab/my-dashboard/main/savings.js
-→ https://raw.githubusercontent.com/yasinbadaron90-collab/my-dashboard/main/savings.js
-Content-Type: text/plain; charset=utf-8
-
 // Savings: funds, deposits, use funds, manual balances
 
 
@@ -106,7 +102,7 @@ function renderFunds(){
     try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
     return;
   }
-  visibleFunds.forEach((f, vidx)=>{
+  visibleFunds.forEach(f=>{
     grand+=fundTotal(f);
     const total=fundTotal(f),rem=remaining(f),p=pct(f),done=rem===0;
     const card=document.createElement('div');card.className='fund-card';
@@ -189,7 +185,7 @@ function renderFunds(){
         deadlineRow = '<div style="font-size:10px;margin-top:4px;color:'+_dl.color+';letter-spacing:1px;">'+_dl.label+'</div>';
       }
     }
-    card.innerHTML = '<div class="fund-top"><div><span class="fund-emoji">'+f.emoji+'</span><div class="fund-name">'+f.name+'</div><div class="fund-weekly">'+subtitleLabel+' · started '+startedLabel+'</div>'+deadlineRow+'</div><div style="display:flex;align-items:center;gap:6px"><button class="'+chevClass+'" onclick="toggleFundCard(\''+f.id+'\',this)" title="Collapse"><span class="chev">&#8964;</span></button><div class="fund-actions admin-only" style="display:flex;gap:6px"><button class="icon-btn"'+(vidx===0?' disabled style="opacity:.3;cursor:default"':'')+' onclick="moveFund(\''+f.id+'\',-1)" title="Move up">↑</button><button class="icon-btn"'+(vidx===visibleFunds.length-1?' disabled style="opacity:.3;cursor:default"':'')+' onclick="moveFund(\''+f.id+'\',1)" title="Move down">↓</button><button class="icon-btn" onclick="openHistory(\''+f.id+'\')">☰</button><button class="icon-btn" onclick="openEditFund(\''+f.id+'\')">✎</button><button class="icon-btn danger" onclick="deleteFund(\''+f.id+'\')">✕</button></div></div></div>'
+    card.innerHTML = '<div class="fund-top"><div><span class="fund-emoji">'+f.emoji+'</span><div class="fund-name">'+f.name+'</div><div class="fund-weekly">'+subtitleLabel+' · started '+startedLabel+'</div>'+deadlineRow+'</div><div style="display:flex;align-items:center;gap:6px"><button class="'+chevClass+'" onclick="toggleFundCard(\''+f.id+'\',this)" title="Collapse"><span class="chev">&#8964;</span></button><div class="fund-actions admin-only" style="display:flex;gap:6px"><button class="icon-btn" onclick="openHistory(\''+f.id+'\')">☰</button><button class="icon-btn" onclick="openEditFund(\''+f.id+'\')">✎</button><button class="icon-btn danger" onclick="deleteFund(\''+f.id+'\')">✕</button></div></div></div>'
       + '<div class="fund-body-wrap '+(isCollapsed?'collapsed':'expanded')+'" id="'+cardId+'" style="'+wrapStyle+'">' + bodyHtml + '</div>';
     grid.appendChild(card);
   });
@@ -380,19 +376,6 @@ function toggleFundCard(id, btn){
     setTimeout(function(){ wrap.style.maxHeight = '2000px'; }, 360);
   }
   lsSet('collapse_fund_'+id, isNowCollapsed ? '1' : '0');
-}
-
-function moveFund(id, dir){
-  var vf = (funds||[]).filter(function(f){ return !f._deleted; });
-  var vi = vf.findIndex(function(f){ return f.id===id; });
-  if(vi<0) return;
-  var vi2 = vi+dir;
-  if(vi2<0||vi2>=vf.length) return;
-  var i1 = funds.indexOf(vf[vi]);
-  var i2 = funds.indexOf(vf[vi2]);
-  if(i1<0||i2<0) return;
-  var tmp=funds[i1]; funds[i1]=funds[i2]; funds[i2]=tmp;
-  saveFunds(); renderFunds();
 }
 
 function setTargetType(t){
@@ -1728,4 +1711,102 @@ window.pocketStmtExportCopy = pocketStmtExportCopy;
 //     - Amount LOCKED to prevent cascade-drift
 //     - Date + note still editable for typo fixes
 //
-// STANDA
+// STANDALONE deposits (legacy seeds, manual entries — no linkage IDs):
+//     - All 3 fields editable (the Emergency R1299→R1100 patch use-case)
+
+function _isLinkedDeposit(d){
+  return !!(d && (
+    d.moneyInId || d.spendId || d.repayId ||
+    d.carExpenseId || d.instalmentPayId ||
+    d.carpoolPaymentId || d.moveId || d.lendId
+  ));
+}
+
+function _depositLinkLabel(d){
+  if(!d) return '';
+  if(d.moneyInId)        return 'Money In';
+  if(d.spendId)          return 'Spend';
+  if(d.repayId)          return 'Repayment';
+  if(d.carExpenseId)     return 'Car expense';
+  if(d.instalmentPayId)  return 'Instalment payment';
+  if(d.carpoolPaymentId) return 'Carpool payment';
+  if(d.moveId)           return 'Pocket-to-pocket Move';
+  if(d.lendId)           return 'Lend';
+  return '';
+}
+
+let _editingDepFundId = null;
+let _editingDepDepId  = null;
+
+function openEditDeposit(fundId, depId){
+  const f = funds.find(function(x){ return x.id===fundId; });
+  if(!f) return;
+  const dep = (f.deposits || []).find(function(d){ return d.id===depId; });
+  if(!dep) return;
+
+  _editingDepFundId = fundId;
+  _editingDepDepId  = depId;
+
+  const linked    = _isLinkedDeposit(dep);
+  const linkLabel = _depositLinkLabel(dep);
+
+  // Populate fields
+  document.getElementById('editDepAmount').value = dep.amount || '';
+  document.getElementById('editDepDate').value   = dep.date   || '';
+  document.getElementById('editDepNote').value   = dep.note   || '';
+
+  // Lock amount for linked deposits
+  document.getElementById('editDepAmount').disabled = linked;
+
+  // Show/hide linked banner + lock note
+  const banner   = document.getElementById('editDepLinkedBanner');
+  const lockNote = document.getElementById('editDepAmountLockNote');
+  if(linked){
+    banner.style.display = 'block';
+    document.getElementById('editDepLinkLabel').textContent = linkLabel;
+    lockNote.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+    lockNote.style.display = 'none';
+  }
+
+  document.getElementById('editDepModal').classList.add('active');
+}
+
+function confirmEditDeposit(){
+  const f = funds.find(function(x){ return x.id===_editingDepFundId; });
+  if(!f){ closeModal('editDepModal'); return; }
+  const dep = (f.deposits || []).find(function(d){ return d.id===_editingDepDepId; });
+  if(!dep){ closeModal('editDepModal'); return; }
+
+  const newAmount = parseFloat(document.getElementById('editDepAmount').value);
+  const newDate   = document.getElementById('editDepDate').value;
+  const newNote   = document.getElementById('editDepNote').value.trim();
+
+  if(!newDate){ alert('Date is required.'); return; }
+
+  const linked = _isLinkedDeposit(dep);
+
+  // Amount only changes for unlinked deposits
+  if(!linked){
+    if(isNaN(newAmount) || newAmount <= 0){
+      alert('Amount must be greater than 0.');
+      return;
+    }
+    dep.amount = newAmount;
+  }
+
+  // Date + note always editable
+  dep.date = newDate;
+  dep.note = newNote;
+
+  saveFunds();
+  closeModal('editDepModal');
+  renderFunds();
+  // Re-open history so user sees the updated row
+  openHistory(_editingDepFundId);
+}
+
+window.openEditDeposit    = openEditDeposit;
+window.confirmEditDeposit = confirmEditDeposit;
+window.openDeleteFundConfirm = openDeleteFundConfirm; // v96 — needed for delete dialog
