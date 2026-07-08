@@ -817,11 +817,20 @@ function renderInst(){
   var totalRem      = 0;
   active.forEach(function(p){
     var paidIdxs = (p.paid||[]).map(function(x){ return x.index; });
-    p.dates.forEach(function(ds, i){
-      if(paidIdxs.indexOf(i) > -1) return;
-      totalRem += p.amt;
-      if(ds.slice(0,7) === thisMonth) totalDueMonth += p.amt;
-    });
+    var monthlyTotal = _planMonthlyTotal(p); // includes service fee
+    
+    if(p.monthToMonth){
+      // Month-to-month plans: due every month on debitDay
+      totalRem += monthlyTotal;
+      if(p.debitDay) totalDueMonth += monthlyTotal;
+    } else {
+      // Fixed-term plans: iterate through scheduled dates
+      p.dates.forEach(function(ds, i){
+        if(paidIdxs.indexOf(i) > -1) return;
+        totalRem += p.amt;
+        if(ds.slice(0,7) === thisMonth) totalDueMonth += p.amt;
+      });
+    }
   });
 
   document.getElementById('instActiveCnt').textContent = active.length;
