@@ -350,6 +350,55 @@ function deleteInstPlan(id){
   renderInst();
 }
 
+function deleteInstPayment(planId, paidIndex){
+  // ── DELETE INDIVIDUAL INSTALMENT PAYMENT ──────────────────────────
+  // A paid entry links to CF row (cfId) + pocket deposit (depositId).
+  // Deleting requires reversing all three cleanly.
+  var plans = loadInst();
+  var plan = plans.find(function(p){ return p.id === planId; });
+  if(!plan || !plan.paid || !plan.paid[paidIndex]) return;
+  
+  var paid = plan.paid[paidIndex];
+  var amtStr = fmtR(paid.amount || plan.amt);
+  var dateStr = paid.date || '—';
+  var msg = 'Delete this payment?\n\n' + plan.desc + ' · Payment ' + (paidIndex+1) + ' of ' + plan.num + '\n'
+          + amtStr + ' · ' + dateStr;
+  
+  if(!confirm(msg)) return;
+  
+  // Reverse the linked CF and pocket deposit
+  if(paid.cfId){
+    try{
+      var cfData = loadCFData();
+      var mk = cfKey();
+      if(cfData[mk] && cfData[mk].expenses){
+        cfData[mk].expenses = cfData[mk].expenses.filter(function(e){ return e.id !== paid.cfId; });
+        saveCFData(cfData);
+      }
+    }catch(e){ console.warn('[deleteInstPayment] CF delete error', e); }
+  }
+  
+  if(paid.depositId && paid.pocketId){
+    try{
+      var funds_tmp = loadFunds();
+      var fundTmp = funds_tmp.find(function(f){ return f.id === paid.pocketId; });
+      if(fundTmp && fundTmp.deposits){
+        fundTmp.deposits = fundTmp.deposits.filter(function(d){ return d.id !== paid.depositId; });
+        saveFunds();
+      }
+    }catch(e){ console.warn('[deleteInstPayment] pocket delete error', e); }
+  }
+  
+  // Remove the paid entry from the plan
+  plan.paid.splice(paidIndex, 1);
+  saveInst(plans);
+  renderInst();
+  
+  if(typeof softDeleteToast === 'function'){
+    softDeleteToast({ message:'Payment deleted · ' + fmtR(paid.amount || plan.amt), duration:3000 });
+  }
+}
+
 function openInstPayModal(planId, idx){
   var plans = loadInst();
   var plan  = plans.find(function(p){ return p.id === planId; });
@@ -1030,6 +1079,7 @@ function buildInstCard(plan, isTarget, isCleared){
 
       var actionBtn = isPaid
         ? '<button onclick="unmarkInstPay(\''+plan.id+'\','+i+')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor=\'#555\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#444\'" title="'+(isSettled?'Reverse the whole settlement':'Unmark this payment')+'">Undo</button>'
+        + '<button onclick="deleteInstPayment(\''+plan.id+'\','+paidIdxs.indexOf(i)+')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;margin-left:4px;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#444\'" title="Delete this payment">🗑</button>'
         : '<button onclick="openInstPayModal(\''+plan.id+'\','+i+')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 10px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">Mark Paid</button>';
 
       // Display amount: anchor shows the real paid amount; non-anchor settle rows show a dash

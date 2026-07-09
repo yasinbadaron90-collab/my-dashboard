@@ -585,8 +585,10 @@ function confirmDeposit(){
   const f=funds.find(x=>x.id===depositingId);
   // Post to Cash Flow as an expense WITH destBank so the bank bucket math
   // can see it. sourceType keeps the savings filter logic working.
-  const cfId_dep=postToCF({label:'Savings - '+f.name,amount:amount,date:date,icon:'savings',type:'expense',sourceType:'savings_deposit',sourceId:depositingId,sourceCardName:f.name,note:note,destBank:fromBank});
-  f.deposits.push({id:uid(),amount,note,date,cfId:cfId_dep,fromBank:fromBank});
+  const savingsDepositId = uid();
+  const cfId_dep=postToCF({label:'Savings - '+f.name,amount:amount,date:date,icon:'savings',type:'expense',sourceType:'savings_deposit',sourceId:depositingId,sourceCardName:f.name,note:note,destBank:fromBank,savingsDepositId:savingsDepositId});
+  const savingsDepositId = uid();
+  f.deposits.push({id:uid(),amount,note,date,cfId:cfId_dep,fromBank:fromBank,savingsDepositId:savingsDepositId});
   const manuals=loadManualBalances();
   if(manuals[depositingId]!==undefined){delete manuals[depositingId];saveManualBalances(manuals);}
   saveFunds();closeModal('depModal');renderFunds();
@@ -855,6 +857,35 @@ function deleteDeposit(fid,did){
       }
       // Live lend gone → orphan → fall through to normal delete
     }catch(e){ console.warn('[deleteDeposit] lend guard error', e); }
+  }
+
+  // ── Savings-deposit hard-block (2026-07-08) ──────────────────────────
+  // A regular savings deposit posts to CF as sourceType:'savings_deposit'.
+  // Deleting just the pocket deposit would leave the CF row orphaned.
+  if(dep && dep.savingsDepositId){
+    try{
+      var _sdList = [];
+      try{ _sdList = JSON.parse(lsGet('yb_cashflow_v1')||'[]'); }catch(e){}
+      if(_sdList && typeof _sdList === 'string') _sdList = [];
+      var _sd = _sdList.find(function(r){ return r.savingsDepositId === dep.savingsDepositId; });
+      if(_sd){
+        var _sdBody = 'This deposit created a Cash Flow record.\n\n'+
+          'Deleting just the pocket deposit would leave the CF entry behind with no pocket record. Delete the Cash Flow entry instead — that removes both cleanly.';
+        if(typeof mihbConfirm === 'function'){
+          mihbConfirm({
+            title: '🔒 Can\'t delete it here',
+            body:  _sdBody,
+            dangerLabel: '↩ Go to Cash Flow',
+            safeLabel:   'Leave it alone'
+          }, function(){
+            alert('Delete the corresponding entry from the Reports tab → Cash Flow instead.');
+          });
+        } else {
+          alert('🔒 Can\'t delete it here\n\n'+_sdBody+'\n\nDelete the Cash Flow entry from the Reports tab instead.');
+        }
+        return;
+      }
+    }catch(e){ console.warn('[deleteDeposit] savings-deposit guard error', e); }
   }
 
   // ── FIX 2026-07-05 — Pay Debt hard-block (pocket deposit side) ─────────
