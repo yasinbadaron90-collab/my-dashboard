@@ -357,46 +357,64 @@ function deleteInstPayment(planId, paidIndex){
   var plans = loadInst();
   var plan = plans.find(function(p){ return p.id === planId; });
   if(!plan || !plan.paid || !plan.paid[paidIndex]) return;
-  
+
   var paid = plan.paid[paidIndex];
   var amtStr = fmtR(paid.amount || plan.amt);
   var dateStr = paid.date || '—';
-  var msg = 'Delete this payment?\n\n' + plan.desc
-          + (plan.monthToMonth ? '' : ' · Payment ' + (paidIndex+1) + ' of ' + plan.num) + '\n'
-          + amtStr + ' · ' + dateStr;
-  
-  if(!confirm(msg)) return;
-  
-  // Reverse the linked CF and pocket deposit
-  if(paid.cfId){
-    try{
-      var cfData = loadCFData();
-      var mk = cfKey();
-      if(cfData[mk] && cfData[mk].expenses){
-        cfData[mk].expenses = cfData[mk].expenses.filter(function(e){ return e.id !== paid.cfId; });
-        saveCFData(cfData);
-      }
-    }catch(e){ console.warn('[deleteInstPayment] CF delete error', e); }
+  var body = plan.desc
+           + (plan.monthToMonth ? '' : ' · Payment ' + (paidIndex+1) + ' of ' + plan.num) + '\n'
+           + amtStr + ' · ' + dateStr;
+
+  function doDelete(){
+    var plans2 = loadInst();
+    var plan2 = plans2.find(function(p){ return p.id === planId; });
+    if(!plan2 || !plan2.paid || !plan2.paid[paidIndex]) return;
+    var paid2 = plan2.paid[paidIndex];
+
+    // Reverse the linked CF and pocket deposit
+    if(paid2.cfId){
+      try{
+        var cfData = loadCFData();
+        var mk = cfKey();
+        if(cfData[mk] && cfData[mk].expenses){
+          cfData[mk].expenses = cfData[mk].expenses.filter(function(e){ return e.id !== paid2.cfId; });
+          saveCFData(cfData);
+        }
+      }catch(e){ console.warn('[deleteInstPayment] CF delete error', e); }
+    }
+
+    if(paid2.depositId && paid2.pocketId){
+      try{
+        var funds_tmp = loadFunds();
+        var fundTmp = funds_tmp.find(function(f){ return f.id === paid2.pocketId; });
+        if(fundTmp && fundTmp.deposits){
+          fundTmp.deposits = fundTmp.deposits.filter(function(d){ return d.id !== paid2.depositId; });
+          saveFunds();
+        }
+      }catch(e){ console.warn('[deleteInstPayment] pocket delete error', e); }
+    }
+
+    // Remove the paid entry from the plan
+    plan2.paid.splice(paidIndex, 1);
+    saveInst(plans2);
+    renderInst();
+
+    if(typeof softDeleteToast === 'function'){
+      softDeleteToast({ message:'Payment deleted · ' + fmtR(paid2.amount || plan2.amt), duration:3000 });
+    }
   }
-  
-  if(paid.depositId && paid.pocketId){
-    try{
-      var funds_tmp = loadFunds();
-      var fundTmp = funds_tmp.find(function(f){ return f.id === paid.pocketId; });
-      if(fundTmp && fundTmp.deposits){
-        fundTmp.deposits = fundTmp.deposits.filter(function(d){ return d.id !== paid.depositId; });
-        saveFunds();
-      }
-    }catch(e){ console.warn('[deleteInstPayment] pocket delete error', e); }
-  }
-  
-  // Remove the paid entry from the plan
-  plan.paid.splice(paidIndex, 1);
-  saveInst(plans);
-  renderInst();
-  
-  if(typeof softDeleteToast === 'function'){
-    softDeleteToast({ message:'Payment deleted · ' + fmtR(paid.amount || plan.amt), duration:3000 });
+
+  if(typeof mihbConfirm === 'function'){
+    mihbConfirm({
+      title: '🗑 Delete this payment?',
+      body: body,
+      dangerLabel: 'Delete payment',
+      safeLabel: 'Cancel'
+    }, function(go){
+      if(go) doDelete();
+    });
+  } else {
+    if(confirm('Delete this payment?\n\n' + body)) doDelete();
   }
 }
 
