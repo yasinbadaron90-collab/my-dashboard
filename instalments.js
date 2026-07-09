@@ -365,6 +365,48 @@ function deleteInstPayment(planId, paidIndex){
            + (plan.monthToMonth ? '' : ' · Payment ' + (paidIndex+1) + ' of ' + plan.num) + '\n'
            + amtStr + ' · ' + dateStr;
 
+  // ── HARD-BLOCK GUARD: Orphaned pocket check (2026-07-09) ────────────
+  // If the pocket this payment was funded from has since been closed,
+  // merged, or deleted, there is nowhere to safely return the money.
+  // Deleting anyway would silently destroy R'amount' with no trace.
+  // This is a real scenario: pockets get closed/merged over time and old
+  // payment records still point at the dead pocket id.
+  var _pocketMissing = false;
+  var _pocketName = null;
+  if(paid.pocketId){
+    try{ if(typeof loadFunds === 'function') loadFunds(); }catch(e){}
+    var _liveFunds = (typeof funds !== 'undefined' && Array.isArray(funds)) ? funds : [];
+    var _pk = _liveFunds.find(function(f){ return f.id === paid.pocketId; });
+    if(!_pk){
+      _pocketMissing = true;
+    } else {
+      _pocketName = _pk.name;
+    }
+  }
+
+  if(_pocketMissing){
+    var _orphanBody = body + '\n\n'
+      + '⚠️ The pocket this payment was funded from no longer exists '
+      + '(closed or merged since). Deleting this payment would remove it '
+      + 'from Cash Flow but there is nowhere to safely return the '
+      + amtStr + ' to — it would just vanish.\n\n'
+      + 'This payment is locked from deletion to protect your money. '
+      + 'If you\'re sure, manually add ' + amtStr + ' back to the correct '
+      + 'pocket first via Deposit, then this payment record can stay as a '
+      + 'harmless historical entry.';
+    if(typeof mihbConfirm === 'function'){
+      mihbConfirm({
+        title: '🔒 Can\'t delete safely',
+        body: _orphanBody,
+        dangerLabel: 'Got it',
+        safeLabel: 'Got it'
+      }, function(){});
+    } else {
+      alert('🔒 Can\'t delete safely\n\n' + _orphanBody);
+    }
+    return;
+  }
+
   function doDelete(){
     var plans2 = loadInst();
     var plan2 = plans2.find(function(p){ return p.id === planId; });
@@ -407,7 +449,7 @@ function deleteInstPayment(planId, paidIndex){
   if(typeof mihbConfirm === 'function'){
     mihbConfirm({
       title: '🗑 Delete this payment?',
-      body: body,
+      body: body + (_pocketName ? '\n\n↩ ' + amtStr + ' will return to: ' + _pocketName : ''),
       dangerLabel: 'Delete payment',
       safeLabel: 'Cancel'
     }, function(go){
