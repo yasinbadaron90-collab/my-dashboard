@@ -1045,10 +1045,12 @@ function buildInstCard(plan, isTarget, isCleared){
       var sortedPaid = plan.paid.slice().sort(function(a,b){ return b.date > a.date ? 1 : -1; });
       sortedPaid.slice(0,6).forEach(function(p){
         var _histAmt = p.amount || plan.amt;
+        var _origIdx = plan.paid.indexOf(p);
         rowsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">'
           +'<span style="width:10px;height:10px;border-radius:50%;background:#c8f230;display:inline-block;flex-shrink:0;"></span>'
           +'<div style="flex:1;"><span style="color:var(--muted);font-size:10px;">'+p.date+'</span>'+(p.note?'<span style="color:var(--muted);font-size:10px;"> · '+p.note+'</span>':'')+'</div>'
           +'<span style="color:#c8f230;font-weight:700;">'+fmtR(_histAmt)+'</span>'
+          +'<button onclick="deleteInstPayment(\'' + plan.id + '\',' + _origIdx + ')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;cursor:pointer;margin-left:6px;" title="Delete this payment">🗑</button>'
         +'</div>';
       });
     }
