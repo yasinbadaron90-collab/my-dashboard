@@ -361,7 +361,8 @@ function deleteInstPayment(planId, paidIndex){
   var paid = plan.paid[paidIndex];
   var amtStr = fmtR(paid.amount || plan.amt);
   var dateStr = paid.date || '—';
-  var msg = 'Delete this payment?\n\n' + plan.desc + ' · Payment ' + (paidIndex+1) + ' of ' + plan.num + '\n'
+  var msg = 'Delete this payment?\n\n' + plan.desc
+          + (plan.monthToMonth ? '' : ' · Payment ' + (paidIndex+1) + ' of ' + plan.num) + '\n'
           + amtStr + ' · ' + dateStr;
   
   if(!confirm(msg)) return;
