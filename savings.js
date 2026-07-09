@@ -587,7 +587,6 @@ function confirmDeposit(){
   // can see it. sourceType keeps the savings filter logic working.
   const savingsDepositId = uid();
   const cfId_dep=postToCF({label:'Savings - '+f.name,amount:amount,date:date,icon:'savings',type:'expense',sourceType:'savings_deposit',sourceId:depositingId,sourceCardName:f.name,note:note,destBank:fromBank,savingsDepositId:savingsDepositId});
-  const savingsDepositId = uid();
   f.deposits.push({id:uid(),amount,note,date,cfId:cfId_dep,fromBank:fromBank,savingsDepositId:savingsDepositId});
   const manuals=loadManualBalances();
   if(manuals[depositingId]!==undefined){delete manuals[depositingId];saveManualBalances(manuals);}
