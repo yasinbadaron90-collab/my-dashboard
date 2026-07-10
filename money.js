@@ -1064,9 +1064,19 @@ function renderMoneyOwed(){
     if(entries.length === 0) return;
     const { borrowed, repaid } = calcPersonTotals(entries, true);
     if(borrowed === 0) return;
-    // Check if archived
+    // ── FIX 2026-07-10 ──
+    // The archived list is a permanent flag set once a passenger's carpool
+    // balance is fully settled. Previously this was a blanket skip: once
+    // archived, ANY future debt to that person (e.g. a new personal lend,
+    // unrelated to carpool fares) stayed invisible on Money Owed forever,
+    // because the archived check ran unconditionally, after outstanding
+    // balance was already known to be nonzero. Fix: only honour the
+    // archived flag when there's genuinely nothing outstanding right now.
+    // A fresh unpaid entry against an archived person un-hides them
+    // automatically — no manual un-archive step required.
+    var outstanding = borrowed - repaid;
     var carpoolArchived = JSON.parse(lsGet('yb_carpool_archived')||'[]');
-    if(carpoolArchived.indexOf(name) > -1) return;
+    if(carpoolArchived.indexOf(name) > -1 && outstanding <= 0) return;
     people.push({ name, tag:'carpool', entries: entries, borrowed, repaid, key: name });
   });
 
