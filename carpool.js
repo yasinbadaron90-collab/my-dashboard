@@ -1019,8 +1019,16 @@ function openPayDestModal(btn){
     optionsEl.appendChild(buildDestOption('maint:'+card.id, card.emoji+' '+card.name, fmtR(cardMonth)+' this month · target '+fmtR(card.target), '#f2a830'));
   });
 
-  // Cash Flow only (just record as income, no deposit)
-  optionsEl.appendChild(buildDestOption('cashflow', '💵 Cash Flow Only', 'Record as income — no fund deposit', '#7090f0'));
+  // Cash Flow Only (just record as income, no deposit)
+  // FIX 2026-07-13: emoji changed from 💵 to 📥 — 💵 is inside the
+  // user-selectable EMOJIS list in savings.js, so a pocket named
+  // "Cash wallet" using 💵 rendered identically to this system option
+  // in the destination picker. A real payment (Shireen, R250) got
+  // mis-tapped into this option instead of the Cash wallet pocket as a
+  // result. 📥 is not in the user emoji list, so this collision class
+  // is now structurally impossible, regardless of what emoji any
+  // current or future pocket uses.
+  optionsEl.appendChild(buildDestOption('cashflow', '📥 Cash Flow Only', 'Record as income — no fund deposit', '#7090f0'));
 
   // Split option
   optionsEl.appendChild(buildDestOption('split', '✂️ Split Between Funds', 'Divide the amount across multiple destinations', '#888'));

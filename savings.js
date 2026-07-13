@@ -478,6 +478,16 @@ function saveFund(){
   const start=document.getElementById('fStart').value;
   const deadline=document.getElementById('fDeadline').value;
   if(!name||!goal||!start){ alert('Please fill in name, goal, and start date.'); return; }
+  // ── FIX 2026-07-13 ── Hard-block guard, defense-in-depth behind the
+  // greyed-out picker above. Two pockets sharing an emoji caused a real
+  // misdirected-payment bug (Shireen carpool payment landing in Cash
+  // Flow instead of Cash wallet, because "Cash Flow Only" and Cash
+  // wallet both rendered as 💵 in the destination list).
+  const duplicateFund = funds.find(function(f){ return f.id !== editingId && f.emoji === selEmoji; });
+  if(duplicateFund){
+    alert('That emoji is already used by "'+duplicateFund.name+'". Pick a different one so pockets stay visually distinct.');
+    return;
+  }
   // Deadline is optional — if set, warn if in the past
   if(deadline && new Date(deadline+'T23:59:59') < new Date()){
     if(!confirm('That deadline is in the past. Save anyway?')) return;
@@ -492,7 +502,35 @@ function saveFund(){
   saveFunds();closeModal('fundModal');renderFunds();
   showBackupReminder(isNew?'New savings card created':'Savings card updated');
 }
-function buildEmojiGrid(){const g=document.getElementById('emojiGrid');g.innerHTML='';EMOJIS.forEach(e=>{const b=document.createElement('button');b.className='emoji-opt'+(e===selEmoji?' selected':'');b.textContent=e;b.onclick=()=>{selEmoji=e;buildEmojiGrid();};g.appendChild(b);});}
+function buildEmojiGrid(){
+  const g=document.getElementById('emojiGrid');g.innerHTML='';
+  // ── FIX 2026-07-13 ──
+  // Root cause of the Shireen/Cash-wallet carpool payment bug: the
+  // "Cash Flow Only" system option in carpool.js hardcoded the same emoji
+  // (💵) as a user-created pocket, making two rows in the destination
+  // picker visually identical and easy to mis-tap. Fixing that emoji
+  // collision alone isn't enough — nothing stopped two POCKETS from
+  // sharing an emoji either, which would create the exact same risk.
+  // This greys out any emoji already used by another fund, so a
+  // collision can't be created going forward.
+  const usedEmojis = funds.filter(function(f){ return f.id !== editingId; })
+                           .map(function(f){ return f.emoji; });
+  EMOJIS.forEach(e=>{
+    const inUse = usedEmojis.indexOf(e) > -1;
+    const b=document.createElement('button');
+    b.className='emoji-opt'+(e===selEmoji?' selected':'')+(inUse?' disabled':'');
+    b.textContent=e;
+    if(inUse && e!==selEmoji){
+      b.disabled=true;
+      b.title='Already used by another pocket';
+      b.style.opacity='0.25';
+      b.style.cursor='not-allowed';
+    } else {
+      b.onclick=()=>{selEmoji=e;buildEmojiGrid();};
+    }
+    g.appendChild(b);
+  });
+}
 function buildColorGrid(){const g=document.getElementById('colorGrid');g.innerHTML='';COLORS.forEach(c=>{const b=document.createElement('button');b.className='color-opt'+(c===selColor?' selected':'');b.style.background=c;b.onclick=()=>{selColor=c;buildColorGrid();};g.appendChild(b);});}
 function deleteFund(id){
   // v96 — show custom confirm dialog instead of native confirm()
