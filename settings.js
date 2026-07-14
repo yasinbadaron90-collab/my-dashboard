@@ -692,6 +692,20 @@ function buildBackupPayload(){
     manualBalances: JSON.parse(lsGet('yb_manual_balances_v1') ||'{}'),
     priorityRules:  JSON.parse(lsGet('yb_priority_rules_v1')  ||'null'),
     carpoolArchived: JSON.parse(lsGet('yb_carpool_archived')  ||'[]'),
+    // ── FIX 2026-07-13 — backup-export gap closed ──
+    // These 6 keys were synced to Firebase but silently absent from the
+    // local JSON export. A restore-from-file onto a fresh device would
+    // have lost: lend records, repayment history, money-in splits, spend
+    // records, pocket-to-pocket moves, and carpool payment master records
+    // (the canonical source for payment reversal). Firebase sync papered
+    // over the gap on same-account devices, but the file export is the
+    // last-resort recovery path — it must be complete on its own.
+    lends:           JSON.parse(lsGet('yb_lends_v1')            ||'[]'),
+    repayments:      JSON.parse(lsGet('yb_repayments_v1')       ||'[]'),
+    moneyIn:         JSON.parse(lsGet('yb_moneyin_v1')          ||'[]'),
+    spends:          JSON.parse(lsGet('yb_spend_v1')            ||'[]'),
+    moves:           JSON.parse(lsGet('yb_moves_v1')            ||'[]'),
+    carpoolPayments: JSON.parse(lsGet('yb_carpool_payments_v1') ||'[]'),
     themeLight:     lsGet('yasin_theme_light')
     // Intentionally excluded:
     //   - biometric credentials (device-specific, won't transfer)
@@ -761,6 +775,15 @@ function restoreData(input){
       if(backup.manualBalances) lsSet('yb_manual_balances_v1', JSON.stringify(backup.manualBalances));
       if(backup.priorityRules)  lsSet('yb_priority_rules_v1',  JSON.stringify(backup.priorityRules));
       if(backup.carpoolArchived) lsSet('yb_carpool_archived',  JSON.stringify(backup.carpoolArchived));
+      // ── FIX 2026-07-13 — restore side of the backup-export gap ──
+      // Mirror of the export fix above. Without these, importing a
+      // backup that contains the new keys would silently drop them.
+      if(backup.lends)           lsSet('yb_lends_v1',            JSON.stringify(backup.lends));
+      if(backup.repayments)      lsSet('yb_repayments_v1',       JSON.stringify(backup.repayments));
+      if(backup.moneyIn)         lsSet('yb_moneyin_v1',          JSON.stringify(backup.moneyIn));
+      if(backup.spends)          lsSet('yb_spend_v1',            JSON.stringify(backup.spends));
+      if(backup.moves)           lsSet('yb_moves_v1',            JSON.stringify(backup.moves));
+      if(backup.carpoolPayments) lsSet('yb_carpool_payments_v1', JSON.stringify(backup.carpoolPayments));
       if(backup.themeLight !== undefined && backup.themeLight !== null){
         lsSet('yasin_theme_light', backup.themeLight);
       }
