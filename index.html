@@ -234,6 +234,9 @@ function _showUpdateToast(worker){
       <button class="hbg-item" onclick="closeDrawer();goToTab('reports');">
         <span class="hbg-icon">📊</span> Reports
       </button>
+      <button class="hbg-item admin-only" onclick="closeDrawer();goToTab('audit');">
+        <span class="hbg-icon">🛡️</span> Self-Audit
+      </button>
       <button class="hbg-item" onclick="closeDrawer();goToTab('prayer');">
         <span class="hbg-icon">🕌</span> Prayer Tracker
       </button>
@@ -2347,6 +2350,7 @@ function _showUpdateToast(worker){
   <script src="routine.js"></script>
   <script src="home.js"></script>
   <script src="info.js"></script>
+  <script src="audit.js"></script>
 
 <!-- ══ INFO MODAL (Step 11a — app-wide ⓘ explainer pattern) ══ -->
 <div class="overlay" id="infoModal" style="z-index:950;">
@@ -2360,6 +2364,10 @@ function _showUpdateToast(worker){
 </div>
 
 <!-- ══ HOME PAGE (Step 10 — landing screen) ══ -->
+<div class="page admin-only" id="page-audit" style="padding:20px 16px 80px;">
+  <div id="auditRoot" style="max-width:720px;margin:0 auto;"></div>
+</div>
+
 <div class="page active admin-only" id="page-home" style="padding:20px 16px 80px;">
   <div id="homeContent"></div>
 </div>

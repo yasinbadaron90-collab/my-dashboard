@@ -1635,6 +1635,7 @@ function _renderTabSafely(tab){
   if(tab==='school')      _safeCall(typeof renderSchool==='function'?renderSchool:null, 'renderSchool');
   if(tab==='routine')     _safeCall(typeof renderRoutine==='function'?renderRoutine:null, 'renderRoutine');
   if(tab==='cashflow')    _safeCall(typeof renderCashFlow==='function'?renderCashFlow:null, 'renderCashFlow');
+  if(tab==='audit')       _safeCall(typeof renderAudit==='function'?renderAudit:null, 'renderAudit');
   if(tab==='odin'){
     _safeCall(typeof renderOdinTab==='function'?renderOdinTab:null, 'renderOdinTab');
     // The Odin tab page also embeds report-style sections (🔧 Maintenance,
