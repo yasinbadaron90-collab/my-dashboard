@@ -778,7 +778,6 @@ function _generateStatementsWork(){
       :'';
     const waSummary='\n\n*Trips: '+fmtR(tripTotal)+'*'
       +(borrowTotal>0?'\n*Borrowed: '+fmtR(borrowTotal)+'*':'')
-      +'\n*Total Owed: '+fmtR(totalOwed)+'*'
       +'\n*Paid: '+fmtR(totalPaid)+'*\n'
       +(totalOwing>0?'*Outstanding: '+fmtR(totalOwing)+'*\n\nPlease settle when convenient 🙏':'*All settled! 🎉*');
     const waText='*Carpool Statement — '+from+' to '+to+'*\nHi '+passenger+' 👋\n\n'
@@ -959,18 +958,12 @@ function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borro
       doc.text('R'+Number(borrowOwing).toLocaleString('en-ZA'),190,y,{align:'right'});doc.setFont('helvetica','normal');y+=7;
     }
   }
-  // Grand total — gross value across the period (trips + borrowed, before payments)
-  doc.setDrawColor(200,242,48);doc.setLineWidth(0.5);doc.line(20,y,190,y);y+=8;
-  doc.setTextColor(90,136,0);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text('TOTAL OWED',20,y);
-  doc.setTextColor(200,242,48);doc.setFontSize(14);doc.setFont('helvetica','bold');
-  doc.text('R'+Number(totalAmt).toLocaleString('en-ZA'),190,y,{align:'right'});
-  doc.setFont('helvetica','normal');y+=14;
-
-  // Unified outstanding — tripOwing + borrowOwing combined. This is the number that
-  // actually needs settling, matching what the on-screen card and WhatsApp text already show.
+  // Unified outstanding only — tripOwing + borrowOwing combined. Gross "Total Owed"
+  // removed per Yasin: it duplicated Trips+Borrowed shown above and read as a second,
+  // conflicting total sitting next to the amount actually due.
   const totalOwing=tripOwing+borrowOwing;
+  doc.setDrawColor(200,242,48);doc.setLineWidth(0.5);doc.line(20,y,190,y);y+=9;
   if(totalOwing>0){
-    doc.setDrawColor(242,168,48);doc.setLineWidth(0.6);doc.line(20,y,190,y);y+=9;
     doc.setTextColor(242,168,48);doc.setFontSize(10);doc.setFont('helvetica','normal');
     doc.text('TOTAL OUTSTANDING',20,y);
     doc.setFontSize(22);doc.setFont('helvetica','bold');
