@@ -598,6 +598,35 @@ function _odinBuildContext(){
     }
   }catch(e){}
 
+  // ── SELF-AUDIT ──
+  // Reads the LAST cached run (_auditResults, set by audit.js's runSelfAudit()).
+  // Deliberately does not trigger a fresh run — one of the 10 checks does a
+  // network fetch, and this context-builder is synchronous everywhere else.
+  // Odin reports on what you last saw when you tapped Run Audit, same as
+  // opening the Self-Audit screen itself would show you.
+  try{
+    if(typeof _auditResults !== 'undefined' && _auditResults){
+      var auCounts = {pass:0, warn:0, fail:0};
+      _auditResults.forEach(function(g){ g.rows.forEach(function(r){ auCounts[r.status]++; }); });
+      var auTotal = auCounts.pass + auCounts.warn + auCounts.fail;
+      var auWhen = (typeof _auditLastRun !== 'undefined' && _auditLastRun && _auditLastRun.at)
+        ? _auditLastRun.at.toLocaleString('en-ZA') : 'unknown time';
+      ctx.push('\n--- SELF-AUDIT (last run: '+auWhen+') ---');
+      ctx.push(auCounts.pass+'/'+auTotal+' checks passed'
+        +(auCounts.fail?', '+auCounts.fail+' FAILING':'')
+        +(auCounts.warn?', '+auCounts.warn+' warning'+(auCounts.warn>1?'s':''):''));
+      _auditResults.forEach(function(g){
+        g.rows.forEach(function(r){
+          if(r.status!=='pass') ctx.push('  ['+r.status.toUpperCase()+'] '+g.title+' — '+r.name+': '+r.detail);
+        });
+      });
+      if(auCounts.fail===0 && auCounts.warn===0) ctx.push('All checks clean.');
+    } else {
+      ctx.push('\n--- SELF-AUDIT ---');
+      ctx.push('Not run yet this session — no findings available until Yasin taps Self-Audit → Run Audit.');
+    }
+  }catch(e){}
+
   return ctx.join('\n');
 }
 
@@ -647,6 +676,10 @@ function odinChat(userText){
     +'REPORTS TAB:\n'
     +'- The Reports tab has no separate storage — it aggregates Savings + Carpool + Cash Flow data\n'
     +'- You already have all that data in LIVE DATA below, so answer any reports question directly\n\n'
+    +'SELF-AUDIT:\n'
+    +'- If LIVE DATA below shows failing or warning checks, lead with that — explain the specific finding in plain language, don\'t make Yasin ask twice\n'
+    +'- You can explain what a fix might look like, but never claim to have applied one. Applying a fix happens only inside the Self-Audit screen\'s own guided-fix flow, and only after Yasin confirms it there\n'
+    +'- If self-audit hasn\'t been run this session, you can mention that Self-Audit → Run Audit would give a current read, but don\'t nag about it unprompted\n\n'
     +'LIVE DATA:\n'+_odinBuildContext();
 
   var messages = _odinHistory.slice();
