@@ -12,7 +12,10 @@
 //                           references (the MTN / merged-pocket class)
 //   🏦 Baseline           — reconBalances sanity
 //   🧱 Structure & Rules  — emoji uniqueness (v147d), duplicate IDs,
-//                           storage-key presence (v147e)
+//                           storage-key presence (v147e), carpool
+//                           statement output parity across card/WA/PDF
+//                           (v147g/h — the "TOTAL OWED" class; this one
+//                           check is async, it fetches carpool.js live)
 // ════════════════════════════════════════════════════════════════════
 
 var _auditLastRun = null;   // session-only; audit persists nothing
@@ -237,22 +240,85 @@ function _auCheckStorageKeys(){
   };
 }
 
+// Async — the only check here that hits the network. Fetches THIS DEVICE's
+// currently-served carpool.js (same-origin, so PWA cache/SW behavior applies —
+// that's intentional: this checks what's actually running here, not GitHub's
+// latest commit) and verifies the three carpool-statement surfaces (on-screen
+// card, WhatsApp text, PDF export) agree on 5 concepts. Ported from a
+// standalone Node script (tests/output-consistency.mjs) that does the same
+// thing against the repo directly — same concept list, same anchors, same
+// pass/fail logic, validated there against both a clean and a deliberately
+// broken copy before being ported here.
+async function _auCheckOutputConsistency(){
+  var CHECK_NAME = 'Carpool statement output parity (card / WhatsApp / PDF)';
+  function extractBetween(s, startAnchor, endAnchor){
+    var startIdx = s.indexOf(startAnchor);
+    if(startIdx === -1) throw new Error('anchor not found: "' + startAnchor + '"');
+    var endIdx = s.indexOf(endAnchor, startIdx + startAnchor.length);
+    if(endIdx === -1) throw new Error('end anchor not found: "' + endAnchor + '"');
+    return s.slice(startIdx, endIdx + endAnchor.length);
+  }
+  function stripComments(region){
+    return region.split('\n').filter(function(line){ return line.trim().indexOf('//') !== 0; }).join('\n');
+  }
+  var res = await fetch('carpool.js');
+  if(!res.ok) throw new Error('could not load carpool.js (HTTP ' + res.status + ')');
+  var src = await res.text();
+
+  var regions = {
+    card: stripComments(extractBetween(src, '// Breakdown footer — always shows trips section', "+'<div class=\"stmt-btns\">'")),
+    wa:   stripComments(extractBetween(src, "const waSummary='", 'const waText=')),
+    pdf:  stripComments(extractBetween(src, 'function buildPDF(', '\nfunction '))
+  };
+
+  var CONCEPTS = [
+    { key:'combined_outstanding', expected:['card','wa','pdf'],
+      test:{ card:/Total Outstanding/, wa:/\*Outstanding:/, pdf:/'TOTAL OUTSTANDING'/ } },
+    { key:'all_settled', expected:['card','wa','pdf'],
+      test:{ card:/All settled/i, wa:/All settled/i, pdf:/ALL SETTLED/i } },
+    { key:'gross_total (the exact v147g/h pattern)', expected:[],
+      test:{ card:/Total Owed/i, wa:/Total Owed/i, pdf:/TOTAL OWED/i } },
+    { key:'trips_outstanding_line', expected:['card','pdf'],
+      test:{ card:/Trips Outstanding/, wa:/Trips Outstanding/, pdf:/TRIPS OUTSTANDING/ } },
+    { key:'borrow_outstanding_line', expected:['card','pdf'],
+      test:{ card:/Borrow Outstanding/, wa:/Borrow Outstanding/, pdf:/BORROW OUTSTANDING/ } }
+  ];
+  var surfaces = ['card','wa','pdf'];
+  var drift = [];
+  CONCEPTS.forEach(function(c){
+    var actual = surfaces.filter(function(s){ return c.test[s].test(regions[s]); });
+    var matches = actual.length === c.expected.length && actual.every(function(s){ return c.expected.indexOf(s) !== -1; });
+    if(!matches) drift.push(c.key + ' — expected [' + (c.expected.join(', ')||'none') + '], found [' + (actual.join(', ')||'none') + ']');
+  });
+
+  return {
+    status: drift.length ? 'fail' : 'pass',
+    name: CHECK_NAME,
+    detail: drift.length
+      ? drift.join(' · ')
+      : CONCEPTS.length + ' concepts checked across card, WhatsApp text, and PDF — all agree'
+  };
+}
+
 // ── runner ───────────────────────────────────────────────────────────
 var _AU_GROUPS = [
   { icon:'💰', title:'Pocket Math',         checks:[_auCheckDeposits, _auCheckNegativePockets] },
   { icon:'🔗', title:'Mirror-Link Chains',  checks:[_auCheckCarpoolChains, _auCheckCFResolution, _auCheckOrphanedPockets] },
   { icon:'🏦', title:'Available Cash Baseline', checks:[_auCheckBaseline] },
-  { icon:'🧱', title:'Structure & Rules',   checks:[_auCheckEmoji, _auCheckDuplicateIds, _auCheckStorageKeys] }
+  { icon:'🧱', title:'Structure & Rules',   checks:[_auCheckEmoji, _auCheckDuplicateIds, _auCheckStorageKeys, _auCheckOutputConsistency] }
 ];
 
-function runSelfAudit(){
+async function runSelfAudit(){
   var t0 = Date.now();
-  var results = _AU_GROUPS.map(function(g){
-    return { icon:g.icon, title:g.title, rows: g.checks.map(function(fn){
-      try { return fn(); }
+  var v = document.getElementById('auditVerdict');
+  if(v) v.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:10px 4px;">Running…</div>';
+  var results = await Promise.all(_AU_GROUPS.map(async function(g){
+    var rows = await Promise.all(g.checks.map(async function(fn){
+      try { return await fn(); }
       catch(e){ return { status:'warn', name: fn.name, detail: 'check errored: ' + e.message }; }
-    }) };
-  });
+    }));
+    return { icon:g.icon, title:g.title, rows: rows };
+  }));
   _auditResults = results;
   _auditLastRun = { at: new Date(), ms: Date.now() - t0 };
   _auditRenderResults();
