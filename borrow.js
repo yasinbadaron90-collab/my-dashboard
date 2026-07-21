@@ -88,8 +88,19 @@ function getLendingSnapshot(){
   var mI=(cfData[mk]&&cfData[mk].income)||[];
   var mE=(cfData[mk]&&cfData[mk].expenses)||[];
   var ids=new Set([...mI,...mE].map(function(e){return e.id;}));
-  var allI=[...rI.filter(function(e){return !ids.has(e.id);}),...mI];
-  var allE=[...rE.filter(function(e){return !ids.has(e.id);}),...mE];
+  // ID-only dedup misses instalment payments: Mark Paid logs a fresh id each
+  // time (sourceType:'instalment_pay'), which never matches the recurring
+  // template's own id — so the template kept getting counted a second time
+  // on top of the real entry. R209 MTN found double-counted this way,
+  // 2026-07-21. Matching on label+amount closes it without needing every
+  // recurring template to carry a link back to its real instance.
+  function _rMatchesReal(recEntry, realList){
+    return realList.some(function(r){
+      return r.label === recEntry.label && Math.abs((r.amount||0) - (recEntry.amount||0)) < 0.005;
+    });
+  }
+  var allI=[...rI.filter(function(e){return !ids.has(e.id) && !_rMatchesReal(e, mI);}),...mI];
+  var allE=[...rE.filter(function(e){return !ids.has(e.id) && !_rMatchesReal(e, mE);}),...mE];
   var SAVINGS_SRC=['savings_deposit','car_add','maint','custommaint','car_service_save','savings'];
   var SAVINGS_CAT=['Savings','Cars','Maintenance'];
   function _bIsSav(e){
