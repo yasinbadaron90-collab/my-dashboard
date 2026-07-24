@@ -1467,6 +1467,9 @@ function saveDailyFuel(){
 function restoreDailyFuel(){
   try{ var v=lsGet(DAILY_FUEL_KEY); var el=document.getElementById('dailyFuelCost'); if(v&&el) el.value=v; }catch(e){}
 }
+function saveFuelBudget(){
+  try{ var el=document.getElementById('fuelBudget'); if(el) lsSet(FUEL_BUDGET_KEY, el.value); }catch(e){}
+}
 function loadBorrowReport() {
   // Read carpool borrows — yasin_borrows_v1 is a {passenger: [...entries]} object
   const raw = JSON.parse(lsGet(BORROW_KEY) || '{}');

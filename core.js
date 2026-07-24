@@ -484,6 +484,7 @@ const SCHOOL_RESULTS_KEY = 'yasin_school_results_v1';
 const SCHOOL_DONE_KEY    = 'yasin_school_done_v1';
 const FUEL_KEY           = 'yasin_fuel_v1';
 const DAILY_FUEL_KEY     = 'yb_daily_fuel';
+const FUEL_BUDGET_KEY    = 'yb_fuel_budget';
 const PRICING_TANK_KEY   = 'yb_pricing_tank';
 const PRICING_PRIVATE_KEY= 'yb_pricing_private';
 const PASSENGERS_KEY     = 'yb_passengers_v1';
@@ -496,7 +497,7 @@ const EXTERNAL_BORROW_KEY= 'yb_external_borrows_v1';
 
 // Seed memory from whatever storage is available
 (function seedMem(){
-  const keys = [SK,CPK,BORROW_KEY,FUEL_KEY,PRAYER_KEY,MAINT_KEY,SYNC_KEY,PIN_STORE_KEY,INST_KEY,DRIVER_KEY,CARS_KEY,SCHOOL_EVENTS_KEY,SCHOOL_RESULTS_KEY,SCHOOL_DONE_KEY,PASSENGERS_KEY,CF_KEY,CUSTOM_MAINT_KEY,EXTERNAL_BORROW_KEY,DAILY_FUEL_KEY,PRICING_TANK_KEY,PRICING_PRIVATE_KEY];
+  const keys = [SK,CPK,BORROW_KEY,FUEL_KEY,PRAYER_KEY,MAINT_KEY,SYNC_KEY,PIN_STORE_KEY,INST_KEY,DRIVER_KEY,CARS_KEY,SCHOOL_EVENTS_KEY,SCHOOL_RESULTS_KEY,SCHOOL_DONE_KEY,PASSENGERS_KEY,CF_KEY,CUSTOM_MAINT_KEY,EXTERNAL_BORROW_KEY,DAILY_FUEL_KEY,FUEL_BUDGET_KEY,PRICING_TANK_KEY,PRICING_PRIVATE_KEY];
   keys.forEach(function(k){
     try{ const v=localStorage.getItem(k); if(v){ _lsMem[k]=v; return; } }catch(e){}
     try{ const v=sessionStorage.getItem(k); if(v) _lsMem[k]=v; }catch(e){}
@@ -967,8 +968,20 @@ function deleteFuelEntry(id) {
   loadFuelReport();
 }
 function loadFuelReport() {
-  var FUEL_BUDGET = 2800; // R per month
+  var FUEL_BUDGET = parseFloat(lsGet(FUEL_BUDGET_KEY)) || 2950; // R per month — user-editable, see #fuelBudget input
   var PASSENGERS = window.PASSENGERS || ['David','Lezaun','Shireen'];
+
+  // Restore both saved settings into their inputs on every render — previously
+  // dailyFuelCost saved but was never restored, so it silently reset to the
+  // HTML default (100) on every reload. Fixed here since this function already
+  // runs on every fuel-section render.
+  try{
+    var dfEl = document.getElementById('dailyFuelCost');
+    var dfSaved = lsGet(DAILY_FUEL_KEY);
+    if(dfEl && dfSaved) dfEl.value = dfSaved;
+    var fbEl = document.getElementById('fuelBudget');
+    if(fbEl) fbEl.value = FUEL_BUDGET;
+  }catch(e){}
 
   // ── Pay cycle: 25th of last month → 24th of this month ──
   var now = new Date();

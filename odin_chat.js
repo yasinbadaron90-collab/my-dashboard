@@ -582,7 +582,7 @@ function _odinBuildContext(){
       var ceStr = cycleEnd3.toISOString().split('T')[0];
       var cycleFuel = fuelEntries.filter(function(e){ return (e.date||'') >= csStr && (e.date||'') <= ceStr; });
       var cycleTotal = cycleFuel.reduce(function(s,e){ return s+(e.amount||0); },0);
-      var FUEL_BUDGET = 2800;
+      var FUEL_BUDGET = parseFloat(lsGet(FUEL_BUDGET_KEY)) || 2950;
       var budgetLeft = FUEL_BUDGET - cycleTotal;
       var dailyCost = Number(lsGet('yb_daily_fuel')||100);
       ctx.push('\n--- FUEL LOG ---');

@@ -835,6 +835,15 @@ function _showUpdateToast(worker){
           <span style="padding:5px 8px;font-size:9px;color:var(--muted);letter-spacing:1px;">/day</span>
         </div>
       </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Monthly fuel budget</div>
+        <div style="display:flex;align-items:center;background:#111;border:1px solid #333;border-radius:6px;overflow:hidden;">
+          <span style="padding:5px 8px;font-size:12px;color:var(--muted);">R</span>
+          <input type="number" id="fuelBudget" value="2950" oninput="saveFuelBudget();loadFuelReport();"
+            style="width:65px;padding:5px 6px 5px 0;background:none;border:none;color:#c8f230;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;outline:none;"/>
+          <span style="padding:5px 8px;font-size:9px;color:var(--muted);letter-spacing:1px;">/mo</span>
+        </div>
+      </div>
       <div id="plCycleLabel" style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:10px;">Pay cycle: calculating...</div>
       <div id="plBigCard" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:10px;padding:16px;margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
