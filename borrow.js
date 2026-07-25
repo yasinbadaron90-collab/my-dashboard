@@ -835,6 +835,29 @@ function confirmRepay(){
     destPocketDepId: pocketDepId
   };
   borrowData[passenger].push(repayEntry);
+
+  // ── Reconcile this repayment against the actual unpaid loan(s) ──────
+  // Without this, a repayment moves real money but never tells the source
+  // borrow it's settled — the borrow just sits unpaid until something else
+  // (e.g. a carpool Mark Paid that happens to include it) flips it later,
+  // double-counting the debt. Settle oldest unpaid loans first, up to the
+  // amount actually repaid; a loan only flips once fully covered — no
+  // partial-paid concept exists on a single boolean flag, so leftover
+  // repayment that doesn't fully cover the next loan is left unapplied
+  // rather than guessed at.
+  var origBorrowFlipIds = [];
+  var remaining = amount;
+  var unpaidLoans = borrowData[passenger]
+    .filter(function(e){ return e.type !== 'repay' && !e.paid; })
+    .sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  unpaidLoans.forEach(function(loan){
+    if(remaining >= Number(loan.amount||0) - 0.005){
+      loan.paid = true;
+      origBorrowFlipIds.push(loan.id);
+      remaining -= Number(loan.amount||0);
+    }
+  });
+  repayEntry.origBorrowFlipIds = origBorrowFlipIds;
   saveBorrows();
 
   // 5. Bank doorway (+amount in, -amount out → net 0)
@@ -863,6 +886,7 @@ function confirmRepay(){
       pocketDepId: pocketDepId,
       cfRowId: cfId_repay,
       borrowRepayEntryId: repayEntry.id,
+      origBorrowFlipIds: origBorrowFlipIds,
       createdAt: new Date().toISOString()
     });
     lsSet('yb_repayments_v1', JSON.stringify(allReps));

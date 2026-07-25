@@ -802,6 +802,21 @@ function confirmExternalRepay(){
     destPocketDepId: pocketDepId
   };
   data[key].entries.push(repayEntry);
+
+  // ── Reconcile against the actual unpaid loan(s), same fix as confirmRepay ──
+  var origBorrowFlipIds = [];
+  var remaining = amount;
+  var unpaidLoans = data[key].entries
+    .filter(function(e){ return e.type !== 'repay' && !e.paid; })
+    .sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  unpaidLoans.forEach(function(loan){
+    if(remaining >= Number(loan.amount||0) - 0.005){
+      loan.paid = true;
+      origBorrowFlipIds.push(loan.id);
+      remaining -= Number(loan.amount||0);
+    }
+  });
+  repayEntry.origBorrowFlipIds = origBorrowFlipIds;
   saveExternalBorrows(data);
 
   // 5. Bank doorway (+amount in, -amount out → net 0)
@@ -832,6 +847,7 @@ function confirmExternalRepay(){
       pocketDepId: pocketDepId,
       cfRowId: cfId_repay,
       borrowRepayEntryId: borrowEntryId,
+      origBorrowFlipIds: origBorrowFlipIds,
       createdAt: new Date().toISOString()
     });
     lsSet('yb_repayments_v1', JSON.stringify(allReps));
