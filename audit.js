@@ -183,6 +183,85 @@ function _auCheckOrphanedPockets(){
   return res;
 }
 
+// Built from the real Lezaun R100 incident (2026-07-25): a repayment moved
+// real money and logged a repay entry, but never flipped the original
+// borrow's paid flag — so a later flow found it still "unpaid" and charged
+// it again. Fixed going forward in confirmRepay/confirmExternalRepay (v147o,
+// origBorrowFlipIds), but this check catches the SIGNATURE of the gap
+// directly from data: if more has been repaid for someone than is reflected
+// as paid on their actual loans, that difference is money moving with
+// nothing crediting it — the exact shape of the bug, regardless of cause.
+function _auCheckRepaymentResolution(){
+  var issues = [];
+  var peopleChecked = 0;
+  var fundsArr = _auGetFunds();
+  var live = {};
+  fundsArr.forEach(function(f){ live[f.id] = true; });
+
+  function checkEntries(entries, label){
+    if(!entries || !entries.length) return;
+    peopleChecked++;
+    var totalRepaid = 0;
+    var loans = [];
+    entries.forEach(function(e){
+      if(e.type === 'repay'){
+        totalRepaid += Number(e.amount||0);
+        if(e.destPocketId && e.destPocketDepId){
+          if(!live[e.destPocketId]){
+            issues.push(label + ': repayment ' + _auFmtR(e.amount||0) + ' (' + e.date + ') points to a deleted pocket');
+          } else {
+            var pocket = fundsArr.find(function(f){ return f.id === e.destPocketId; });
+            var dep = (pocket.deposits||[]).find(function(d){ return d.id === e.destPocketDepId; });
+            if(!dep) issues.push(label + ': repayment ' + _auFmtR(e.amount||0) + ' (' + e.date + ') destPocketDepId does not resolve to a real deposit');
+          }
+        }
+      } else {
+        loans.push(e);
+      }
+    });
+    // Same oldest-first greedy allocation as the real fix (confirmRepay /
+    // confirmExternalRepay) — a loan only counts as "should be settled" if
+    // the cumulative repaid amount fully covers it once earlier loans are
+    // accounted for. A partial repayment against a big loan (e.g. R2,000
+    // toward a R95,152 debt) correctly settles nothing — that's normal,
+    // not a bug. Only flag a loan that SHOULD be fully covered by now but
+    // is still sitting unpaid.
+    loans.sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    var remaining = totalRepaid;
+    loans.forEach(function(loan){
+      var amt = Number(loan.amount||0);
+      var shouldBeSettled = remaining >= amt - 0.01;
+      if(shouldBeSettled){
+        remaining -= amt;
+        if(!loan.paid){
+          issues.push(label + ': ' + _auFmtR(amt) + ' loan (' + loan.date + ') should be settled by repayments already made, but is still flagged unpaid — the Lezaun-class gap');
+        }
+      }
+    });
+  }
+
+  try{
+    var bd = (typeof borrowData !== 'undefined') ? borrowData : (window.borrowData || {});
+    Object.keys(bd).forEach(function(p){ checkEntries(bd[p], p + ' (carpool)'); });
+  }catch(e){}
+
+  try{
+    var ext = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
+    Object.keys(ext).forEach(function(key){
+      var person = ext[key];
+      checkEntries(person.entries, (person.name||key) + ' (external)');
+    });
+  }catch(e){}
+
+  return {
+    status: issues.length ? 'fail' : 'pass',
+    name: 'Repayment resolution (repaid vs. marked-paid)',
+    detail: issues.length
+      ? issues.join(' · ')
+      : peopleChecked + ' repayment histor' + (peopleChecked===1?'y':'ies') + ' checked — every repayment properly reflected against a settled loan'
+  };
+}
+
 function _auCheckBaseline(){
   var rb = {};
   // settings.js owns this key (RECON_KEY = 'yb_recon_balances_v1'). Read-only peek.
@@ -303,7 +382,7 @@ async function _auCheckOutputConsistency(){
 // ── runner ───────────────────────────────────────────────────────────
 var _AU_GROUPS = [
   { icon:'💰', title:'Pocket Math',         checks:[_auCheckDeposits, _auCheckNegativePockets] },
-  { icon:'🔗', title:'Mirror-Link Chains',  checks:[_auCheckCarpoolChains, _auCheckCFResolution, _auCheckOrphanedPockets] },
+  { icon:'🔗', title:'Mirror-Link Chains',  checks:[_auCheckCarpoolChains, _auCheckCFResolution, _auCheckOrphanedPockets, _auCheckRepaymentResolution] },
   { icon:'🏦', title:'Available Cash Baseline', checks:[_auCheckBaseline] },
   { icon:'🧱', title:'Structure & Rules',   checks:[_auCheckEmoji, _auCheckDuplicateIds, _auCheckStorageKeys, _auCheckOutputConsistency] }
 ];
