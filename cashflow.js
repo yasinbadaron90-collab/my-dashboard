@@ -472,12 +472,17 @@ function exportBIStarSchema(){
 function exportReport(type){
   let csv='';
   const now=new Date().toLocaleDateString('en-ZA');
+  // Chained decimal add/subtract (moves, spends, payments) can leave IEEE-754
+  // residue like 5.68e-14 instead of an exact 0 — invisible in the app's own
+  // display (which already rounds via fmtR/toFixed) but written raw into CSV
+  // exports before this. Round every amount at the point it's written.
+  const _r2 = n => Math.round((Number(n)||0) * 100) / 100;
 
   if(type==='savings'||type==='all'){
     csv+='SAVINGS REPORT\n';
     csv+='Fund,Saved,Goal,Progress\n';
     funds.forEach(function(f){
-      const t=fundTotal(f);
+      const t=_r2(fundTotal(f));
       csv+=f.name+','+t+','+f.goal+','+(t/f.goal*100).toFixed(1)+'%\n';
     });
     csv+='\n';
@@ -495,9 +500,9 @@ function exportReport(type){
         const cols=pNames.map(function(p){
           const v=dd[p]&&typeof dd[p]==='object'?dd[p]:{amt:0,paid:false};
           total+=v.amt||0;
-          return (v.amt||0)+','+(v.paid?'Yes':'No');
+          return _r2(v.amt||0)+','+(v.paid?'Yes':'No');
         });
-        if(total>0) csv+=ds+','+cols.join(',')+','+total+'\n';
+        if(total>0) csv+=ds+','+cols.join(',')+','+_r2(total)+'\n';
       });
     });
     csv+='\n';
@@ -514,7 +519,7 @@ function exportReport(type){
         .filter(function(d){ return d.txnType === 'out' || !d.txnType; })
         .sort(function(a,b){ return new Date(a.date) - new Date(b.date); })
         .forEach(function(d){
-          csv+=d.date+','+(d.note||'').replace(/,/g,' ')+','+d.amount+'\n';
+          csv+=d.date+','+(d.note||'').replace(/,/g,' ')+','+_r2(d.amount)+'\n';
         });
     }
     csv+='\n';
