@@ -1382,6 +1382,8 @@ function _showUpdateToast(worker){
       </div>
       <button onclick="enablePushNotifications()" style="width:100%;padding:10px;background:#12123a;border:1px solid #2a2a5a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🔔 Enable Notifications</button>
       <div id="pushNotifStatus" style="font-size:10px;color:var(--muted);margin-top:8px;letter-spacing:1px;">Not enabled yet</div>
+      <button onclick="sendTestPush()" style="width:100%;padding:10px;margin-top:8px;background:#0a0a1a;border:1px solid #2a2a5a;border-radius:6px;color:#5090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🧪 Send Test Notification</button>
+      <div id="pushTestResult" style="font-size:10px;color:var(--muted);margin-top:8px;letter-spacing:1px;"></div>
     </div>
 
     <!-- RESTORE -->

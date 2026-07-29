@@ -544,6 +544,40 @@ function _pushNotifCurrentStatus(){
   if(saved){ statusEl.textContent = '✓ Enabled on this device'; statusEl.style.color = '#c8f230'; }
   else{ statusEl.textContent = 'Not enabled yet'; statusEl.style.color = 'var(--muted)'; }
 }
+
+// Step 5 test — sends a real push through the Worker to prove the whole
+// pipeline works end to end. Uses whatever subscription this device saved
+// in step 2, not a stored/server-side one — a genuinely separate, later
+// piece of work is reading a subscription from Firestore for the actual
+// automated Sunday report / Zakat reminder (this button doesn't need that).
+async function sendTestPush(){
+  var resultEl = document.getElementById('pushTestResult');
+  function setResult(text, color){
+    if(resultEl){ resultEl.textContent = text; resultEl.style.color = color || 'var(--muted)'; }
+  }
+  var saved = lsGet(PUSH_SUB_KEY);
+  if(!saved){
+    setResult('Enable notifications first — no subscription saved yet', '#f23060');
+    return;
+  }
+  try{
+    setResult('Sending…', '#f2a830');
+    var res = await fetch('https://wispy-thunder-bc04.yasin-badaron90.workers.dev/send-test-push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: JSON.parse(saved),
+        title: 'My Dashboard',
+        body: 'Test push — if you see this, the whole pipeline works'
+      })
+    });
+    var data = await res.json();
+    if(data.sent){ setResult('✓ Sent — check your notifications', '#c8f230'); }
+    else{ setResult('Worker responded but push failed (status ' + data.status + ')', '#f23060'); }
+  }catch(e){
+    setResult('Could not reach Worker: ' + e.message, '#f23060');
+  }
+}
 const PRICING_TANK_KEY   = 'yb_pricing_tank';
 const PRICING_PRIVATE_KEY= 'yb_pricing_private';
 const PASSENGERS_KEY     = 'yb_passengers_v1';
