@@ -61,6 +61,7 @@ var FB_SYNC_KEYS = [
   'yb_priority_rules_v1',
   // Settings
   'yb_maint_settings_v1',
+  'yb_push_subscription',
   // New pocket-first flows
   'yb_moneyin_v1',
   'yb_spend_v1',

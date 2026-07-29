@@ -683,6 +683,7 @@ function openSettings(){
   try { if(typeof bfPreFillKeyInput === 'function') bfPreFillKeyInput(); } catch(e){}
   // Refresh cloud sync status panel (added in Supabase migration)
   try { if(typeof refreshCloudSyncStatus === 'function') refreshCloudSyncStatus(); } catch(e){}
+  try { if(typeof _pushNotifCurrentStatus === 'function') _pushNotifCurrentStatus(); } catch(e){}
   // Refresh Google Drive export/import timestamps
   try { if(typeof refreshDriveStatus === 'function') refreshDriveStatus(); } catch(e){}
 }

@@ -1371,6 +1371,19 @@ function _showUpdateToast(worker){
       <button onclick="clearAllSnoozes()" style="width:100%;padding:10px;margin-top:8px;background:#1a0a1a;border:1px solid #5a1a5a;border-radius:6px;color:#e090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">😴 Clear All Snoozes</button>
     </div>
 
+    <!-- PUSH NOTIFICATIONS -->
+    <div style="background:#0a0a1a;border:1px solid #2a2a5a;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
+        <span style="font-size:22px;line-height:1;">🔔</span>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#7090f0;margin-bottom:3px;">Push Notifications</div>
+          <div style="font-size:10px;color:#3a4a8a;line-height:1.6;">Enables this device to receive alerts even when the app is closed. Step 1 of the full pipeline — nothing sends a push yet, this just registers the device.</div>
+        </div>
+      </div>
+      <button onclick="enablePushNotifications()" style="width:100%;padding:10px;background:#12123a;border:1px solid #2a2a5a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🔔 Enable Notifications</button>
+      <div id="pushNotifStatus" style="font-size:10px;color:var(--muted);margin-top:8px;letter-spacing:1px;">Not enabled yet</div>
+    </div>
+
     <!-- RESTORE -->
     <div style="background:#111400;border:1px solid #2e2a00;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
       <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">

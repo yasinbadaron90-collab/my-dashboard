@@ -485,6 +485,65 @@ const SCHOOL_DONE_KEY    = 'yasin_school_done_v1';
 const FUEL_KEY           = 'yasin_fuel_v1';
 const DAILY_FUEL_KEY     = 'yb_daily_fuel';
 const FUEL_BUDGET_KEY    = 'yb_fuel_budget';
+const PUSH_SUB_KEY       = 'yb_push_subscription';
+// Public only — safe to ship in client code. Private key lives in the
+// Cloudflare Worker's secrets, never here. Regenerating either one
+// invalidates every subscription created under the old pair.
+const VAPID_PUBLIC_KEY   = 'BMFW-PFKOcfpSw5uUuRe9ynzwybIEFcIb1suu-I1QXHOu85pfUIKpweKXdxKdI5B-_KpkNgo0kzefiFatsKolTs';
+
+function _urlBase64ToUint8Array(base64String){
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var rawData = atob(base64);
+  var outputArray = new Uint8Array(rawData.length);
+  for(var i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+// Step 2 of push notifications: request permission, subscribe this device,
+// save the subscription. lsSet already gets intercepted by _fbPatchLsSet
+// (firebase-sync.js) so this syncs to Firestore the same way every other
+// setting in the app does — no separate Firestore code needed here.
+// Nothing sends a push yet — that's the Cloudflare Worker side, not built.
+async function enablePushNotifications(){
+  var statusEl = document.getElementById('pushNotifStatus');
+  function setStatus(text, color){
+    if(statusEl){ statusEl.textContent = text; statusEl.style.color = color || 'var(--muted)'; }
+  }
+
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+    setStatus('Not supported on this browser', '#f23060');
+    return;
+  }
+
+  try{
+    setStatus('Requesting permission…', '#f2a830');
+    var permission = await Notification.requestPermission();
+    if(permission !== 'granted'){
+      setStatus('Permission denied — enable notifications in browser settings to retry', '#f23060');
+      return;
+    }
+
+    var registration = await navigator.serviceWorker.ready;
+    var subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+
+    lsSet(PUSH_SUB_KEY, JSON.stringify(subscription));
+    setStatus('✓ Enabled on this device', '#c8f230');
+  }catch(e){
+    setStatus('Could not enable: ' + e.message, '#f23060');
+  }
+}
+
+function _pushNotifCurrentStatus(){
+  var statusEl = document.getElementById('pushNotifStatus');
+  if(!statusEl) return;
+  var saved = lsGet(PUSH_SUB_KEY);
+  if(saved){ statusEl.textContent = '✓ Enabled on this device'; statusEl.style.color = '#c8f230'; }
+  else{ statusEl.textContent = 'Not enabled yet'; statusEl.style.color = 'var(--muted)'; }
+}
 const PRICING_TANK_KEY   = 'yb_pricing_tank';
 const PRICING_PRIVATE_KEY= 'yb_pricing_private';
 const PASSENGERS_KEY     = 'yb_passengers_v1';
