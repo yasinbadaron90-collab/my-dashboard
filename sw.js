@@ -17,7 +17,7 @@
 // To force every client to upgrade: bump CACHE_VERSION below.
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'v147q';
+const CACHE_VERSION = 'v147r';
 const SHELL_CACHE   = 'my-dashboard-shell-' + CACHE_VERSION;
 const CDN_CACHE     = 'my-dashboard-cdn-'   + CACHE_VERSION;
 
@@ -185,4 +185,47 @@ self.addEventListener('message', event => {
   if(event.data && event.data.type === 'SKIP_WAITING'){
     self.skipWaiting();
   }
+});
+
+// ── Push notifications — step 4 of the push pipeline ───────────────
+// Fires when a push message actually arrives at this device (from the
+// Cloudflare Worker, once step 5 is built — nothing sends one yet).
+// This is the piece that makes something appear even with the app
+// fully closed; steps 2/3 only got a device registered, they don't
+// display anything on their own.
+self.addEventListener('push', event => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch(e){
+    // Not JSON — fall back to plain text so a malformed payload still shows something
+    data = { title: 'My Dashboard', body: event.data ? event.data.text() : 'New notification' };
+  }
+
+  const title = data.title || 'My Dashboard';
+  const options = {
+    body: data.body || '',
+    icon: data.icon || './icon-192.png',
+    badge: data.badge || './icon-192.png',
+    data: { url: data.url || './' },
+    tag: data.tag || undefined  // same tag replaces an existing notification instead of stacking
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Tapping the notification — focus an already-open tab if there is one,
+// otherwise open a new one. Standard PWA pattern, not app-specific.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || './';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for(const client of clientList){
+        if('focus' in client) return client.focus();
+      }
+      if(self.clients.openWindow) return self.clients.openWindow(targetUrl);
+    })
+  );
 });
