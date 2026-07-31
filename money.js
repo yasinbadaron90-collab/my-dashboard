@@ -1034,6 +1034,11 @@ function confirmPayDebt(){
 
   // 3. Log as Cash Flow expense
   if(typeof postToCF === 'function'){
+    // No bank/doorway picker exists in this modal (only a pocket picker) —
+    // derive a sensible destBank from the pocket's own name rather than
+    // add a new UI field or leave it blank. Matches the app's 3-doorway
+    // system (FNB / TymeBank / Cash) used everywhere else.
+    var _pdBank = /tyme/i.test(pocket.name) ? 'TymeBank' : /cash/i.test(pocket.name) ? 'Cash' : 'FNB';
     postToCF({
       label: '↑ Paid ' + personName + (note ? ' · ' + note : ''),
       amount: amount,
@@ -1044,6 +1049,8 @@ function confirmPayDebt(){
       sourceId: key,
       sourceCardName: pocket.name,
       account: pocket.name,
+      destBank: _pdBank,
+      category: 'Other',
       note: 'Debt payment to ' + personName + ' from ' + pocket.name + (note ? ' · ' + note : ''),
       payDebtId: payDebtId,
       destPocketId: pocket.id
