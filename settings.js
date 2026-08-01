@@ -295,10 +295,18 @@ function renderCashFlow(){
   const monthIncome   = (data[mk]&&data[mk].income)               || [];
   const monthExpenses = (data[mk]&&data[mk].expenses)              || [];
 
-  // Deduplicate: month-specific overrides recurring for same id
-  const monthIds = new Set([...monthIncome, ...monthExpenses].map(function(e){ return e.id; }));
-  const allIncome   = [...recurIncome.filter(function(e){ return !monthIds.has(e.id); }), ...monthIncome];
-  const allExpenses = [...recurExpenses.filter(function(e){ return !monthIds.has(e.id); }), ...monthExpenses];
+  // FIX 2026-08-01: recurring templates (the standing "MTN Contract" style
+  // row) are a TEMPLATE, not a real transaction — they must never appear as
+  // an already-incurred expense before Mark Paid is actually tapped for that
+  // month. buildCFMonthData() (cashflow.js, used for the PDF) already gets
+  // this right and explicitly documents why; this screen was the one out of
+  // sync, showing a real-looking row (with edit/delete) for money that
+  // hadn't actually been paid yet, and counting toward this month's totals.
+  // recurIncome/recurExpenses stay declared below — still used to badge any
+  // entry that DOES happen to carry a recurring template's id — just no
+  // longer spread into the real totals.
+  const allIncome   = [...monthIncome];
+  const allExpenses = [...monthExpenses];
 
   // ── AUTO-PULL: Carpool income ──
   let carpoolAuto = 0;

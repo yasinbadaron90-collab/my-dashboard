@@ -87,20 +87,17 @@ function getLendingSnapshot(){
   var rE=(cfData.recurring&&cfData.recurring.expenses)||[];
   var mI=(cfData[mk]&&cfData[mk].income)||[];
   var mE=(cfData[mk]&&cfData[mk].expenses)||[];
-  var ids=new Set([...mI,...mE].map(function(e){return e.id;}));
-  // ID-only dedup misses instalment payments: Mark Paid logs a fresh id each
-  // time (sourceType:'instalment_pay'), which never matches the recurring
-  // template's own id — so the template kept getting counted a second time
-  // on top of the real entry. R209 MTN found double-counted this way,
-  // 2026-07-21. Matching on label+amount closes it without needing every
-  // recurring template to carry a link back to its real instance.
-  function _rMatchesReal(recEntry, realList){
-    return realList.some(function(r){
-      return r.label === recEntry.label && Math.abs((r.amount||0) - (recEntry.amount||0)) < 0.005;
-    });
-  }
-  var allI=[...rI.filter(function(e){return !ids.has(e.id) && !_rMatchesReal(e, mI);}),...mI];
-  var allE=[...rE.filter(function(e){return !ids.has(e.id) && !_rMatchesReal(e, mE);}),...mE];
+  // FIX 2026-08-01: superseded the earlier _rMatchesReal dedup (2026-07-21,
+  // which stopped a real payment being counted TWICE alongside the template)
+  // with the correct fix — the recurring template should never count toward
+  // this month's real net AT ALL until Mark Paid is actually tapped for that
+  // month, matching buildCFMonthData()'s already-correct behavior (the PDF).
+  // Real incident 2026-08-01: this alone produced "Spent R160.99 more than
+  // earned" from an MTN payment that hadn't actually happened yet in August.
+  // rI/rE stay unused here on purpose — kept for anyone reading this later
+  // to see what the (deliberately excluded) recurring set contains.
+  var allI = [...mI];
+  var allE = [...mE];
   var SAVINGS_SRC=['savings_deposit','car_add','maint','custommaint','car_service_save','savings'];
   var SAVINGS_CAT=['Savings','Cars','Maintenance'];
   function _bIsSav(e){
