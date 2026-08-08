@@ -92,7 +92,11 @@ function renderFunds(){
   let grand=0;
   // Skip soft-deleted funds — they're hidden during the undo window
   // until either restored (flag removed) or purged (filtered from array).
-  const visibleFunds = (funds||[]).filter(function(f){ return !f._deleted; });
+  // Skip archived funds too — same idea, different purpose: user's own
+  // choice to put a completed goal out of sight once it's done, so it's
+  // not sitting there as a temptation to dip into. Still fully in the
+  // data, still fully restorable, just not in the main view.
+  const visibleFunds = (funds||[]).filter(function(f){ return !f._deleted && !f.archived; });
   if(!visibleFunds.length){
     grid.innerHTML = (typeof buildEmptyState === 'function')
       ? '<div style="grid-column:1/-1;">'+buildEmptyState({
@@ -188,18 +192,76 @@ function renderFunds(){
         deadlineRow = '<div style="font-size:10px;margin-top:4px;letter-spacing:1px;"><button onclick="openEditFund(\''+f.id+'\')" style="background:#1a1000;border:1px dashed #5a4a00;border-radius:4px;padding:3px 8px;color:'+_dl.color+';font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">'+_dl.label+'</button></div>';
       } else if(_dl.label){
         deadlineRow = '<div style="font-size:10px;margin-top:4px;color:'+_dl.color+';letter-spacing:1px;">'+_dl.label+'</div>';
+        // Goal just reached and not archived yet — offer to put it away.
+        // Inline, not a popup: sits right where the celebration already is,
+        // no separate "already asked" tracking needed since it only shows
+        // while the card is both done AND still unarchived.
+        if(_dl.state === 'done' && !f.archived){
+          deadlineRow += '<div style="margin-top:4px;"><button onclick="archiveFund(\''+f.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 8px;color:#c8f230;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">📦 Archive this?</button></div>';
+        }
       }
     }
-    card.innerHTML = '<div class="fund-top"><div><span class="fund-emoji">'+f.emoji+'</span><div class="fund-name">'+f.name+'</div><div class="fund-weekly">'+subtitleLabel+' · started '+startedLabel+'</div>'+deadlineRow+'</div><div style="display:flex;align-items:center;gap:6px"><button class="'+chevClass+'" onclick="toggleFundCard(\''+f.id+'\',this)" title="Collapse"><span class="chev">&#8964;</span></button><div class="fund-actions admin-only" style="display:flex;gap:6px"><button class="icon-btn" onclick="openHistory(\''+f.id+'\')">☰</button><button class="icon-btn" onclick="openEditFund(\''+f.id+'\')">✎</button><button class="icon-btn danger" onclick="deleteFund(\''+f.id+'\')">✕</button></div></div></div>'
+    card.innerHTML = '<div class="fund-top"><div><span class="fund-emoji">'+f.emoji+'</span><div class="fund-name">'+f.name+'</div><div class="fund-weekly">'+subtitleLabel+' · started '+startedLabel+'</div>'+deadlineRow+'</div><div style="display:flex;align-items:center;gap:6px"><button class="'+chevClass+'" onclick="toggleFundCard(\''+f.id+'\',this)" title="Collapse"><span class="chev">&#8964;</span></button><div class="fund-actions admin-only" style="display:flex;gap:6px"><button class="icon-btn" onclick="openHistory(\''+f.id+'\')">☰</button><button class="icon-btn" onclick="archiveFund(\''+f.id+'\')" title="Archive">📦</button><button class="icon-btn" onclick="openEditFund(\''+f.id+'\')">✎</button><button class="icon-btn danger" onclick="deleteFund(\''+f.id+'\')">✕</button></div></div></div>'
       + '<div class="fund-body-wrap '+(isCollapsed?'collapsed':'expanded')+'" id="'+cardId+'" style="'+wrapStyle+'">' + bodyHtml + '</div>';
     grid.appendChild(card);
   });
+  renderArchivedSection();
   renderBankStrip();
   setTimeout(()=>{document.querySelectorAll('.prog-fill').forEach((el,i)=>{el.style.transitionDelay=(i*.08)+'s';});},50);
   // Re-render the maintenance/car fund card alongside savings — they share
   // the Savings tab and any data change should refresh both. Defensive guard
   // inside renderMaintCard handles the case where it's called too early.
   try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
+}
+
+// ── Archive: put a completed goal out of sight without deleting it ──────────
+// Data stays fully intact (deposits, history, everything) — archived just
+// means excluded from the main grid filter in renderFunds(). Deliberately
+// no confirm dialog: reversible action, unlike delete, so the friction only
+// needs to run the OTHER direction — getting money back out requires the
+// explicit Unarchive tap in the tucked-away section below, not a casual
+// glance at the main grid.
+function archiveFund(id){
+  var f = funds.find(function(x){ return x.id===id; });
+  if(!f) return;
+  f.archived = true;
+  saveFunds();
+  renderFunds();
+}
+function unarchiveFund(id){
+  var f = funds.find(function(x){ return x.id===id; });
+  if(!f) return;
+  f.archived = false;
+  saveFunds();
+  renderFunds();
+}
+function toggleArchivedSection(){
+  var body = document.getElementById('archivedBody');
+  var chev = document.getElementById('archivedChev');
+  if(!body) return;
+  var collapsed = body.style.display !== 'none';
+  body.style.display = collapsed ? 'none' : 'block';
+  if(chev) chev.innerHTML = collapsed ? '&#8963;' : '&#8964;';
+  lsSet('collapse_archived', collapsed ? '1' : '0');
+}
+function renderArchivedSection(){
+  var host = document.getElementById('archivedSection');
+  if(!host) return;
+  var archived = (funds||[]).filter(function(f){ return f.archived && !f._deleted; });
+  if(!archived.length){ host.innerHTML=''; return; }
+  var wasCollapsed = lsGet('collapse_archived') !== '0'; // collapsed by default — that's the whole point
+  var rows = archived.map(function(f){
+    var bal = fundTotal(f);
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">'
+      + '<div style="display:flex;align-items:center;gap:8px;min-width:0;"><span style="font-size:16px;">'+f.emoji+'</span><div style="min-width:0;"><div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</div><div style="font-size:10px;color:var(--muted);">'+fmtR(bal)+(f.goal?' of '+fmtR(f.goal):'')+'</div></div></div>'
+      + '<button onclick="unarchiveFund(\''+f.id+'\')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;cursor:pointer;flex-shrink:0;">📤 Unarchive</button>'
+      + '</div>';
+  }).join('');
+  host.innerHTML = '<div style="margin-top:16px;">'
+    + '<button onclick="toggleArchivedSection()" style="width:100%;display:flex;justify-content:space-between;align-items:center;background:none;border:1px dashed var(--border);border-radius:8px;padding:10px 14px;color:var(--muted);font-family:DM Mono,monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">'
+    + '<span>📦 Archived ('+archived.length+')</span><span id="archivedChev">'+(wasCollapsed?'&#8963;':'&#8964;')+'</span></button>'
+    + '<div id="archivedBody" style="display:'+(wasCollapsed?'none':'block')+';border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">'+rows+'</div>'
+    + '</div>';
 }
 
 // ── Manual bank balances — stored per fund id ──
