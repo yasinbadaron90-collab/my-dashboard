@@ -317,25 +317,46 @@ function _odinBuildContext(){
   }catch(e){}
 
   // ── MONEY OWED ──
+  // Rewritten 2026-08-08: the old version read b.repayments, a nested
+  // array that never exists in this data (repayments are separate flat
+  // entries in the same array, not attached sub-objects) — so `repaid`
+  // silently computed as 0 every time. It also did carpoolBorrows.concat
+  // (extBorrows) where extBorrows is a keyed OBJECT, not an array —
+  // concat doesn't throw on that, it just swallows the whole external-
+  // borrows dataset as one dead entry, so external debts (Nuri etc.)
+  // likely weren't reliably reaching this context block at all.
+  // Real incident this was traced from: Odin told Yasin "Lezaun owes
+  // R100" when the already-correct formula everywhere else in the app
+  // (getPersonOwing() in borrow.js, the alert engine in odin.js) both
+  // say R0 — both her borrows are paid:true. Rather than debug Odin's
+  // own free-text synthesis further, this pre-computes the one correct
+  // number per person and hands it over directly — nothing left to
+  // recalculate wrong.
   try{
-    // yasin_borrows_v1 is stored as {passengerName: [entries]} object
     var borrowsRaw = JSON.parse(lsGet('yasin_borrows_v1')||'{}');
-    var extBorrows = JSON.parse(lsGet('yb_external_borrows_v1')||'[]');
-    // Flatten the object into a single array
-    var carpoolBorrows = [];
-    Object.keys(borrowsRaw).forEach(function(p){
-      (borrowsRaw[p]||[]).forEach(function(b){ carpoolBorrows.push(Object.assign({passenger:p},b)); });
-    });
-    var allBorrows = carpoolBorrows.concat(extBorrows);
-    if(allBorrows.length){
-      ctx.push('\n--- MONEY OWED TO YOU ---');
-      allBorrows.forEach(function(b){
-        var repaid = (b.repayments||[]).reduce(function(s,r){return s+(r.amount||0);},0);
-        var owing  = (b.amount||0) - repaid;
-        if(!b.paid && owing > 0){
-          ctx.push(b.passenger+' owes R'+owing+' (lent R'+b.amount+' on '+b.date+', repaid R'+repaid+'): '+(b.note||''));
-        }
+    var extBorrowsObj = JSON.parse(lsGet('yb_external_borrows_v1')||'{}');
+    function _owedFor(entries){
+      var b=0,r=0;
+      (entries||[]).forEach(function(e){
+        if(e.type==='repay') r+=Number(e.amount||0);
+        else { b+=Number(e.amount||0); if(e.paid) r+=Number(e.amount||0); }
       });
+      return Math.max(0, b-r);
+    }
+    var owedLines = [];
+    Object.keys(borrowsRaw).forEach(function(p){
+      var owed = _owedFor(borrowsRaw[p]);
+      if(owed>0) owedLines.push(p+' owes R'+owed.toFixed(2)+' (carpool passenger)');
+    });
+    Object.keys(extBorrowsObj).forEach(function(key){
+      var person = extBorrowsObj[key];
+      var owed = _owedFor(person.entries);
+      if(owed>0) owedLines.push((person.name||key)+' owes R'+owed.toFixed(2));
+    });
+    if(owedLines.length){
+      ctx.push('\n--- MONEY OWED TO YOU ---');
+      ctx.push('Pre-calculated, verified correct — report these figures exactly, do not recompute from other sections:');
+      owedLines.forEach(function(l){ ctx.push(l); });
     }
   }catch(e){}
 
