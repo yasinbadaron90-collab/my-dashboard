@@ -285,16 +285,14 @@ function buildOdinLaunchAlerts(){
     var passengers = loadPassengers()||[];
     passengers.forEach(function(p){
       var entries = (borrowData&&borrowData[p.name])||[];
-      var b=0,r=0;
-      // FIX 2026-06-04 (v110b): mirror v80's calcPersonTotals — a borrow
-      // with paid:true (set by Carpool's Mark Paid flow) counts as fully
-      // repaid. Without this, Odin's "owes you" alert fires even after
-      // the borrow has been marked paid via carpool.
-      entries.forEach(function(e){
-        if(e.type==='repay') r+=Number(e.amount||0);
-        else { b+=Number(e.amount||0); if(e.paid) r+=Number(e.amount||0); }
-      });
-      var owed = Math.max(0,b-r);
+      // Rewritten 2026-08-10 — delegates to calcPersonTotals (money.js),
+      // fixed the same day. The inline b/r pool here had the identical
+      // double-credit flaw: a loan flagged paid:true AND covered by its
+      // own separate repay entry got credited twice, and the leftover
+      // phantom surplus could silently swallow a completely different,
+      // later, genuinely unpaid loan for the same person.
+      var ct = calcPersonTotals(entries, true);
+      var owed = Math.max(0, ct.borrowed - ct.repaid);
       if(owed>0){
         // Find the latest unpaid borrow entry for delete
         var unpaid = entries.filter(function(e){ return e.type!=='repay'; });
@@ -318,13 +316,9 @@ function buildOdinLaunchAlerts(){
     var extD = loadExternalBorrows();
     Object.keys(extD).forEach(function(key){
       var p = extD[key];
-      var b=0,r=0;
-      // FIX 2026-06-04 (v110b): same paid-flag fix as carpool block above
-      (p.entries||[]).forEach(function(e){
-        if(e.type==='repay') r+=Number(e.amount||0);
-        else { b+=Number(e.amount||0); if(e.paid) r+=Number(e.amount||0); }
-      });
-      var owed = Math.max(0,b-r);
+      // Rewritten 2026-08-10 — same fix as the carpool block above.
+      var ct = calcPersonTotals(p.entries, false);
+      var owed = Math.max(0, ct.borrowed - ct.repaid);
       // Skip historical debts (money YOU owe, not owed to you)
       var isHistoricalDebt = (p.entries||[]).some(function(e){ return e.isHistorical; });
       if(owed>0 && !isHistoricalDebt){

@@ -119,15 +119,20 @@ function getLendingSnapshot(){
   return{net:net,totalIncome:inc,maxSafeLend:Math.max(0,net-buf)};
 }
 function getPersonOwing(name){
-  var o=0;
-  // FIX 2026-05-26: borrows with paid:true (set by Carpool's Mark Paid)
-  // contribute 0 to owing, not their amount. Same fix applied in money.js
-  // calcPersonTotals — keeps both calculations consistent.
-  if(borrowData&&borrowData[name]) borrowData[name].forEach(function(e){o+=e.type==='borrow'?(e.paid?0:e.amount):-e.amount;});
-  var ext=loadExternalBorrows();
+  // Rewritten 2026-08-10 — delegates to calcPersonTotals (money.js) instead
+  // of maintaining a second, separately-drifting copy of the same pool-
+  // allocation math. Two independent implementations of "how much does
+  // this person owe" is exactly how the Lezaun double-credit bug happened
+  // in the first place: one got fixed, the other didn't, and neither was
+  // ever the single source of truth. One formula now, called from both.
+  var carpool = (borrowData && borrowData[name]) ? calcPersonTotals(borrowData[name], true) : {borrowed:0, repaid:0};
+  var o = carpool.borrowed - carpool.repaid;
+  var ext = loadExternalBorrows();
   Object.values(ext).forEach(function(p){
-    if(p.name&&p.name.toLowerCase()===name.toLowerCase())
-      (p.entries||[]).forEach(function(e){o+=e.type==='borrow'?(e.paid?0:e.amount):-e.amount;});
+    if(p.name && p.name.toLowerCase()===name.toLowerCase()){
+      var extTotals = calcPersonTotals(p.entries, false);
+      o += extTotals.borrowed - extTotals.repaid;
+    }
   });
   return Math.max(0,o);
 }

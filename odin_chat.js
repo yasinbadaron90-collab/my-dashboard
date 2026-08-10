@@ -335,22 +335,16 @@ function _odinBuildContext(){
   try{
     var borrowsRaw = JSON.parse(lsGet('yasin_borrows_v1')||'{}');
     var extBorrowsObj = JSON.parse(lsGet('yb_external_borrows_v1')||'{}');
-    function _owedFor(entries){
-      var b=0,r=0;
-      (entries||[]).forEach(function(e){
-        if(e.type==='repay') r+=Number(e.amount||0);
-        else { b+=Number(e.amount||0); if(e.paid) r+=Number(e.amount||0); }
-      });
-      return Math.max(0, b-r);
-    }
     var owedLines = [];
     Object.keys(borrowsRaw).forEach(function(p){
-      var owed = _owedFor(borrowsRaw[p]);
+      var ct = calcPersonTotals(borrowsRaw[p], true);
+      var owed = Math.max(0, ct.borrowed - ct.repaid);
       if(owed>0) owedLines.push(p+' owes R'+owed.toFixed(2)+' (carpool passenger)');
     });
     Object.keys(extBorrowsObj).forEach(function(key){
       var person = extBorrowsObj[key];
-      var owed = _owedFor(person.entries);
+      var ct = calcPersonTotals(person.entries, false);
+      var owed = Math.max(0, ct.borrowed - ct.repaid);
       if(owed>0) owedLines.push((person.name||key)+' owes R'+owed.toFixed(2));
     });
     if(owedLines.length){

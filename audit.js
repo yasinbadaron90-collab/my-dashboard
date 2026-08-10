@@ -262,6 +262,70 @@ function _auCheckRepaymentResolution(){
   };
 }
 
+// ── Mirror image of the check above ─────────────────────────────────────
+// _auCheckRepaymentResolution catches a loan flagged UNPAID that should be
+// settled by real repayments (the Zakie/Tariq class). This catches the
+// opposite: a loan flagged PAID that ISN'T actually backed by real
+// repayment once the pool is allocated oldest-first — a flag with nothing
+// behind it. Real incident this was built for, 2026-08-10: Lezaun's July
+// R100 was marked paid with no repay entry of its own; the OWING totals
+// elsewhere were fixed the same day (calcPersonTotals now allocates the
+// pool correctly instead of double-crediting), but a wrongly-set flag is
+// still worth surfacing on its own — it's misleading even where the math
+// downstream no longer gets fooled by it, and if it happens again on a
+// bigger amount, this is what would catch it early.
+function _auCheckPaidWithoutBacking(){
+  var issues = [];
+  var peopleChecked = 0;
+
+  function checkEntries(entries, label){
+    if(!entries || !entries.length) return;
+    peopleChecked++;
+    var totalRepaid = 0;
+    var loans = [];
+    entries.forEach(function(e){
+      if(e.iOwe || e.type === 'iowe') return;
+      if(e.type === 'repay') totalRepaid += Number(e.amount||0);
+      else loans.push(e);
+    });
+    loans.sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    var remaining = totalRepaid;
+    loans.forEach(function(loan){
+      var amt = Number(loan.amount||0);
+      var coveredByPool = remaining >= amt - 0.01;
+      if(coveredByPool){
+        remaining -= amt;
+      } else {
+        if(loan.paid){
+          issues.push(label + ': ' + _auFmtR(amt) + ' loan (' + loan.date + ') is flagged paid but has no real repayment behind it — worth double-checking this one actually got settled');
+        }
+        remaining = Math.max(0, remaining - amt);
+      }
+    });
+  }
+
+  try{
+    var bd = (typeof borrowData !== 'undefined') ? borrowData : (window.borrowData || {});
+    Object.keys(bd).forEach(function(p){ checkEntries(bd[p], p + ' (carpool)'); });
+  }catch(e){}
+
+  try{
+    var ext = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
+    Object.keys(ext).forEach(function(key){
+      var person = ext[key];
+      checkEntries(person.entries, (person.name||key) + ' (external)');
+    });
+  }catch(e){}
+
+  return {
+    status: issues.length ? 'fail' : 'pass',
+    name: 'Paid flags with real backing (mirror of repayment resolution)',
+    detail: issues.length
+      ? issues.join(' · ')
+      : peopleChecked + ' repayment histor' + (peopleChecked===1?'y':'ies') + ' checked — no paid flags sitting without a real repayment behind them'
+  };
+}
+
 function _auCheckBaseline(){
   var rb = {};
   // settings.js owns this key (RECON_KEY = 'yb_recon_balances_v1'). Read-only peek.
@@ -382,7 +446,7 @@ async function _auCheckOutputConsistency(){
 // ── runner ───────────────────────────────────────────────────────────
 var _AU_GROUPS = [
   { icon:'💰', title:'Pocket Math',         checks:[_auCheckDeposits, _auCheckNegativePockets] },
-  { icon:'🔗', title:'Mirror-Link Chains',  checks:[_auCheckCarpoolChains, _auCheckCFResolution, _auCheckOrphanedPockets, _auCheckRepaymentResolution] },
+  { icon:'🔗', title:'Mirror-Link Chains',  checks:[_auCheckCarpoolChains, _auCheckCFResolution, _auCheckOrphanedPockets, _auCheckRepaymentResolution, _auCheckPaidWithoutBacking] },
   { icon:'🏦', title:'Available Cash Baseline', checks:[_auCheckBaseline] },
   { icon:'🧱', title:'Structure & Rules',   checks:[_auCheckEmoji, _auCheckDuplicateIds, _auCheckStorageKeys, _auCheckOutputConsistency] }
 ];

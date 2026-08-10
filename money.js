@@ -883,29 +883,56 @@ function showRepayToast(name, amount, fundName){
 }
 
 function calcPersonTotals(entries, isCarpool){
-  let borrowed = 0, repaid = 0;
+  // Rewritten 2026-08-10. Old version treated `paid:true` as "contributes
+  // zero" AND, separately, let explicit repay-type entries subtract their
+  // amount from the totals too — when a loan is both flagged paid AND has
+  // its own matching repay entry (the normal, correct result of a real
+  // repayment going through confirmRepay()), that one real repayment got
+  // credited twice. The surplus then silently rolled forward and could
+  // mask a completely different, later, genuinely-unpaid loan for the same
+  // person — real incident: Lezaun's June repayment (paid in full, correctly
+  // flagged) was double-counted, and the leftover phantom credit was large
+  // enough to hide a brand new, unrelated loan taken two months later.
+  //
+  // Fixed by using the same oldest-first pool allocation the Self-Audit
+  // Repayment Resolution check already gets right: walk loans chronological
+  // order, spend the pool of explicit repayments against them in that
+  // order. A loan flagged paid:true with no pool left to justify it still
+  // counts as settled on its own say-so (matches the established
+  // convention for informal/cash repayments with no formal trail — see the
+  // Zakie/Tariq precedent) but does NOT consume pool that a later, real,
+  // unpaid loan might need. This also means "Lent" now reflects the true
+  // gross amount ever borrowed instead of quietly excluding settled
+  // carpool-tagged entries — more honest, and no longer needed as a
+  // workaround now the math itself doesn't leak.
+  let borrowed = 0;
+  let loans = [], totalRepaidPool = 0;
   (entries||[]).forEach(function(e){
-    // Skip "I owe them" refund entries — those are debts in the OTHER
-    // direction and are rendered in a separate section.
-    if(e.iOwe || e.type === 'iowe') return;
-    if(e.type === 'repay') repaid += Number(e.amount||0);
-    else {
-      // ── FIX 2026-07-05 ──
-      // A settled carpool trip-fare debt (paid:true, set by Carpool's Mark
-      // Paid flow, no separate repay record) is excluded entirely from the
-      // gross Borrowed/Repaid totals — not added to both. It nets to R0
-      // owing either way, but leaving it in inflated "Total Lent" / "Total
-      // Repaid" with a fare that was never a standing loan. Personal
-      // (non-carpool) borrows are unaffected — only isCarpool callers skip.
-      if(isCarpool && e.paid) return;
+    if(e.iOwe || e.type === 'iowe') return; // different direction, handled elsewhere
+    if(e.type === 'repay'){
+      totalRepaidPool += Number(e.amount||0);
+    } else {
       borrowed += Number(e.amount||0);
-      // ── FIX 2026-05-26 ──
-      // A borrow with paid:true (set by Carpool's Mark Paid flow) is
-      // equivalent to a full repayment. type:'repay' entries (manual
-      // Repayment button) are already handled above.
-      if(e.paid) repaid += Number(e.amount||0);
+      loans.push(e);
     }
   });
+  loans.sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  let remaining = totalRepaidPool, owing = 0;
+  loans.forEach(function(loan){
+    var amt = Number(loan.amount||0);
+    if(remaining >= amt - 0.01){
+      remaining -= amt; // fully covered by the repayment pool
+    } else {
+      if(!loan.paid){
+        owing += Math.max(0, amt - Math.max(0, remaining));
+      }
+      // whether covered by its own paid:true flag or genuinely still owing,
+      // this loan doesn't get to keep drawing from the pool beyond what's
+      // actually left — stops the leak forward to later loans.
+      remaining = Math.max(0, remaining - amt);
+    }
+  });
+  var repaid = borrowed - owing;
   return { borrowed, repaid };
 }
 
