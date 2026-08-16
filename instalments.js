@@ -1031,9 +1031,13 @@ function buildInstCard(plan, isTarget, isCleared){
   var paidCount = paidIdxs.length;
   var isM2M = !!plan.monthToMonth;
   var pct = isM2M ? 0 : Math.round((paidCount / plan.num) * 100);
-  var remAmt = isM2M ? null : (plan.num - paidCount) * _planMonthlyTotal(plan);
   // v115: sum actual paid amounts (each paid record has its own .amount including any fee at time of payment)
   var totalPaid = (plan.paid||[]).reduce(function(s,p){ return s + (Number(p.amount)||Number(plan.amt)||0); }, 0);
+  // v116: Remaining reads the user-entered `total` (required, always authoritative for every non-M2M
+  // plan — see confirmInstalment()) minus what's actually been paid. Previously this recomputed from
+  // amt+serviceFee * remaining count, which silently diverges from `total` the moment a plan carries a
+  // service fee (e.g. TFG: 6*(60+32.12)=552.72 vs a hand-entered total of 390.88).
+  var remAmt = isM2M ? null : Math.max(0, Number(plan.total||0) - totalPaid);
 
   var card = document.createElement('div');
   card.style.cssText = 'background:var(--surface);border:1px solid '+(isCleared?'#2a2a2a':c.border)+';border-radius:10px;overflow:hidden;margin-bottom:14px;'+(isTarget?'box-shadow:0 0 0 2px #c8f23044;':'');
