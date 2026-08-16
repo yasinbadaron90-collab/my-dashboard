@@ -19,6 +19,13 @@
 
 var SPEND_KEY = 'yb_spend_v1';
 
+// v117: round to the nearest cent. fundTotal() accumulates via repeated float
+// addition/subtraction across a pocket's whole deposit history, so it drifts
+// by fractions of a cent (e.g. 29.999999999969 instead of 30.00) even though
+// fmtR() displays the clean rounded value. Comparing raw floats with a strict
+// `>` then falsely blocks a spend the person can plainly see is affordable.
+function _r2(n){ return Math.round((Number(n)||0) * 100) / 100; }
+
 // ── Storage ────────────────────────────────────────────────────────────
 function loadSpendData(){
   try { return JSON.parse(lsGet(SPEND_KEY) || '[]'); }
@@ -301,7 +308,11 @@ function _spUpdateSaveButton(){
   // Pocket-first model: pockets are the source of truth and can't legitimately
   // hold less than R0. Same rule as the lend chapter. User must (a) pick a
   // funded pocket, (b) Move money in first, or (c) cancel.
-  if(amount > bal){
+  // v117: round to cents before comparing — fundTotal() is a running float sum
+  // and drifts by fractions of a cent after enough decimal-amount transactions
+  // (e.g. 14.99999999999999 instead of 15.00). A strict raw-float `>` falsely
+  // blocks a spend that's genuinely <= the displayed balance.
+  if(_r2(amount) > _r2(bal)){
     btn.disabled = true;
     btn.style.cursor = 'not-allowed';
     btn.style.opacity = '.75';
@@ -365,7 +376,8 @@ function saveSpend(){
       _checkBal += _oldRec.amount;
     }
   }
-  if(_spState.amount > _checkBal){
+  // v117: same cent-rounding fix as the render-time guard above — see comment there.
+  if(_r2(_spState.amount) > _r2(_checkBal)){
     alert('Only ' + fmtR(_checkBal) + ' available in ' + pocket.name
       + '. Pick another pocket or Move money in first.');
     return;
