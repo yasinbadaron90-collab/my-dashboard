@@ -168,6 +168,7 @@ function openBorrowModal(){
   document.getElementById('borrowAmt').value='';
   document.getElementById('borrowDate').value=localDateStr(new Date());
   document.getElementById('borrowNote').value='';
+  document.getElementById('borrowNoPocketImpact').checked=false;
 
   // v109 ISSUE-5 — populate passenger dropdown from live PASSENGERS array
   // (mirrors openRepayModal pattern, line 597+). Previously hardcoded to
@@ -195,16 +196,25 @@ function confirmBorrow(){
   const date = document.getElementById('borrowDate').value || localDateStr(new Date());
   const note = document.getElementById('borrowNote').value.trim();
   const account = document.getElementById('borrowAccount').value || 'FNB';
+  // v117: statement-only entries (e.g. a fee added to what someone owes) that
+  // never had real money move. Still lands in borrowData so it prints on the
+  // statement and counts toward what they owe — just skips every step below
+  // that touches a pocket, Cash Flow, or the bank baseline.
+  const noPocketImpact = document.getElementById('borrowNoPocketImpact').checked;
   if(!passenger || isNaN(amount) || amount<=0){ alert('Enter a valid amount.'); return; }
 
   // ── v108 ISSUE-3 — pocket-first: the lent money leaves a pocket ──────────
-  var pocket = funds.find(function(f){ return f.id === _cpLendSelectedPocketId; });
-  if(!pocket){ alert('Pick which pocket the money comes out of.'); return; }
-  var pocketBal = _cpLendBalance(pocket);
-  if(amount > pocketBal){
-    alert('Only R' + Number(pocketBal).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})
-      + ' available in ' + pocket.name + '. Pick another pocket or a smaller amount.');
-    return;
+  // v117: skipped entirely for noPocketImpact — there's nothing to deduct.
+  var pocket = null;
+  if(!noPocketImpact){
+    pocket = funds.find(function(f){ return f.id === _cpLendSelectedPocketId; });
+    if(!pocket){ alert('Pick which pocket the money comes out of.'); return; }
+    var pocketBal = _cpLendBalance(pocket);
+    if(amount > pocketBal){
+      alert('Only R' + Number(pocketBal).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})
+        + ' available in ' + pocket.name + '. Pick another pocket or a smaller amount.');
+      return;
+    }
   }
 
   if(!borrowData[passenger]) borrowData[passenger]=[];
@@ -215,37 +225,44 @@ function confirmBorrow(){
   var entryId = uid();
   var newEntry = {
     id: entryId, type:'borrow', amount, date, note, account, paid:false,
-    originPocket: pocket.id,   // lets repayment auto-suggest the source pocket
-    lendId: lendId
+    originPocket: pocket ? pocket.id : null,   // lets repayment auto-suggest the source pocket
+    lendId: lendId,
+    noPocketImpact: noPocketImpact
   };
   borrowData[passenger].push(newEntry);
   saveBorrows();
 
-  // 1) Deduct the pocket (money genuinely leaves you)
-  var pocketDepId = uid();
-  pocket.deposits.push({
-    id: pocketDepId,
-    txnType: 'out',
-    amount: amount,
-    date: date,
-    note: '💸 Lent to ' + passenger + (note ? ' · ' + note : ''),
-    lendId: lendId,
-    borrowEntryId: passenger + ':' + entryId
-  });
-  saveFunds();
+  var pocketDepId = null, cfId = null;
 
-  // 2) Log as expense in cashflow — stamp cfId + destBank for the reverse path
-  var cfId = logBorrowToCashflow(passenger, amount, date, account, 'carpool', lendId);
-  if(cfId){ newEntry.cfId = cfId; saveBorrows(); }
+  if(!noPocketImpact){
+    // 1) Deduct the pocket (money genuinely leaves you)
+    pocketDepId = uid();
+    pocket.deposits.push({
+      id: pocketDepId,
+      txnType: 'out',
+      amount: amount,
+      date: date,
+      note: '💸 Lent to ' + passenger + (note ? ' · ' + note : ''),
+      lendId: lendId,
+      borrowEntryId: passenger + ':' + entryId
+    });
+    saveFunds();
 
-  // 3) Bank doorway (+amount in, -amount out → net 0). Bank tile unaffected.
-  if(typeof window._adjustBaselineForBank === 'function'){
-    window._adjustBaselineForBank(account, amount);    // doorway IN
-    window._adjustBaselineForBank(account, -amount);   // doorway OUT
+    // 2) Log as expense in cashflow — stamp cfId + destBank for the reverse path
+    cfId = logBorrowToCashflow(passenger, amount, date, account, 'carpool', lendId);
+    if(cfId){ newEntry.cfId = cfId; saveBorrows(); }
+
+    // 3) Bank doorway (+amount in, -amount out → net 0). Bank tile unaffected.
+    if(typeof window._adjustBaselineForBank === 'function'){
+      window._adjustBaselineForBank(account, amount);    // doorway IN
+      window._adjustBaselineForBank(account, -amount);   // doorway OUT
+    }
   }
 
   // 4) Stash the lend record so the hard-block guard + _lendReverse can find it.
   //    isCarpool:true tells _lendReverse to remove from borrowData (not external).
+  //    noPocketImpact:true → pocketId/pocketDepId/cfId are null, and
+  //    _lendReverse already no-ops its pocket/CF steps when those are unset.
   var lendRecs = [];
   try { lendRecs = JSON.parse(lsGet('yb_lends_v1')||'[]'); } catch(e){}
   lendRecs.push({
@@ -257,9 +274,10 @@ function confirmBorrow(){
     amount: amount,
     date: date,
     bank: account,
-    pocketId: pocket.id,
+    pocketId: pocket ? pocket.id : null,
     pocketDepId: pocketDepId,
     cfId: cfId,
+    noPocketImpact: noPocketImpact,
     createdAt: new Date().toISOString()
   });
   lsSet('yb_lends_v1', JSON.stringify(lendRecs));
@@ -323,22 +341,27 @@ function deleteBorrowEntry(passenger, entryId){
     if(_live){
       var _pk = funds.find(function(f){ return f.id === _live.pocketId; });
       var _pn = _pk ? _pk.name : 'its pocket';
-      var _body = '💸 Lent ' + fmtR(_live.amount) + ' to ' + passenger + ' · ' + _live.date +
-                  '\n\nReversing puts ' + fmtR(_live.amount) + ' back into ' + _pn + ', removes the Cash Flow record, and clears the loan. The bank stays at R0.';
+      var _body = _live.noPocketImpact
+        ? '📝 ' + fmtR(_live.amount) + ' fee on ' + passenger + '\'s statement · ' + _live.date +
+          '\n\nRemoves it from what they owe. No pocket or Cash Flow to reverse — it never moved real money.'
+        : '💸 Lent ' + fmtR(_live.amount) + ' to ' + passenger + ' · ' + _live.date +
+          '\n\nReversing puts ' + fmtR(_live.amount) + ' back into ' + _pn + ', removes the Cash Flow record, and clears the loan. The bank stays at R0.';
       if(typeof mihbConfirm === 'function'){
         mihbConfirm({
-          title: 'Reverse this loan?',
+          title: _live.noPocketImpact ? 'Remove this fee?' : 'Reverse this loan?',
           body: _body,
-          dangerLabel: '↩ Reverse the whole loan',
+          dangerLabel: _live.noPocketImpact ? '↩ Remove it' : '↩ Reverse the whole loan',
           safeLabel: 'Leave it alone'
         }, function(go){
           if(go){
             _lendReverse(_entry.lendId);
-            if(typeof softDeleteToast === 'function') softDeleteToast({ message:'Loan reversed · '+fmtR(_live.amount)+' back to '+_pn, duration:3000 });
+            var _msg = _live.noPocketImpact ? 'Fee removed from statement' : 'Loan reversed · '+fmtR(_live.amount)+' back to '+_pn;
+            if(typeof softDeleteToast === 'function') softDeleteToast({ message:_msg, duration:3000 });
           }
         });
       } else {
-        if(confirm('Reverse this loan?\n\n'+_body)) _lendReverse(_entry.lendId);
+        var _q = _live.noPocketImpact ? 'Remove this fee?\n\n' : 'Reverse this loan?\n\n';
+        if(confirm(_q+_body)) _lendReverse(_entry.lendId);
       }
       return;
     }
