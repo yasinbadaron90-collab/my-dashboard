@@ -3,6 +3,13 @@
 
 let borrowData = {};
 
+// v148b — FNB charges an immediate-payment fee whenever real money is sent.
+// Auto-added on top of any real (non-statement-only) FNB borrow so it always
+// shows on the statement without a separate manual entry. Change this one
+// number if the fee ever changes; delete the auto-added line per-entry via
+// the normal fee-removal flow if a specific loan genuinely didn't incur it.
+const FNB_IMMEDIATE_PAYMENT_FEE = 10;
+
 function loadBorrows(){
   try{ borrowData = JSON.parse(lsGet(BORROW_KEY)||'{}'); }catch(e){ borrowData={}; }
 }
@@ -169,6 +176,7 @@ function openBorrowModal(){
   document.getElementById('borrowDate').value=localDateStr(new Date());
   document.getElementById('borrowNote').value='';
   document.getElementById('borrowNoPocketImpact').checked=false;
+  try { _borrowUpdateFeeHint(); } catch(e){}
 
   // v109 ISSUE-5 — populate passenger dropdown from live PASSENGERS array
   // (mirrors openRepayModal pattern, line 597+). Previously hardcoded to
@@ -280,11 +288,55 @@ function confirmBorrow(){
     noPocketImpact: noPocketImpact,
     createdAt: new Date().toISOString()
   });
+
+  // ── v148b — auto FNB immediate-payment fee ──────────────────────────────
+  // Real money via FNB always costs the R10 immediate-payment fee. Auto-add
+  // it as its own noPocketImpact statement-only entry — same shape the manual
+  // checkbox path already produces — so it shows on the statement without a
+  // second manual Borrow. Skipped when THIS entry is already noPocketImpact
+  // (nothing real was sent) or the bank isn't FNB. Fully independent entry:
+  // its own lendId/entryId, its own delete/reverse via the existing
+  // fee-removal flow (deleteBorrowEntry → _lendReverse) — no link back to
+  // the parent loan, so removing one never touches the other.
+  if(!noPocketImpact && account === 'FNB' && FNB_IMMEDIATE_PAYMENT_FEE > 0){
+    var feeEntryId = uid();
+    var feeLendId  = 'ln_' + uid();
+    borrowData[passenger].push({
+      id: feeEntryId, type:'borrow', amount: FNB_IMMEDIATE_PAYMENT_FEE, date: date,
+      note: 'FNB immediate payment fee', account: account, paid:false,
+      originPocket: null, lendId: feeLendId, noPocketImpact: true, autoFee: true
+    });
+    lendRecs.push({
+      id: feeLendId, isCarpool: true, passenger: passenger, personName: passenger,
+      entryId: feeEntryId, amount: FNB_IMMEDIATE_PAYMENT_FEE, date: date, bank: account,
+      pocketId: null, pocketDepId: null, cfId: null, noPocketImpact: true,
+      createdAt: new Date().toISOString()
+    });
+    saveBorrows();
+  }
+
   lsSet('yb_lends_v1', JSON.stringify(lendRecs));
 
   closeModal('borrowModal');
   renderCarpool();
   if(typeof renderBankBalanceCard === 'function') try { renderBankBalanceCard(); } catch(e){}
+}
+
+// v148b — live hint in the Borrow modal showing whether the FNB fee will
+// auto-apply, so the extra R10 isn't a surprise on the statement afterward.
+function _borrowUpdateFeeHint(){
+  var hint = document.getElementById('borrowFeeHint');
+  if(!hint) return;
+  var acctEl = document.getElementById('borrowAccount');
+  var noImpactEl = document.getElementById('borrowNoPocketImpact');
+  var isFNB = acctEl && acctEl.value === 'FNB';
+  var isNoImpact = noImpactEl && noImpactEl.checked;
+  if(isFNB && !isNoImpact){
+    hint.textContent = '+ R' + FNB_IMMEDIATE_PAYMENT_FEE + ' FNB immediate payment fee will be added automatically';
+    hint.style.display = 'block';
+  } else {
+    hint.style.display = 'none';
+  }
 }
 
 // ── EDIT BORROW ENTRY ──
