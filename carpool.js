@@ -1166,8 +1166,18 @@ function confirmPayDest(){
   var paidBorrowIds = [];
 
   // 2. Mark borrows as repaid (capture which ones WE just paid)
+  // v148c fix — REAL BUG, CONFIRMED 2026-08-27: this used to loop over the
+  // passenger's ENTIRE borrow history with no date filter, unlike the trip
+  // step directly above it (which correctly checks `ds < from || ds > to`).
+  // Real incident: tapping Mark Paid on Lezaun's Aug 1–25 statement also
+  // silently flipped her unrelated 2026-07-10 R100 loan to paid — zero real
+  // money behind that one, caught by Self-Audit's "Paid flags with real
+  // backing" check. Now scoped to the same statement date range as trips.
   if(borrowOwing > 0 && borrowData[passenger]){
+    var _bFrom = document.querySelector('#stmtFrom') ? document.querySelector('#stmtFrom').value : null;
+    var _bTo   = document.querySelector('#stmtTo')   ? document.querySelector('#stmtTo').value   : null;
     borrowData[passenger].forEach(function(b){
+      if(_bFrom && _bTo && (b.date < _bFrom || b.date > _bTo)) return; // outside this statement — leave untouched
       if(b.type !== 'repay' && !b.paid){
         b.paid = true;
         paidBorrowIds.push(b.id);

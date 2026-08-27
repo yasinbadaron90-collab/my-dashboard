@@ -240,10 +240,17 @@ function _auCheckRepaymentResolution(){
     });
   }
 
+  // v148d — these used to swallow any error silently and still return
+  // whatever partial `issues` had been found so far, which could misreport
+  // as a clean "pass" even when the check crashed partway through. Now any
+  // failure becomes its own visible issue instead of disappearing, while
+  // still keeping whatever real findings were already collected first.
   try{
     var bd = (typeof borrowData !== 'undefined') ? borrowData : (window.borrowData || {});
     Object.keys(bd).forEach(function(p){ checkEntries(bd[p], p + ' (carpool)'); });
-  }catch(e){}
+  }catch(e){
+    issues.push('⚠️ Carpool repayment check crashed partway through (' + e.message + ') — results below may be incomplete');
+  }
 
   try{
     var ext = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
@@ -251,7 +258,9 @@ function _auCheckRepaymentResolution(){
       var person = ext[key];
       checkEntries(person.entries, (person.name||key) + ' (external)');
     });
-  }catch(e){}
+  }catch(e){
+    issues.push('⚠️ External repayment check crashed partway through (' + e.message + ') — results below may be incomplete');
+  }
 
   return {
     status: issues.length ? 'fail' : 'pass',
@@ -278,6 +287,23 @@ function _auCheckPaidWithoutBacking(){
   var issues = [];
   var peopleChecked = 0;
 
+  // v148c — a carpool "Mark Paid" settles debt via a yb_carpool_payments_v1
+  // record (paidBorrowIds), never via a type:'repay' entry. That's a real,
+  // traced backing mechanism (its own CF income + pocket/maint deposit +
+  // baseline adjustment) — just a different shape than a single-item repay.
+  // Without this, every loan ever settled through carpool Mark Paid fails
+  // this check forever, even when the money genuinely arrived, drowning out
+  // real failures like the 2026-08-27 Lezaun incident this check caught.
+  var carpoolBackedIds = {};
+  try {
+    var _cpPmts = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]');
+    _cpPmts.forEach(function(pmt){
+      (pmt.paidBorrowIds||[]).forEach(function(id){ carpoolBackedIds[id] = true; });
+    });
+  } catch(e){
+    issues.push('⚠️ Could not read carpool payment records (' + e.message + ') — carpool-settled loans may be wrongly flagged below');
+  }
+
   function checkEntries(entries, label){
     if(!entries || !entries.length) return;
     peopleChecked++;
@@ -293,6 +319,18 @@ function _auCheckPaidWithoutBacking(){
     loans.forEach(function(loan){
       var amt = Number(loan.amount||0);
       var coveredByPool = remaining >= amt - 0.01;
+      if(carpoolBackedIds[loan.id]){
+        // Settled via a traced carpool Mark Paid — real backing regardless
+        // of the type:'repay' pool. Still consume pool capacity if the pool
+        // WOULD have covered this loan anyway (oldest-first), so that
+        // capacity can't leak through and wrongly excuse a later, unrelated
+        // loan that has no backing of its own. Caught by testing against
+        // real data: Lezaun's R110 repay exactly matched an earlier loan
+        // that was ALSO carpool-backed — without this, the untouched R110
+        // pool wrongly "covered" her real unbacked 2026-07-10 R100 loan too.
+        if(coveredByPool) remaining -= amt;
+        return;
+      }
       if(coveredByPool){
         remaining -= amt;
       } else {
@@ -304,10 +342,18 @@ function _auCheckPaidWithoutBacking(){
     });
   }
 
+  // v148d — these used to swallow any error silently and still return
+  // whatever partial `issues` had been found, which could misreport as a
+  // clean "pass" even when the check crashed partway through (this is
+  // exactly what happened during my own testing before this fix — a
+  // missing helper function threw here and the check silently went green).
+  // Now any failure becomes its own visible issue instead of disappearing.
   try{
     var bd = (typeof borrowData !== 'undefined') ? borrowData : (window.borrowData || {});
     Object.keys(bd).forEach(function(p){ checkEntries(bd[p], p + ' (carpool)'); });
-  }catch(e){}
+  }catch(e){
+    issues.push('⚠️ Carpool borrow check crashed partway through (' + e.message + ') — results below may be incomplete');
+  }
 
   try{
     var ext = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
@@ -315,7 +361,9 @@ function _auCheckPaidWithoutBacking(){
       var person = ext[key];
       checkEntries(person.entries, (person.name||key) + ' (external)');
     });
-  }catch(e){}
+  }catch(e){
+    issues.push('⚠️ External borrow check crashed partway through (' + e.message + ') — results below may be incomplete');
+  }
 
   return {
     status: issues.length ? 'fail' : 'pass',
