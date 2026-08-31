@@ -56,6 +56,7 @@ var FB_SYNC_KEYS = [
   // Routine (try both formats)
   'yb_routine_v1',
   'routine',
+  'yasin_routine_v2',
   // Priority Rules (try both formats)
   'priorityRules',
   'yb_priority_rules_v1',
