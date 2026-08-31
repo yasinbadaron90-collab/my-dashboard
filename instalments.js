@@ -35,6 +35,150 @@ function loadInst(){
 }
 function saveInst(d){ lsSet(INST_KEY, JSON.stringify(d)); }
 
+// v148d — full Instalments PDF export, same pattern as buildCFPDF (cashflow.js):
+// every active plan with its COMPLETE payment schedule, not just what fits on
+// screen. Built after Yasin pointed out screenshots of this page cut off
+// mid-list and don't show all 4 plans — a PDF captures everything in one file,
+// the same way the Cash Flow export already does.
+function exportInstalmentsPDF(){
+  var plans = loadInst();
+  if(!plans.length){ alert('No instalment plans to export.'); return; }
+  if(typeof window.jspdf === 'undefined'){
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = function(){ buildInstalmentsPDF(plans); };
+    document.head.appendChild(s);
+  } else {
+    buildInstalmentsPDF(plans);
+  }
+}
+
+function buildInstalmentsPDF(plans){
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({ unit:'mm', format:'a4' });
+  var W=210, H=297, margin=16, y=0;
+  function bg(){ doc.setFillColor(10,10,10); doc.rect(0,0,W,H,'F'); doc.setFillColor(200,242,48); doc.rect(0,0,W,1.5,'F'); }
+  function newPageIfNeeded(need){ if(y+need > H-18){ doc.addPage(); bg(); y=16; } }
+  bg();
+
+  // Header — matches buildCFPDF exactly for visual consistency across exports
+  y=13;
+  doc.setTextColor(90,136,0); doc.setFontSize(7); doc.setFont('helvetica','normal');
+  doc.text('INSTALMENTS REPORT', margin, y);
+  doc.text(new Date().toLocaleDateString('en-ZA'), W-margin, y, {align:'right'});
+  y=24;
+  doc.setTextColor(200,242,48); doc.setFontSize(22); doc.setFont('helvetica','bold');
+  doc.text('Instalments', margin, y);
+  y=31;
+  doc.setTextColor(85,85,85); doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('TFG · PayFlex · PayJustNow', margin, y);
+  y=37;
+  doc.setDrawColor(42,42,42); doc.setLineWidth(0.3); doc.line(margin,y,W-margin,y);
+  y+=8;
+
+  // Summary — reuses renderInst()'s exact formula so the PDF always matches
+  // the live screen, including its known quirk: month-to-month plans count
+  // their full monthly amount toward Total Remaining (an ongoing minimum
+  // commitment), and fixed-term plans currently exclude serviceFee here
+  // (tracked separately as a queued fix, not something this export should
+  // silently "correct" and thereby disagree with the screen).
+  var now = new Date();
+  var thisMonthKey = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  var activePlans = plans.filter(function(p){
+    var paidIdxs = (p.paid||[]).map(function(x){ return x.index; });
+    var done = !p.monthToMonth && p.num && paidIdxs.length >= p.num;
+    return !done;
+  });
+  var activeCount = activePlans.length;
+  var dueThisMonth = 0, totalRemaining = 0;
+  activePlans.forEach(function(p){
+    var paidIdxs = (p.paid||[]).map(function(x){ return x.index; });
+    var monthlyTotal = _planMonthlyTotal(p);
+    if(p.monthToMonth){
+      totalRemaining += monthlyTotal;
+      if(p.debitDay) dueThisMonth += monthlyTotal;
+    } else {
+      (p.dates||[]).forEach(function(ds, i){
+        if(paidIdxs.indexOf(i) > -1) return;
+        totalRemaining += p.amt;
+        if(ds.slice(0,7) === thisMonthKey) dueThisMonth += p.amt;
+      });
+    }
+  });
+  var tileW = (W-margin*2-8)/3;
+  [['ACTIVE PLANS', String(activeCount), '#efefef'],
+   ['DUE THIS MONTH', 'R'+dueThisMonth.toFixed(0), '#f2a830'],
+   ['TOTAL REMAINING', 'R'+totalRemaining.toFixed(2), '#c8f230']
+  ].forEach(function(t, i){
+    var tx = margin + i*(tileW+4);
+    doc.setDrawColor(42,42,42); doc.setFillColor(17,17,17);
+    doc.roundedRect(tx, y, tileW, 20, 2, 2, 'FD');
+    doc.setTextColor(90,90,90); doc.setFontSize(6); doc.setFont('helvetica','normal');
+    doc.text(t[0], tx+3, y+6);
+    var c = t[2].match(/[A-Fa-f0-9]{2}/g).map(function(h){return parseInt(h,16);});
+    doc.setTextColor(c[0],c[1],c[2]); doc.setFontSize(13); doc.setFont('helvetica','bold');
+    doc.text(t[1], tx+3, y+15);
+  });
+  y += 28;
+
+  // One card per plan, full schedule, every row — no cut-off
+  activePlans.forEach(function(plan, pi){
+    var paidList = plan.paid||[];
+    var schedule = plan.monthToMonth
+      ? null // ongoing plans run indefinitely — no fixed schedule to list
+      : (plan.dates||[]);
+    var rowsNeeded = schedule ? schedule.length : 1;
+    newPageIfNeeded(26 + rowsNeeded*7);
+
+    doc.setDrawColor(58,42,90); doc.setFillColor(20,15,30);
+    var cardH = 24 + rowsNeeded*7;
+    doc.roundedRect(margin, y, W-margin*2, cardH, 2, 2, 'FD');
+    var iy = y+7;
+    doc.setTextColor(167,139,250); doc.setFontSize(7); doc.setFont('helvetica','bold');
+    doc.text((plan.provider||'PLAN').toUpperCase(), margin+4, iy);
+    doc.setTextColor(230,230,230); doc.setFontSize(11); doc.setFont('helvetica','bold');
+    iy+=6;
+    doc.text(plan.desc||'Untitled plan', margin+4, iy);
+    doc.setTextColor(120,120,120); doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.text((plan.monthToMonth?'Month-to-month':'Monthly · '+schedule.length+' instalments')+'  ·  R'+plan.amt+'/payment', margin+4, iy+5);
+    doc.setTextColor(242,168,48); doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.text('R'+planRemaining(plan).toFixed(2)+' remaining', W-margin-4, iy, {align:'right'});
+    iy+=10;
+
+    if(schedule){
+      schedule.forEach(function(dateStr, idx){
+        var paidEntry = paidList.find(function(pd){ return pd.index===idx; });
+        doc.setTextColor(90,90,90); doc.setFontSize(8); doc.setFont('helvetica','normal');
+        doc.text((idx+1)+'.  '+dateStr, margin+6, iy);
+        if(paidEntry){
+          doc.setTextColor(200,242,48);
+          doc.text('PAID  R'+plan.amt, W-margin-4, iy, {align:'right'});
+        } else {
+          doc.setTextColor(150,100,20);
+          doc.text('R'+plan.amt, W-margin-4, iy, {align:'right'});
+        }
+        iy+=7;
+      });
+    } else {
+      doc.setTextColor(90,90,90); doc.setFontSize(8);
+      doc.text('Debits on day '+(plan.debitDay||'?')+' of every month, no fixed end date.', margin+6, iy);
+    }
+    y += cardH + 8;
+  });
+
+  doc.setTextColor(50,50,50); doc.setFontSize(7); doc.setFont('helvetica','normal');
+  doc.text('Generated by My Dashboard · '+new Date().toLocaleDateString('en-ZA'), W/2, H-10, {align:'center'});
+  doc.save('Instalments_Report_'+new Date().toISOString().split('T')[0]+'.pdf');
+}
+
+function planRemaining(p){
+  if(p.monthToMonth) return _planMonthlyTotal(p);
+  var paidIdxs = (p.paid||[]).map(function(x){ return x.index; });
+  var rem = 0;
+  (p.dates||[]).forEach(function(ds, i){ if(paidIdxs.indexOf(i) === -1) rem += p.amt; });
+  return rem;
+}
+
 // v115 helper: monthly total = principal + service fee
 function _planMonthlyTotal(plan){
   return Number(plan.amt||0) + Number(plan.serviceFee||0);
