@@ -290,6 +290,15 @@ function _fbPullAll(){
           if(typeof renderFunds === 'function') renderFunds();
           if(typeof renderCashFlow === 'function') renderCashFlow();
           if(typeof renderCarpool === 'function') renderCarpool();
+          // v148f — renderRoutine was missing here. A background merge updates
+          // loadRoutineTasks()'s underlying data, but without this the visible
+          // Routine screen keeps its OLD render — including old task ids baked
+          // into each checkmark's onclick. Tapping ✓ then calls markRoutineDone
+          // with an id that no longer matches anything current, which silently
+          // no-ops (tasks.find returns nothing, function just returns) — no
+          // error, because there isn't one. This is what broke the checkmark.
+          if(typeof loadRoutineTasks === 'function') loadRoutineTasks();
+          if(typeof renderRoutine === 'function') renderRoutine();
         }
       }
     })
