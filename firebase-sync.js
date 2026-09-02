@@ -12,12 +12,9 @@
 // Firestore structure:
 //   users/{uid}/data/{storageKey}  →  { value: "...", updatedAt: timestamp }
 //
-// Storage keys synced (the important ones — not ephemeral UI state):
-//   funds, yb_cashflow_v1, yb_carpool_v4, yb_borrows_v1,
-//   yb_ext_borrows_v1, cars, yb_instalments_v1, yb_school_results_v2,
-//   yb_routine_v1, yb_prayer_v1, passengers, yb_moneyin_v1,
-//   yb_spend_v1, yb_moves_v1, yb_lends_v1, yb_repayments_v1,
-//   yb_bankfeed_merchants_v1
+// Storage keys synced (see FB_SYNC_KEYS below). Intentionally excluded:
+//   PIN / lock-screen secrets, bank-feed API keys, pure UI/session state,
+//   and dead Maintenance Fund keys (yasin_maint_v1 / yasin_maint_cards_v1).
 
 'use strict';
 
@@ -48,18 +45,17 @@ var FB_SYNC_KEYS = [
   'yasin_instalments_v1',
   // School
   'yb_school_results_v2',
-  'yasin_school_results_v1',
+  // removed legacy: 'yasin_school_results_v1'
   // Prayer
   'yasin_prayer_v1',
   // Passengers
   'yb_passengers_v1',
-  // Routine (try both formats)
+  // Routine
   'yb_routine_v1',
-  'routine',
-  'yasin_routine_v2',
-  // Priority Rules (try both formats)
-  'priorityRules',
+  // removed legacy: 'routine', 'yasin_routine_v2'
+  // Priority Rules
   'yb_priority_rules_v1',
+  // removed legacy: 'priorityRules'
   // Settings
   'yb_maint_settings_v1',
   'yb_push_subscription',
@@ -230,9 +226,12 @@ function _fbPatchLsSet(){
   _originalLsSet = window.lsSet;
   window.lsSet = function(key, val){
     var result = _originalLsSet(key, val);
-    // Queue a Firestore write if this key is in our sync list
     if(FB_SYNC_KEYS.indexOf(key) >= 0){
       _fbQueueWrite(key, val);
+    } else if (typeof key === 'string' &&
+               (key.indexOf('yb_') === 0 || key.indexOf('yasin_') === 0)) {
+      // Safety net: catch any future data key that was forgotten in FB_SYNC_KEYS
+      console.warn('[Firebase] lsSet on non-synced key (add to FB_SYNC_KEYS?):', key);
     }
     return result;
   };
