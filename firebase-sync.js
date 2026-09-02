@@ -46,6 +46,13 @@ var FB_SYNC_KEYS = [
   // School
   'yb_school_results_v2',
   'yasin_school_results_v1', // legacy fallback -- do not remove, see note below
+  'yasin_school_results_v2', // *** the REAL current key (SCHOOL_RESULTS_V2_KEY
+                              // in school.js) -- found 2026-09-02 by testing the
+                              // new _auCheckLiveWriteKeysInSync logic against
+                              // real constants. Same bug class as the routine
+                              // key: yb_school_results_v2 has the wrong prefix,
+                              // never matched what the app actually writes.
+                              // School results have likely never synced.
   // Prayer
   'yasin_prayer_v1',
   // Passengers

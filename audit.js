@@ -16,6 +16,10 @@
 //                           statement output parity across card/WA/PDF
 //                           (v147g/h — the "TOTAL OWED" class; this one
 //                           check is async, it fetches carpool.js live)
+//   ☁️ Sync & Backup      — FB_SYNC_KEYS / FB_EXCLUDED_KEYS present,
+//                           every live write-target constant is in the
+//                           sync list (catches the v148f routine-key
+//                           class), alert-state lsSet bypass (async)
 // ════════════════════════════════════════════════════════════════════
 
 var _auditLastRun = null;   // session-only; audit persists nothing
@@ -421,7 +425,114 @@ function _auCheckDuplicateIds(){
            detail: dupes ? dupes + ' duplicates found' : 'No duplicate IDs' };
 }
 
+// ── Sync / backup plumbing (catches the v148f / v148j class of bugs) ─────
+// These checks verify the *infrastructure*, not account balances.
+// They would have caught: removing yasin_routine_v2 while ROUTINE_KEY still
+// writes it; a naive console.warn with no exclusion list; school results
+// writing yasin_school_results_v2 while FB_SYNC_KEYS only listed yb_*.
+
+function _auCheckSyncInfrastructure(){
+  var missing = [];
+  if(typeof FB_SYNC_KEYS === 'undefined' || !Array.isArray(FB_SYNC_KEYS))
+    missing.push('FB_SYNC_KEYS array');
+  if(typeof FB_EXCLUDED_KEYS === 'undefined' || !Array.isArray(FB_EXCLUDED_KEYS))
+    missing.push('FB_EXCLUDED_KEYS array');
+  if(missing.length){
+    return {
+      status: 'fail',
+      name: 'Sync infrastructure present',
+      detail: 'Missing: ' + missing.join(', ') + ' — firebase-sync.js may not have loaded'
+    };
+  }
+  // Exclusion list must cover known intentional local-only keys
+  var requiredExcl = ['yb_pins','yasin_sync_meta_v1','yasin_theme_light'];
+  var exclMissing = requiredExcl.filter(function(k){ return FB_EXCLUDED_KEYS.indexOf(k) < 0; });
+  if(exclMissing.length){
+    return {
+      status: 'warn',
+      name: 'Sync infrastructure present',
+      detail: 'FB_EXCLUDED_KEYS loaded but missing expected entries: ' + exclMissing.join(', ') + ' — PIN/theme may spam console.warn'
+    };
+  }
+  return {
+    status: 'pass',
+    name: 'Sync infrastructure present',
+    detail: 'FB_SYNC_KEYS (' + FB_SYNC_KEYS.length + ') + FB_EXCLUDED_KEYS (' + FB_EXCLUDED_KEYS.length + ') loaded'
+  };
+}
+
+function _auCheckLiveWriteKeysInSync(){
+  // Resolve the actual key strings the running app writes — never hardcode
+  // a name that might have been renamed. If a module isn't loaded, skip it.
+  var probes = [
+    { label: 'ROUTINE_KEY',           get: function(){ return (typeof ROUTINE_KEY !== 'undefined') ? ROUTINE_KEY : null; } },
+    { label: 'PRIORITY_KEY',          get: function(){ return (typeof PRIORITY_KEY !== 'undefined') ? PRIORITY_KEY : null; } },
+    { label: 'SK (funds)',            get: function(){ return (typeof SK !== 'undefined') ? SK : null; } },
+    { label: 'CPK (carpool)',         get: function(){ return (typeof CPK !== 'undefined') ? CPK : null; } },
+    { label: 'CF_KEY',                get: function(){ return (typeof CF_KEY !== 'undefined') ? CF_KEY : null; } },
+    { label: 'BORROW_KEY',            get: function(){ return (typeof BORROW_KEY !== 'undefined') ? BORROW_KEY : null; } },
+    { label: 'INST_KEY',              get: function(){ return (typeof INST_KEY !== 'undefined') ? INST_KEY : null; } },
+    { label: 'CARS_KEY',              get: function(){ return (typeof CARS_KEY !== 'undefined') ? CARS_KEY : null; } },
+    { label: 'DRIVER_KEY',            get: function(){ return (typeof DRIVER_KEY !== 'undefined') ? DRIVER_KEY : null; } },
+    { label: 'PASSENGERS_KEY',        get: function(){ return (typeof PASSENGERS_KEY !== 'undefined') ? PASSENGERS_KEY : null; } },
+    { label: 'PRAYER_KEY',            get: function(){ return (typeof PRAYER_KEY !== 'undefined') ? PRAYER_KEY : null; } },
+    { label: 'FUEL_KEY',              get: function(){ return (typeof FUEL_KEY !== 'undefined') ? FUEL_KEY : null; } },
+    { label: 'DAILY_FUEL_KEY',        get: function(){ return (typeof DAILY_FUEL_KEY !== 'undefined') ? DAILY_FUEL_KEY : null; } },
+    { label: 'FUEL_BUDGET_KEY',       get: function(){ return (typeof FUEL_BUDGET_KEY !== 'undefined') ? FUEL_BUDGET_KEY : null; } },
+    { label: 'PRICING_TANK_KEY',      get: function(){ return (typeof PRICING_TANK_KEY !== 'undefined') ? PRICING_TANK_KEY : null; } },
+    { label: 'PRICING_PRIVATE_KEY',   get: function(){ return (typeof PRICING_PRIVATE_KEY !== 'undefined') ? PRICING_PRIVATE_KEY : null; } },
+    { label: 'EXTERNAL_BORROW_KEY',   get: function(){ return (typeof EXTERNAL_BORROW_KEY !== 'undefined') ? EXTERNAL_BORROW_KEY : null; } },
+    { label: 'SCHOOL_EVENTS_KEY',     get: function(){ return (typeof SCHOOL_EVENTS_KEY !== 'undefined') ? SCHOOL_EVENTS_KEY : null; } },
+    { label: 'SCHOOL_DONE_KEY',       get: function(){ return (typeof SCHOOL_DONE_KEY !== 'undefined') ? SCHOOL_DONE_KEY : null; } },
+    { label: 'SCHOOL_RESULTS_V2_KEY', get: function(){ return (typeof SCHOOL_RESULTS_V2_KEY !== 'undefined') ? SCHOOL_RESULTS_V2_KEY : null; } },
+    { label: 'CARPOOL_TARIFF_KEY',    get: function(){ return (typeof CARPOOL_TARIFF_KEY !== 'undefined') ? CARPOOL_TARIFF_KEY : null; } },
+    { label: 'MAINT_SETTINGS_KEY',    get: function(){ return (typeof MAINT_SETTINGS_KEY !== 'undefined') ? MAINT_SETTINGS_KEY : null; } },
+    { label: 'RECON_KEY',             get: function(){ return (typeof RECON_KEY !== 'undefined') ? RECON_KEY : null; } },
+    { label: 'MANUAL_BAL_KEY',        get: function(){ return (typeof MANUAL_BAL_KEY !== 'undefined') ? MANUAL_BAL_KEY : null; } },
+    // Hardcoded string writes that modules use without a const (still real)
+    { label: 'yb_lends_v1',           get: function(){ return 'yb_lends_v1'; } },
+    { label: 'yb_repayments_v1',      get: function(){ return 'yb_repayments_v1'; } },
+    { label: 'yb_moneyin_v1',         get: function(){ return 'yb_moneyin_v1'; } },
+    { label: 'yb_spend_v1',           get: function(){ return 'yb_spend_v1'; } },
+    { label: 'yb_moves_v1',           get: function(){ return 'yb_moves_v1'; } },
+    { label: 'yb_carpool_payments_v1',get: function(){ return 'yb_carpool_payments_v1'; } },
+    { label: 'yb_alert_state_v1',     get: function(){ return 'yb_alert_state_v1'; } }
+  ];
+
+  if(typeof FB_SYNC_KEYS === 'undefined' || !Array.isArray(FB_SYNC_KEYS)){
+    return { status:'fail', name:'Live write keys ⊆ FB_SYNC_KEYS', detail:'FB_SYNC_KEYS not loaded — cannot verify' };
+  }
+  var excl = (typeof FB_EXCLUDED_KEYS !== 'undefined' && Array.isArray(FB_EXCLUDED_KEYS)) ? FB_EXCLUDED_KEYS : [];
+
+  var missing = [];
+  var checked = 0;
+  probes.forEach(function(p){
+    var k = null;
+    try { k = p.get(); } catch(e){ return; }
+    if(!k || typeof k !== 'string') return;
+    checked++;
+    if(FB_SYNC_KEYS.indexOf(k) < 0 && excl.indexOf(k) < 0){
+      missing.push(p.label + ' writes "' + k + '"');
+    }
+  });
+
+  if(missing.length){
+    return {
+      status: 'fail',
+      name: 'Live write keys ⊆ FB_SYNC_KEYS',
+      detail: missing.length + ' key(s) the app writes are NOT in FB_SYNC_KEYS (and not excluded): ' + missing.join(' · ') + ' — these will not live-sync to Firebase'
+    };
+  }
+  return {
+    status: 'pass',
+    name: 'Live write keys ⊆ FB_SYNC_KEYS',
+    detail: checked + ' live write targets verified against FB_SYNC_KEYS / FB_EXCLUDED_KEYS'
+  };
+}
+
 function _auCheckStorageKeys(){
+  // Kept for continuity with v147e — presence of pocket-first money keys in
+  // localStorage is informational only (empty until first use).
   var keys = ['yb_lends_v1','yb_repayments_v1','yb_moneyin_v1','yb_spend_v1','yb_moves_v1','yb_carpool_payments_v1'];
   var present = keys.filter(function(k){ return lsGet(k) !== null && lsGet(k) !== undefined; });
   return {
@@ -429,6 +540,35 @@ function _auCheckStorageKeys(){
     name: 'Storage keys (v147e backup set)',
     detail: present.length + '/' + keys.length + ' present' + (present.length < keys.length ? ' — missing keys appear on first use, not an error' : '')
   };
+}
+
+async function _auCheckAlertStateBypass(){
+  // Alert state is known to bypass lsSet via raw localStorage in home.js.
+  // Confirm against the served file so this stays honest if someone fixes it.
+  var CHECK_NAME = 'Alert state uses lsSet (live-sync)';
+  try {
+    var res = await fetch('home.js', { cache: 'reload' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    var src = await res.text();
+    // Look for the save path near _ALERT_STATE_KEY
+    var usesRaw = /localStorage\.setItem\(\s*_ALERT_STATE_KEY/.test(src)
+               || /localStorage\.setItem\(\s*['"]yb_alert_state_v1['"]/.test(src);
+    var usesLsSet = /lsSet\(\s*_ALERT_STATE_KEY/.test(src)
+                 || /lsSet\(\s*['"]yb_alert_state_v1['"]/.test(src);
+    if(usesRaw && !usesLsSet){
+      return {
+        status: 'warn',
+        name: CHECK_NAME,
+        detail: 'home.js still writes yb_alert_state_v1 via localStorage.setItem — live changes skip Firebase (backups/full push still include it)'
+      };
+    }
+    if(usesLsSet){
+      return { status:'pass', name: CHECK_NAME, detail: 'home.js writes alert state through lsSet' };
+    }
+    return { status:'warn', name: CHECK_NAME, detail: 'Could not locate alert-state write path in home.js' };
+  } catch(e){
+    return { status:'warn', name: CHECK_NAME, detail: 'Could not load home.js: ' + e.message };
+  }
 }
 
 // Async — the only check here that hits the network. Fetches THIS DEVICE's
@@ -496,7 +636,8 @@ var _AU_GROUPS = [
   { icon:'💰', title:'Pocket Math',         checks:[_auCheckDeposits, _auCheckNegativePockets] },
   { icon:'🔗', title:'Mirror-Link Chains',  checks:[_auCheckCarpoolChains, _auCheckCFResolution, _auCheckOrphanedPockets, _auCheckRepaymentResolution, _auCheckPaidWithoutBacking] },
   { icon:'🏦', title:'Available Cash Baseline', checks:[_auCheckBaseline] },
-  { icon:'🧱', title:'Structure & Rules',   checks:[_auCheckEmoji, _auCheckDuplicateIds, _auCheckStorageKeys, _auCheckOutputConsistency] }
+  { icon:'🧱', title:'Structure & Rules',   checks:[_auCheckEmoji, _auCheckDuplicateIds, _auCheckStorageKeys, _auCheckOutputConsistency] },
+  { icon:'☁️', title:'Sync & Backup',       checks:[_auCheckSyncInfrastructure, _auCheckLiveWriteKeysInSync, _auCheckAlertStateBypass] }
 ];
 
 async function runSelfAudit(){
