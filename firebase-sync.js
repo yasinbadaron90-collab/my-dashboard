@@ -79,8 +79,6 @@ var FB_SYNC_KEYS = [
   'yb_carpool_archived',
   // Manual balances
   'yb_manual_balances_v1',
-  // Cars (actual key used)
-  'yasin_cars_v1',
   // Fuel Log -- FIX 2026-07-07: this was never in the sync list at all,
   // so fuel entries stayed 100% device-local.
   'yasin_fuel_v1',
@@ -90,7 +88,21 @@ var FB_SYNC_KEYS = [
   'yasin_drivers_v1',        // carpool driver profiles
   'yb_daily_fuel',           // daily fuel cost estimate (used by Odin)
   'yb_recon_balances_v1',    // manually-entered FNB/Tyme reconciliation balances
-  'yb_spend_merchant_cats_v1' // merchant -> category mappings for spend categorization
+  'yb_spend_merchant_cats_v1', // merchant -> category mappings for spend categorization
+  // FIX 2026-09-01 (audit-report follow-up) -- confirmed live/active in
+  // carpool.js, borrow.js, money.js, core.js, odin_chat.js, settings.js
+  // (grepped, not assumed), real settings a user would expect on every
+  // device, and simply never added when they were built.
+  'yb_carpool_tariff_v1',    // carpool per-trip pricing tariff
+  'yb_fuel_budget',          // monthly fuel budget setting
+  'yb_pricing_tank',         // fuel price, full-tank fill-ups
+  'yb_pricing_private'       // fuel price, private/personal fill-ups
+  // NOT added: yasin_maint_v1 / yasin_maint_cards_v1 (MAINT_KEY /
+  // CUSTOM_MAINT_KEY in maint.js) -- grepped for real usage beyond their
+  // own definition line and found none. These are dead keys left over
+  // from the removed Maintenance Fund feature (stubbed out per the
+  // existing "Stubs from Removed Features" note) -- syncing genuinely
+  // dead storage would just be sync traffic for nothing.
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
