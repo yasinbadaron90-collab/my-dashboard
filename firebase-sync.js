@@ -45,17 +45,22 @@ var FB_SYNC_KEYS = [
   'yasin_instalments_v1',
   // School
   'yb_school_results_v2',
-  // removed legacy: 'yasin_school_results_v1'
+  'yasin_school_results_v1', // legacy fallback -- do not remove, see note below
   // Prayer
   'yasin_prayer_v1',
   // Passengers
   'yb_passengers_v1',
   // Routine
   'yb_routine_v1',
-  // removed legacy: 'routine', 'yasin_routine_v2'
+  'routine',           // legacy fallback -- do not remove, see note below
+  'yasin_routine_v2',  // *** this is the CURRENT live key (ROUTINE_KEY in
+                        // instalments.js) -- removing this specific one isn't
+                        // cleanup, it's the exact bug fixed as v148f. A prior
+                        // pass removed it as an "obvious legacy duplicate" and
+                        // broke live sync again until this restore.
   // Priority Rules
   'yb_priority_rules_v1',
-  // removed legacy: 'priorityRules'
+  'priorityRules',     // legacy fallback -- do not remove, see note below
   // Settings
   'yb_maint_settings_v1',
   'yb_push_subscription',
@@ -219,6 +224,23 @@ function fbSignOut(){
   });
 }
 
+// Keys that intentionally never sync, verified against real usage this
+// session -- NOT oversights. Checked against this list so the safety-net
+// warning below only fires on genuine gaps, not on every PIN digit typed.
+var FB_EXCLUDED_KEYS = [
+  'yb_pins',                        // lock-screen PIN -- security, device-local by design
+  'yb_bf_api_key_v1',               // bank-feed API credential -- security
+  'yb_bankfeed_sessions_v1',        // in-progress import session state -- ephemeral
+  'yasin_sync_meta_v1',             // sync's own bookkeeping -- syncing this would be circular
+  'yb_cf_sourcetype_migration_v1',  // one-time migration flag -- per-device system state
+  'yb_cfdata_premigration_backup_v1', // one-time migration backup -- per-device
+  'yb_home_folder_state_v1',        // Home page UI expand/collapse state -- cosmetic
+  'yb_rpt_folders_v1',              // Carpool report folder UI state -- cosmetic
+  'yasin_theme_light',              // display preference, fine to differ per device
+  'yasin_maint_v1',                 // dead key, removed Maintenance Fund feature
+  'yasin_maint_cards_v1'            // dead key, removed Maintenance Fund feature
+];
+
 // ── Patch lsSet to also write to Firestore ────────────────────────────────────
 var _originalLsSet = null;
 function _fbPatchLsSet(){
@@ -229,7 +251,8 @@ function _fbPatchLsSet(){
     if(FB_SYNC_KEYS.indexOf(key) >= 0){
       _fbQueueWrite(key, val);
     } else if (typeof key === 'string' &&
-               (key.indexOf('yb_') === 0 || key.indexOf('yasin_') === 0)) {
+               (key.indexOf('yb_') === 0 || key.indexOf('yasin_') === 0) &&
+               FB_EXCLUDED_KEYS.indexOf(key) < 0) {
       // Safety net: catch any future data key that was forgotten in FB_SYNC_KEYS
       console.warn('[Firebase] lsSet on non-synced key (add to FB_SYNC_KEYS?):', key);
     }
