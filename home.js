@@ -151,11 +151,11 @@ function _alertKey(a){
   return (a.tab || '') + '|' + (a.text || '');
 }
 function _alertLoadState(){
-  try { return JSON.parse(localStorage.getItem(_ALERT_STATE_KEY) || '{}') || {}; }
+  try { return JSON.parse(lsGet(_ALERT_STATE_KEY) || '{}') || {}; }
   catch(e){ return {}; }
 }
 function _alertSaveState(s){
-  try { localStorage.setItem(_ALERT_STATE_KEY, JSON.stringify(s)); } catch(e){}
+  try { lsSet(_ALERT_STATE_KEY, JSON.stringify(s)); } catch(e){}
 }
 function _alertIsHidden(a, state){
   var k = _alertKey(a);
