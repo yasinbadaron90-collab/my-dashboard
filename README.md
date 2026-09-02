@@ -85,10 +85,11 @@ Every feature serves that principle. Every bug fix reinforces it.
 
 ## Known Limitations
 
-- **Supabase was used and removed** — full code cleanup complete, zero traces remain
+- **Supabase was used and removed** — functional code fully migrated to Firebase; one harmless comment referencing the old migration remains in `cashflow.js` (not functional code, not yet cleaned up)
 - **Maintenance Fund feature removed** — replaced with a 38-line stub to avoid breaking unguarded callers
-- **Backup export key gap** — Firebase sync is complete, but the JSON export doesn't include all lend/repay/spend records yet
 - **School rounding** — 1-point difference vs. transcript due to Regent's internal rounding (known and accepted)
+- **Key naming mixed** — some storage keys still use the older `yasin_*` prefix alongside `yb_*`. Functional, but a full rename needs a one-time migration path (deferred on purpose)
+- **Alert state doesn't live-sync** — `yb_alert_state_v1` is written via a direct `localStorage` call in `home.js` instead of the app's synced `lsSet()` wrapper, so live changes don't reach Firebase even though the key is included in backups and full syncs
 
 ## Contributing
 
@@ -100,4 +101,4 @@ Questions? Open an issue or check the code — it's all vanilla JS, no magic.
 
 **Built by:** Yasin Badaron  
 **Status:** Live, actively maintained  
-**Last updated:** July 2026
+**Last updated:** September 2026
