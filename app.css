@@ -898,3 +898,15 @@ body.modal-open #fabToggle {
 .scan-reconcile{font-size:11px;padding:10px 14px;border-radius:8px;margin-bottom:12px;line-height:1.6;}
 .scan-reconcile-ok{background:#0d1a00;border:1px solid #2a4a00;color:#8ab820;}
 .scan-reconcile-warn{background:#1a0800;border:1px solid #5a3000;color:#f2a830;}
+
+/* ── PLAN zone (Home) — Plan Integration Brief, 2026-09-05 ────────────── */
+.home-plan-cards{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+.home-plan-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.home-plan-card-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.home-plan-card-bal{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;letter-spacing:-0.5px;line-height:1;margin-bottom:4px;}
+.home-plan-card-sub{font-size:10px;color:var(--muted);letter-spacing:0.5px;margin-bottom:8px;}
+.home-plan-bar{height:5px;background:var(--muted2);border-radius:3px;overflow:hidden;margin-bottom:6px;}
+.home-plan-bar-fill{height:100%;border-radius:3px;transition:width .5s ease;}
+.home-plan-card-rule{font-size:10px;color:var(--muted);letter-spacing:0.3px;font-style:italic;}
+.home-plan-action{background:#1a2e00;border:1px solid #3a5a00;border-radius:8px;padding:12px 14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;color:#c8f230;text-transform:uppercase;margin-bottom:8px;}
+.home-plan-footer{font-size:9px;color:var(--muted);letter-spacing:1px;text-align:center;}

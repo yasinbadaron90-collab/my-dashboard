@@ -64,6 +64,7 @@ function renderHome(){
   // Build all 3 zones, concatenate, set innerHTML once (fewer reflows).
   var html = ''
     + _renderHomeZone1Money()
+    + _renderHomeZonePlan()
     + _renderHomeZone2Alerts()
     + _renderHomeZone3Folders();
 
@@ -72,8 +73,140 @@ function renderHome(){
 
 
 // ════════════════════════════════════════════════════════════════════
-// ZONE 1: YOUR MONEY (pocket strip + 3 buttons)
-// ════════════════════════════════════════════════════════════════════
+// PLAN — stored rules + live readouts (Plan Integration Brief, 2026-09-05)
+// Deliberately NOT hardcoded into this render function: every number below
+// comes from PLAN_KEY, editable in Settings, so the plan can change without
+// a code deploy. Only the pocket IDs (Emergency_Vault, Ee90) and the
+// external-borrower key ('nuri') are fixed, because those identify WHICH
+// live data to read, not what the targets are.
+var PLAN_KEY = 'yb_plan_v1';
+var PLAN_DEFAULTS = {
+  vaultTarget: 63000,   // 6 months' gross salary -- confirmed 2026-09-05, "60k+" per Yasin
+  ee90Target: 5000,     // confirmed 2026-09-05 (brief's number, not the earlier R4,000+)
+  ee90Monthly: 1200,    // confirmed 2026-09-05
+  nuriMonthly: 1000,    // matches what's actually been paid every month so far
+  stipendEnd: '2026-10-31', // last CONFIRMED month is October; no exact day was ever given,
+                             // so this uses month-end rather than inventing a specific date
+  notes: ''
+};
+function loadPlan(){
+  try {
+    var saved = JSON.parse(lsGet(PLAN_KEY) || 'null');
+    if(saved && typeof saved === 'object') return Object.assign({}, PLAN_DEFAULTS, saved);
+  } catch(e){}
+  return Object.assign({}, PLAN_DEFAULTS);
+}
+function savePlan(p){ lsSet(PLAN_KEY, JSON.stringify(p)); }
+
+function _populatePlanSettings(){
+  var p = loadPlan();
+  var ids = ['planVaultTarget','planEe90Target','planEe90Monthly','planNuriMonthly','planStipendEnd','planNotes'];
+  if(!ids.every(function(id){ return document.getElementById(id); })) return; // settings markup not on this page yet
+  document.getElementById('planVaultTarget').value = p.vaultTarget;
+  document.getElementById('planEe90Target').value  = p.ee90Target;
+  document.getElementById('planEe90Monthly').value = p.ee90Monthly;
+  document.getElementById('planNuriMonthly').value = p.nuriMonthly;
+  document.getElementById('planStipendEnd').value  = p.stipendEnd;
+  document.getElementById('planNotes').value        = p.notes || '';
+}
+
+function savePlanSettings(){
+  var status = document.getElementById('planSaveStatus');
+  var p = {
+    vaultTarget: parseFloat(document.getElementById('planVaultTarget').value) || 0,
+    ee90Target:  parseFloat(document.getElementById('planEe90Target').value)  || 0,
+    ee90Monthly: parseFloat(document.getElementById('planEe90Monthly').value) || 0,
+    nuriMonthly: parseFloat(document.getElementById('planNuriMonthly').value) || 0,
+    stipendEnd:  document.getElementById('planStipendEnd').value || PLAN_DEFAULTS.stipendEnd,
+    notes:       document.getElementById('planNotes').value.trim()
+  };
+  savePlan(p);
+  if(typeof renderHome === 'function') renderHome(); // reflect the new rules immediately, not just on next visit
+  if(status){
+    status.style.color = '#c8f230';
+    status.textContent = '✓ Saved — Home Plan cards updated';
+    setTimeout(function(){ if(status) status.textContent = ''; }, 3000);
+  }
+}
+
+function _renderHomeZonePlan(){
+  var plan = loadPlan();
+
+  // Live balances -- same fundTotal() every other screen uses, not a
+  // separate calculation that could quietly drift from Cash Flow.
+  var vaultFund = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === 'lyvyib7'; });
+  var ee90Fund  = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === 'murqfqm'; });
+  var vaultBal = vaultFund ? fundTotal(vaultFund) : 0;
+  var ee90Bal  = ee90Fund  ? fundTotal(ee90Fund)  : 0;
+
+  // Live debt -- same calcPersonTotals() the Money Owed page uses, not a
+  // reimplementation that could disagree with it.
+  var nuriOwing = 0;
+  try {
+    var ext = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
+    var nuriEntries = (ext.nuri && ext.nuri.entries) ? ext.nuri.entries : [];
+    var totals = calcPersonTotals(nuriEntries, false);
+    nuriOwing = totals.borrowed - totals.repaid;
+  } catch(e){}
+
+  var vaultPct = plan.vaultTarget > 0 ? Math.min(100, (vaultBal/plan.vaultTarget)*100) : 0;
+  var ee90Pct  = plan.ee90Target  > 0 ? Math.min(100, (ee90Bal /plan.ee90Target )*100) : 0;
+
+  var today = new Date().toISOString().split('T')[0];
+  var stipendOver = today > plan.stipendEnd;
+
+  function card(title, sub, balance, color, progressHtml, ruleHtml){
+    return ''
+      + '<div class="home-plan-card" style="border-left:3px solid '+color+';">'
+      +   '<div class="home-plan-card-title">'+title+'</div>'
+      +   '<div class="home-plan-card-bal" style="color:'+color+';">'+fmtR(balance)+'</div>'
+      +   '<div class="home-plan-card-sub">'+sub+'</div>'
+      +   progressHtml
+      +   (ruleHtml ? '<div class="home-plan-card-rule">'+ruleHtml+'</div>' : '')
+      + '</div>';
+  }
+
+  var vaultCard = card(
+    'EMERGENCY VAULT',
+    'Target '+fmtR(plan.vaultTarget)+' · '+vaultPct.toFixed(1)+'%',
+    vaultBal, '#c8f230',
+    '<div class="home-plan-bar"><div class="home-plan-bar-fill" style="width:'+vaultPct+'%;background:#c8f230;"></div></div>',
+    stipendOver ? 'After stipend end: month\'s Net − Ee90 → vault' : ''
+  );
+  var ee90Card = card(
+    'EE90 CAR FUND',
+    'Target '+fmtR(plan.ee90Target)+' · '+ee90Pct.toFixed(1)+'%',
+    ee90Bal, '#30c8f2',
+    '<div class="home-plan-bar"><div class="home-plan-bar-fill" style="width:'+ee90Pct+'%;background:#30c8f2;"></div></div>',
+    'Commitment: '+fmtR(plan.ee90Monthly)+'/month'
+  );
+  var nuriCard = card(
+    'NURI DEBT',
+    fmtR(plan.nuriMonthly)+'/month · don\'t accelerate yet',
+    nuriOwing, '#f23060',
+    ''
+  );
+
+  var actionLine = fmtR(plan.ee90Monthly)+' → Ee90 · remainder of Net → Vault';
+  var auditBadge = (typeof _auditResults !== 'undefined' && _auditResults)
+    ? (_auditResults.failCount === 0 ? 'Self-Audit clean' : 'Self-Audit has open items')
+    : 'Self-Audit not yet run this session';
+
+  return ''
+    + '<div class="home-zone">'
+    +   '<div class="home-zone-hdr">'
+    +     '<div class="home-zone-title">🎯 Plan'
+    +       '<button class="info-btn" onclick="openInfo(\'Plan\', \'Live from your real pockets and debt -- not a static snapshot. Targets and monthly commitments are editable in Settings, so the plan can change without needing a new app version.\')">ⓘ</button>'
+    +     '</div>'
+    +     '<div class="home-zone-meta">Live from pockets · rules editable in Settings</div>'
+    +   '</div>'
+    +   '<div class="home-plan-cards">'+vaultCard+ee90Card+nuriCard+'</div>'
+    +   '<div class="home-plan-action">THIS MONTH — '+actionLine+'</div>'
+    +   '<div class="home-plan-footer">'+auditBadge+' · figures live · full plan notes in Settings</div>'
+    + '</div>';
+}
+
+
 function _renderHomeZone1Money(){
   // Source of truth: same fundTotal calc the savings tab uses.
   // Excludes soft-deleted funds (same as renderFunds).

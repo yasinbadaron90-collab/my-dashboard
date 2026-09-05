@@ -104,7 +104,10 @@ var FB_SYNC_KEYS = [
   'yb_carpool_tariff_v1',    // carpool per-trip pricing tariff
   'yb_fuel_budget',          // monthly fuel budget setting
   'yb_pricing_tank',         // fuel price, full-tank fill-ups
-  'yb_pricing_private'       // fuel price, private/personal fill-ups
+  'yb_pricing_private',      // fuel price, private/personal fill-ups
+  // Plan (Plan Integration Brief, 2026-09-05) -- editable rules, not
+  // hardcoded balances, so this genuinely needs to sync like real data.
+  'yb_plan_v1'
   // NOT added: yasin_maint_v1 / yasin_maint_cards_v1 (MAINT_KEY /
   // CUSTOM_MAINT_KEY in maint.js) -- grepped for real usage beyond their
   // own definition line and found none. These are dead keys left over
