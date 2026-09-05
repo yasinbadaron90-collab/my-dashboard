@@ -700,6 +700,7 @@ function buildBackupPayload(){
     manualBalances: JSON.parse(lsGet('yb_manual_balances_v1') ||'{}'),
     priorityRules:  JSON.parse(lsGet('yb_priority_rules_v1')  ||'null'),
     carpoolArchived: JSON.parse(lsGet('yb_carpool_archived')  ||'[]'),
+    plan: JSON.parse(lsGet('yb_plan_v1') || 'null'),
     // ── FIX 2026-09-02 — second backup-export gap, found after the 2026-07-13
     // fix and after 4 new keys got added to Firebase sync this session.
     // Two of these (tariff, fuelBudget) are keys that only just started
@@ -798,6 +799,7 @@ function restoreData(input){
       if(backup.manualBalances) lsSet('yb_manual_balances_v1', JSON.stringify(backup.manualBalances));
       if(backup.priorityRules)  lsSet('yb_priority_rules_v1',  JSON.stringify(backup.priorityRules));
       if(backup.carpoolArchived) lsSet('yb_carpool_archived',  JSON.stringify(backup.carpoolArchived));
+      if(backup.plan) lsSet('yb_plan_v1', JSON.stringify(backup.plan));
       // ── FIX 2026-09-02 — restore side of the second backup-export gap ──
       if(backup.carpoolTariff)     lsSet('yb_carpool_tariff_v1',      JSON.stringify(backup.carpoolTariff));
       if(backup.fuelBudget !== undefined && backup.fuelBudget !== null){

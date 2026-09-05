@@ -188,8 +188,12 @@ function _renderHomeZonePlan(){
   );
 
   var actionLine = fmtR(plan.ee90Monthly)+' → Ee90 · remainder of Net → Vault';
+  var auditFails = 0;
+  if(typeof _auditResults !== 'undefined' && Array.isArray(_auditResults)){
+    _auditResults.forEach(function(g){ (g.rows||[]).forEach(function(r){ if(r.status==='fail') auditFails++; }); });
+  }
   var auditBadge = (typeof _auditResults !== 'undefined' && _auditResults)
-    ? (_auditResults.failCount === 0 ? 'Self-Audit clean' : 'Self-Audit has open items')
+    ? (auditFails === 0 ? 'Self-Audit clean' : 'Self-Audit has open items')
     : 'Self-Audit not yet run this session';
 
   return ''

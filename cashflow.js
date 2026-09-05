@@ -678,6 +678,8 @@ function openSettings(){
   renderPassengerRows();
   // Populate the carpool tariff inputs with current saved values
   if(typeof populateCarpoolTariffInputs === 'function') try { populateCarpoolTariffInputs(); } catch(e){}
+  // Populate Plan settings inputs with current saved values
+  if(typeof _populatePlanSettings === 'function') try { _populatePlanSettings(); } catch(e){}
   document.getElementById('settingsModal').classList.add('active');
   // Pre-fill Bank Feed API key field
   try { if(typeof bfPreFillKeyInput === 'function') bfPreFillKeyInput(); } catch(e){}
