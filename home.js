@@ -64,7 +64,6 @@ function renderHome(){
   // Build all 3 zones, concatenate, set innerHTML once (fewer reflows).
   var html = ''
     + _renderHomeZone1Money()
-    + _renderHomeZonePlan()
     + _renderHomeZone2Alerts()
     + _renderHomeZone3Folders();
 
@@ -73,121 +72,101 @@ function renderHome(){
 
 
 // ════════════════════════════════════════════════════════════════════
-// PLAN — stored rules + live readouts (Plan Integration Brief, 2026-09-05)
-// Deliberately NOT hardcoded into this render function: every number below
-// comes from PLAN_KEY, editable in Settings, so the plan can change without
-// a code deploy. Only the pocket IDs (Emergency_Vault, Ee90) and the
-// external-borrower key ('nuri') are fixed, because those identify WHICH
-// live data to read, not what the targets are.
+// PLAN — dedicated tab, stored rules + live readouts + pickable sources
+// (Plan Integration Brief 2026-09-05; moved off Home and made fully
+// pickable 2026-09-05 per Yasin: "editable like any pocket can be picked
+// ... its own tab, not the home screen"). Nothing below is hardcoded to a
+// specific pocket or person -- WHICH pocket/debtor each card reads is
+// itself stored data (pocketId/debtorKey), changeable via Edit Plan,
+// exactly like the target numbers already were.
+// ════════════════════════════════════════════════════════════════════
 var PLAN_KEY = 'yb_plan_v1';
 var PLAN_DEFAULTS = {
-  vaultTarget: 63000,   // 6 months' gross salary -- confirmed 2026-09-05, "60k+" per Yasin
-  ee90Target: 5000,     // confirmed 2026-09-05 (brief's number, not the earlier R4,000+)
-  ee90Monthly: 1200,    // confirmed 2026-09-05
-  nuriMonthly: 1000,    // matches what's actually been paid every month so far
-  stipendEnd: '2026-10-31', // last CONFIRMED month is October; no exact day was ever given,
-                             // so this uses month-end rather than inventing a specific date
+  savingsCards: [
+    { id:'c1', pocketId:'lyvyib7', label:'Emergency Vault', target:63000, monthly:0 },
+    { id:'c2', pocketId:'murqfqm', label:'Ee90 Car Fund',   target:5000,  monthly:1200 }
+  ],
+  debtCard: { debtorKey:'nuri', label:'Nuri Debt', monthly:1000 },
+  stipendEnd: '2026-10-31',
   notes: ''
 };
 function loadPlan(){
   try {
     var saved = JSON.parse(lsGet(PLAN_KEY) || 'null');
-    if(saved && typeof saved === 'object') return Object.assign({}, PLAN_DEFAULTS, saved);
+    if(saved && typeof saved === 'object'){
+      return {
+        savingsCards: Array.isArray(saved.savingsCards) ? saved.savingsCards : PLAN_DEFAULTS.savingsCards,
+        debtCard: saved.debtCard || PLAN_DEFAULTS.debtCard,
+        stipendEnd: saved.stipendEnd || PLAN_DEFAULTS.stipendEnd,
+        notes: saved.notes || ''
+      };
+    }
   } catch(e){}
-  return Object.assign({}, PLAN_DEFAULTS);
+  return JSON.parse(JSON.stringify(PLAN_DEFAULTS)); // deep copy, defaults are nested objects/arrays now
 }
 function savePlan(p){ lsSet(PLAN_KEY, JSON.stringify(p)); }
 
-function _populatePlanSettings(){
-  var p = loadPlan();
-  var ids = ['planVaultTarget','planEe90Target','planEe90Monthly','planNuriMonthly','planStipendEnd','planNotes'];
-  if(!ids.every(function(id){ return document.getElementById(id); })) return; // settings markup not on this page yet
-  document.getElementById('planVaultTarget').value = p.vaultTarget;
-  document.getElementById('planEe90Target').value  = p.ee90Target;
-  document.getElementById('planEe90Monthly').value = p.ee90Monthly;
-  document.getElementById('planNuriMonthly').value = p.nuriMonthly;
-  document.getElementById('planStipendEnd').value  = p.stipendEnd;
-  document.getElementById('planNotes').value        = p.notes || '';
+var _planEditMode = false;
+
+function _planPocketOptions(selectedId){
+  var list = (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return !f._deleted; });
+  return list.map(function(f){
+    return '<option value="'+f.id+'"'+(f.id===selectedId?' selected':'')+'>'+_escHtml(f.emoji||'')+' '+_escHtml(f.name)+'</option>';
+  }).join('');
+}
+function _planDebtorOptions(selectedKey){
+  var ext = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
+  return Object.keys(ext).map(function(key){
+    var name = (ext[key] && ext[key].name) ? ext[key].name : key;
+    return '<option value="'+key+'"'+(key===selectedKey?' selected':'')+'>'+_escHtml(name)+'</option>';
+  }).join('');
 }
 
-function savePlanSettings(){
-  var status = document.getElementById('planSaveStatus');
-  var p = {
-    vaultTarget: parseFloat(document.getElementById('planVaultTarget').value) || 0,
-    ee90Target:  parseFloat(document.getElementById('planEe90Target').value)  || 0,
-    ee90Monthly: parseFloat(document.getElementById('planEe90Monthly').value) || 0,
-    nuriMonthly: parseFloat(document.getElementById('planNuriMonthly').value) || 0,
-    stipendEnd:  document.getElementById('planStipendEnd').value || PLAN_DEFAULTS.stipendEnd,
-    notes:       document.getElementById('planNotes').value.trim()
-  };
-  savePlan(p);
-  if(typeof renderHome === 'function') renderHome(); // reflect the new rules immediately, not just on next visit
-  if(status){
-    status.style.color = '#c8f230';
-    status.textContent = '✓ Saved — Home Plan cards updated';
-    setTimeout(function(){ if(status) status.textContent = ''; }, 3000);
-  }
-}
+function toggleaPlanEdit(){ _planEditMode = !_planEditMode; renderPlan(); }
 
-function _renderHomeZonePlan(){
+function renderPlan(){
+  var container = document.getElementById('planContent');
+  if(!container) return;
   var plan = loadPlan();
 
-  // Live balances -- same fundTotal() every other screen uses, not a
-  // separate calculation that could quietly drift from Cash Flow.
-  var vaultFund = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === 'lyvyib7'; });
-  var ee90Fund  = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === 'murqfqm'; });
-  var vaultBal = vaultFund ? fundTotal(vaultFund) : 0;
-  var ee90Bal  = ee90Fund  ? fundTotal(ee90Fund)  : 0;
+  if(_planEditMode){ container.innerHTML = _planRenderEditForm(plan); return; }
 
-  // Live debt -- same calcPersonTotals() the Money Owed page uses, not a
-  // reimplementation that could disagree with it.
-  var nuriOwing = 0;
+  var cardsHtml = plan.savingsCards.map(function(c){
+    var fund = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === c.pocketId; });
+    var bal = fund ? fundTotal(fund) : 0;
+    var pct = c.target > 0 ? Math.min(100, (bal/c.target)*100) : 0;
+    var pocketMissing = !fund;
+    return ''
+      + '<div class="home-plan-card" style="border-left:3px solid '+(pocketMissing?'#f2a830':'#c8f230')+';">'
+      +   '<div class="home-plan-card-title">'+_escHtml(c.label.toUpperCase())+'</div>'
+      +   '<div class="home-plan-card-bal" style="color:'+(pocketMissing?'#f2a830':'#c8f230')+';">'+(pocketMissing?'Pocket not found':fmtR(bal))+'</div>'
+      +   '<div class="home-plan-card-sub">Target '+fmtR(c.target)+' · '+pct.toFixed(1)+'%'+(fund?' · '+_escHtml(fund.name):'')+'</div>'
+      +   '<div class="home-plan-bar"><div class="home-plan-bar-fill" style="width:'+pct+'%;background:#c8f230;"></div></div>'
+      +   (c.monthly ? '<div class="home-plan-card-rule">Commitment: '+fmtR(c.monthly)+'/month</div>' : '')
+      + '</div>';
+  }).join('');
+
+  var debtOwing = 0, debtName = plan.debtCard.label;
   try {
     var ext = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
-    var nuriEntries = (ext.nuri && ext.nuri.entries) ? ext.nuri.entries : [];
-    var totals = calcPersonTotals(nuriEntries, false);
-    nuriOwing = totals.borrowed - totals.repaid;
+    var person = ext[plan.debtCard.debtorKey];
+    if(person){
+      var totals = calcPersonTotals(person.entries || [], false);
+      debtOwing = totals.borrowed - totals.repaid;
+      debtName = person.name || plan.debtCard.label;
+    }
   } catch(e){}
+  var debtCardHtml = ''
+    + '<div class="home-plan-card" style="border-left:3px solid #f23060;">'
+    +   '<div class="home-plan-card-title">'+_escHtml(debtName.toUpperCase())+'</div>'
+    +   '<div class="home-plan-card-bal" style="color:#f23060;">'+fmtR(debtOwing)+'</div>'
+    +   '<div class="home-plan-card-sub">'+fmtR(plan.debtCard.monthly)+'/month · don\'t accelerate yet</div>'
+    + '</div>';
 
-  var vaultPct = plan.vaultTarget > 0 ? Math.min(100, (vaultBal/plan.vaultTarget)*100) : 0;
-  var ee90Pct  = plan.ee90Target  > 0 ? Math.min(100, (ee90Bal /plan.ee90Target )*100) : 0;
+  var totalMonthly = plan.savingsCards.reduce(function(s,c){return s+(c.monthly||0);}, 0);
+  var actionParts = plan.savingsCards.filter(function(c){return c.monthly>0;}).map(function(c){ return fmtR(c.monthly)+' → '+c.label; });
+  var actionLine = actionParts.length ? actionParts.join(' · ')+' · remainder of Net → savings' : 'No monthly commitments set yet';
 
-  var today = new Date().toISOString().split('T')[0];
-  var stipendOver = today > plan.stipendEnd;
-
-  function card(title, sub, balance, color, progressHtml, ruleHtml){
-    return ''
-      + '<div class="home-plan-card" style="border-left:3px solid '+color+';">'
-      +   '<div class="home-plan-card-title">'+title+'</div>'
-      +   '<div class="home-plan-card-bal" style="color:'+color+';">'+fmtR(balance)+'</div>'
-      +   '<div class="home-plan-card-sub">'+sub+'</div>'
-      +   progressHtml
-      +   (ruleHtml ? '<div class="home-plan-card-rule">'+ruleHtml+'</div>' : '')
-      + '</div>';
-  }
-
-  var vaultCard = card(
-    'EMERGENCY VAULT',
-    'Target '+fmtR(plan.vaultTarget)+' · '+vaultPct.toFixed(1)+'%',
-    vaultBal, '#c8f230',
-    '<div class="home-plan-bar"><div class="home-plan-bar-fill" style="width:'+vaultPct+'%;background:#c8f230;"></div></div>',
-    stipendOver ? 'After stipend end: month\'s Net − Ee90 → vault' : ''
-  );
-  var ee90Card = card(
-    'EE90 CAR FUND',
-    'Target '+fmtR(plan.ee90Target)+' · '+ee90Pct.toFixed(1)+'%',
-    ee90Bal, '#30c8f2',
-    '<div class="home-plan-bar"><div class="home-plan-bar-fill" style="width:'+ee90Pct+'%;background:#30c8f2;"></div></div>',
-    'Commitment: '+fmtR(plan.ee90Monthly)+'/month'
-  );
-  var nuriCard = card(
-    'NURI DEBT',
-    fmtR(plan.nuriMonthly)+'/month · don\'t accelerate yet',
-    nuriOwing, '#f23060',
-    ''
-  );
-
-  var actionLine = fmtR(plan.ee90Monthly)+' → Ee90 · remainder of Net → Vault';
   var auditFails = 0;
   if(typeof _auditResults !== 'undefined' && Array.isArray(_auditResults)){
     _auditResults.forEach(function(g){ (g.rows||[]).forEach(function(r){ if(r.status==='fail') auditFails++; }); });
@@ -196,18 +175,65 @@ function _renderHomeZonePlan(){
     ? (auditFails === 0 ? 'Self-Audit clean' : 'Self-Audit has open items')
     : 'Self-Audit not yet run this session';
 
-  return ''
+  container.innerHTML = ''
     + '<div class="home-zone">'
     +   '<div class="home-zone-hdr">'
-    +     '<div class="home-zone-title">🎯 Plan'
-    +       '<button class="info-btn" onclick="openInfo(\'Plan\', \'Live from your real pockets and debt -- not a static snapshot. Targets and monthly commitments are editable in Settings, so the plan can change without needing a new app version.\')">ⓘ</button>'
-    +     '</div>'
-    +     '<div class="home-zone-meta">Live from pockets · rules editable in Settings</div>'
+    +     '<div class="home-zone-title">🎯 Plan</div>'
+    +     '<button class="pane-toggle" onclick="toggleaPlanEdit()" title="Edit Plan">✎</button>'
     +   '</div>'
-    +   '<div class="home-plan-cards">'+vaultCard+ee90Card+nuriCard+'</div>'
+    +   '<div class="home-zone-meta">Live from pockets · pick which pocket/person each card tracks in Edit</div>'
+    +   '<div class="home-plan-cards">'+cardsHtml+debtCardHtml+'</div>'
     +   '<div class="home-plan-action">THIS MONTH — '+actionLine+'</div>'
-    +   '<div class="home-plan-footer">'+auditBadge+' · figures live · full plan notes in Settings</div>'
+    +   '<div class="home-plan-footer">'+auditBadge+' · figures live · plan notes below</div>'
+    +   (plan.notes ? '<div class="home-plan-card-rule" style="margin-top:8px;">'+_escHtml(plan.notes)+'</div>' : '')
     + '</div>';
+}
+
+function _planRenderEditForm(plan){
+  var rows = plan.savingsCards.map(function(c, i){
+    return ''
+      + '<div class="home-plan-card" style="border-left:3px solid #30c8f2;">'
+      +   '<div class="field"><label>Label</label><input type="text" data-plan-card="'+i+'" data-field="label" value="'+_escAttr(c.label)+'"/></div>'
+      +   '<div class="field"><label>Pocket</label><select data-plan-card="'+i+'" data-field="pocketId">'+_planPocketOptions(c.pocketId)+'</select></div>'
+      +   '<div class="field"><label>Target (R)</label><input type="number" data-plan-card="'+i+'" data-field="target" value="'+c.target+'"/></div>'
+      +   '<div class="field"><label>Monthly commitment (R)</label><input type="number" data-plan-card="'+i+'" data-field="monthly" value="'+c.monthly+'"/></div>'
+      + '</div>';
+  }).join('');
+
+  var debtRow = ''
+    + '<div class="home-plan-card" style="border-left:3px solid #f23060;">'
+    +   '<div class="field"><label>Debt label</label><input type="text" id="planDebtLabel" value="'+_escAttr(plan.debtCard.label)+'"/></div>'
+    +   '<div class="field"><label>Person</label><select id="planDebtorKey">'+_planDebtorOptions(plan.debtCard.debtorKey)+'</select></div>'
+    +   '<div class="field"><label>Monthly repayment (R)</label><input type="number" id="planDebtMonthly" value="'+plan.debtCard.monthly+'"/></div>'
+    + '</div>';
+
+  return ''
+    + '<div class="home-zone">'
+    +   '<div class="home-zone-hdr"><div class="home-zone-title">🎯 Edit Plan</div>'
+    +     '<button class="pane-toggle" onclick="toggleaPlanEdit()" title="Cancel">✕</button></div>'
+    +   '<div class="home-plan-cards">'+rows+debtRow+'</div>'
+    +   '<div class="field"><label>Stipend end date</label><input type="date" id="planStipendEnd" value="'+plan.stipendEnd+'"/></div>'
+    +   '<div class="field"><label>Notes (optional)</label><input type="text" id="planNotesInput" value="'+_escAttr(plan.notes||'')+'" placeholder="e.g. reassess after provident fund payout"/></div>'
+    +   '<button onclick="savePlanFromForm()" style="width:100%;padding:12px;background:#c8f230;border:none;border-radius:6px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Plan</button>'
+    + '</div>';
+}
+
+function savePlanFromForm(){
+  var plan = loadPlan();
+  document.querySelectorAll('[data-plan-card]').forEach(function(el){
+    var i = parseInt(el.getAttribute('data-plan-card'), 10);
+    var field = el.getAttribute('data-field');
+    if(!plan.savingsCards[i]) return;
+    plan.savingsCards[i][field] = (field==='target'||field==='monthly') ? (parseFloat(el.value)||0) : el.value;
+  });
+  plan.debtCard.label = document.getElementById('planDebtLabel').value;
+  plan.debtCard.debtorKey = document.getElementById('planDebtorKey').value;
+  plan.debtCard.monthly = parseFloat(document.getElementById('planDebtMonthly').value) || 0;
+  plan.stipendEnd = document.getElementById('planStipendEnd').value || PLAN_DEFAULTS.stipendEnd;
+  plan.notes = document.getElementById('planNotesInput').value.trim();
+  savePlan(plan);
+  _planEditMode = false;
+  renderPlan();
 }
 
 

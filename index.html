@@ -192,6 +192,7 @@ function _showUpdateToast(worker){
   <button class="nav-tab admin-only" id="navOdin" onclick="switchTab('odin',this)">🧠 Odin</button>
   <button class="nav-tab admin-only" id="navCashflow" onclick="switchTab('cashflow',this)">💵 Cash Flow</button>
   <button class="nav-tab admin-only" id="navCars" onclick="switchTab('cars',this)">🔧 Cars</button>
+  <button class="nav-tab admin-only" id="navPlan" onclick="switchTab('plan',this)">🎯 Plan</button>
   <button class="nav-tab admin-only" id="navInstalments" style="display:none;" onclick="switchTab('instalments',this)">💳 Instalments</button>
   <button class="nav-tab admin-only" id="navSchool" style="display:none;" onclick="switchTab('school',this)">🎓 School</button>
   <button class="nav-tab admin-only" id="navRoutine" style="display:none;" onclick="switchTab('routine',this)">🔁 Routine</button>
@@ -242,6 +243,9 @@ function _showUpdateToast(worker){
       </button>
       <button class="hbg-item admin-only" onclick="closeDrawer();switchTab('cars',document.getElementById('navCars'));">
         <span class="hbg-icon">🔧</span> Car Service Tracker
+      </button>
+      <button class="hbg-item admin-only" onclick="closeDrawer();switchTab('plan',document.getElementById('navPlan'));">
+        <span class="hbg-icon">🎯</span> Plan
       </button>
       <button class="hbg-item admin-only" onclick="closeDrawer();switchTab('instalments',document.getElementById('navInstalments'));">
         <span class="hbg-icon">💳</span> Instalments
@@ -1403,25 +1407,6 @@ function _showUpdateToast(worker){
       <div id="restoreStatus" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:14px;letter-spacing:1px;"></div>
     </div>
 
-    <!-- PLAN — editable rules, Plan Integration Brief 2026-09-05 -->
-    <div style="background:#0d1a00;border:1px solid #1e3a00;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
-      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
-        <span style="font-size:22px;line-height:1;">🎯</span>
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;margin-bottom:3px;">Plan</div>
-          <div style="font-size:10px;color:#5a8800;line-height:1.6;">Edit the targets and monthly commitments shown on the Home Plan cards. Balances themselves always read live — only these rules are stored.</div>
-        </div>
-      </div>
-      <div class="field"><label>Emergency Vault target (R)</label><input type="number" id="planVaultTarget"/></div>
-      <div class="field"><label>Ee90 target (R)</label><input type="number" id="planEe90Target"/></div>
-      <div class="field"><label>Ee90 monthly commitment (R)</label><input type="number" id="planEe90Monthly"/></div>
-      <div class="field"><label>Nuri monthly repayment (R)</label><input type="number" id="planNuriMonthly"/></div>
-      <div class="field"><label>Stipend end date</label><input type="date" id="planStipendEnd"/></div>
-      <div class="field"><label>Notes (optional)</label><input type="text" id="planNotes" placeholder="e.g. reassess after provident fund payout"/></div>
-      <button onclick="savePlanSettings()" style="width:100%;padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Plan</button>
-      <div id="planSaveStatus" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:14px;letter-spacing:1px;"></div>
-    </div>
-
     <!-- ANTHROPIC API KEY — used by Bank Feed Companion to read PDFs + photos -->
     <div style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:8px;padding:16px 18px;margin-bottom:12px;">
       <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
@@ -1862,6 +1847,10 @@ function _showUpdateToast(worker){
 <!-- ══════════════════════════════════════════════════════════
      CAR SERVICE TRACKER PAGE
 ══════════════════════════════════════════════════════════ -->
+<div class="page admin-only" id="page-plan" style="padding:20px 16px 80px;">
+  <div id="planContent"></div>
+</div>
+
 <div class="page admin-only" id="page-cars" style="padding:0 0 80px;">
   <!-- Odin Bar -->
   <div class="odin-bar admin-only" onclick="toggleOdinPanel('cars')" id="odinBar-cars">

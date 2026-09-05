@@ -1684,6 +1684,7 @@ function _renderTabSafely(tab){
     _safeCall(function(){ if(typeof renderOdinInsights==='function') renderOdinInsights('money'); }, 'renderOdinInsights(money)');
   }
   if(tab==='cars')        _safeCall(typeof renderCars==='function'?renderCars:null, 'renderCars');
+  if(tab==='plan')        _safeCall(typeof renderPlan==='function'?renderPlan:null, 'renderPlan');
   if(tab==='instalments') _safeCall(typeof renderInst==='function'?renderInst:null, 'renderInst');
   if(tab==='school')      _safeCall(typeof renderSchool==='function'?renderSchool:null, 'renderSchool');
   if(tab==='routine')     _safeCall(typeof renderRoutine==='function'?renderRoutine:null, 'renderRoutine');
@@ -1726,6 +1727,8 @@ function switchTab(tab,btn){
   if(navHome) navHome.classList.remove('active');
   var navCars = document.getElementById('navCars');
   if(navCars) navCars.classList.remove('active');
+  var navPlan = document.getElementById('navPlan');
+  if(navPlan) navPlan.classList.remove('active');
   var navInst = document.getElementById('navInstalments');
   if(navInst) navInst.classList.remove('active');
   var navSchool = document.getElementById('navSchool');
@@ -1740,6 +1743,7 @@ function switchTab(tab,btn){
   if(tab==='savings') document.getElementById('navSavings').classList.add('active');
   if(tab==='carpool') document.getElementById('navCarpool').classList.add('active');
   if(tab==='cars' && navCars) navCars.classList.add('active');
+  if(tab==='plan' && navPlan) navPlan.classList.add('active');
   if(tab==='instalments' && navInst) navInst.classList.add('active');
   if(tab==='school' && navSchool) navSchool.classList.add('active');
   if(tab==='routine' && navRoutine) navRoutine.classList.add('active');
@@ -1767,6 +1771,8 @@ function goToTab(tab){
   if(navHome) navHome.classList.remove('active');
   var navCars = document.getElementById('navCars');
   if(navCars) navCars.classList.remove('active');
+  var navPlan = document.getElementById('navPlan');
+  if(navPlan) navPlan.classList.remove('active');
   var navInst = document.getElementById('navInstalments');
   if(navInst) navInst.classList.remove('active');
   var navSchool = document.getElementById('navSchool');
@@ -1779,6 +1785,7 @@ function goToTab(tab){
   if(tab==='savings') document.getElementById('navSavings').classList.add('active');
   if(tab==='carpool') document.getElementById('navCarpool').classList.add('active');
   if(tab==='cars' && navCars) navCars.classList.add('active');
+  if(tab==='plan' && navPlan) navPlan.classList.add('active');
   if(tab==='instalments' && navInst) navInst.classList.add('active');
   if(tab==='school' && navSchool) navSchool.classList.add('active');
   if(tab==='routine' && navRoutine) navRoutine.classList.add('active');
