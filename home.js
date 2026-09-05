@@ -94,6 +94,23 @@ function loadPlan(){
   try {
     var saved = JSON.parse(lsGet(PLAN_KEY) || 'null');
     if(saved && typeof saved === 'object'){
+      // Migration: v148n/v148o briefly used a flat shape (vaultTarget,
+      // ee90Target, ee90Monthly, nuriMonthly as top-level numbers, no
+      // savingsCards/debtCard). Detected by exactly that absence. Converts
+      // any real values saved during that window instead of silently
+      // reverting them to today's defaults.
+      if(saved.savingsCards === undefined && typeof saved.vaultTarget === 'number'){
+        saved = {
+          savingsCards: [
+            { id:'c1', pocketId:PLAN_DEFAULTS.savingsCards[0].pocketId, label:'Emergency Vault', target: saved.vaultTarget, monthly: 0 },
+            { id:'c2', pocketId:PLAN_DEFAULTS.savingsCards[1].pocketId, label:'Ee90 Car Fund',   target: saved.ee90Target, monthly: saved.ee90Monthly }
+          ],
+          debtCard: { debtorKey:'nuri', label:'Nuri Debt', monthly: saved.nuriMonthly },
+          stipendEnd: saved.stipendEnd,
+          notes: saved.notes
+        };
+        savePlan(saved); // persist the migrated shape so this only ever runs once
+      }
       return {
         savingsCards: Array.isArray(saved.savingsCards) ? saved.savingsCards : PLAN_DEFAULTS.savingsCards,
         debtCard: saved.debtCard || PLAN_DEFAULTS.debtCard,
@@ -122,7 +139,7 @@ function _planDebtorOptions(selectedKey){
   }).join('');
 }
 
-function toggleaPlanEdit(){ _planEditMode = !_planEditMode; renderPlan(); }
+function togglePlanEdit(){ _planEditMode = !_planEditMode; renderPlan(); }
 
 function renderPlan(){
   var container = document.getElementById('planContent');
@@ -179,7 +196,7 @@ function renderPlan(){
     + '<div class="home-zone">'
     +   '<div class="home-zone-hdr">'
     +     '<div class="home-zone-title">🎯 Plan</div>'
-    +     '<button class="pane-toggle" onclick="toggleaPlanEdit()" title="Edit Plan">✎</button>'
+    +     '<button class="pane-toggle" onclick="togglePlanEdit()" title="Edit Plan">✎</button>'
     +   '</div>'
     +   '<div class="home-zone-meta">Live from pockets · pick which pocket/person each card tracks in Edit</div>'
     +   '<div class="home-plan-cards">'+cardsHtml+debtCardHtml+'</div>'
@@ -210,7 +227,7 @@ function _planRenderEditForm(plan){
   return ''
     + '<div class="home-zone">'
     +   '<div class="home-zone-hdr"><div class="home-zone-title">🎯 Edit Plan</div>'
-    +     '<button class="pane-toggle" onclick="toggleaPlanEdit()" title="Cancel">✕</button></div>'
+    +     '<button class="pane-toggle" onclick="togglePlanEdit()" title="Cancel">✕</button></div>'
     +   '<div class="home-plan-cards">'+rows+debtRow+'</div>'
     +   '<div class="field"><label>Stipend end date</label><input type="date" id="planStipendEnd" value="'+plan.stipendEnd+'"/></div>'
     +   '<div class="field"><label>Notes (optional)</label><input type="text" id="planNotesInput" value="'+_escAttr(plan.notes||'')+'" placeholder="e.g. reassess after provident fund payout"/></div>'
