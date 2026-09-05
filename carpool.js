@@ -1367,9 +1367,35 @@ function confirmPayDest(){
 
   // Show success toast
   const destName = choice === 'cashflow' ? 'Cash Flow' : choice.startsWith('fund:') ? (funds.find(function(f){ return f.id===choice.replace('fund:',''); })||{}).name||'Fund' : 'Maintenance';
+
+  // ── Close the loop after Mark Paid (Plan outsider improvements #4) ─────
+  // If the destination is a pocket Plan is actively tracking with a monthly
+  // commitment, say exactly where this stands now -- not just that it
+  // succeeded. Reuses the identical "this month, this pocket" sum from the
+  // pre-selection logic above, so the number here can never disagree with
+  // what Mark Paid showed before Confirm was even tapped.
+  var planFeedback = '';
+  try {
+    if(choice.startsWith('fund:') && typeof loadPlan === 'function'){
+      var _pocketId = choice.replace('fund:','');
+      var _plan = loadPlan();
+      var _card = (_plan.savingsCards||[]).find(function(c){ return c.pocketId === _pocketId && c.monthly > 0; });
+      if(_card){
+        var _now = new Date();
+        var _mk = _now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0');
+        var _pmts = [];
+        try { _pmts = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); } catch(e){}
+        var _routed = _pmts.filter(function(p){ return p.date && p.date.slice(0,7)===_mk && p.destChoice==='fund:'+_pocketId; })
+                           .reduce(function(s,p){ return s+(p.amount||0); }, 0);
+        var _left = Math.max(0, _card.monthly - _routed);
+        planFeedback = ' · '+fmtR(_left)+' left this month';
+      }
+    }
+  } catch(e){ console.warn('[Plan] post-confirm feedback skipped:', e.message); }
+
   const toast = document.createElement('div');
   toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d1a00;border:1px solid #c8f230;border-radius:8px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#c8f230;letter-spacing:1px;white-space:nowrap;';
-  toast.textContent = '✓ '+fmtR(totalOwing)+' from '+passenger+' → '+destName;
+  toast.textContent = '✓ '+fmtR(totalOwing)+' from '+passenger+' → '+destName+planFeedback;
   document.body.appendChild(toast);
   setTimeout(function(){ toast.remove(); }, 4000);
 
