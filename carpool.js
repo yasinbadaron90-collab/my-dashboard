@@ -1007,11 +1007,64 @@ function openPayDestModal(btn){
   optionsEl.innerHTML = '';
 
   // Savings funds
+  var fundOptionEls = {}; // pocketId -> option element, so Plan can pre-select one below
   funds.filter(function(f){ return !f._deleted; }).forEach(function(f){
     const saved = fundTotal(f);
     const pct = f.goal > 0 ? Math.min(100, Math.round(saved/f.goal*100)) : 0;
-    optionsEl.appendChild(buildDestOption('fund:'+f.id, f.emoji+' '+f.name, fmtR(saved)+' saved · '+pct+'% of goal', '#c8f230'));
+    var optEl = buildDestOption('fund:'+f.id, f.emoji+' '+f.name, fmtR(saved)+' saved · '+pct+'% of goal', '#c8f230');
+    fundOptionEls[f.id] = optEl;
+    optionsEl.appendChild(optEl);
   });
+
+  // ── Plan pre-selection (Plan + Mark Paid Routing, 2026-09-05) ──────────
+  // Only ever looks at carpool money -- salary, Eid/Birthday funding, and
+  // everything else stays completely untouched and manual, on purpose.
+  // Eligible = this card's pocket hasn't hit its overall target AND this
+  // month's own commitment cap hasn't been used up yet (both, not either --
+  // a card that's full for the year shouldn't get more just because this
+  // month's cap resets, and a card mid-target shouldn't overflow past its
+  // monthly pace just because the yearly total isn't there yet).
+  var planHintEl = document.getElementById('payDestPlanHint');
+  if(planHintEl) planHintEl.remove(); // clear any hint left from a previous open
+  try {
+    var plan = (typeof loadPlan === 'function') ? loadPlan() : null;
+    if(plan){
+      var now = new Date();
+      var thisMonthKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+      var allPmts = [];
+      try { allPmts = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); } catch(e){}
+
+      var chosenCard = null, chosenLeft = 0;
+      (plan.savingsCards||[]).some(function(c){
+        if(!c.monthly || c.monthly <= 0) return false;
+        var pocket = funds.find(function(f){ return f.id === c.pocketId && !f._deleted; });
+        if(!pocket) return false;
+        if(c.target > 0 && fundTotal(pocket) >= c.target) return false; // overall target already met
+        var routedThisMonth = allPmts
+          .filter(function(p){ return p.date && p.date.slice(0,7) === thisMonthKey && p.destChoice === 'fund:'+c.pocketId; })
+          .reduce(function(s,p){ return s + (p.amount||0); }, 0);
+        if(routedThisMonth >= c.monthly) return false; // this month's cap already used
+        chosenCard = c;
+        chosenLeft = c.monthly - routedThisMonth;
+        return true; // first eligible card wins
+      });
+
+      if(chosenCard && fundOptionEls[chosenCard.pocketId]){
+        var hint = document.createElement('div');
+        hint.id = 'payDestPlanHint';
+        hint.style.cssText = 'background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:10px;color:#c8f230;letter-spacing:0.5px;';
+        hint.textContent = 'PLAN — '+fmtR(chosenLeft)+' left on '+chosenCard.label+' this month. Change only if you need to.';
+        optionsEl.parentNode.insertBefore(hint, optionsEl);
+        selectDestOption(fundOptionEls[chosenCard.pocketId]);
+      } else {
+        var hint2 = document.createElement('div');
+        hint2.id = 'payDestPlanHint';
+        hint2.style.cssText = 'background:#111;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:10px;color:#888;letter-spacing:0.5px;';
+        hint2.textContent = 'PLAN — this month\'s commitments are covered. Pick where this goes.';
+        optionsEl.parentNode.insertBefore(hint2, optionsEl);
+      }
+    }
+  } catch(e){ console.warn('[Plan] Mark Paid pre-selection skipped:', e.message); }
 
   // Maintenance Fund (original)
   const maintMonth = getMaintData().filter(function(e){
