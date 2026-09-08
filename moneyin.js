@@ -145,10 +145,68 @@ function _miSyncInputs(){
 // into that target fund, capped at what's left. Anything remaining at the
 // end goes into the Daily pocket. This is ONLY a suggestion — every box
 // is editable below.
+// ── Plan pre-allocation (Money In + Plan pre-select, 2026-09-08) ────────
+// Runs BEFORE the Priority Rules pass below. If a Plan savings card
+// (plan.savingsCards) still has room this month, that pocket gets first
+// claim on the incoming money -- same "first eligible card wins" rule
+// Carpool Mark Paid already uses. Deliberately scoped to Money In's OWN
+// history only (never reads carpool's yb_carpool_payments_v1), same as
+// Mark Paid only ever reads its own carpool log -- keeps the two features
+// from double-counting each other's contribution toward the same monthly
+// commitment. Whatever Plan doesn't claim falls through to Priority Rules
+// exactly as before -- this is one more waterfall step, not a change to
+// the locked "pre-fill uses Priority Rules" design.
+var _miLastPlanHint = null;
+function _miPlanPreAllocate(leftover){
+  _miLastPlanHint = null;
+  if(leftover <= 0) return null;
+  try {
+    var plan = (typeof loadPlan === 'function') ? loadPlan() : null;
+    if(!plan) return null;
+    var now = new Date();
+    var thisMonthKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    var allMi = loadMoneyInData();
+
+    var chosen = null, chosenLeft = 0;
+    (plan.savingsCards||[]).some(function(c){
+      if(!c.monthly || c.monthly <= 0) return false;
+      var pocket = funds.find(function(f){ return f.id === c.pocketId && !f._deleted; });
+      if(!pocket) return false;
+      if(c.target > 0 && fundTotal(pocket) >= c.target) return false; // overall target already met
+      var routedThisMonth = allMi
+        .filter(function(r){ return r.date && r.date.slice(0,7) === thisMonthKey; })
+        .reduce(function(s,r){
+          var split = (r.splits||[]).find(function(sp){ return sp.fundId === c.pocketId; });
+          return s + (split ? split.amount : 0);
+        }, 0);
+      if(routedThisMonth >= c.monthly) return false; // this month's cap already used, by Money In itself
+      chosen = c;
+      chosenLeft = c.monthly - routedThisMonth;
+      return true; // first eligible card wins -- identical rule to Mark Paid
+    });
+
+    if(!chosen) return null;
+    var alloc = Math.min(chosenLeft, leftover);
+    _miLastPlanHint = { label: chosen.label, left: chosenLeft, alloc: alloc };
+    return { fundId: chosen.pocketId, alloc: alloc };
+  } catch(e){
+    console.warn('[moneyin] Plan pre-allocate skipped:', e.message);
+    return null;
+  }
+}
+
 function _miBuildPrefill(leftover){
   var prefill = {};
   if(leftover <= 0) return prefill;
   var rem = leftover;
+
+  // Plan gets first claim; whatever's left runs through Priority Rules
+  // exactly as before.
+  var planPick = _miPlanPreAllocate(rem);
+  if(planPick){
+    prefill[planPick.fundId] = (prefill[planPick.fundId]||0) + planPick.alloc;
+    rem -= planPick.alloc;
+  }
 
   try{
     var rules = (typeof getActivePriorities === 'function') ? getActivePriorities() : [];
@@ -236,6 +294,19 @@ function _miRenderPocketSplit(){
 
   var c = document.getElementById('miPocketList');
   if(!c) return;
+
+  // Plan hint -- mirrors Carpool Mark Paid's payDestPlanHint styling.
+  // Only on a fresh, un-edited open (same gate as the prefill call above).
+  var existingHint = document.getElementById('miPlanHint');
+  if(existingHint) existingHint.remove();
+  if(_miLastPlanHint && !hasUserEdits && !_miState.editingId){
+    var hint = document.createElement('div');
+    hint.id = 'miPlanHint';
+    hint.style.cssText = 'background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:10px;color:#c8f230;letter-spacing:0.5px;';
+    hint.textContent = 'PLAN — '+fmtR(_miLastPlanHint.alloc)+' → '+_miLastPlanHint.label+' first · '+fmtR(_miLastPlanHint.left)+' left this month';
+    c.parentNode.insertBefore(hint, c);
+  }
+
   c.innerHTML = '';
 
   // Show every pocket, in their current funds[] order
