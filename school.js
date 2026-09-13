@@ -1144,9 +1144,6 @@ function askOdinAboutSchool(){
   } catch(e){ console.warn('askOdinAboutSchool failed:', e); }
 }
 
-function quickAddSchoolEvent(){
-  openAddSchoolEvent();
-}
 
 function isSchoolEmpty(){
   try {

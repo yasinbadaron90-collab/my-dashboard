@@ -558,41 +558,8 @@ function _spendReverse(spId, opts){
 }
 
 // ── Public delete (with confirm) ───────────────────────────────────────
-function deleteSpend(spId){
-  var all = loadSpendData();
-  var rec = all.find(function(r){ return r.id === spId; });
-  if(!rec) return;
-
-  var pocket = funds.find(function(f){ return f.id === rec.pocketId; });
-  var pname = pocket ? pocket.name : 'pocket';
-  var label = (rec.label || 'Spend') + ' · ' + fmtR(rec.amount) + ' · ' + rec.date;
-
-  function doDelete(){
-    _spendReverse(spId);
-    if(typeof softDeleteToast === 'function'){
-      softDeleteToast({ message: 'Spend reversed · ' + fmtR(rec.amount) + ' back to ' + pname, duration: 3000 });
-    }
-  }
-
-  // Custom dialog if available; native confirm() fallback
-  if(typeof mihbConfirm === 'function'){
-    mihbConfirm({
-      title:       'Delete this Spend?',
-      message:     label + '\n\nThis returns ' + fmtR(rec.amount) + ' to ' + pname + ' and removes the Cash Flow row. The bank stays where it is.',
-      dangerLabel: '↩ Delete & return to pocket',
-      safeLabel:   'Leave it alone'
-    }, function(go){ if(go) doDelete(); });
-  } else {
-    if(confirm('Delete this Spend?\n\n' + label + '\n\n' + fmtR(rec.amount) + ' returns to ' + pname + '.')){
-      doDelete();
-    }
-  }
-}
 
 // ── Edit (re-opens the Spend modal with the record loaded) ─────────────
-function editSpend(spId){
-  openSpend(spId);
-}
 
 // ── HTML escape (small util — keep local so we don't depend on core) ───
 function escapeSpHTML(s){

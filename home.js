@@ -337,18 +337,6 @@ function _alertLoadState(){
 function _alertSaveState(s){
   try { lsSet(_ALERT_STATE_KEY, JSON.stringify(s)); } catch(e){}
 }
-function _alertIsHidden(a, state){
-  var k = _alertKey(a);
-  var s = state[k];
-  if(!s) return false;
-  if(s.state === 'dismissed') return true;
-  if(s.state === 'snoozed' && s.until){
-    if(new Date(s.until) > new Date()) return true;
-    // expired — caller should clean up
-    return false;
-  }
-  return false;
-}
 function _alertSnooze(a, days){
   var state = _alertLoadState();
   var until = new Date();
@@ -359,11 +347,6 @@ function _alertSnooze(a, days){
 function _alertDismiss(a){
   var state = _alertLoadState();
   state[_alertKey(a)] = { state:'dismissed', until:null };
-  _alertSaveState(state);
-}
-function _alertUnsnooze(a){
-  var state = _alertLoadState();
-  delete state[_alertKey(a)];
   _alertSaveState(state);
 }
 function _alertGarbageCollect(state, currentAlerts){

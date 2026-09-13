@@ -218,21 +218,6 @@ function fbSignInWithGoogle(){
 }
 
 // ── Sign Out ──────────────────────────────────────────────────────────────────
-function fbSignOut(){
-  if(!_fb.auth) return;
-  if(!confirm('Sign out? Your data is safely backed up in Firebase.')) return;
-  _fb.auth.signOut().then(function(){
-    _fb.uid   = null;
-    _fb.ready = false;
-    _fbUpdateStatus('offline');
-    // Show login screen again
-    var screen = document.getElementById('loginScreen');
-    if(screen){
-      screen.style.display = 'flex';
-      screen.style.opacity = '1';
-    }
-  });
-}
 
 // Keys that intentionally never sync, verified against real usage this
 // session -- NOT oversights. Checked against this list so the safety-net

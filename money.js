@@ -23,10 +23,6 @@ function openExternalBorrowModal(){
 // ── v142c — Historical debt toggle ────────────────────────────────────────
 var _extHistoricalMode = false;
 
-function toggleExtHistorical(){
-  _extHistoricalMode = !_extHistoricalMode;
-  _applyExtHistoricalUI();
-}
 
 function _applyExtHistoricalUI(){
   var tog    = document.getElementById('extHistoricalToggle');
@@ -611,22 +607,6 @@ function confirmAddMoreBorrow(){
   setTimeout(function(){ if(toast.parentNode) toast.remove(); }, 5000);
 }
 
-function buildFundSelectOptions(selectId){
-  const sel = document.getElementById(selectId);
-  if(!sel) return;
-  // Only FNB funds (exclude TymeBank and Kids funds)
-  const tymeFundNames=['The Vault (Tax)','Traffic Infractions'];
-  const kidsFundNames=["Masud's Fund"];
-  const fnbFunds = funds.filter(function(f){
-    return kidsFundNames.indexOf(f.name) < 0 && tymeFundNames.indexOf(f.name) < 0;
-  });
-  sel.innerHTML = '<option value="">— Don\'t add to savings —</option>'
-    + fnbFunds.map(function(f){
-        return '<option value="'+f.id+'">'+f.emoji+' '+f.name+'</option>';
-      }).join('')
-    + '<option value="__maint__">🔧 Maintenance Fund</option>';
-  sel.value = '';
-}
 
 // ══ v86 (2026-05-27) — POCKET-FIRST external repay ═════════════════════
 // Mirror of carpool confirmRepay flow. Same data shape, same hard-block,
@@ -871,16 +851,6 @@ function confirmExternalRepay(){
   }catch(e){}
 }
 
-function showRepayToast(name, amount, fundName){
-  const old = document.getElementById('repayFundToast');
-  if(old) old.remove();
-  const toast = document.createElement('div');
-  toast.id = 'repayFundToast';
-  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0a1a2e;border:1px solid #7090f0;border-radius:8px;padding:12px 16px;z-index:9999;display:flex;align-items:center;gap:10px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;color:#7090f0;box-shadow:0 4px 20px rgba(0,0,0,.6);min-width:260px;';
-  toast.innerHTML = '<span>✓ R'+Number(amount).toLocaleString('en-ZA')+' from '+name+' added to <strong style="color:var(--text);">'+fundName+'</strong></span><button onclick="document.getElementById(\'repayFundToast\').remove();" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
-  document.body.appendChild(toast);
-  setTimeout(function(){ if(toast.parentNode) toast.remove(); }, 5000);
-}
 
 function calcPersonTotals(entries, isCarpool){
   // Rewritten 2026-08-10. Old version treated `paid:true` as "contributes
@@ -1506,11 +1476,6 @@ function _buildPersonPDF(p){
 
 // Patch openRepayModal to accept an optional passenger name
 var _origOpenRepayModal = null;
-function openRepayModalFor(passengerName){
-  const sel = document.getElementById('repayPassenger');
-  if(sel) sel.value = passengerName;
-  openRepayModal();
-}
 function saveDailyFuel(){
   try{ var el=document.getElementById('dailyFuelCost'); if(el) lsSet(DAILY_FUEL_KEY, el.value); }catch(e){}
 }

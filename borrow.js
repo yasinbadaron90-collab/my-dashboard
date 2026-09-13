@@ -353,29 +353,6 @@ function openEditBorrowModal(passenger, entryId){
   document.getElementById('editBorrowModal').classList.add('active');
 }
 
-function confirmEditBorrow(){
-  const passenger = document.getElementById('editBorrowPassenger').value;
-  const entryId   = document.getElementById('editBorrowId').value;
-  const amount    = parseFloat(document.getElementById('editBorrowAmt').value);
-  const date      = document.getElementById('editBorrowDate').value;
-  const note      = document.getElementById('editBorrowNote').value.trim();
-  if(!amount || amount <= 0){ alert('Enter a valid amount.'); return; }
-  const entries = borrowData[passenger] || [];
-  const idx = entries.findIndex(function(e){ return e.id === entryId; });
-  if(idx === -1) return;
-  entries[idx].amount = amount;
-  entries[idx].date   = date;
-  entries[idx].note   = note;
-  saveBorrows();
-  // Keep the linked Cash Flow expense in sync (amount/date) + adjust the
-  // bank tile by the difference. No-op if this entry has no cfId.
-  try { updateLinkedCFEntry(entries[idx].cfId, amount, date, passenger); } catch(e){}
-  closeModal('editBorrowModal');
-  renderCarpool();
-  renderMoneyOwed();
-  const stmtArea = document.getElementById('stmtArea');
-  if(stmtArea && stmtArea.style.display !== 'none') generateStatements();
-}
 
 function deleteBorrowEntry(passenger, entryId){
   var _entry = (borrowData[passenger]||[]).find(function(e){ return e.id === entryId; });
@@ -1176,20 +1153,6 @@ window._repaymentReverse = function(repayId, opts){
   return true;
 };
 
-function getBorrowTotal(passenger){
-  if(!borrowData[passenger]) return { borrowTotal:0, borrowPaid:0 };
-  let borrowTotal=0, borrowPaid=0;
-  borrowData[passenger].forEach(function(b){
-    if(b.type === 'repay'){
-      // Repayments reduce what they owe
-      borrowPaid += Number(b.amount || 0);
-    } else {
-      borrowTotal += Number(b.amount || 0);
-      if(b.paid) borrowPaid += Number(b.amount || 0);
-    }
-  });
-  return { borrowTotal, borrowPaid };
-}
 
 
 // ── Archive settled external borrow person ──
