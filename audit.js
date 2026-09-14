@@ -9,7 +9,11 @@
 // Check groups mirror the real bug classes found July 2026:
 //   💰 Pocket Math        — deposit integrity, negative balances
 //   🔗 Mirror-Link Chains — payment↔deposit↔CF links, orphaned pocket
-//                           references (the MTN / merged-pocket class)
+//                           references (the MTN / merged-pocket class),
+//                           plus a REVERSE sweep from the source stores
+//                           so records with no pointer at all are counted
+//                           in the denominator (v148v) — this is the only
+//                           coverage Moves have
 //   🏦 Baseline           — reconBalances sanity
 //   🧱 Structure & Rules  — emoji uniqueness (v147d), duplicate IDs,
 //                           storage-key presence (v147e), carpool
@@ -65,7 +69,9 @@ function _auCheckNegativePockets(){
     var bal = (typeof fundTotal === 'function') ? fundTotal(f)
       : (f.deposits||[]).reduce(function(s,d){ return d.txnType==='out' ? s-d.amount : s+d.amount; }, 0);
     return { name: f.name, bal: bal };
-  }).filter(function(r){ return r.bal < 0; });
+  }).filter(function(r){ return r.bal < -0.005; });   // epsilon: floating-point
+  // residue like -6e-13 is not a real negative balance. Without this, an
+  // exact-zero pocket can render as "-R0" and read as a genuine failure.
   return {
     status: neg.length ? 'warn' : 'pass',
     name: 'Negative balance scan',
@@ -134,7 +140,105 @@ function _auCheckCFResolution(){
     name: 'Cash Flow → source record resolution',
     detail: missing.length
       ? missing.slice(0,4).join(' · ') + (missing.length > 4 ? ' · +' + (missing.length-4) + ' more' : '')
-      : counts.spendId + ' spends · ' + counts.moneyInId + ' money-in · ' + counts.repayId + ' repayments · ' + counts.carpoolPaymentId + ' carpool links — all resolve'
+      : counts.spendId + ' spends · ' + counts.moneyInId + ' money-in · ' + counts.repayId + ' repayments · ' + counts.carpoolPaymentId + ' carpool links — every pointer found resolves (records with NO pointer are counted by the reverse sweep below)'
+  };
+}
+
+function _auCheckSourceCoverage(){
+  // REVERSE of _auCheckCFResolution.
+  //
+  // That check walks Cash Flow rows and verifies each pointer it finds
+  // resolves to a source record. A source record whose own pointer is null
+  // -- a failed CF post, or a dangling ref that was cleared -- is invisible
+  // to it: no CF row carries the id, so nothing gets checked, and the
+  // survivors report "all resolve". That is how 94 spends displayed as
+  // "80 spends - all resolve" (Sept 2026).
+  //
+  // This check walks the SOURCE stores instead, so the denominator is the
+  // real record count. It also gives Moves their first coverage of any kind.
+  var fundsArr = _auGetFunds();
+  var cf = _auGetCF();
+
+  var cfIds = {};   // every Cash Flow row id, all months, both sections
+  _auMonthKeys(cf).forEach(function(mk){
+    ['income','expenses'].forEach(function(sec){
+      (cf[mk][sec]||[]).forEach(function(e){ if(e && e.id) cfIds[e.id] = true; });
+    });
+  });
+
+  var depOwner = {};   // deposit id -> owning fund id
+  fundsArr.forEach(function(f){
+    (f.deposits||[]).forEach(function(d){ if(d && d.id) depOwner[d.id] = f.id; });
+  });
+
+  function cfOK(id){ return !!(id && cfIds[id]); }
+  function depOK(id, expectFundId){
+    if(!id) return false;
+    if(!depOwner[id]) return false;
+    if(expectFundId && depOwner[id] !== expectFundId) return false;
+    return true;
+  }
+
+  var summary = [], detailLines = [], totalRecs = 0, totalBad = 0;
+
+  function tally(label, recs, checkFn){
+    var bad = [];
+    recs.forEach(function(r){
+      if(!r) return;
+      var why = checkFn(r);
+      if(why) bad.push({ rec:r, why:why });
+    });
+    totalRecs += recs.length;
+    totalBad  += bad.length;
+    summary.push(recs.length + ' ' + label + (bad.length ? ' \u2192 ' + (recs.length - bad.length) + ' linked, ' + bad.length + ' broken' : ' \u2713'));
+    bad.slice(0,3).forEach(function(b){
+      detailLines.push(label.replace(/s$/,'') + ' ' + (b.rec.date||'?') + ' "' + (b.rec.label||b.rec.note||b.rec.passenger||b.rec.id) + '" \u2014 ' + b.why);
+    });
+    if(bad.length > 3) detailLines.push('+' + (bad.length - 3) + ' more ' + label);
+  }
+
+  // Spend: pocket deposit (txnType:out) + CF expense + ledger record, 3-way.
+  tally('spends', _auGetJSON('yb_spend_v1'), function(r){
+    var probs = [];
+    if(!cfOK(r.cfId))                     probs.push('no Cash Flow row');
+    if(!depOK(r.depositId, r.pocketId))   probs.push('no pocket deposit');
+    return probs.length ? probs.join(' + ') : null;
+  });
+
+  // Money In: CF income row + one deposit & CF row per pocket split.
+  tally('money-in', _auGetJSON('yb_moneyin_v1'), function(r){
+    var probs = [];
+    if(!cfOK(r.cfIncomeId)) probs.push('no CF income row');
+    var badSplits = (r.splits||[]).filter(function(s){
+      return !cfOK(s.cfId) || !depOK(s.depositId, s.fundId);
+    }).length;
+    if(badSplits) probs.push(badSplits + ' split(s) unlinked');
+    return probs.length ? probs.join(' + ') : null;
+  });
+
+  // Repayment: CF income + pocket deposit + borrow ledger entry.
+  tally('repayments', _auGetJSON('yb_repayments_v1'), function(r){
+    var probs = [];
+    if(!cfOK(r.cfRowId))                  probs.push('no CF income row');
+    if(!depOK(r.pocketDepId, r.pocketId)) probs.push('no pocket deposit');
+    return probs.length ? probs.join(' + ') : null;
+  });
+
+  // Move: in/out deposit pair only. No CF row, no baseline -- by design.
+  tally('moves', _auGetJSON('yb_moves_v1'), function(r){
+    var probs = [];
+    if(!depOK(r.fromDepId, r.fromId)) probs.push('source deposit missing');
+    if(!depOK(r.toDepId, r.toId))     probs.push('destination deposit missing');
+    return probs.length ? probs.join(' + ') : null;
+  });
+
+  return {
+    status: totalBad ? 'warn' : 'pass',
+    name: 'Source record \u2192 link coverage (reverse sweep)',
+    detail: totalBad
+      ? totalBad + ' of ' + totalRecs + ' records carry a broken or missing link \u2014 ' + summary.join(' \u00b7 ')
+        + ' \u2014 ' + detailLines.slice(0,5).join(' \u00b7 ')
+      : totalRecs + ' source records checked against pocket deposits and Cash Flow \u2014 ' + summary.join(' \u00b7 ')
   };
 }
 
@@ -634,7 +738,7 @@ async function _auCheckOutputConsistency(){
 // ── runner ───────────────────────────────────────────────────────────
 var _AU_GROUPS = [
   { icon:'💰', title:'Pocket Math',         checks:[_auCheckDeposits, _auCheckNegativePockets] },
-  { icon:'🔗', title:'Mirror-Link Chains',  checks:[_auCheckCarpoolChains, _auCheckCFResolution, _auCheckOrphanedPockets, _auCheckRepaymentResolution, _auCheckPaidWithoutBacking] },
+  { icon:'🔗', title:'Mirror-Link Chains',  checks:[_auCheckCarpoolChains, _auCheckCFResolution, _auCheckSourceCoverage, _auCheckOrphanedPockets, _auCheckRepaymentResolution, _auCheckPaidWithoutBacking] },
   { icon:'🏦', title:'Available Cash Baseline', checks:[_auCheckBaseline] },
   { icon:'🧱', title:'Structure & Rules',   checks:[_auCheckEmoji, _auCheckDuplicateIds, _auCheckStorageKeys, _auCheckOutputConsistency] },
   { icon:'☁️', title:'Sync & Backup',       checks:[_auCheckSyncInfrastructure, _auCheckLiveWriteKeysInSync, _auCheckAlertStateBypass] }
