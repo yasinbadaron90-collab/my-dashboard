@@ -242,6 +242,67 @@ function _auCheckSourceCoverage(){
   };
 }
 
+function _auCheckDepositOwnership(){
+  // A deposit may be claimed by exactly ONE source record.
+  //
+  // Nothing else in this audit can see a violation: every chain check follows
+  // its own id outward and never asks whether some OTHER store is holding the
+  // same deposit. Real case (Sept 2026) — a carpool deposit picked up a stray
+  // spendId during a manual data repair, and "Carpool payment <-> pocket
+  // deposit chains" kept reporting 36/36 the whole time it was corrupt. Two
+  // ledgers pointing at one deposit means the same rand is counted twice.
+  //
+  // Two field pairs legitimately co-occur and count as a SINGLE owner:
+  //   borrowEntryId + lendId       -> one lend
+  //   instalmentPayId + planId     -> one instalment payment
+  // cfId / cfRowId / cfPosted are Cash Flow pointers, not source ownership,
+  // and are deliberately not in this list.
+  var OWNER_GROUP = {
+    moveId:'Move', spendId:'Spend', moneyInId:'Money In', carpoolPaymentId:'Carpool payment',
+    borrowEntryId:'Lend', lendId:'Lend',
+    instalmentPayId:'Instalment', planId:'Instalment',
+    repayId:'Repayment', payDebtId:'Pay Debt', carExpenseId:'Car expense'
+  };
+
+  var scanned = 0, clashes = [];
+  _auGetFunds().forEach(function(f){
+    (f.deposits||[]).forEach(function(dep){
+      if(!dep || !dep.id) return;
+      scanned++;
+      var groups = {};
+      Object.keys(OWNER_GROUP).forEach(function(k){
+        if(dep[k]) groups[OWNER_GROUP[k]] = (groups[OWNER_GROUP[k]]||[]).concat(k + '=' + dep[k]);
+      });
+      var names = Object.keys(groups);
+      if(names.length > 1){
+        clashes.push({
+          fund: f.name, id: dep.id, date: dep.date || '?',
+          amount: dep.amount || 0, note: dep.note || '',
+          owners: names, detail: names.map(function(n){ return n + ' (' + groups[n].join(', ') + ')'; })
+        });
+      }
+    });
+  });
+
+  if(!clashes.length){
+    return {
+      status: 'pass',
+      name: 'Deposit ownership (one claim per deposit)',
+      detail: scanned + ' deposits scanned \u2014 every deposit is claimed by at most one source record'
+    };
+  }
+  return {
+    status: 'fail',
+    name: 'Deposit ownership (one claim per deposit)',
+    detail: clashes.length + ' of ' + scanned + ' deposits are claimed by more than one source \u2014 the same money is counted twice \u2014 '
+      + clashes.slice(0,4).map(function(c){
+          return c.fund + ' \u00b7 ' + c.date + ' \u00b7 ' + _auFmtR(c.amount)
+               + (c.note ? ' "' + c.note + '"' : '') + ' \u2014 ' + c.detail.join(' + ');
+        }).join(' \u00b7 ')
+      + (clashes.length > 4 ? ' \u00b7 +' + (clashes.length - 4) + ' more' : '')
+  };
+}
+
 function _auCheckOrphanedPockets(){
   var fundsArr = _auGetFunds();
   var live = {};
@@ -738,7 +799,7 @@ async function _auCheckOutputConsistency(){
 // ── runner ───────────────────────────────────────────────────────────
 var _AU_GROUPS = [
   { icon:'💰', title:'Pocket Math',         checks:[_auCheckDeposits, _auCheckNegativePockets] },
-  { icon:'🔗', title:'Mirror-Link Chains',  checks:[_auCheckCarpoolChains, _auCheckCFResolution, _auCheckSourceCoverage, _auCheckOrphanedPockets, _auCheckRepaymentResolution, _auCheckPaidWithoutBacking] },
+  { icon:'🔗', title:'Mirror-Link Chains',  checks:[_auCheckCarpoolChains, _auCheckCFResolution, _auCheckSourceCoverage, _auCheckDepositOwnership, _auCheckOrphanedPockets, _auCheckRepaymentResolution, _auCheckPaidWithoutBacking] },
   { icon:'🏦', title:'Available Cash Baseline', checks:[_auCheckBaseline] },
   { icon:'🧱', title:'Structure & Rules',   checks:[_auCheckEmoji, _auCheckDuplicateIds, _auCheckStorageKeys, _auCheckOutputConsistency] },
   { icon:'☁️', title:'Sync & Backup',       checks:[_auCheckSyncInfrastructure, _auCheckLiveWriteKeysInSync, _auCheckAlertStateBypass] }
