@@ -805,6 +805,72 @@ var _AU_GROUPS = [
   { icon:'☁️', title:'Sync & Backup',       checks:[_auCheckSyncInfrastructure, _auCheckLiveWriteKeysInSync, _auCheckAlertStateBypass] }
 ];
 
+// ── weekly background scan ───────────────────────────────────────────
+// Self-Audit is read-only, so running it unattended is safe. The only thing
+// this adds is a memory of WHEN it last ran and WHAT it found, so the app can
+// nudge instead of waiting for the button to be pressed.
+//
+// AUDIT_SCAN_KEY is device-local diagnostics, NOT app data — it is listed in
+// FB_EXCLUDED_KEYS in firebase-sync.js. Syncing it across devices would be
+// wrong: "last scanned on this phone" is a property of the phone.
+var AUDIT_SCAN_KEY  = 'yb_audit_lastscan_v1';
+var AUDIT_SCAN_DAYS = 7;
+
+function _auditGetScanMeta(){
+  try {
+    var raw = (typeof lsGet === 'function') ? lsGet(AUDIT_SCAN_KEY) : null;
+    if(!raw) return null;
+    var m = JSON.parse(raw);
+    return (m && m.at) ? m : null;
+  } catch(e){ return null; }
+}
+
+function _auditSaveScanMeta(){
+  if(!_auditResults) return;
+  var counts = { pass:0, warn:0, fail:0 };
+  _auditResults.forEach(function(g){ g.rows.forEach(function(r){ counts[r.status]++; }); });
+  try {
+    if(typeof lsSet === 'function')
+      lsSet(AUDIT_SCAN_KEY, JSON.stringify({ at: new Date().toISOString(), counts: counts }));
+  } catch(e){ /* a failed write must never break the audit itself */ }
+  _auditPaintBadge();
+}
+
+// Paints from STORED metadata, so it works at boot without running anything.
+function _auditPaintBadge(){
+  var el = document.getElementById('auditDrawerBadge');
+  if(!el) return;
+  var m = _auditGetScanMeta();
+  if(!m || !m.counts || (!m.counts.fail && !m.counts.warn)){ el.innerHTML = ''; return; }
+  var isFail = m.counts.fail > 0;
+  var n      = isFail ? m.counts.fail : m.counts.warn;
+  var col    = isFail ? '#f23060' : '#f2a830';
+  el.innerHTML = '<span style="margin-left:8px;font-size:9px;letter-spacing:1px;padding:2px 7px;'
+    + 'border-radius:20px;background:' + col + '22;color:' + col + ';border:1px solid ' + col + '55;">'
+    + n + (isFail ? ' ISSUE' + (n > 1 ? 'S' : '') : ' WARN') + '</span>';
+}
+
+// Called at app open. Runs at most once every AUDIT_SCAN_DAYS days.
+// A manual run also refreshes the timestamp, so pressing the button resets
+// the clock rather than stacking a background run on top of it.
+async function maybeRunWeeklyAudit(){
+  try {
+    _auditPaintBadge();                       // show last known result immediately
+    var m = _auditGetScanMeta();
+    if(m){
+      var ageDays = (Date.now() - new Date(m.at).getTime()) / 86400000;
+      // isFinite() first: a corrupted timestamp yields NaN, and NaN fails every
+      // comparison — without this guard `NaN < DAYS` is false, the gate returns
+      // early, and the weekly scan is silently disabled forever. Unreadable
+      // date must mean "never ran", not "ran just now".
+      if(isFinite(ageDays) && ageDays < AUDIT_SCAN_DAYS) return;
+    }
+    await runSelfAudit();
+  } catch(e){
+    console.warn('[Audit] weekly scan skipped:', e && e.message);
+  }
+}
+
 async function runSelfAudit(){
   var t0 = Date.now();
   var v = document.getElementById('auditVerdict');
@@ -819,6 +885,7 @@ async function runSelfAudit(){
   _auditResults = results;
   _auditLastRun = { at: new Date(), ms: Date.now() - t0 };
   _auditRenderResults();
+  _auditSaveScanMeta();     // manual runs reset the weekly clock too
 }
 
 // ── rendering ────────────────────────────────────────────────────────

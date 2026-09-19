@@ -233,7 +233,8 @@ var FB_EXCLUDED_KEYS = [
   'yb_rpt_folders_v1',              // Carpool report folder UI state -- cosmetic
   'yasin_theme_light',              // display preference, fine to differ per device
   'yasin_maint_v1',                 // dead key, removed Maintenance Fund feature
-  'yasin_maint_cards_v1'            // dead key, removed Maintenance Fund feature
+  'yasin_maint_cards_v1',           // dead key, removed Maintenance Fund feature
+  'yb_audit_lastscan_v1'            // Self-Audit last-run timestamp -- per-device diagnostics
 ];
 
 // ── Patch lsSet to also write to Firestore ────────────────────────────────────

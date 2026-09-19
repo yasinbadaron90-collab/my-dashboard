@@ -648,6 +648,12 @@ function applyRole(){
     try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
     // Fire reminders after a short delay
     setTimeout(checkReminders, 800);
+    // Weekly background Self-Audit. Read-only and gated to once every 7
+    // days; the delay keeps it off the critical render path.
+    setTimeout(function(){
+      try { if(typeof maybeRunWeeklyAudit === 'function') maybeRunWeeklyAudit(); }
+      catch(e){ console.warn('Weekly audit skipped:', e); }
+    }, 2500);
     // First-run wizard — triggered after createFirstAdmin sets the flag.
     // We fire it after a brief pause so the dashboard has time to render
     // underneath; the wizard then opens Odin chat with a welcome message.
