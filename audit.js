@@ -30,10 +30,58 @@ var _auditLastRun = null;   // session-only; audit persists nothing
 var _auditResults = null;
 
 // ── data access (app's own loaders, defensively) ────────────────────
-function _auGetFunds(){ return window.funds || (typeof funds !== 'undefined' ? funds : []); }
-function _auGetCF(){ return (typeof loadCFData === 'function') ? loadCFData() : {}; }
-function _auGetJSON(key){ try { return JSON.parse(lsGet(key)||'[]'); } catch(e){ return []; } }
+// _AU_SOURCE (v148y): null = live, unchanged from before. Time-travel
+// (step 4) is the ONLY thing allowed to set this, and MUST reset it to
+// null in a finally — see runTimeTravelAudit(). This never touches the
+// real global funds / lsGet / loadCFData / loadInst, so a scan that
+// throws partway through can never leave the live app reading fake
+// data; only these four functions know _AU_SOURCE exists at all.
+var _AU_SOURCE = null;
+
+// raw storage key -> field name on a loaded backup / _AU_SOURCE snapshot.
+// Every _auGetJSON(key) call site needs an entry here. A key with no
+// entry, or one whose field is missing on the snapshot, throws instead
+// of falling back to [] — under time-travel, empty must never look
+// the same as "not wired up yet" (that's the failure this step exists
+// to catch: a mis-mapped file reporting a clean 17/17).
+var _AU_KEY_MAP = {
+  'yb_spend_v1':             'spends',
+  'yb_moneyin_v1':           'moneyIn',
+  'yb_moves_v1':             'moves',
+  'yb_repayments_v1':        'repayments',
+  'yb_carpool_payments_v1':  'carpoolPayments',
+  'yb_lends_v1':             'lends'
+};
+
+function _auGetFunds(){
+  if(_AU_SOURCE){
+    if(!Array.isArray(_AU_SOURCE.funds)) throw new Error('_AU_SOURCE has no "funds" array — malformed time-travel snapshot');
+    return _AU_SOURCE.funds;
+  }
+  return window.funds || (typeof funds !== 'undefined' ? funds : []);
+}
+function _auGetCF(){
+  if(_AU_SOURCE){
+    if(!_AU_SOURCE.cashflow || typeof _AU_SOURCE.cashflow !== 'object') throw new Error('_AU_SOURCE has no "cashflow" object — malformed time-travel snapshot');
+    return _AU_SOURCE.cashflow;
+  }
+  return (typeof loadCFData === 'function') ? loadCFData() : {};
+}
+function _auGetJSON(key){
+  if(_AU_SOURCE){
+    var field = _AU_KEY_MAP[key];
+    if(!field) throw new Error('_auGetJSON: "' + key + '" has no _AU_KEY_MAP entry — add one before this key can be audited under time-travel');
+    var val = _AU_SOURCE[field];
+    if(!Array.isArray(val)) throw new Error('_auGetJSON: _AU_SOURCE.' + field + ' (mapped from "' + key + '") is missing or not an array — mis-mapped or malformed backup');
+    return val;
+  }
+  try { return JSON.parse(lsGet(key)||'[]'); } catch(e){ return []; }
+}
 function _auGetInst(){
+  if(_AU_SOURCE){
+    if(!Array.isArray(_AU_SOURCE.instalments)) throw new Error('_AU_SOURCE has no "instalments" array — malformed time-travel snapshot');
+    return _AU_SOURCE.instalments;
+  }
   if(typeof loadInst === 'function'){ try { return loadInst() || []; } catch(e){} }
   if(typeof INST_KEY !== 'undefined'){ return _auGetJSON(INST_KEY); }
   return null; // module unavailable — checks that need it will warn
@@ -465,7 +513,7 @@ function _auCheckPaidWithoutBacking(){
   // real failures like the 2026-08-27 Lezaun incident this check caught.
   var carpoolBackedIds = {};
   try {
-    var _cpPmts = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]');
+    var _cpPmts = _auGetJSON('yb_carpool_payments_v1');
     _cpPmts.forEach(function(pmt){
       (pmt.paidBorrowIds||[]).forEach(function(id){ carpoolBackedIds[id] = true; });
     });
