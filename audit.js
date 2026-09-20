@@ -1000,8 +1000,94 @@ function renderAudit(){
     + '</div>'
     + '<div id="auditVerdict"></div>'
     + '<div id="auditGroups"></div>'
-    + '<div style="font-size:9.5px;color:var(--muted);line-height:1.7;padding:4px 4px 0;">🔒 Read-only — running the audit never changes data. Fixes are previewed and applied only when you confirm.</div>';
+    + '<div style="font-size:9.5px;color:var(--muted);line-height:1.7;padding:4px 4px 0;">🔒 Read-only — running the audit never changes data. Fixes are previewed and applied only when you confirm.</div>'
+    + '<div style="margin-top:28px;padding-top:18px;border-top:1px dashed var(--border,#1f1f1f);">'
+    +   '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:16px;margin-bottom:3px;">🕰️ <span style="color:var(--muted)">TIME TRAVEL</span></div>'
+    +   '<div style="font-size:9.5px;color:var(--muted);line-height:1.6;margin-bottom:12px;">Scan a backup file instead of your live data. Read-only — never overwrites the audit above, never touches your real pockets.</div>'
+    +   '<input type="file" id="ttFileInput" accept="application/json,.json" style="display:none" onchange="_ttFileChosen(event)">'
+    +   '<button onclick="document.getElementById(\'ttFileInput\').click()" style="background:transparent;border:1px solid var(--border,#333);color:var(--muted);border-radius:8px;padding:10px 16px;font-family:inherit;font-size:11px;letter-spacing:1px;cursor:pointer;">📁 CHOOSE BACKUP FILE…</button>'
+    +   '<div id="ttStatus" style="font-size:10px;color:var(--muted);margin-top:8px;"></div>'
+    +   '<div id="ttResults"></div>'
+    + '</div>';
   if(_auditResults) _auditRenderResults();
+}
+
+// ── time travel: scan a chosen backup file instead of live data ─────
+function _ttFileChosen(evt){
+  var file = evt.target.files && evt.target.files[0];
+  evt.target.value = ''; // allow re-choosing the same filename again later
+  if(!file) return;
+  var statusEl = document.getElementById('ttStatus');
+  var resultsEl = document.getElementById('ttResults');
+  if(resultsEl) resultsEl.innerHTML = '';
+  if(statusEl) statusEl.innerHTML = 'Reading ' + file.name + '…';
+
+  var reader = new FileReader();
+  reader.onerror = function(){
+    if(statusEl) statusEl.innerHTML = '<span style="color:#f23060;">Could not read that file.</span>';
+  };
+  reader.onload = function(){
+    var parsed;
+    try { parsed = JSON.parse(reader.result); }
+    catch(e){
+      if(statusEl) statusEl.innerHTML = '<span style="color:#f23060;">Not valid JSON (' + e.message + ') — is this a backup export?</span>';
+      return;
+    }
+    if(statusEl) statusEl.innerHTML = 'Scanning ' + file.name + '…';
+    runTimeTravelAudit(parsed).then(function(results){
+      _ttRenderResults(results, file.name);
+    }).catch(function(e){
+      if(statusEl) statusEl.innerHTML = '<span style="color:#f23060;">Scan failed: ' + e.message + '</span>';
+    });
+  };
+  reader.readAsText(file);
+}
+
+// Deliberately its own renderer, not a reuse of _auditRenderResults /
+// _auditRowHTML: those read/write the global _auditResults and their
+// PROPOSE FIX / APPLY FIX buttons index into it by position (gi, ri, fi).
+// A time-travel result set is never stored there, so reusing that button
+// here would risk "fixing" whatever finding happens to sit at the same
+// coordinates in your LIVE data — real, current data mutated because two
+// unrelated arrays' indices lined up, not because that finding was real.
+// This view is look-only on purpose: read the number, then go act on it
+// in the live app if it turns out to matter.
+function _ttRenderResults(results, fileName){
+  var statusEl = document.getElementById('ttStatus');
+  var resultsEl = document.getElementById('ttResults');
+  var counts = { pass:0, warn:0, fail:0 };
+  results.forEach(function(g){ g.rows.forEach(function(r){ counts[r.status]++; }); });
+  var total = counts.pass + counts.warn + counts.fail;
+  if(statusEl) statusEl.innerHTML = '<span style="color:var(--muted);">Scanned <b style="color:#ddd;">' + fileName + '</b> — not your live data.</span>';
+  if(!resultsEl) return;
+
+  var vcol = counts.fail ? '#f23060' : (counts.warn ? '#f2a830' : 'var(--accent,#c8f230)');
+  var html = '<div style="background:#0a0a0a;border:1px solid #333;border-radius:12px;padding:14px;margin-top:10px;">'
+    + '<div style="display:flex;gap:14px;align-items:center;margin-bottom:4px;">'
+    +   '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:26px;color:' + vcol + ';">' + counts.pass + '<span style="font-size:13px;color:var(--muted);">/' + total + '</span></div>'
+    +   '<div style="font-size:10px;color:var(--muted);">' + (counts.warn ? counts.warn + ' warning' + (counts.warn>1?'s':'') + ' ' : '') + (counts.fail ? counts.fail + ' issue' + (counts.fail>1?'s':'') : '') + (!counts.warn && !counts.fail ? 'no issues' : '') + '</div>'
+    + '</div>';
+  html += results.map(function(g){
+    return '<div style="font-size:9.5px;color:var(--muted);letter-spacing:1.5px;margin:12px 0 2px;text-transform:uppercase;">' + g.icon + ' ' + g.title + '</div>'
+      + g.rows.map(_ttRowHTML).join('');
+  }).join('');
+  html += '</div>';
+  resultsEl.innerHTML = html;
+}
+
+function _ttRowHTML(r){
+  var ic = r.status==='fail' ? '<span style="color:#f23060;">✗</span>'
+         : r.status==='warn' ? '<span style="color:#f2a830;">⚠</span>'
+         : '<span style="color:var(--accent,#c8f230);">✓</span>';
+  var html = '<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 2px;border-top:1px solid #151515;">'
+    + '<div style="flex-shrink:0;width:16px;text-align:center;font-size:12px;padding-top:1px;">' + ic + '</div>'
+    + '<div style="flex:1;">'
+    +   '<div style="font-size:11px;color:#ddd;">' + r.name + '</div>'
+    +   '<div style="font-size:9.5px;color:var(--muted);line-height:1.5;margin-top:2px;">' + r.detail + '</div>';
+  if(r.findings && r.findings.length){
+    html += '<div style="font-size:9px;color:var(--muted);margin-top:4px;">' + r.findings.length + ' finding' + (r.findings.length>1?'s':'') + ' in this file — open it in the live app to act on ' + (r.findings.length>1?'them':'it') + '.</div>';
+  }
+  return html + '</div></div>';
 }
 
 function _auditRenderResults(){
