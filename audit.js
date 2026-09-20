@@ -86,6 +86,28 @@ function _auGetInst(){
   if(typeof INST_KEY !== 'undefined'){ return _auGetJSON(INST_KEY); }
   return null; // module unavailable — checks that need it will warn
 }
+// v148z — found while wiring up runTimeTravelAudit: both repayment checks
+// (_auCheckRepaymentResolution, _auCheckPaidWithoutBacking — the two that
+// caught the real Zakie/Tariq/Lezaun incidents) read borrowData and
+// loadExternalBorrows() as bare globals, completely bypassing _AU_SOURCE.
+// Under time-travel these would have kept reading the LIVE app's borrows
+// while every other check read the snapshot — the exact carpoolPayments
+// bug from step 3, just on the two checks time-travel exists to exercise
+// first. Same fix, same shape.
+function _auGetBorrowData(){
+  if(_AU_SOURCE){
+    if(!_AU_SOURCE.borrows || typeof _AU_SOURCE.borrows !== 'object') throw new Error('_AU_SOURCE has no "borrows" object — malformed time-travel snapshot');
+    return _AU_SOURCE.borrows;
+  }
+  return (typeof borrowData !== 'undefined') ? borrowData : (window.borrowData || {});
+}
+function _auGetExternalBorrows(){
+  if(_AU_SOURCE){
+    if(!_AU_SOURCE.externalBorrows || typeof _AU_SOURCE.externalBorrows !== 'object') throw new Error('_AU_SOURCE has no "externalBorrows" object — malformed time-travel snapshot');
+    return _AU_SOURCE.externalBorrows;
+  }
+  return (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
+}
 function _auMonthKeys(cf){ return Object.keys(cf).filter(function(k){ return /^\d{4}-\d{2}$/.test(k); }); }
 function _auFmtR(n){ return 'R' + Number(Math.abs(n).toFixed(2)).toLocaleString('en-ZA'); }
 
@@ -463,14 +485,14 @@ function _auCheckRepaymentResolution(){
   // failure becomes its own visible issue instead of disappearing, while
   // still keeping whatever real findings were already collected first.
   try{
-    var bd = (typeof borrowData !== 'undefined') ? borrowData : (window.borrowData || {});
+    var bd = _auGetBorrowData();
     Object.keys(bd).forEach(function(p){ checkEntries(bd[p], p + ' (carpool)'); });
   }catch(e){
     issues.push('⚠️ Carpool repayment check crashed partway through (' + e.message + ') — results below may be incomplete');
   }
 
   try{
-    var ext = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
+    var ext = _auGetExternalBorrows();
     Object.keys(ext).forEach(function(key){
       var person = ext[key];
       checkEntries(person.entries, (person.name||key) + ' (external)');
@@ -566,14 +588,14 @@ function _auCheckPaidWithoutBacking(){
   // missing helper function threw here and the check silently went green).
   // Now any failure becomes its own visible issue instead of disappearing.
   try{
-    var bd = (typeof borrowData !== 'undefined') ? borrowData : (window.borrowData || {});
+    var bd = _auGetBorrowData();
     Object.keys(bd).forEach(function(p){ checkEntries(bd[p], p + ' (carpool)'); });
   }catch(e){
     issues.push('⚠️ Carpool borrow check crashed partway through (' + e.message + ') — results below may be incomplete');
   }
 
   try{
-    var ext = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
+    var ext = _auGetExternalBorrows();
     Object.keys(ext).forEach(function(key){
       var person = ext[key];
       checkEntries(person.entries, (person.name||key) + ' (external)');
@@ -921,7 +943,14 @@ async function maybeRunWeeklyAudit(){
 
 async function runSelfAudit(){
   var t0 = Date.now();
-  var v = document.getElementById('auditVerdict');
+  // v148z — a time-travel scan (_AU_SOURCE set) is never the live app's own
+  // result. It must not touch the real UI, overwrite the global _auditResults
+  // a normal run would show, or persist scan metadata that the weekly gate
+  // and drawer badge read — same reasoning as the step-3 accessor split, just
+  // one level up: reading fake data safely is step 3, not *displaying* it or
+  // saving it over the real thing is this.
+  var live = !_AU_SOURCE;
+  var v = live ? document.getElementById('auditVerdict') : null;
   if(v) v.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:10px 4px;">Running…</div>';
   var results = await Promise.all(_AU_GROUPS.map(async function(g){
     var rows = await Promise.all(g.checks.map(async function(fn){
@@ -930,10 +959,32 @@ async function runSelfAudit(){
     }));
     return { icon:g.icon, title:g.title, rows: rows };
   }));
-  _auditResults = results;
-  _auditLastRun = { at: new Date(), ms: Date.now() - t0 };
-  _auditRenderResults();
-  _auditSaveScanMeta();     // manual runs reset the weekly clock too
+  if(live){
+    _auditResults = results;
+    _auditLastRun = { at: new Date(), ms: Date.now() - t0 };
+    _auditRenderResults();
+    _auditSaveScanMeta();     // manual runs reset the weekly clock too
+  }
+  return results; // existing live callers ignore this; time-travel needs it
+}
+
+// v148z — step 4. Scans an imported backup's own data instead of the live
+// app's, without ever touching the live app's state. backupJSON is a parsed
+// backup export as-is: {funds, cashflow, instalments, spends, moneyIn,
+// moves, repayments, carpoolPayments, lends, ...} — no translation needed,
+// _AU_KEY_MAP (step 3) already speaks this shape.
+// Refuses to nest (one time-travel scan at a time), and _AU_SOURCE is reset
+// in a finally no matter what happens inside — a scan that throws can never
+// leave the live app reading a stale snapshot afterward.
+async function runTimeTravelAudit(backupJSON){
+  if(_AU_SOURCE) throw new Error('runTimeTravelAudit: a scan is already in progress — refusing to nest');
+  if(!backupJSON || typeof backupJSON !== 'object') throw new Error('runTimeTravelAudit: backupJSON must be a parsed backup object, not ' + typeof backupJSON);
+  _AU_SOURCE = backupJSON;
+  try {
+    return await runSelfAudit();
+  } finally {
+    _AU_SOURCE = null;
+  }
 }
 
 // ── rendering ────────────────────────────────────────────────────────
