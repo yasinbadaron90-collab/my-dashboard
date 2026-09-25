@@ -1589,7 +1589,23 @@ function stripEmoji(s){
   return r.replace(/s+/g,' ').trim();
 }
 
-function fmtR(n){return 'R'+Number(n).toLocaleString('en-ZA');}
+function fmtR(n){
+  // v149d: round to cents, then normalize -0 to 0, before formatting.
+  // Number.prototype.toLocaleString() keeps a minus sign on a negative
+  // input even once every displayed digit rounds to 0 — the classic
+  // "-0.00" artifact (Math.round of anything in (-0.5,0) returns JS's
+  // own -0). Surfaced as "R-0" on the Available Cash tile from the
+  // reconBalances float-drift already fixed at its two other sites in
+  // v149c (write-site rounding in settings.js, audit tolerance in
+  // audit.js) — this was the third site, the one actually on screen
+  // here, doing its own unrounded formatting of the same drifted value.
+  // fmtR is used everywhere currency is shown, so this is the general
+  // fix: any sub-cent noise, from any source, stops being visible as a
+  // false negative. Real negative amounts of a cent or more are
+  // completely unaffected — this only ever changes what was noise.
+  var r = (Math.round((Number(n)||0) * 100) / 100) || 0; // the || 0 collapses -0 to 0 (-0 is falsy in JS)
+  return 'R'+r.toLocaleString('en-ZA');
+}
 // ════════════════════════════════════════════════════════════════════
 // ROLE-BASED TAB ACCESS GUARD
 // ════════════════════════════════════════════════════════════════════
