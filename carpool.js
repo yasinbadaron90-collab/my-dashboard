@@ -1699,26 +1699,32 @@ function renderReports(){
   const months  = period.months;
   const label   = period.label;
 
-  // ── CASH FLOW SUMMARY (v149e, per build guide) ───────────────────────
+  // ── CASH FLOW SUMMARY (v149e, per build guide; v149g: month-only) ────
   // Reuses buildCFMonthData() — the same function the PDF export uses,
   // itself documented as being in parity with the in-app Cash Flow screen.
   // Out = totalRealExpenses (Option B: savings allocations excluded,
   // matching what actually offsets Net there) — not totalExpenses, which
   // would double-count money that's still yours.
+  // v149g: only ever shows for a single selected month now — hidden
+  // entirely for Quarter/All Time, per the build guide's Step 5 "hide"
+  // option, swapped in for the "show aggregate" option v149e shipped
+  // with (that read as confusing next to Total Saved on the same page).
   (function(){
-    const monthKeys = months ? months : Object.keys(loadCFData()).filter(function(k){ return k !== 'recurring'; });
-    let sumIn = 0, sumOut = 0, hasAnyRows = false;
-    monthKeys.forEach(function(mk){
-      const d = buildCFMonthData(mk);
-      sumIn  += d.totalIncome;
-      sumOut += d.totalRealExpenses;
-      if(d.income.length || d.expenses.length) hasAnyRows = true;
-    });
-    const sumNet = sumIn - sumOut;
+    const cardEl = document.getElementById('cfSummaryCard');
     const isSingleMonth = months && months.length === 1;
+    if(!isSingleMonth){
+      if(cardEl) cardEl.style.display = 'none';
+      return;
+    }
+    if(cardEl) cardEl.style.display = '';
+
+    const mk = months[0];
+    const d = buildCFMonthData(mk);
+    const sumIn = d.totalIncome, sumOut = d.totalRealExpenses, sumNet = sumIn - sumOut;
+    const hasAnyRows = d.income.length || d.expenses.length;
 
     const periodLabelEl = document.getElementById('cfSummaryPeriodLabel');
-    if(periodLabelEl) periodLabelEl.textContent = isSingleMonth ? 'THIS MONTH' : label.toUpperCase();
+    if(periodLabelEl) periodLabelEl.textContent = 'THIS MONTH';
 
     const netEl = document.getElementById('cfSummaryNet');
     if(netEl){ netEl.textContent = fmtR(sumNet); netEl.style.color = sumNet >= 0 ? '#c8f230' : '#f23060'; }
@@ -1740,7 +1746,7 @@ function renderReports(){
     if(footerEl){
       footerEl.textContent = hasAnyRows
         ? 'Full Cash Flow tab to edit · figures live'
-        : 'No cash flow recorded ' + (isSingleMonth ? 'this month' : 'in this period');
+        : 'No cash flow recorded this month';
     }
   })();
 
