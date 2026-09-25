@@ -103,7 +103,103 @@ function renderSavingsChart() {
   });
 }
 
-// Carpool module
+// ── Cash Flow Summary trend chart (v149i) ──────────────────────────────────
+// Rebuilt on Chart.js (already loaded for the Savings chart above) instead
+// of hand-rolled divs, purely so tapping a bar shows its exact total —
+// same interaction Yasin already has on the "Monthly Growth" chart. Chart.js
+// gives that for free once the data's in its shape; no custom tooltip code
+// needed. Mirrors _savBarChart's defer/resize/destroy pattern exactly.
+var _cfSummaryChart = null;
+
+function _deferRenderCFSummaryChart(){
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      renderCFSummaryChart();
+    });
+  });
+}
+
+var _cfSummaryChartResizeTimer = null;
+window.addEventListener('resize', function(){
+  clearTimeout(_cfSummaryChartResizeTimer);
+  _cfSummaryChartResizeTimer = setTimeout(function(){
+    var c = document.getElementById('cfSummaryChart');
+    if(c && c.offsetParent !== null) renderCFSummaryChart();
+  }, 200);
+});
+
+function renderCFSummaryChart(){
+  var canvas = document.getElementById('cfSummaryChart');
+  if(!canvas || typeof Chart === 'undefined') return;
+
+  var textColor = !document.documentElement.classList.contains('light') ? '#666' : '#888';
+
+  var W = canvas.parentElement ? (canvas.parentElement.offsetWidth || (window.innerWidth - 32)) : (window.innerWidth - 32);
+  if (W < 10) W = window.innerWidth - 32;
+  W = Math.min(W, window.innerWidth - 32);
+
+  var MN_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var now = new Date();
+  var trend = [];
+  for (var i = 5; i >= 0; i--) {
+    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    var mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    var cf = buildCFMonthData(mk);
+    trend.push({
+      label: MN_SHORT[d.getMonth()], in: cf.totalIncome, out: cf.totalRealExpenses,
+      hasRows: cf.income.length > 0 || cf.expenses.length > 0
+    });
+  }
+
+  // Headline stays exactly as v149h: latest month only, independent of
+  // whatever period is selected via setReportPeriod() elsewhere on the page.
+  var latest = trend[trend.length - 1];
+  var sumNet = latest.in - latest.out;
+  var periodLabelEl = document.getElementById('cfSummaryPeriodLabel');
+  if (periodLabelEl) periodLabelEl.textContent = latest.label.toUpperCase();
+  var netEl = document.getElementById('cfSummaryNet');
+  if (netEl) { netEl.textContent = fmtR(sumNet); netEl.style.color = sumNet >= 0 ? '#c8f230' : '#f23060'; }
+  var inEl = document.getElementById('cfSummaryIn');
+  var outEl = document.getElementById('cfSummaryOut');
+  if (inEl) inEl.textContent = fmtR(latest.in);
+  if (outEl) outEl.textContent = fmtR(latest.out);
+
+  var hasAnyRows = trend.some(function(t){ return t.hasRows; });
+  var footerEl = document.getElementById('cfSummaryFooter');
+  if (footerEl) footerEl.textContent = hasAnyRows ? 'Full Cash Flow tab to edit · figures live' : 'No cash flow recorded yet';
+
+  if (!hasAnyRows) { canvas.style.display = 'none'; return; }
+  canvas.style.display = 'block';
+
+  if (_cfSummaryChart) { try { _cfSummaryChart.destroy(); } catch(e){} _cfSummaryChart = null; }
+
+  canvas.setAttribute('width', W);
+  canvas.setAttribute('height', 130);
+
+  _cfSummaryChart = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: trend.map(function(t){ return t.label; }),
+      datasets: [
+        { label: 'In',  data: trend.map(function(t){ return t.in;  }), backgroundColor: '#c8f23088', borderColor: '#c8f230', borderWidth: 1, borderRadius: 3 },
+        { label: 'Out', data: trend.map(function(t){ return t.out; }), backgroundColor: '#f2306088', borderColor: '#f23060', borderWidth: 1, borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: false, maintainAspectRatio: false,
+      layout: { padding: { left: 0, right: 0, top: 4, bottom: 0 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(ctx){ return ' ' + ctx.dataset.label + ': ' + fmtR(ctx.raw); } } }
+      },
+      scales: {
+        x: { offset: true, grid: { display: false }, ticks: { color: textColor, font: { size: 9 } } },
+        y: { display: false }
+      }
+    }
+  });
+}
+
 
 // State — initialised here because they were lost when the app was split out of the monolith
 let cpData = {};
@@ -1699,71 +1795,13 @@ function renderReports(){
   const months  = period.months;
   const label   = period.label;
 
-  // ── CASH FLOW SUMMARY (v149e, per build guide; v149h: 6-month trend) ─
-  // v149h: scrapped the period-selector coupling entirely (v149g's
-  // "hide for Quarter/All Time" was a workaround for the wrong design —
-  // Yasin wanted Option B from the original mockups, not a gated
-  // single-month card). Now fixed and independent: always the real
-  // current month + the 5 before it, via buildCFMonthData() per month
-  // (same function the PDF export uses). Headline = latest month only.
-  // Out = totalRealExpenses (savings allocations excluded) throughout.
-  (function(){
-    const cardEl = document.getElementById('cfSummaryCard');
-    if(cardEl) cardEl.style.display = '';
-
-    const MN_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const now = new Date();
-    const trend = [];
-    for(let i = 5; i >= 0; i--){
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-      const cf = buildCFMonthData(mk);
-      trend.push({
-        label: MN_SHORT[d.getMonth()],
-        in: cf.totalIncome,
-        out: cf.totalRealExpenses,
-        hasRows: cf.income.length > 0 || cf.expenses.length > 0
-      });
-    }
-
-    const latest = trend[trend.length - 1];
-    const sumNet = latest.in - latest.out;
-
-    const periodLabelEl = document.getElementById('cfSummaryPeriodLabel');
-    if(periodLabelEl) periodLabelEl.textContent = latest.label.toUpperCase();
-
-    const netEl = document.getElementById('cfSummaryNet');
-    if(netEl){ netEl.textContent = fmtR(sumNet); netEl.style.color = sumNet >= 0 ? '#c8f230' : '#f23060'; }
-
-    const inEl  = document.getElementById('cfSummaryIn');
-    const outEl = document.getElementById('cfSummaryOut');
-    if(inEl)  inEl.textContent  = fmtR(latest.in);
-    if(outEl) outEl.textContent = fmtR(latest.out);
-
-    const chartEl = document.getElementById('cfSummaryChart');
-    if(chartEl){
-      const maxVal = Math.max.apply(null, trend.map(function(t){ return Math.max(t.in, t.out); }).concat([1]));
-      chartEl.innerHTML = trend.map(function(t){
-        const inH  = Math.max(4, (t.in  / maxVal) * 84);
-        const outH = Math.max(4, (t.out / maxVal) * 84);
-        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">'
-          + '<div style="display:flex;align-items:flex-end;gap:3px;height:84px">'
-          + '<div style="width:11px;height:' + inH + 'px;background:#c8f230;border-radius:3px 3px 0 0;transition:height .4s;"></div>'
-          + '<div style="width:11px;height:' + outH + 'px;background:#f23060;border-radius:3px 3px 0 0;transition:height .4s;"></div>'
-          + '</div>'
-          + '<span style="font-size:10px;color:var(--muted2)">' + t.label + '</span>'
-          + '</div>';
-      }).join('');
-    }
-
-    const hasAnyRows = trend.some(function(t){ return t.hasRows; });
-    const footerEl = document.getElementById('cfSummaryFooter');
-    if(footerEl){
-      footerEl.textContent = hasAnyRows
-        ? 'Full Cash Flow tab to edit · figures live'
-        : 'No cash flow recorded yet';
-    }
-  })();
+  // ── CASH FLOW SUMMARY (v149e; v149h: 6-month trend; v149i: Chart.js) ─
+  // All computation + rendering now lives in renderCFSummaryChart() up
+  // top, alongside renderSavingsChart() — same reason that one's there:
+  // it needs a persistent chart-instance reference to destroy/recreate
+  // cleanly, and the same deferred double-rAF timing so the canvas gets
+  // its real post-layout width before Chart.js measures it.
+  _deferRenderCFSummaryChart();
 
   // ── #3 Fix: fundBalanceAt — running balance at end of a period ──
   // This is what you actually want for comparison:
