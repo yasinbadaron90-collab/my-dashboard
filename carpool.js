@@ -1699,6 +1699,51 @@ function renderReports(){
   const months  = period.months;
   const label   = period.label;
 
+  // ── CASH FLOW SUMMARY (v149e, per build guide) ───────────────────────
+  // Reuses buildCFMonthData() — the same function the PDF export uses,
+  // itself documented as being in parity with the in-app Cash Flow screen.
+  // Out = totalRealExpenses (Option B: savings allocations excluded,
+  // matching what actually offsets Net there) — not totalExpenses, which
+  // would double-count money that's still yours.
+  (function(){
+    const monthKeys = months ? months : Object.keys(loadCFData()).filter(function(k){ return k !== 'recurring'; });
+    let sumIn = 0, sumOut = 0, hasAnyRows = false;
+    monthKeys.forEach(function(mk){
+      const d = buildCFMonthData(mk);
+      sumIn  += d.totalIncome;
+      sumOut += d.totalRealExpenses;
+      if(d.income.length || d.expenses.length) hasAnyRows = true;
+    });
+    const sumNet = sumIn - sumOut;
+    const isSingleMonth = months && months.length === 1;
+
+    const periodLabelEl = document.getElementById('cfSummaryPeriodLabel');
+    if(periodLabelEl) periodLabelEl.textContent = isSingleMonth ? 'THIS MONTH' : label.toUpperCase();
+
+    const netEl = document.getElementById('cfSummaryNet');
+    if(netEl){ netEl.textContent = fmtR(sumNet); netEl.style.color = sumNet >= 0 ? '#c8f230' : '#f23060'; }
+
+    const inEl  = document.getElementById('cfSummaryIn');
+    const outEl = document.getElementById('cfSummaryOut');
+    if(inEl)  inEl.textContent  = fmtR(sumIn);
+    if(outEl) outEl.textContent = fmtR(sumOut);
+
+    const barInEl  = document.getElementById('cfSummaryBarIn');
+    const barOutEl = document.getElementById('cfSummaryBarOut');
+    if(barInEl && barOutEl){
+      const maxVal = Math.max(sumIn, sumOut, 1);
+      barInEl.style.height  = Math.max(4, (sumIn  / maxVal) * 44) + 'px';
+      barOutEl.style.height = Math.max(4, (sumOut / maxVal) * 44) + 'px';
+    }
+
+    const footerEl = document.getElementById('cfSummaryFooter');
+    if(footerEl){
+      footerEl.textContent = hasAnyRows
+        ? 'Full Cash Flow tab to edit · figures live'
+        : 'No cash flow recorded ' + (isSingleMonth ? 'this month' : 'in this period');
+    }
+  })();
+
   // ── #3 Fix: fundBalanceAt — running balance at end of a period ──
   // This is what you actually want for comparison:
   // "What was this fund's balance at the end of Jan?" not "How much was deposited in Jan?"

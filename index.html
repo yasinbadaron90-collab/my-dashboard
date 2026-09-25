@@ -648,6 +648,23 @@ function _showUpdateToast(worker){
       <div id="insightCards" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
+    <!-- CASH FLOW SUMMARY (v149e, per build guide) -->
+    <div id="cfSummaryCard" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:20px;">
+      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">💵 Cash Flow Summary</div>
+      <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:2px;">NET · <span id="cfSummaryPeriodLabel">—</span></div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:32px;margin-bottom:8px;" id="cfSummaryNet">R0</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">In <span style="color:#c8f230;font-weight:500;" id="cfSummaryIn">R0</span> · Out <span style="color:#f23060;font-weight:500;" id="cfSummaryOut">R0</span></div>
+      <div style="display:flex;align-items:flex-end;gap:16px;height:44px;margin-bottom:10px;">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+          <div style="width:100%;background:#c8f230;border-radius:3px 3px 0 0;transition:height .4s;" id="cfSummaryBarIn"></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+          <div style="width:100%;background:#f23060;border-radius:3px 3px 0 0;transition:height .4s;" id="cfSummaryBarOut"></div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted2);border-top:1px solid var(--border);padding-top:8px;" id="cfSummaryFooter">Full Cash Flow tab to edit · figures live</div>
+    </div>
+
     <!-- Folder: 💰 Savings -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;" id="rptFolderSavingsWrap">
       <div onclick="rptToggleFolder('rptFolderSavings')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;">
@@ -1413,7 +1430,7 @@ function _showUpdateToast(worker){
         <span style="font-size:22px;line-height:1;">🏦</span>
         <div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;margin-bottom:3px;">Bank Feed AI Key</div>
-          <div style="font-size:10px;color:#3a6a1a;line-height:1.6;">Your Anthropic API key — lets Bank Feed read your statement photos and PDFs. Stored only on this device, never sent anywhere except Anthropic's API. Get one free at <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" style="color:#8ab820;text-decoration:underline;">console.anthropic.com</a></div>
+          <div style="font-size:10px;color:#3a6a1a;line-height:1.6;">Your Anthropic API key — lets Bank Feed read your statement photos and PDFs. Stored only on this device, never sent anywhere except Anthropic's API. Get one free at <span style="color:#8ab820;">console.anthropic.com</span></div>
         </div>
       </div>
       <input type="password" id="bfApiKeyInput" placeholder="sk-ant-api03-..." style="width:100%;background:#0d1a0d;border:1px solid #2a4a1a;color:#efefef;font-family:'DM Mono',monospace;font-size:12px;padding:10px 12px;border-radius:4px;outline:none;margin-bottom:8px;"/>
