@@ -618,7 +618,13 @@ function _auCheckBaseline(){
   // settings.js owns this key (RECON_KEY = 'yb_recon_balances_v1'). Read-only peek.
   try { rb = JSON.parse(lsGet(typeof RECON_KEY!=='undefined'?RECON_KEY:'yb_recon_balances_v1')||'{}'); } catch(e){}
   var vals = ['fnb','tyme','cash'].map(function(k){ return { k:k, v: Number(rb[k]||0) }; });
-  var neg = vals.filter(function(x){ return x.v < 0; });
+  // v149c: -0.005 threshold, not 0 — matches _r2()'s cent-rounding exactly.
+  // Anything inside half a cent of zero rounds TO zero at 2dp everywhere
+  // else in this app (v147z), so it was never a real negative balance —
+  // just float noise from the doorway pattern's +amount/-amount pairs.
+  // Fixed at the write site too (settings.js, same version), but this
+  // check should never cry wolf over sub-cent drift either way.
+  var neg = vals.filter(function(x){ return x.v < -0.005; });
   return {
     status: neg.length ? 'warn' : 'pass',
     name: 'Available Cash baseline sanity',

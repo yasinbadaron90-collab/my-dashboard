@@ -241,7 +241,14 @@ function _adjustBaselineForBank(bank, delta){
   var key = (bank === 'FNB') ? 'fnb' : (bank === 'TymeBank') ? 'tyme' : (bank === 'Cash') ? 'cash' : null;
   if(!key) return;
   var saved = (typeof loadReconBalances === 'function') ? loadReconBalances() : {};
-  saved[key] = (Number(saved[key]) || 0) + Number(delta || 0);
+  // v149c: round to cents at the write site. Hundreds of doorway pairs
+  // (+amount then -amount, meant to net to zero) accumulate raw JS float
+  // error over years of use — e.g. -9.094947017729282e-13, flagged by
+  // Self-Audit as a "negative baseline" even though it's a trillionth of a
+  // Rand. Same root cause _r2() already fixes for fundTotal() drift in
+  // spend.js (v147z); same fix, this write site instead.
+  var next = (Number(saved[key]) || 0) + Number(delta || 0);
+  saved[key] = (typeof _r2 === 'function') ? _r2(next) : next;
   saved.updated = new Date().toISOString();
   if(typeof lsSet === 'function') lsSet(RECON_KEY, JSON.stringify(saved));
   // Reflect on screen if the inputs are visible.
