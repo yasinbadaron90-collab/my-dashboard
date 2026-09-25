@@ -1833,7 +1833,13 @@ function renderReports(){
     const savingsRows = funds.map(function(f){
       let displayAmt, displayPct, displayCol;
       if(f.isExpense){
-        const totalIn=f.deposits.filter(function(d){return d.txnType==='in';}).reduce(function(s,d){return s+d.amount;},0);
+        // v149f: was filter(txnType==='in') — excluded any deposit with no
+        // txnType at all (e.g. a Sept 1 "Profit share" R3.07 entry), same
+        // canonical rule renderNetWorth() already gets right a few hundred
+        // lines below: out subtracts, everything else adds. Real effect on
+        // Ee90 _KiA picaNto: showed R1,196.93 here, R1,200 everywhere else
+        // in the app (Home balances, Plan tab) — this was the outlier.
+        const totalIn=f.deposits.filter(function(d){return d.txnType!=='out';}).reduce(function(s,d){return s+d.amount;},0);
         const totalOut=f.deposits.filter(function(d){return d.txnType==='out';}).reduce(function(s,d){return s+d.amount;},0);
         const bal=totalIn-totalOut;
         totalSaved+=bal;
@@ -1968,7 +1974,9 @@ function renderReports(){
   var totalOut = 0, totalIn = 0, allOutRows = [];
   if(carFundRpt){
     var deps = carFundRpt.deposits || [];
-    totalIn = deps.filter(function(d){ return d.txnType==='in'; }).reduce(function(s,d){ return s+(d.amount||0); },0);
+    // v149f: same fix as the Savings section above — out subtracts,
+    // everything else (including no txnType) adds.
+    totalIn = deps.filter(function(d){ return d.txnType!=='out'; }).reduce(function(s,d){ return s+(d.amount||0); },0);
     deps.filter(function(d){ return d.txnType==='out'; }).forEach(function(d){
       totalOut += d.amount||0;
       allOutRows.push({ note: d.note||'—', date: d.date||'—', amount: d.amount||0 });
