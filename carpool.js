@@ -1699,54 +1699,69 @@ function renderReports(){
   const months  = period.months;
   const label   = period.label;
 
-  // ── CASH FLOW SUMMARY (v149e, per build guide; v149g: month-only) ────
-  // Reuses buildCFMonthData() — the same function the PDF export uses,
-  // itself documented as being in parity with the in-app Cash Flow screen.
-  // Out = totalRealExpenses (Option B: savings allocations excluded,
-  // matching what actually offsets Net there) — not totalExpenses, which
-  // would double-count money that's still yours.
-  // v149g: only ever shows for a single selected month now — hidden
-  // entirely for Quarter/All Time, per the build guide's Step 5 "hide"
-  // option, swapped in for the "show aggregate" option v149e shipped
-  // with (that read as confusing next to Total Saved on the same page).
+  // ── CASH FLOW SUMMARY (v149e, per build guide; v149h: 6-month trend) ─
+  // v149h: scrapped the period-selector coupling entirely (v149g's
+  // "hide for Quarter/All Time" was a workaround for the wrong design —
+  // Yasin wanted Option B from the original mockups, not a gated
+  // single-month card). Now fixed and independent: always the real
+  // current month + the 5 before it, via buildCFMonthData() per month
+  // (same function the PDF export uses). Headline = latest month only.
+  // Out = totalRealExpenses (savings allocations excluded) throughout.
   (function(){
     const cardEl = document.getElementById('cfSummaryCard');
-    const isSingleMonth = months && months.length === 1;
-    if(!isSingleMonth){
-      if(cardEl) cardEl.style.display = 'none';
-      return;
-    }
     if(cardEl) cardEl.style.display = '';
 
-    const mk = months[0];
-    const d = buildCFMonthData(mk);
-    const sumIn = d.totalIncome, sumOut = d.totalRealExpenses, sumNet = sumIn - sumOut;
-    const hasAnyRows = d.income.length || d.expenses.length;
+    const MN_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const now = new Date();
+    const trend = [];
+    for(let i = 5; i >= 0; i--){
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      const cf = buildCFMonthData(mk);
+      trend.push({
+        label: MN_SHORT[d.getMonth()],
+        in: cf.totalIncome,
+        out: cf.totalRealExpenses,
+        hasRows: cf.income.length > 0 || cf.expenses.length > 0
+      });
+    }
+
+    const latest = trend[trend.length - 1];
+    const sumNet = latest.in - latest.out;
 
     const periodLabelEl = document.getElementById('cfSummaryPeriodLabel');
-    if(periodLabelEl) periodLabelEl.textContent = 'THIS MONTH';
+    if(periodLabelEl) periodLabelEl.textContent = latest.label.toUpperCase();
 
     const netEl = document.getElementById('cfSummaryNet');
     if(netEl){ netEl.textContent = fmtR(sumNet); netEl.style.color = sumNet >= 0 ? '#c8f230' : '#f23060'; }
 
     const inEl  = document.getElementById('cfSummaryIn');
     const outEl = document.getElementById('cfSummaryOut');
-    if(inEl)  inEl.textContent  = fmtR(sumIn);
-    if(outEl) outEl.textContent = fmtR(sumOut);
+    if(inEl)  inEl.textContent  = fmtR(latest.in);
+    if(outEl) outEl.textContent = fmtR(latest.out);
 
-    const barInEl  = document.getElementById('cfSummaryBarIn');
-    const barOutEl = document.getElementById('cfSummaryBarOut');
-    if(barInEl && barOutEl){
-      const maxVal = Math.max(sumIn, sumOut, 1);
-      barInEl.style.height  = Math.max(4, (sumIn  / maxVal) * 44) + 'px';
-      barOutEl.style.height = Math.max(4, (sumOut / maxVal) * 44) + 'px';
+    const chartEl = document.getElementById('cfSummaryChart');
+    if(chartEl){
+      const maxVal = Math.max.apply(null, trend.map(function(t){ return Math.max(t.in, t.out); }).concat([1]));
+      chartEl.innerHTML = trend.map(function(t){
+        const inH  = Math.max(4, (t.in  / maxVal) * 84);
+        const outH = Math.max(4, (t.out / maxVal) * 84);
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">'
+          + '<div style="display:flex;align-items:flex-end;gap:3px;height:84px">'
+          + '<div style="width:11px;height:' + inH + 'px;background:#c8f230;border-radius:3px 3px 0 0;transition:height .4s;"></div>'
+          + '<div style="width:11px;height:' + outH + 'px;background:#f23060;border-radius:3px 3px 0 0;transition:height .4s;"></div>'
+          + '</div>'
+          + '<span style="font-size:10px;color:var(--muted2)">' + t.label + '</span>'
+          + '</div>';
+      }).join('');
     }
 
+    const hasAnyRows = trend.some(function(t){ return t.hasRows; });
     const footerEl = document.getElementById('cfSummaryFooter');
     if(footerEl){
       footerEl.textContent = hasAnyRows
         ? 'Full Cash Flow tab to edit · figures live'
-        : 'No cash flow recorded this month';
+        : 'No cash flow recorded yet';
     }
   })();
 

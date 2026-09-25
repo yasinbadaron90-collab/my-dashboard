@@ -648,20 +648,13 @@ function _showUpdateToast(worker){
       <div id="insightCards" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
-    <!-- CASH FLOW SUMMARY (v149e, per build guide) -->
+    <!-- CASH FLOW SUMMARY (v149e, per build guide; v149h: 6-month trend) -->
     <div id="cfSummaryCard" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:20px;">
       <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">💵 Cash Flow Summary</div>
       <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:2px;">NET · <span id="cfSummaryPeriodLabel">—</span></div>
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:32px;margin-bottom:8px;" id="cfSummaryNet">R0</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">In <span style="color:#c8f230;font-weight:500;" id="cfSummaryIn">R0</span> · Out <span style="color:#f23060;font-weight:500;" id="cfSummaryOut">R0</span></div>
-      <div style="display:flex;align-items:flex-end;gap:16px;height:44px;margin-bottom:10px;">
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
-          <div style="width:100%;background:#c8f230;border-radius:3px 3px 0 0;transition:height .4s;" id="cfSummaryBarIn"></div>
-        </div>
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
-          <div style="width:100%;background:#f23060;border-radius:3px 3px 0 0;transition:height .4s;" id="cfSummaryBarOut"></div>
-        </div>
-      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">In <span style="color:#c8f230;font-weight:500;" id="cfSummaryIn">R0</span> · Out <span style="color:#f23060;font-weight:500;" id="cfSummaryOut">R0</span></div>
+      <div id="cfSummaryChart" style="display:flex;align-items:flex-end;gap:6px;height:110px;margin-bottom:10px;"></div>
       <div style="font-size:10px;color:var(--muted2);border-top:1px solid var(--border);padding-top:8px;" id="cfSummaryFooter">Full Cash Flow tab to edit · figures live</div>
     </div>
 
