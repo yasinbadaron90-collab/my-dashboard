@@ -319,9 +319,11 @@ function buildOdinLaunchAlerts(){
       // Rewritten 2026-08-10 — same fix as the carpool block above.
       var ct = calcPersonTotals(p.entries, false);
       var owed = Math.max(0, ct.borrowed - ct.repaid);
-      // Skip historical debts (money YOU owe, not owed to you)
-      var isHistoricalDebt = (p.entries||[]).some(function(e){ return e.isHistorical; });
-      if(owed>0 && !isHistoricalDebt){
+      // v149j — direction is iOweThem now, not isHistorical (see carpool.js
+      // renderNetWorth for the full reasoning). A historical RECEIVABLE
+      // must still raise this alert; only an actual iOweThem debt is skipped.
+      var iOweThemDebt = p.iOweThem === true;
+      if(owed>0 && !iOweThemDebt){
         var unpaid = (p.entries||[]).filter(function(e){ return e.type!=='repay'; });
         var latest = unpaid.length ? unpaid[unpaid.length-1] : null;
         var pKey = key;

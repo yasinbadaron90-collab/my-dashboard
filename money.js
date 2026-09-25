@@ -1119,7 +1119,7 @@ function renderMoneyOwed(){
     const visEntries = (p.entries || []).filter(function(e){ return !e._deleted; });
     const { borrowed, repaid } = calcPersonTotals(visEntries);
     if(borrowed === 0) return;
-    people.push({ name: p.name, tag:'external', entries: visEntries, borrowed, repaid, key });
+    people.push({ name: p.name, tag:'external', entries: visEntries, borrowed, repaid, key, iOweThem: p.iOweThem === true });
   });
 
   // ── Summary totals ──
@@ -1178,10 +1178,13 @@ function renderMoneyOwed(){
       : (p.tag === 'carpool' && !settled
           ? '<button onclick="openRepayModal(\''+p.key+'\')" style="padding:7px 14px;background:#0e1a2e;border:1px solid #7090f0;border-radius:6px;color:#7090f0;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">↩ Repayment</button>'
           : '');
-    // v142d — "↑ Pay Debt" button for historical debts (I owe them)
-    const hasHistorical = (p.entries||[]).some(function(e){ return e.isHistorical; });
-    const payDebtBtn = (p.tag === 'external' && !settled && hasHistorical)
-      ? '<button onclick="openPayDebtModal(\''+p.key+'\')" style="padding:7px 14px;background:#2e0a0a;border:1px solid #8a1010;border-radius:6px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;font-weight:700;">↑ Pay her</button>'
+    // v149j — gates on the explicit iOweThem flag now, not isHistorical
+    // (a historical RECEIVABLE must never show this button — it would let
+    // an accidental tap send real money out for a debt that runs the other
+    // way). Name is no longer hardcoded to "her" so this works for anyone
+    // this direction applies to, not only the one person it was built for.
+    const payDebtBtn = (p.tag === 'external' && !settled && p.iOweThem)
+      ? '<button onclick="openPayDebtModal(\''+p.key+'\')" style="padding:7px 14px;background:#2e0a0a;border:1px solid #8a1010;border-radius:6px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;font-weight:700;">↑ Pay '+p.name+'</button>'
       : '';
 
     const cardIdx = window._moPersonMap ? Object.keys(window._moPersonMap).length : 0;
@@ -1199,7 +1202,7 @@ function renderMoneyOwed(){
           +tagHtml
         +'</div>'
         +'<div style="text-align:right;">'
-          +'<div style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">'+(settled?'Settled':'Owes you')+'</div>'
+          +'<div style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">'+(settled?'Settled':(p.iOweThem?'You owe':'Owes you'))+'</div>'
           +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:22px;color:'+(settled?'#c8f230':'#f2a830')+';">'+(settled?'✓ Settled':'R'+owing.toLocaleString('en-ZA'))+'</div>'
         +'</div>'
       +'</div>'

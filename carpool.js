@@ -2256,9 +2256,16 @@ function renderNetWorth() {
   Object.keys(extData).forEach(function(key) {
     var person = extData[key];
     var entries = person.entries || [];
-    // isHistorical lives on the borrow entry, not the person object
-    var isHist = person.isHistorical || entries.some(function(e){ return e.isHistorical; });
-    if (!isHist) return;
+    // v149j — isHistorical only ever meant "no pocket movement when this
+    // was first logged" (v142c). It says nothing about direction. This
+    // used to treat isHistorical as "Yasin owes them", which happened to
+    // be right for Nuri (the only historical entry that existed) but is
+    // wrong the moment a historical RECEIVABLE exists — e.g. someone who
+    // paid off an item in instalments with no pocket ever deducted for
+    // the sale. Direction now comes from the explicit iOweThem flag,
+    // set once on Nuri's record as part of this same fix.
+    var iOweThem = person.iOweThem === true;
+    if (!iOweThem) return;
     var borrowed = 0, repaid = 0;
     entries.forEach(function(e) {
       if (e.type === 'repay') repaid += Number(e.amount || 0);
