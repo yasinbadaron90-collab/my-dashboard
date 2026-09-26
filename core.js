@@ -1146,6 +1146,19 @@ function loadFuelReport() {
     }
   }
 
+  // v149l — seed the Export Statement date pickers with last cycle's
+  // bounds, so "the previous month's fuel" (what was actually asked for)
+  // is a single tap away, while the pickers themselves stay fully
+  // editable for any custom range. Only fills when empty, same guard
+  // cashflow.js's initCFReportPickers() uses, so this never clobbers a
+  // range Yasin is mid-editing on a re-render.
+  try{
+    var stmtFromEl = document.getElementById('fuelStmtFrom');
+    var stmtToEl   = document.getElementById('fuelStmtTo');
+    if(stmtFromEl && !stmtFromEl.value) stmtFromEl.value = localDateStr(prevCycleStart);
+    if(stmtToEl   && !stmtToEl.value)   stmtToEl.value   = localDateStr(prevCycleEnd);
+  }catch(e){}
+
   // ── Carpool data — filter to pay cycle ──
   var cp = {};
   try { cp = JSON.parse(lsGet(CPK) || '{}'); } catch(e){}
@@ -1330,5 +1343,162 @@ function loadFuelReport() {
   _pricingTripsPerTank = totalPricingTrips;
   _pricingCurrentAvg   = totalPricingTrips > 0 ? totalPricingIncome/totalPricingTrips : 0;
   restorePricingSettings();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// v149l — FUEL STATEMENT EXPORT (arbitrary date range, not pay-cycle-locked)
+// ════════════════════════════════════════════════════════════════════
+// The pay-cycle window (25th-24th) drives the live budget tiles and the
+// v149k "last cycle" reference block, but a statement someone might want
+// to hand over, keep for their own records, or check against a specific
+// stretch of time (e.g. a school holiday, a job that reimburses fuel)
+// doesn't necessarily follow that cycle at all — hence a free date-range
+// picker here rather than reusing inCycle()/cycleStart/cycleEnd from
+// loadFuelReport() above.
+
+// Parses a 'YYYY-MM-DD' input value as a LOCAL date. `new Date('YYYY-MM-DD')`
+// parses as UTC midnight, which can roll back a day once formatted back into
+// local time in timezones behind UTC — avoided everywhere else in this file
+// via new Date(y, m, d) with numeric parts; same discipline here.
+function _fuelLocalDateFromYMD(s){
+  var parts = String(s).split('-');
+  return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+}
+
+function exportFuelStatement(){
+  var fromEl = document.getElementById('fuelStmtFrom');
+  var toEl   = document.getElementById('fuelStmtTo');
+  var fromStr = fromEl ? fromEl.value : '';
+  var toStr   = toEl ? toEl.value : '';
+  if(!fromStr || !toStr){ alert('Pick both a From and To date.'); return; }
+  if(fromStr > toStr){ alert('The From date is after the To date — swap them.'); return; }
+
+  var btn = document.getElementById('fuelStmtBtn');
+  var origLabel = btn ? btn.textContent : '';
+  if(btn){ btn.textContent = '⏳ Generating…'; btn.disabled = true; }
+  function done(){ if(btn){ btn.textContent = origLabel; btn.disabled = false; } }
+
+  if(typeof window.jspdf === 'undefined'){
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = function(){ _buildFuelStatementPDF(fromStr, toStr); done(); };
+    s.onerror = function(){ alert('Could not load the PDF library — check your connection and try again.'); done(); };
+    document.head.appendChild(s);
+  } else {
+    _buildFuelStatementPDF(fromStr, toStr);
+    done();
+  }
+}
+
+function _buildFuelStatementPDF(fromStr, toStr){
+  // Date-string comparison ('YYYY-MM-DD' is zero-padded and fixed-width) —
+  // same trick renderSavingsChart() and inCycle() already rely on, no
+  // Date object needed for the filter itself.
+  var allFuelData = JSON.parse(lsGet(FUEL_KEY) || '[]');
+  var rangeData = allFuelData.filter(function(x){ return x.date >= fromStr && x.date <= toStr; });
+  rangeData.sort(function(a,b){ return b.date.localeCompare(a.date); }); // newest-first, matches the live table
+
+  // Older entries predate the petrol/uber type field entirely — undefined
+  // type means petrol, same convention the live row renderer already uses
+  // (var isUber = x.type === 'uber';) rather than a new rule invented here.
+  var petrolEntries = rangeData.filter(function(x){ return x.type !== 'uber'; });
+  var uberEntries   = rangeData.filter(function(x){ return x.type === 'uber'; });
+  var petrolTotal = petrolEntries.reduce(function(s,x){ return s + Number(x.amount||0); }, 0);
+  var uberTotal   = uberEntries.reduce(function(s,x){ return s + Number(x.amount||0); }, 0);
+  var grandTotal  = petrolTotal + uberTotal;
+  var totalLitres = petrolEntries.reduce(function(s,x){
+    return s + (Number(x.price) > 0 ? Number(x.amount||0) / Number(x.price) : 0);
+  }, 0);
+  var avgPrice = totalLitres > 0 ? petrolTotal / totalLitres : 0;
+
+  var fromLabel = _fuelLocalDateFromYMD(fromStr).toLocaleDateString('en-ZA', {day:'numeric', month:'short', year:'numeric'});
+  var toLabel   = _fuelLocalDateFromYMD(toStr).toLocaleDateString('en-ZA', {day:'numeric', month:'short', year:'numeric'});
+  var todayStr  = new Date().toLocaleDateString('en-ZA');
+
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({ unit:'mm', format:'a4' });
+  var W=210, H=297, margin=16, y=0;
+  // Periwinkle stripe (#8888dd) — matches cars.js's existing PDF-export
+  // accent, tying this to the neighbouring Cars tab's own export button
+  // rather than reusing Fuel's on-screen purple (#a78bfa) or Cash Flow's
+  // lime — a different module's export getting its own color is already
+  // the pattern (Money Owed=purple, Cash Flow=gold, Cars=periwinkle).
+  function bg(){ doc.setFillColor(10,10,10); doc.rect(0,0,W,H,'F'); doc.setFillColor(136,136,221); doc.rect(0,0,W,1.5,'F'); }
+  function newPage(){ doc.addPage(); bg(); y=16; }
+  bg();
+
+  // Header
+  y=13;
+  doc.setTextColor(90,90,160); doc.setFontSize(7); doc.setFont('helvetica','normal');
+  doc.text('FUEL STATEMENT', margin, y);
+  doc.text(todayStr, W-margin, y, {align:'right'});
+  y=24;
+  doc.setTextColor(136,136,221); doc.setFontSize(22); doc.setFont('helvetica','bold');
+  doc.text('Fuel Statement', margin, y);
+  y=31;
+  doc.setTextColor(85,85,85); doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text(fromLabel + ' – ' + toLabel, margin, y);
+  y=37;
+  doc.setDrawColor(42,42,42); doc.setLineWidth(0.3); doc.line(margin,y,W-margin,y);
+  y+=10;
+
+  // Summary
+  doc.setTextColor(90,90,160); doc.setFontSize(7); doc.setFont('helvetica','normal');
+  doc.text('SUMMARY', margin, y); y+=7;
+
+  doc.setFillColor(14,14,26); doc.rect(margin,y-5,W-(margin*2),22,'F');
+  doc.setTextColor(136,136,221); doc.setFontSize(18); doc.setFont('helvetica','bold');
+  doc.text('R'+grandTotal.toFixed(2), margin+4, y+7);
+  doc.setTextColor(120,120,120); doc.setFontSize(7); doc.setFont('helvetica','normal');
+  doc.text('TOTAL SPENT', margin+4, y+13);
+
+  doc.setTextColor(180,180,180); doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text('Petrol: R'+petrolTotal.toFixed(2)+' ('+petrolEntries.length+' fill'+(petrolEntries.length===1?'':'s')+')', W-margin-4, y, {align:'right'});
+  doc.text('Uber: R'+uberTotal.toFixed(2)+' ('+uberEntries.length+' trip'+(uberEntries.length===1?'':'s')+')', W-margin-4, y+6, {align:'right'});
+  if(totalLitres > 0){
+    doc.text(totalLitres.toFixed(1)+'L @ avg R'+avgPrice.toFixed(2)+'/L', W-margin-4, y+12, {align:'right'});
+  }
+  y += 26;
+
+  doc.setDrawColor(42,42,42); doc.setLineWidth(0.3); doc.line(margin,y,W-margin,y); y+=8;
+
+  // Line items
+  doc.setTextColor(90,90,160); doc.setFontSize(7); doc.setFont('helvetica','normal');
+  doc.text('ENTRIES ('+rangeData.length+')', margin, y); y+=6;
+
+  if(rangeData.length === 0){
+    doc.setTextColor(120,120,120); doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.text('No fuel entries logged in this period.', margin, y); y+=8;
+  } else {
+    rangeData.forEach(function(x){
+      if(y>H-16) newPage();
+      var isUber = x.type === 'uber';
+      doc.setFillColor(isUber?20:14, isUber?16:14, isUber?5:26); doc.rect(margin,y-3.5,W-(margin*2),7,'F');
+      doc.setTextColor(180,180,180); doc.setFontSize(8); doc.setFont('helvetica','normal');
+      doc.text(x.date, margin+2, y);
+      var midText = isUber
+        ? (x.note || 'Uber')
+        : ('R'+Number(x.price||0).toFixed(2)+'/L' + (Number(x.price)>0 ? '  ('+(Number(x.amount)/Number(x.price)).toFixed(1)+'L)' : ''));
+      doc.setTextColor(isUber?230:180, isUber?170:180, isUber?60:180);
+      doc.text(midText, margin+34, y);
+      doc.setTextColor(136,136,221); doc.setFont('helvetica','bold');
+      doc.text('R'+Number(x.amount||0).toFixed(2), W-margin, y, {align:'right'});
+      y+=8;
+    });
+  }
+
+  y += 4;
+  doc.setDrawColor(42,42,42); doc.setLineWidth(0.3); doc.line(margin,y,W-margin,y); y+=8;
+  doc.setTextColor(136,136,221); doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.text('TOTAL', margin, y);
+  doc.text('R'+grandTotal.toFixed(2), W-margin, y, {align:'right'});
+
+  // Footer
+  doc.setTextColor(42,42,42); doc.setFontSize(7); doc.setFont('helvetica','normal');
+  doc.text('Generated by YB Dashboard', margin, H-8);
+  doc.text(new Date().toLocaleString('en-ZA'), W-margin, H-8, {align:'right'});
+
+  var fname = 'Fuel_Statement_'+fromStr+'_to_'+toStr+'.pdf';
+  doc.save(fname);
 }
 
