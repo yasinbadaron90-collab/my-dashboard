@@ -1109,6 +1109,43 @@ function loadFuelReport() {
   var fuelTotal = 0;
   fuelData.forEach(function(x){ fuelTotal += Number(x.amount); });
 
+  // ── v149k — previous cycle's leftover, reference-only ──
+  // Yasin wants to see last cycle's leftover fuel budget without it
+  // touching or being confused with THIS cycle's number ("must not
+  // collide"). Previous cycle = exactly one 25th-24th window before
+  // cycleStart — reusing cycleStart keeps this correct in both branches
+  // above instead of re-deriving "last month" from scratch.
+  var prevCycleStart = new Date(cycleStart.getFullYear(), cycleStart.getMonth() - 1, 25);
+  var prevCycleEnd   = new Date(cycleStart.getFullYear(), cycleStart.getMonth(), 24);
+  var prevCycleLabel =
+    prevCycleStart.getDate() + ' ' + prevCycleStart.toLocaleString('en-ZA',{month:'short'}) +
+    ' – ' +
+    prevCycleEnd.getDate() + ' ' + prevCycleEnd.toLocaleString('en-ZA',{month:'short'});
+  var prevFuelData = allFuelData.filter(function(x){
+    var d = new Date(x.date);
+    return d >= prevCycleStart && d <= prevCycleEnd;
+  });
+  var prevFuelTotal = 0;
+  prevFuelData.forEach(function(x){ prevFuelTotal += Number(x.amount); });
+
+  var fuelPrevBlockEl  = document.getElementById('fuelPrevCycleBlock');
+  var fuelPrevLabelEl  = document.getElementById('fuelPrevCycleLabel');
+  var fuelPrevAmtEl    = document.getElementById('fuelPrevCycleAmt');
+  if(fuelPrevBlockEl && fuelPrevLabelEl && fuelPrevAmtEl){
+    fuelPrevLabelEl.textContent = prevCycleLabel;
+    if(prevFuelData.length === 0){
+      // Nothing logged that cycle at all — showing "R2,950 left over" here
+      // would be a guess dressed up as a fact (never used the log vs.
+      // genuinely spent nothing are indistinguishable from this data).
+      fuelPrevAmtEl.textContent = 'No fuel logged';
+      fuelPrevAmtEl.style.color = 'var(--muted)';
+    } else {
+      var prevLeft = FUEL_BUDGET - prevFuelTotal;
+      fuelPrevAmtEl.textContent = (prevLeft >= 0 ? fmtR(prevLeft)+' left' : fmtR(Math.abs(prevLeft))+' over');
+      fuelPrevAmtEl.style.color = prevLeft >= 0 ? '#8a9a4a' : '#a84a5a'; // deliberately dimmer than this cycle's #c8f230/#f23060 — same read (green=ok, red=over) at a glance, but visually a notch back so it can't be mistaken for THIS cycle's live number
+    }
+  }
+
   // ── Carpool data — filter to pay cycle ──
   var cp = {};
   try { cp = JSON.parse(lsGet(CPK) || '{}'); } catch(e){}

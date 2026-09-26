@@ -980,6 +980,13 @@ function _showUpdateToast(worker){
               <div id="fuelSuggest" style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:#f2a830;">R0</div>
             </div>
           </div>
+          <!-- v149k — previous cycle's leftover, reference only. Dashed
+               border + dimmer text on purpose: reads as "past, not live"
+               at a glance so it never gets mistaken for the tiles above. -->
+          <div id="fuelPrevCycleBlock" style="display:flex;justify-content:space-between;align-items:center;background:none;border:1px dashed var(--border);padding:8px 10px;border-radius:6px;margin-bottom:12px;">
+            <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);">Last cycle · <span id="fuelPrevCycleLabel">—</span></div>
+            <div id="fuelPrevCycleAmt" style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--muted);">—</div>
+          </div>
           <div style="background:var(--surface);border-radius:6px;overflow:hidden;">
             <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 28px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
               <span>Date</span><span>R/Litre</span><span>Total</span><span></span>
