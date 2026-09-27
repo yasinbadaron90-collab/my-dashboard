@@ -1662,6 +1662,13 @@ function _showUpdateToast(worker){
 <div class="overlay" id="externalBorrowModal">
   <div class="modal">
     <h2 style="color:#a78bfa;">🤝 Log Money Lent <button class="info-btn" onclick="openInfo('Lend money', 'Lend cash to a non-carpool person (family, friend, etc.). Pick who, amount, the pocket it comes from.\n\nThey appear in Money Owed. Use Repayment to log when they pay you back.')">ⓘ</button></h2>
+    <!-- v149m: historical debt toggle (legacy/past loan without pocket deduction) -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;margin-bottom:14px;background:#1a0e2e;border:1px solid #3a2060;border-radius:6px;">
+      <label style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">📋 Historical debt?</label>
+      <div id="extHistoricalToggle" onclick="toggleExtHistorical()" style="width:42px;height:22px;background:#2a2a2a;border:1px solid #333;border-radius:11px;position:relative;cursor:pointer;transition:all .2s;display:flex;align-items:center;">
+        <div id="extHistoricalKnob" style="width:18px;height:18px;background:#555;border-radius:50%;position:absolute;left:2px;top:2px;transition:all .2s;"></div>
+      </div>
+    </div>
     <div id="extLendingGuardrail" style="border-radius:8px;padding:12px 14px;margin-bottom:14px;border:1px solid #2a2a2a;background:#111;">
       <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Smart Lending Check</div>
       <div id="extGuardrailVerdict" style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:5px;"></div>

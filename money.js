@@ -41,6 +41,16 @@ function _applyExtHistoricalUI(){
   if(guardrail) guardrail.style.display = _extHistoricalMode ? 'none' : 'block';
 }
 
+function toggleExtHistorical(){
+  _extHistoricalMode = !_extHistoricalMode;
+  _applyExtHistoricalUI();
+}
+
+if(typeof window !== 'undefined'){
+  window.toggleExtHistorical = toggleExtHistorical;
+}
+
+
 // ── v90 Step 6 — pocket picker for Log Money Lent ─────────────────────────
 // A personal lend pulls money OUT of a chosen pocket (and through a bank
 // doorway). Default = the Daily pocket if it exists, else first pocket.
@@ -90,6 +100,28 @@ function selectExtLendPocket(id){
 
 function escapeHtmlSafe(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── v149m — Open historical borrow modal for a specific person ──
+function openHistoricalBorrowModal(key, tag){
+  document.getElementById('extBorrowName').value = '';
+  document.getElementById('extBorrowAmt').value = '';
+  document.getElementById('extBorrowDate').value = localDateStr(new Date());
+  document.getElementById('extBorrowNote').value = '';
+  _extLendSelectedPocketId = null;
+  _extHistoricalMode = true;  // v149m — pre-set to historical
+  _applyExtHistoricalUI();
+  renderExtLendPocketPicker();
+  document.getElementById('externalBorrowModal').classList.add('active');
+  // Pre-fill the name if we're adding to an existing person
+  if(tag === 'external'){
+    const extData = loadExternalBorrows();
+    if(extData[key] && extData[key].name){
+      document.getElementById('extBorrowName').value = extData[key].name;
+      document.getElementById('extBorrowName').disabled = true;  // locked to person name
+    }
+  }
+  setTimeout(updateExtLendingGuardrail,100);
 }
 
 function confirmExternalBorrow(){
@@ -1234,6 +1266,7 @@ function renderMoneyOwed(){
           return '<button onclick="openRepaymentsManager(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#0e2e1a;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">↩ Repayments ('+_rc+')</button>';
         })()
         +'<button onclick="openAddMoreBorrowModal(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;color:#a78bfa;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">➕ More Borrowed</button>'
+        +'<button onclick="openHistoricalBorrowModal(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#2e1a1a;border:1px solid #7a4a4a;border-radius:6px;color:#d2a599;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">📋 Add Historical</button>'
         +'<button onclick="exportPersonPDF(this)" style="padding:7px 14px;background:#1a1a00;border:1px solid #5a4a00;border-radius:6px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity=\'.75\'" onmouseout="this.style.opacity=\'1\'">⬇ PDF</button>'
         +(settled && p.key ? '<button onclick="archiveExternalPerson(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#1a1a1a;border:1px solid #333;border-radius:6px;color:#555;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.color=\'#888\'" onmouseout="this.style.color=\'#555\'">📦 Archive</button>' : '')
       +'</div>';
