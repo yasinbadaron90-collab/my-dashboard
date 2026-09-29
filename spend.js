@@ -167,9 +167,9 @@ function _spRenderPocketList(){
   visible.forEach(function(f){
     var bal;
     if(f.isExpense){
-      var totalIn  = (f.deposits||[]).filter(function(d){ return d.txnType === 'in'; })
+      var totalIn  = (f.deposits||[]).filter(function(d){ return d.txnType !== 'out'; })
                                      .reduce(function(s,d){ return s + d.amount; }, 0);
-      var totalOut = (f.deposits||[]).filter(function(d){ return d.txnType === 'out' || !d.txnType; })
+      var totalOut = (f.deposits||[]).filter(function(d){ return d.txnType === 'out'; })
                                      .reduce(function(s,d){ return s + d.amount; }, 0);
       bal = totalIn - totalOut;
     } else {
@@ -285,9 +285,9 @@ function _spUpdateSaveButton(){
   // Compute pocket balance (read-only check — we do NOT block negative; Option A)
   var bal;
   if(pocket.isExpense){
-    var inSum  = (pocket.deposits||[]).filter(function(d){ return d.txnType === 'in'; })
+    var inSum  = (pocket.deposits||[]).filter(function(d){ return d.txnType !== 'out'; })
                                       .reduce(function(s,d){ return s + d.amount; }, 0);
-    var outSum = (pocket.deposits||[]).filter(function(d){ return d.txnType === 'out' || !d.txnType; })
+    var outSum = (pocket.deposits||[]).filter(function(d){ return d.txnType === 'out'; })
                                       .reduce(function(s,d){ return s + d.amount; }, 0);
     bal = inSum - outSum;
   } else {
@@ -360,9 +360,9 @@ function saveSpend(){
   // (browser-cached old code, programmatic save, etc) bypasses the button.
   var _checkBal;
   if(pocket.isExpense){
-    var _inSum  = (pocket.deposits||[]).filter(function(d){ return d.txnType === 'in'; })
+    var _inSum  = (pocket.deposits||[]).filter(function(d){ return d.txnType !== 'out'; })
                                        .reduce(function(s,d){ return s + d.amount; }, 0);
-    var _outSum = (pocket.deposits||[]).filter(function(d){ return d.txnType === 'out' || !d.txnType; })
+    var _outSum = (pocket.deposits||[]).filter(function(d){ return d.txnType === 'out'; })
                                        .reduce(function(s,d){ return s + d.amount; }, 0);
     _checkBal = _inSum - _outSum;
   } else {

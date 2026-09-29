@@ -122,10 +122,10 @@ function renderFunds(){
 
     // Unified stats
     const totalIn = isExpense
-      ? f.deposits.filter(function(d){return d.txnType==='in';}).reduce(function(s,d){return s+d.amount;},0)
+      ? f.deposits.filter(function(d){return d.txnType!=='out';}).reduce(function(s,d){return s+d.amount;},0)
       : total;
     const totalOut = isExpense
-      ? f.deposits.filter(function(d){return d.txnType==='out'||!d.txnType;}).reduce(function(s,d){return s+d.amount;},0)
+      ? f.deposits.filter(function(d){return d.txnType==='out';}).reduce(function(s,d){return s+d.amount;},0)
       : 0;
     const balance = isExpense ? totalIn - totalOut : total;
     const goalAmt = f.goal;
@@ -271,8 +271,8 @@ function saveManualBalances(data){ lsSet(MANUAL_BAL_KEY, JSON.stringify(data)); 
 
 function getFundTrackedBal(f){
   if(f.name === 'Car Fund (EE90)'){
-    const totalIn  = (f.deposits||[]).filter(function(d){ return d.txnType === 'in'; }).reduce(function(s,d){ return s + d.amount; }, 0);
-    const totalOut = (f.deposits||[]).filter(function(d){ return d.txnType === 'out' || !d.txnType; }).reduce(function(s,d){ return s + d.amount; }, 0);
+    const totalIn  = (f.deposits||[]).filter(function(d){ return d.txnType !== 'out'; }).reduce(function(s,d){ return s + d.amount; }, 0);
+    const totalOut = (f.deposits||[]).filter(function(d){ return d.txnType === 'out'; }).reduce(function(s,d){ return s + d.amount; }, 0);
     return totalIn - totalOut;
   }
   return fundTotal(f);

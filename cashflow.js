@@ -353,10 +353,9 @@ function exportReport(type){
     csv+='Date,Description,Amount\n';
     const carFundExp=funds.find(function(f){return f.isExpense;});
     if(carFundExp){
-      // Match savings card logic: outflow = txnType==='out' OR no txnType field
-      // (legacy records added before the txnType flag existed)
+      // v149n: outflow = txnType==='out' only (untyped deposits count as IN, same as fundTotal)
       (carFundExp.deposits||[])
-        .filter(function(d){ return d.txnType === 'out' || !d.txnType; })
+        .filter(function(d){ return d.txnType === 'out'; })
         .sort(function(a,b){ return new Date(a.date) - new Date(b.date); })
         .forEach(function(d){
           csv+=d.date+','+(d.note||'').replace(/,/g,' ')+','+_r2(d.amount)+'\n';

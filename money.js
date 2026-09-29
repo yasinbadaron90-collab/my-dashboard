@@ -432,8 +432,8 @@ var _amLendSelectedPocketId = null;
 function _amLendBalance(f){
   if(!f) return 0;
   if(f.isExpense){
-    var tin  = (f.deposits||[]).filter(function(d){return d.txnType==='in';}).reduce(function(s,d){return s+d.amount;},0);
-    var tout = (f.deposits||[]).filter(function(d){return d.txnType==='out'||!d.txnType;}).reduce(function(s,d){return s+d.amount;},0);
+    var tin  = (f.deposits||[]).filter(function(d){return d.txnType!=='out';}).reduce(function(s,d){return s+d.amount;},0);
+    var tout = (f.deposits||[]).filter(function(d){return d.txnType==='out';}).reduce(function(s,d){return s+d.amount;},0);
     return tin - tout;
   }
   return (typeof fundTotal === 'function') ? fundTotal(f) : 0;

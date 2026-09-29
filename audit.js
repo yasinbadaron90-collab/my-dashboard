@@ -116,21 +116,22 @@ function _auFmtR(n){ return 'R' + Number(Math.abs(n).toFixed(2)).toLocaleString(
 
 function _auCheckDeposits(){
   var fundsArr = _auGetFunds();
-  var total = 0, badAmt = 0, badType = 0, dupes = 0, seen = {};
+  var total = 0, badAmt = 0, badType = 0, dupes = 0, untyped = 0, seen = {};
   fundsArr.forEach(function(f){
     (f.deposits||[]).forEach(function(d){
       total++;
       var a = Number(d.amount);
       if(!isFinite(a)) badAmt++;
       if(d.txnType !== undefined && d.txnType !== 'in' && d.txnType !== 'out') badType++;
+      if(f.isExpense && !d.txnType) untyped++;   // v149n: legacy formulas counted these as spend
       if(d.id){ if(seen[d.id]) dupes++; seen[d.id] = true; }
     });
   });
   var bad = badAmt + badType + dupes;
   return {
-    status: bad ? 'fail' : 'pass',
+    status: bad ? 'fail' : (untyped ? 'warn' : 'pass'),
     name: 'Deposit integrity',
-    detail: total + ' deposits scanned · ' + badAmt + ' invalid amounts · ' + badType + ' unknown txnTypes · ' + dupes + ' duplicate IDs'
+    detail: total + ' deposits scanned · ' + badAmt + ' invalid amounts · ' + badType + ' unknown txnTypes · ' + dupes + ' duplicate IDs' + (untyped ? ' · ' + untyped + ' untyped deposit(s) in expense pockets (counted as IN)' : '')
   };
 }
 
