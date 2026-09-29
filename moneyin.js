@@ -156,42 +156,54 @@ function _miSyncInputs(){
 // commitment. Whatever Plan doesn't claim falls through to Priority Rules
 // exactly as before -- this is one more waterfall step, not a change to
 // the locked "pre-fill uses Priority Rules" design.
-var _miLastPlanHint = null;
+var _miLastPlanRows = null;   // v149o: per-card status rows for the Plan panel (null = no plan cards)
+var _miLastPlanLeft = 0;      // v149o: amount still unplaced after the plan waterfall
+var _miLastPlanTotal = 0;     // v149o: amount the plan was asked to place
 function _miPlanPreAllocate(leftover){
-  _miLastPlanHint = null;
-  if(leftover <= 0) return null;
+  // v149o: WATERFALL. Walks EVERY plan card in order (was: first eligible card only),
+  // each takes min(what's open this month, what's left) until the money runs out.
+  // Every card also records WHY it was filled or skipped, so the panel can show it.
+  _miLastPlanRows = null; _miLastPlanLeft = leftover; _miLastPlanTotal = leftover;
+  if(leftover <= 0) return [];
   try {
     var plan = (typeof loadPlan === 'function') ? loadPlan() : null;
-    if(!plan) return null;
+    if(!plan || !(plan.savingsCards||[]).length) return [];
     var now = new Date();
     var thisMonthKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    var resetLbl = new Date(now.getFullYear(), now.getMonth()+1, 1).toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
     var allMi = loadMoneyInData();
+    var rem = leftover, planned = {}, picks = [], rows = [];
 
-    var chosen = null, chosenLeft = 0;
-    (plan.savingsCards||[]).some(function(c){
-      if(!c.monthly || c.monthly <= 0) return false;
+    plan.savingsCards.forEach(function(c){
+      var label = String(c.label||'Plan card').trim();
       var pocket = funds.find(function(f){ return f.id === c.pocketId && !f._deleted; });
-      if(!pocket) return false;
-      if(c.target > 0 && fundTotal(pocket) >= c.target) return false; // overall target already met
-      var routedThisMonth = allMi
+      if(!pocket){ rows.push({state:'warn', label:label, amt:0, why:'Pocket not found'}); return; }
+      if(!c.monthly || c.monthly <= 0){ rows.push({state:'warn', label:label, amt:0, why:'Monthly is R0, so this card can\'t fill'}); return; }
+      if(c.target > 0 && fundTotal(pocket) >= c.target){ rows.push({state:'skip', label:label, amt:0, why:'Target of '+fmtR(c.target)+' reached'}); return; }
+      var routed = allMi
         .filter(function(r){ return r.date && r.date.slice(0,7) === thisMonthKey; })
         .reduce(function(s,r){
           var split = (r.splits||[]).find(function(sp){ return sp.fundId === c.pocketId; });
           return s + (split ? split.amount : 0);
-        }, 0);
-      if(routedThisMonth >= c.monthly) return false; // this month's cap already used, by Money In itself
-      chosen = c;
-      chosenLeft = c.monthly - routedThisMonth;
-      return true; // first eligible card wins -- identical rule to Mark Paid
+        }, 0) + (planned[c.pocketId]||0);
+      routed = Math.round(routed*100)/100;
+      if(routed >= c.monthly){ rows.push({state:'skip', label:label, amt:0, why:fmtR(routed)+' of '+fmtR(c.monthly)+' already routed · resets '+resetLbl}); return; }
+      var open = Math.round((c.monthly - routed)*100)/100;
+      if(rem <= 0){ rows.push({state:'wait', label:label, amt:0, why:fmtR(open)+' still open, nothing left to place'}); return; }
+      var alloc = Math.min(open, rem);
+      rem = Math.round((rem - alloc)*100)/100;
+      planned[c.pocketId] = (planned[c.pocketId]||0) + alloc;
+      picks.push({ fundId: c.pocketId, alloc: alloc });
+      rows.push({state:'fill', label:label, amt:alloc, why: alloc < open ? 'Part of '+fmtR(open)+' open this month, '+fmtR(open-alloc)+' still to go' : 'Fills this month\'s '+fmtR(c.monthly)});
     });
 
-    if(!chosen) return null;
-    var alloc = Math.min(chosenLeft, leftover);
-    _miLastPlanHint = { label: chosen.label, left: chosenLeft, alloc: alloc };
-    return { fundId: chosen.pocketId, alloc: alloc };
+    _miLastPlanRows = rows;
+    _miLastPlanLeft = rem;
+    return picks;
   } catch(e){
     console.warn('[moneyin] Plan pre-allocate skipped:', e.message);
-    return null;
+    _miLastPlanRows = null;
+    return [];
   }
 }
 
@@ -202,11 +214,11 @@ function _miBuildPrefill(leftover){
 
   // Plan gets first claim; whatever's left runs through Priority Rules
   // exactly as before.
-  var planPick = _miPlanPreAllocate(rem);
-  if(planPick){
-    prefill[planPick.fundId] = (prefill[planPick.fundId]||0) + planPick.alloc;
-    rem -= planPick.alloc;
-  }
+  var planPicks = _miPlanPreAllocate(rem);
+  planPicks.forEach(function(p){
+    prefill[p.fundId] = (prefill[p.fundId]||0) + p.alloc;
+    rem -= p.alloc;
+  });
 
   try{
     var rules = (typeof getActivePriorities === 'function') ? getActivePriorities() : [];
@@ -288,6 +300,7 @@ function _miRenderPocketSplit(){
 
   // First render only: if not editing and no manual edits yet, use prefill
   var hasUserEdits = Object.keys(_miState.splits).length > 0;
+  if(!hasUserEdits && !_miState.editingId) _miLastPlanRows = null;   // v149o: never show a stale panel
   if(!hasUserEdits && !_miState.editingId && leftover > 0){
     _miState.splits = _miBuildPrefill(leftover);
   }
@@ -299,11 +312,44 @@ function _miRenderPocketSplit(){
   // Only on a fresh, un-edited open (same gate as the prefill call above).
   var existingHint = document.getElementById('miPlanHint');
   if(existingHint) existingHint.remove();
-  if(_miLastPlanHint && !hasUserEdits && !_miState.editingId){
+  if(_miLastPlanRows && _miLastPlanRows.length && !hasUserEdits && !_miState.editingId){
     var hint = document.createElement('div');
     hint.id = 'miPlanHint';
-    hint.style.cssText = 'background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:10px;color:#c8f230;letter-spacing:0.5px;';
-    hint.textContent = 'PLAN — '+fmtR(_miLastPlanHint.alloc)+' → '+_miLastPlanHint.label+' first · '+fmtR(_miLastPlanHint.left)+' left this month';
+    hint.style.cssText = 'background:#111;border:1px solid #3a5a00;border-radius:6px;padding:10px 12px;margin-bottom:10px;';
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'font-size:10px;color:#c8f230;letter-spacing:1px;margin-bottom:6px;';
+    hdr.textContent = 'PLAN — '+fmtR(_miLastPlanTotal)+' TO PLACE';
+    hint.appendChild(hdr);
+    var glyph = { fill:'✓', skip:'⏸', wait:'⏸', warn:'⚠' };
+    var gcol  = { fill:'#c8f230', skip:'#f2a830', wait:'#888', warn:'#f2a830' };
+    _miLastPlanRows.forEach(function(r, i){
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:8px;align-items:flex-start;padding:6px 0;'+(i>0?'border-top:1px solid #1e1e1e;':'');
+      var g = document.createElement('span');
+      g.style.cssText = 'font-size:12px;color:'+gcol[r.state]+';flex-shrink:0;width:14px;';
+      g.textContent = glyph[r.state];
+      var body = document.createElement('div');
+      body.style.cssText = 'flex:1;min-width:0;';
+      var top = document.createElement('div');
+      top.style.cssText = 'display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#efefef;';
+      var nm = document.createElement('span'); nm.textContent = r.label;
+      var am = document.createElement('span');
+      am.style.cssText = 'color:'+(r.state==='fill'?'#c8f230':'#666')+';font-weight:500;';
+      am.textContent = r.state==='fill' ? fmtR(r.amt) : 'Skipped';
+      top.appendChild(nm); top.appendChild(am);
+      var why = document.createElement('div');
+      why.style.cssText = 'font-size:10px;color:#888;margin-top:2px;letter-spacing:0.3px;';
+      why.textContent = r.why;
+      body.appendChild(top); body.appendChild(why);
+      row.appendChild(g); row.appendChild(body);
+      hint.appendChild(row);
+    });
+    if(_miLastPlanLeft > 0){
+      var ft = document.createElement('div');
+      ft.style.cssText = 'font-size:10px;color:#888;margin-top:6px;padding-top:6px;border-top:1px solid #1e1e1e;letter-spacing:0.3px;';
+      ft.textContent = fmtR(_miLastPlanLeft)+' left for your priority rules';
+      hint.appendChild(ft);
+    }
     c.parentNode.insertBefore(hint, c);
   }
 
