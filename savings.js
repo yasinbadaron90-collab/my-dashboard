@@ -346,9 +346,12 @@ function renderBankStrip(){
   const manuals = loadManualBalances();
 
   strip.innerHTML = '';
+  var _grandTotal = 0;                                   // v149p: sum of the balances shown below
+  var _totEl = document.getElementById('bankTotal');
 
   if(!funds.length){
     strip.innerHTML = '<div style="padding:10px 14px;font-size:11px;color:var(--muted);">No funds yet</div>';
+    if(_totEl) _totEl.textContent = fmtR(0);
     return;
   }
 
@@ -356,6 +359,7 @@ function renderBankStrip(){
     const tracked = getFundTrackedBal(f);
     const bal = manuals[f.id] !== undefined ? manuals[f.id] : tracked;
     const hasManual = manuals[f.id] !== undefined;
+    _grandTotal += (Number(bal) || 0);                   // v149p: same number the row displays
 
     let color;
     if(kidsFundNames.indexOf(f.name) >= 0)      color = '#ffb830';
@@ -382,6 +386,7 @@ function renderBankStrip(){
       + '</div>';
     strip.appendChild(row);
   });
+  if(_totEl) _totEl.textContent = fmtR(Math.round(_grandTotal * 100) / 100);   // v149p
 }
 
 function toggleBankPanel(){
