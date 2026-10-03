@@ -207,8 +207,10 @@ function _miPlanPreAllocate(leftover){
   }
 }
 
+var _miLastPrefillWarn = null;   // v149r: {unplaced, reason} when the pre-fill could not place everything
 function _miBuildPrefill(leftover){
   var prefill = {};
+  _miLastPrefillWarn = null;
   if(leftover <= 0) return prefill;
   var rem = leftover;
 
@@ -222,8 +224,10 @@ function _miBuildPrefill(leftover){
 
   try{
     var rules = (typeof getActivePriorities === 'function') ? getActivePriorities() : [];
+    var savingsRule = null;
     rules.forEach(function(rule){
       if(rem <= 0) return;
+      if(rule.id === 'savings'){ savingsRule = rule; return; }   // v149r: "remainder" rule, applied after the others
       var fundId = rule.targetId;
       if(!fundId) return;
       var fund = funds.find(function(f){ return f.id === fundId; });
@@ -240,46 +244,21 @@ function _miBuildPrefill(leftover){
       rem -= alloc;
     });
 
-    // Spread anything remaining across savings funds by % behind (mirrors the
-    // 'savings' rule). Skip the Ee90 isExpense pocket (it's a tracker, not a
-    // savings goal) and skip Daily (we top it up last).
+    // v149r: NO automatic spreading. Yasin moves this money by hand in the FNB app, so
+    // splitting it over many pockets creates work and surprises. Whatever is left after the
+    // plan and the other rules goes to the Savings rule's TARGET pocket - all of it, with no
+    // cap, even if that pocket is past its goal (change the target to stop it). If there is
+    // no target (rule off / no pocket picked / pocket gone) nothing is placed and a warning
+    // is shown; Save stays locked until the remainder is placed by hand.
     if(rem > 0){
-      var dailyFund = funds.find(function(f){ return f.name && /^daily$/i.test(f.name); });
-      var dailyId = dailyFund ? dailyFund.id : null;
-      var savingsTargets = funds.filter(function(f){
-        if(f.isExpense) return false;
-        if(f.id === dailyId) return false;
-        if((prefill[f.id]||0) >= (f.goal||Infinity)) return false;
-        return (f.goal||0) > 0;
-      });
-
-      // Sort by % behind (most behind first)
-      savingsTargets.sort(function(a,b){
-        var aPct = (fundTotal(a)+(prefill[a.id]||0)) / (a.goal||1);
-        var bPct = (fundTotal(b)+(prefill[b.id]||0)) / (b.goal||1);
-        return aPct - bPct;
-      });
-
-      // Distribute one pass at small increments so nothing eats everything
-      savingsTargets.forEach(function(f){
-        if(rem <= 0) return;
-        var roomToGoal = Math.max(0, (f.goal||0) - fundTotal(f) - (prefill[f.id]||0));
-        // Don't give any one pocket more than 30% of what's left this pass
-        var capPerPocket = Math.min(roomToGoal, Math.max(100, Math.floor(rem * 0.3)));
-        var alloc = Math.min(capPerPocket, rem);
-        if(alloc > 0){
-          prefill[f.id] = (prefill[f.id]||0) + alloc;
-          rem -= alloc;
-        }
-      });
-    }
-
-    // Whatever is left goes to Daily — the everyday pocket catches the tail.
-    if(rem > 0){
-      var daily = funds.find(function(f){ return f.name && /^daily$/i.test(f.name); });
-      if(daily){
-        prefill[daily.id] = (prefill[daily.id]||0) + rem;
+      var tgt = (savingsRule && savingsRule.targetId)
+        ? funds.find(function(f){ return f.id === savingsRule.targetId && !f._deleted; }) : null;
+      if(tgt){
+        prefill[tgt.id] = (prefill[tgt.id]||0) + rem;
         rem = 0;
+      } else {
+        var why = !savingsRule ? 'off' : (savingsRule.targetId ? 'target_missing' : 'no_target');
+        _miLastPrefillWarn = { unplaced: Math.round(rem*100)/100, reason: why };
       }
     }
   }catch(e){
@@ -300,7 +279,7 @@ function _miRenderPocketSplit(){
 
   // First render only: if not editing and no manual edits yet, use prefill
   var hasUserEdits = Object.keys(_miState.splits).length > 0;
-  if(!hasUserEdits && !_miState.editingId) _miLastPlanRows = null;   // v149o: never show a stale panel
+  if(!hasUserEdits && !_miState.editingId){ _miLastPlanRows = null; _miLastPrefillWarn = null; }   // v149o/r: never show a stale panel
   if(!hasUserEdits && !_miState.editingId && leftover > 0){
     _miState.splits = _miBuildPrefill(leftover);
   }
@@ -351,6 +330,22 @@ function _miRenderPocketSplit(){
       hint.appendChild(ft);
     }
     c.parentNode.insertBefore(hint, c);
+  }
+
+  // v149r: warning when the pre-fill could not place everything
+  var existingWarn = document.getElementById('miPrefillWarn');
+  if(existingWarn) existingWarn.remove();
+  if(_miLastPrefillWarn && !hasUserEdits && !_miState.editingId){
+    var wn = document.createElement('div');
+    wn.id = 'miPrefillWarn';
+    wn.style.cssText = 'background:#1a1200;border:1px solid #5a3a00;border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#f2a830;line-height:1.5;';
+    var why = _miLastPrefillWarn.reason;
+    var msg = fmtR(_miLastPrefillWarn.unplaced)+' not placed. ';
+    if(why === 'no_target') msg += 'The Savings rule has no target pocket. Pick one in Priority Rules, or split it by hand.';
+    else if(why === 'target_missing') msg += 'The Savings rule\'s target pocket no longer exists. Pick another in Priority Rules, or split it by hand.';
+    else msg += 'The Savings rule is off, so nothing is set to take the rest. Turn it on with a target pocket in Priority Rules, or split it by hand.';
+    wn.textContent = '⚠ '+msg;
+    c.parentNode.insertBefore(wn, c);
   }
 
   c.innerHTML = '';
