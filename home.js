@@ -148,21 +148,52 @@ function renderPlan(){
 
   if(_planEditMode){ container.innerHTML = _planRenderEditForm(plan); return; }
 
-  var cardsHtml = plan.savingsCards.map(function(c){
-    var fund = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === c.pocketId; });
-    var bal = fund ? fundTotal(fund) : 0;
-    var pct = c.target > 0 ? Math.min(100, (bal/c.target)*100) : 0;
-    var pocketMissing = !fund;
-    return ''
-      + '<div class="home-plan-card" style="border-left:3px solid '+(pocketMissing?'#f2a830':'#c8f230')+';">'
-      +   '<div class="home-plan-card-title">'+_escHtml(c.label.toUpperCase())+'</div>'
-      +   '<div class="home-plan-card-bal" style="color:'+(pocketMissing?'#f2a830':'#c8f230')+';">'+(pocketMissing?'Pocket not found':fmtR(bal))+'</div>'
-      +   '<div class="home-plan-card-sub">Target '+fmtR(c.target)+' · '+pct.toFixed(1)+'%'+(fund?' · '+_escHtml(fund.name):'')+'</div>'
-      +   '<div class="home-plan-bar"><div class="home-plan-bar-fill" style="width:'+pct+'%;background:#c8f230;"></div></div>'
-      +   (c.monthly ? '<div class="home-plan-card-rule">Commitment: '+fmtR(c.monthly)+'/month</div>' : '')
+  // ── v149q: visual redesign (display only — no data model or money logic changes) ──
+  var L='#c8f230', R='#f23060', A='#f2a830', M='#888';
+  var now = new Date();
+  var monthLbl = now.toLocaleDateString('en-ZA',{month:'long',year:'numeric'}).toUpperCase();
+  var monthKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  var allFunds = (typeof funds !== 'undefined' ? funds : []);
+  var cardBox = 'background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:14px;margin-bottom:12px;';
+  var secHdr = function(t, right){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:2px;color:'+M+';margin-bottom:12px;"><span>'+t+'</span>'+(right||'')+'</div>';
+  };
+
+  // Money In routed into a pocket this calendar month (same rule the Money In waterfall uses)
+  var routedThisMonth = function(pocketId){
+    try {
+      var mi = (typeof loadMoneyInData === 'function') ? loadMoneyInData() : [];
+      return mi.filter(function(r){ return r.date && r.date.slice(0,7) === monthKey; })
+        .reduce(function(s,r){
+          var sp = (r.splits||[]).find(function(x){ return x.fundId === pocketId; });
+          return s + (sp ? sp.amount : 0);
+        }, 0);
+    } catch(e){ return 0; }
+  };
+
+  // WHERE YOU STAND
+  var standHtml = plan.savingsCards.map(function(c, i){
+    var fund = allFunds.find(function(f){ return f.id === c.pocketId && !f._deleted; });
+    var label = _escHtml(String(c.label||'').trim());
+    if(!fund){
+      return '<div style="'+(i>0?'margin-top:16px;':'')+'font-size:12px;color:'+A+';">⚠ '+label+' — pocket not found. Tap ✎ to pick one.</div>';
+    }
+    var bal = fundTotal(fund);
+    var pct = c.target > 0 ? Math.max(0, Math.min(100, (bal/c.target)*100)) : 0;
+    var toGo = c.target > 0 ? Math.max(0, c.target - bal) : 0;
+    var done = c.target > 0 && bal >= c.target;
+    var right = c.target > 0 ? (done ? '<span style="color:'+L+';">Target reached</span>' : '<span style="color:'+R+';">'+fmtR(Math.round(toGo))+' to go</span>') : '';
+    return '<div style="'+(i>0?'margin-top:18px;':'')+'">'
+      + '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#aaa;">'+label+'</span>'+right+'</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin:3px 0 8px;">'
+      +   '<span style="font-family:Syne,sans-serif;font-weight:700;font-size:24px;color:#efefef;">'+fmtR(Math.round(bal))+'</span>'
+      +   (c.target>0 ? '<span style="font-size:11px;color:'+M+';">of '+fmtR(c.target)+' · '+pct.toFixed(1)+'%</span>' : '<span style="font-size:11px;color:'+M+';">no target set</span>')
+      + '</div>'
+      + (c.target>0 ? '<div style="height:8px;background:#2a2a2a;border-radius:4px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+L+';border-radius:4px;"></div></div>' : '')
       + '</div>';
   }).join('');
 
+  // Debt card
   var debtOwing = 0, debtName = plan.debtCard.label;
   try {
     var ext = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
@@ -173,16 +204,46 @@ function renderPlan(){
       debtName = person.name || plan.debtCard.label;
     }
   } catch(e){}
-  var debtCardHtml = ''
-    + '<div class="home-plan-card" style="border-left:3px solid #f23060;">'
-    +   '<div class="home-plan-card-title">'+_escHtml(debtName.toUpperCase())+'</div>'
-    +   '<div class="home-plan-card-bal" style="color:#f23060;">'+fmtR(debtOwing)+'</div>'
-    +   '<div class="home-plan-card-sub">'+fmtR(plan.debtCard.monthly)+'/month · don\'t accelerate yet</div>'
+  var debtHtml = '<div style="margin-top:18px;padding-top:14px;border-top:1px solid #2a2a2a;">'
+    + '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#aaa;">'+_escHtml(String(debtName))+'</span><span style="color:'+M+';">'+fmtR(plan.debtCard.monthly)+'/month · don\'t accelerate yet</span></div>'
+    + '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:24px;color:'+R+';margin-top:3px;">'+fmtR(Math.round(debtOwing))+'</div>'
     + '</div>';
 
-  var totalMonthly = plan.savingsCards.reduce(function(s,c){return s+(c.monthly||0);}, 0);
-  var actionParts = plan.savingsCards.filter(function(c){return c.monthly>0;}).map(function(c){ return fmtR(c.monthly)+' → '+c.label; });
-  var actionLine = actionParts.length ? actionParts.join(' · ')+' · remainder of Net → savings' : 'No monthly commitments set yet';
+  // WHERE NEW MONEY GOES (same card order the Money In waterfall walks)
+  var stepsHtml = '';
+  plan.savingsCards.forEach(function(c, i){
+    var label = _escHtml(String(c.label||'').trim());
+    var right, rcol = M;
+    if(!c.monthly || c.monthly <= 0){ right = 'no monthly set'; }
+    else {
+      var rt = routedThisMonth(c.pocketId);
+      if(rt >= c.monthly){ right = fmtR(Math.round(rt))+' of '+fmtR(c.monthly)+' · done this month'; rcol = L; }
+      else { right = fmtR(Math.round(rt))+' of '+fmtR(c.monthly)+' this month'; }
+    }
+    var dim = (!c.monthly || c.monthly <= 0) ? 'opacity:.55;' : '';
+    stepsHtml += '<div style="display:flex;align-items:center;gap:12px;background:#222;border-radius:8px;padding:11px 12px;margin-bottom:6px;'+dim+'">'
+      + '<span style="width:22px;height:22px;border-radius:50%;background:#2e2e2e;color:#efefef;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(i+1)+'</span>'
+      + '<span style="flex:1;font-size:14px;color:#efefef;">'+label+'</span>'
+      + '<span style="font-size:11px;color:'+rcol+';text-align:right;">'+right+'</span></div>';
+  });
+  stepsHtml += '<div style="display:flex;align-items:center;gap:12px;background:'+L+';border-radius:8px;padding:11px 12px;">'
+    + '<span style="width:22px;height:22px;border-radius:50%;background:#000;color:'+L+';font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(plan.savingsCards.length+1)+'</span>'
+    + '<span style="flex:1;font-size:14px;font-weight:700;color:#000;">Everything left</span>'
+    + '<span style="font-size:11px;color:#000;">your priority rules</span></div>';
+
+  // THE MONTH (uses the stipend end date already stored in the plan)
+  var monthHtml = '';
+  try {
+    var se = new Date(plan.stipendEnd+'T00:00:00');
+    if(!isNaN(se.getTime())){
+      var days = Math.round((se - new Date(now.getFullYear(), now.getMonth(), now.getDate()))/86400000);
+      var seLbl = se.toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'});
+      var dLbl = days > 0 ? days+' day'+(days===1?'':'s')+' to go' : (days === 0 ? 'today' : 'ended');
+      monthHtml = '<div style="'+cardBox+'">'+secHdr('THE MONTH')
+        + '<div style="display:flex;gap:12px;align-items:flex-start;"><span style="width:10px;height:10px;border-radius:50%;background:'+L+';margin-top:4px;flex-shrink:0;"></span>'
+        + '<div><div style="font-size:14px;color:#efefef;">Stipend ends · '+seLbl+'</div><div style="font-size:11px;color:'+M+';margin-top:2px;">'+dLbl+'</div></div></div></div>';
+    }
+  } catch(e){}
 
   var auditFails = 0;
   if(typeof _auditResults !== 'undefined' && Array.isArray(_auditResults)){
@@ -194,15 +255,16 @@ function renderPlan(){
 
   container.innerHTML = ''
     + '<div class="home-zone">'
-    +   '<div class="home-zone-hdr">'
-    +     '<div class="home-zone-title">🎯 Plan</div>'
+    +   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
+    +     '<div><div style="font-size:10px;letter-spacing:3px;color:'+L+';">'+monthLbl+'</div>'
+    +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:30px;color:#efefef;line-height:1.1;margin-top:2px;">The plan</div></div>'
     +     '<button class="pane-toggle" onclick="togglePlanEdit()" title="Edit Plan">✎</button>'
     +   '</div>'
-    +   '<div class="home-zone-meta">Live from pockets · pick which pocket/person each card tracks in Edit</div>'
-    +   '<div class="home-plan-cards">'+cardsHtml+debtCardHtml+'</div>'
-    +   '<div class="home-plan-action">THIS MONTH — '+actionLine+'</div>'
-    +   '<div class="home-plan-footer">'+auditBadge+' · figures live · plan notes below</div>'
-    +   (plan.notes ? '<div class="home-plan-card-rule" style="margin-top:8px;">'+_escHtml(plan.notes)+'</div>' : '')
+    +   '<div style="'+cardBox+'">'+secHdr('WHERE YOU STAND', '<span style="color:'+L+';">LIVE</span>')+standHtml+debtHtml+'</div>'
+    +   '<div style="'+cardBox+'">'+secHdr('WHERE NEW MONEY GOES')+stepsHtml+'</div>'
+    +   monthHtml
+    +   (plan.notes ? '<div style="'+cardBox+'font-size:12px;color:#aaa;">'+_escHtml(plan.notes)+'</div>' : '')
+    +   '<div style="font-size:10px;color:#555;text-align:center;letter-spacing:1px;margin-top:4px;">'+auditBadge+' · figures live</div>'
     + '</div>';
 }
 
