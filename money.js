@@ -1644,7 +1644,10 @@ function fmtR(n){
   // false negative. Real negative amounts of a cent or more are
   // completely unaffected — this only ever changes what was noise.
   var r = (Math.round((Number(n)||0) * 100) / 100) || 0; // the || 0 collapses -0 to 0 (-0 is falsy in JS)
-  return 'R'+r.toLocaleString('en-ZA');
+  // v149v: a whole-rand amount prints with no decimals (R1 200); anything with cents always
+  // prints two (R8,50, R17,95) — was "R8,5" because toLocaleString drops the trailing zero.
+  var whole = (r % 1 === 0);
+  return 'R'+r.toLocaleString('en-ZA', whole ? {} : {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 // ════════════════════════════════════════════════════════════════════
 // ROLE-BASED TAB ACCESS GUARD

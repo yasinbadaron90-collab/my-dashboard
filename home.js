@@ -182,11 +182,11 @@ function renderPlan(){
     var pct = c.target > 0 ? Math.max(0, Math.min(100, (bal/c.target)*100)) : 0;
     var toGo = c.target > 0 ? Math.max(0, c.target - bal) : 0;
     var done = c.target > 0 && bal >= c.target;
-    var right = c.target > 0 ? (done ? '<span style="color:'+L+';">Target reached</span>' : '<span style="color:'+R+';">'+fmtR(Math.round(toGo))+' to go</span>') : '';
+    var right = c.target > 0 ? (done ? '<span style="color:'+L+';">Target reached</span>' : '<span style="color:'+R+';">'+fmtR(toGo)+' to go</span>') : '';
     return '<div style="'+(i>0?'margin-top:18px;':'')+'">'
       + '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#aaa;">'+label+'</span>'+right+'</div>'
       + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin:3px 0 8px;">'
-      +   '<span style="font-family:Syne,sans-serif;font-weight:700;font-size:24px;color:#efefef;">'+fmtR(Math.round(bal))+'</span>'
+      +   '<span style="font-family:Syne,sans-serif;font-weight:700;font-size:24px;color:#efefef;">'+fmtR(bal)+'</span>'
       +   (c.target>0 ? '<span style="font-size:11px;color:'+M+';">of '+fmtR(c.target)+' · '+pct.toFixed(1)+'%</span>' : '<span style="font-size:11px;color:'+M+';">no target set</span>')
       + '</div>'
       + (c.target>0 ? '<div style="height:8px;background:#2a2a2a;border-radius:4px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+L+';border-radius:4px;"></div></div>' : '')
@@ -206,7 +206,7 @@ function renderPlan(){
   } catch(e){}
   var debtHtml = '<div style="margin-top:18px;padding-top:14px;border-top:1px solid #2a2a2a;">'
     + '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#aaa;">'+_escHtml(String(debtName))+'</span><span style="color:'+M+';">'+fmtR(plan.debtCard.monthly)+'/month · don\'t accelerate yet</span></div>'
-    + '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:24px;color:'+R+';margin-top:3px;">'+fmtR(Math.round(debtOwing))+'</div>'
+    + '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:24px;color:'+R+';margin-top:3px;">'+fmtR(debtOwing)+'</div>'
     + '</div>';
 
   // WHERE NEW MONEY GOES (same card order the Money In waterfall walks)
@@ -217,8 +217,8 @@ function renderPlan(){
     if(!c.monthly || c.monthly <= 0){ right = 'no monthly set'; }
     else {
       var rt = routedThisMonth(c.pocketId);
-      if(rt >= c.monthly){ right = fmtR(Math.round(rt))+' of '+fmtR(c.monthly)+' · done this month'; rcol = L; }
-      else { right = fmtR(Math.round(rt))+' of '+fmtR(c.monthly)+' this month'; }
+      if(rt >= c.monthly){ right = fmtR(rt)+' of '+fmtR(c.monthly)+' · done this month'; rcol = L; }
+      else { right = fmtR(rt)+' of '+fmtR(c.monthly)+' this month'; }
     }
     var dim = (!c.monthly || c.monthly <= 0) ? 'opacity:.55;' : '';
     stepsHtml += '<div style="display:flex;align-items:center;gap:12px;background:#222;border-radius:8px;padding:11px 12px;margin-bottom:6px;'+dim+'">'
