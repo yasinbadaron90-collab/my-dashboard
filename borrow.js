@@ -33,7 +33,7 @@ function _cpLendBalance(f){
   if(f.isExpense){
     var tin  = (f.deposits||[]).filter(function(d){return d.txnType!=='out';}).reduce(function(s,d){return s+d.amount;},0);
     var tout = (f.deposits||[]).filter(function(d){return d.txnType==='out';}).reduce(function(s,d){return s+d.amount;},0);
-    return tin - tout;
+    return Math.round((tin - tout) * 100) / 100 + 0;   // v149t
   }
   return (typeof fundTotal === 'function') ? fundTotal(f) : 0;
 }
@@ -218,7 +218,7 @@ function confirmBorrow(){
     pocket = funds.find(function(f){ return f.id === _cpLendSelectedPocketId; });
     if(!pocket){ alert('Pick which pocket the money comes out of.'); return; }
     var pocketBal = _cpLendBalance(pocket);
-    if(amount > pocketBal){
+    if(amount > pocketBal + 0.005){   // v149t: cent tolerance
       alert('Only R' + Number(pocketBal).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})
         + ' available in ' + pocket.name + '. Pick another pocket or a smaller amount.');
       return;

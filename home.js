@@ -163,11 +163,11 @@ function renderPlan(){
   var routedThisMonth = function(pocketId){
     try {
       var mi = (typeof loadMoneyInData === 'function') ? loadMoneyInData() : [];
-      return mi.filter(function(r){ return r.date && r.date.slice(0,7) === monthKey; })
+      return Math.round(mi.filter(function(r){ return r.date && r.date.slice(0,7) === monthKey; })
         .reduce(function(s,r){
           var sp = (r.splits||[]).find(function(x){ return x.fundId === pocketId; });
           return s + (sp ? sp.amount : 0);
-        }, 0);
+        }, 0) * 100) / 100;   // v149u: cents
     } catch(e){ return 0; }
   };
 

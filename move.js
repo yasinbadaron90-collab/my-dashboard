@@ -205,7 +205,7 @@ function _mvUpdateSaveButton(){
 
   // Can't move more than the From pocket holds. (Hard limit — unlike Spend's
   // soft "save anyway", a move has no merchant; over-moving makes no sense.)
-  if(amount > fromBal){
+  if(amount > fromBal + 0.005){   // v149t: cent tolerance (float drift made R17.95 > R17.95)
     _mvLockButton(btn, '🔒 Only ' + fmtR(fromBal) + ' in ' + from.name);
     return;
   }
@@ -248,7 +248,7 @@ function saveMove(){
     var oldChk = allChk.find(function(r){ return r.id === _mvState.editingId; });
     if(oldChk && oldChk.fromId === _mvState.fromId) fromBalCheck += oldChk.amount;
   }
-  if(_mvState.amount > fromBalCheck){
+  if(_mvState.amount > fromBalCheck + 0.005){   // v149t
     alert('Only ' + fmtR(fromBalCheck) + ' available in ' + from.name + '.');
     return;
   }

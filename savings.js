@@ -17,10 +17,13 @@ try { loadFunds(); window.funds=funds; } catch(e){}
 
 // ── fundTotal: sum all deposits for a fund ──
 function fundTotal(f){
-  return (f.deposits||[]).reduce(function(s,d){
+  // v149t: round to cents. Summing many 2-decimal amounts in binary floating point drifts
+  // (e.g. a real R17.95 balance came out as 17.94999999999999, which made "move R17.95" fail).
+  var t = (f.deposits||[]).reduce(function(s,d){
     if(d.txnType==='out') return s - d.amount;
     return s + d.amount;
   }, 0);
+  return Math.round(t * 100) / 100 + 0;   // "+ 0" turns -0 into 0
 }
 
 function remaining(f){return Math.max(0,f.goal-fundTotal(f));}
@@ -127,7 +130,7 @@ function renderFunds(){
     const totalOut = isExpense
       ? f.deposits.filter(function(d){return d.txnType==='out';}).reduce(function(s,d){return s+d.amount;},0)
       : 0;
-    const balance = isExpense ? totalIn - totalOut : total;
+    const balance = isExpense ? Math.round((totalIn - totalOut) * 100) / 100 + 0 : total;   // v149u: no false 'over budget' from a -1e-13 tail
     const goalAmt = f.goal;
     const progPct = isExpense
       ? (totalIn > 0 ? Math.max(0, Math.min(100, (balance/totalIn)*100)) : 0)
@@ -273,7 +276,7 @@ function getFundTrackedBal(f){
   if(f.name === 'Car Fund (EE90)'){
     const totalIn  = (f.deposits||[]).filter(function(d){ return d.txnType !== 'out'; }).reduce(function(s,d){ return s + d.amount; }, 0);
     const totalOut = (f.deposits||[]).filter(function(d){ return d.txnType === 'out'; }).reduce(function(s,d){ return s + d.amount; }, 0);
-    return totalIn - totalOut;
+    return Math.round((totalIn - totalOut) * 100) / 100 + 0;   // v149t
   }
   return fundTotal(f);
 }
