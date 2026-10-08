@@ -324,11 +324,14 @@ function _renderHomeZone1Money(){
     : [];
 
   var grandTotal = 0;
+  var heldMap = {};          // v149w: name -> money held for someone else
   var pocketCards = '';
 
   visibleFunds.forEach(function(f){
     var bal = (typeof fundTotal === 'function') ? fundTotal(f) : 0;
-    grandTotal += bal;
+    var heldName = (f.heldFor || '').trim();
+    if(heldName){ heldMap[heldName] = (heldMap[heldName] || 0) + bal; }
+    else { grandTotal += bal; }
 
     var isZero = bal === 0;
     var isExpense = !!f.isExpense;
@@ -342,8 +345,13 @@ function _renderHomeZone1Money(){
       +   '<span class="home-pocket-emoji">'+(f.emoji||'💰')+'</span>'
       +   '<div class="home-pocket-name" title="'+_escAttr(f.name)+'">'+_escHtml(f.name)+'</div>'
       +   '<div class="home-pocket-bal" style="color:'+balColor+';">'+fmtR(bal)+'</div>'
+      +   (heldName ? '<div style="font-size:9px;letter-spacing:1px;color:#f2a830;margin-top:2px;">HELD · '+_escHtml(heldName)+'</div>' : '')
       + '</div>';
   });
+  grandTotal = Math.round(grandTotal * 100) / 100;
+  var heldLine = Object.keys(heldMap).map(function(n){
+    return '+ '+fmtR(Math.round(heldMap[n]*100)/100)+' held for '+_escHtml(n);
+  }).join(' · ');
 
   var bankNote = visibleFunds.length+' pockets · banks R0';
 
@@ -355,7 +363,8 @@ function _renderHomeZone1Money(){
     +     '</div>'
     +     '<div class="home-zone-meta">'+bankNote+'</div>'
     +   '</div>'
-    +   '<div class="home-total-line">'+fmtR(grandTotal)+'<small>across pockets</small></div>'
+    +   '<div class="home-total-line">'+fmtR(grandTotal)+'<small>'+(heldLine ? 'your own money' : 'across pockets')+'</small></div>'
+    +   (heldLine ? '<div style="font-size:12px;color:#f2a830;margin:-4px 0 10px;">'+heldLine+'</div>' : '')
     +   '<div class="home-pocket-strip">'+pocketCards+'</div>'
     +   '<div class="home-money-actions">'
     +     '<button class="home-money-btn in"    onclick="openMoneyIn()"><span class="home-money-btn-icon">↓</span>Money In</button>'

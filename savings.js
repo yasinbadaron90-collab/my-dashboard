@@ -349,7 +349,9 @@ function renderBankStrip(){
   const manuals = loadManualBalances();
 
   strip.innerHTML = '';
-  var _grandTotal = 0;                                   // v149p: sum of the balances shown below
+  var _grandTotal = 0;                                   // v149p/w: sum of YOUR balances (held pockets excluded)
+  var _heldMap = {};                                     // v149w: name -> money held for them
+  var _esc = function(s){ return (typeof _escHtml === 'function') ? _escHtml(String(s)) : String(s).replace(/[&<>"]/g, ''); };
   var _totEl = document.getElementById('bankTotal');
 
   if(!funds.length){
@@ -362,7 +364,9 @@ function renderBankStrip(){
     const tracked = getFundTrackedBal(f);
     const bal = manuals[f.id] !== undefined ? manuals[f.id] : tracked;
     const hasManual = manuals[f.id] !== undefined;
-    _grandTotal += (Number(bal) || 0);                   // v149p: same number the row displays
+    const _heldName = (f.heldFor || '').trim();            // v149w
+    if(_heldName){ _heldMap[_heldName] = (_heldMap[_heldName] || 0) + (Number(bal) || 0); }
+    else { _grandTotal += (Number(bal) || 0); }          // v149p: same number the row displays
 
     let color;
     if(kidsFundNames.indexOf(f.name) >= 0)      color = '#ffb830';
@@ -382,12 +386,20 @@ function renderBankStrip(){
       '<span style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);'
       + 'max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+f.name+'">'
       + f.emoji + ' ' + f.name
+      + (_heldName ? ' <span style="color:#f2a830;font-size:9px;letter-spacing:1px;">· HELD ' + _esc(_heldName) + '</span>' : '')
       + '</span>'
       + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
       + (hasManual ? '<span style="font-size:9px;color:var(--muted);" title="Manually set">✎</span>' : '')
       + '<strong style="font-size:13px;color:' + color + ';">' + fmtR(bal) + '</strong>'
       + '</div>';
     strip.appendChild(row);
+  });
+  Object.keys(_heldMap).forEach(function(name){            // v149w: one summary line per person
+    var hr = document.createElement('div');
+    hr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-top:1px solid var(--border);background:rgba(242,168,48,.08);';
+    hr.innerHTML = '<span style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#f2a830;">Held for ' + _esc(name) + '</span>'
+      + '<strong style="font-size:13px;color:#f2a830;">' + fmtR(Math.round(_heldMap[name] * 100) / 100) + '</strong>';
+    strip.appendChild(hr);
   });
   if(_totEl) _totEl.textContent = fmtR(Math.round(_grandTotal * 100) / 100);   // v149p
 }
@@ -470,6 +482,7 @@ function openNewFundDirect(){
   document.getElementById('fStart').value=localDateStr(new Date());
   // Deadline: blank by default for new cards — user must pick.
   document.getElementById('fDeadline').value='';
+  var _hf0 = document.getElementById('fHeldFor'); if(_hf0) _hf0.value='';   // v149w
   var hint = document.getElementById('fDeadlineHint');
   if(hint) hint.textContent = '';
   buildEmojiGrid();buildColorGrid();
@@ -488,6 +501,7 @@ function openEditFund(id){
   document.getElementById('fStart').value=f.start;
   // Pre-fill deadline if the card already has one.
   document.getElementById('fDeadline').value=f.deadline||'';
+  var _hf1 = document.getElementById('fHeldFor'); if(_hf1) _hf1.value=f.heldFor||'';   // v149w
   setTargetType(targetType);updateTargetHint();
   buildEmojiGrid();buildColorGrid();
   document.getElementById('fundModal').classList.add('active');
@@ -526,6 +540,8 @@ function saveFund(){
   const weekly=targetType==='monthly'?parseFloat((rawAmt/4.33).toFixed(2)):rawAmt;
   const start=document.getElementById('fStart').value;
   const deadline=document.getElementById('fDeadline').value;
+  const _hfEl=document.getElementById('fHeldFor');
+  const heldFor=_hfEl ? (_hfEl.value||'').trim() : '';   // v149w: '' = your own money
   if(!name||!goal||!start){ alert('Please fill in name, goal, and start date.'); return; }
   // ── FIX 2026-07-13 ── Hard-block guard, defense-in-depth behind the
   // greyed-out picker above. Two pockets sharing an emoji caused a real
@@ -545,8 +561,11 @@ function saveFund(){
   if(editingId){
     const f=funds.find(x=>x.id===editingId);
     Object.assign(f,{name,emoji:selEmoji,color:selColor,goal,weekly,targetType,start,deadline,isExpense:f.isExpense||false});
+    if(heldFor) f.heldFor = heldFor; else delete f.heldFor;   // v149w
   } else {
-    funds.push({id:uid(),name,emoji:selEmoji,color:selColor,goal,weekly:weekly||200,targetType,start,deadline,deposits:[]});
+    var _nf = {id:uid(),name,emoji:selEmoji,color:selColor,goal,weekly:weekly||200,targetType,start,deadline,deposits:[]};
+    if(heldFor) _nf.heldFor = heldFor;   // v149w
+    funds.push(_nf);
   }
   saveFunds();closeModal('fundModal');renderFunds();
   showBackupReminder(isNew?'New savings card created':'Savings card updated');

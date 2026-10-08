@@ -3096,6 +3096,11 @@ function _showUpdateToast(worker){
       <input type="date" id="fDeadline"/>
       <div id="fDeadlineHint" style="font-size:10px;color:var(--muted);margin-top:4px;min-height:14px"></div>
     </div>
+    <div class="field">
+      <label>Held for someone else (optional)</label>
+      <input type="text" id="fHeldFor" placeholder="e.g. Tariq. Leave empty if it's your own money"/>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5">A held pocket is left out of your Home and Balances totals and shown on its own line. Nothing else about the pocket changes.</div>
+    </div>
     <div class="modal-btns">
       <button class="btn ghost" onclick="closeModal('fundModal')">Cancel</button>
       <button class="btn primary" onclick="saveFund()">Save Fund</button>
@@ -3279,6 +3284,11 @@ function _showUpdateToast(worker){
       <label>Goal Deadline (optional)</label>
       <input type="date" id="fDeadline"/>
       <div id="fDeadlineHint" style="font-size:10px;color:var(--muted);margin-top:4px;min-height:14px"></div>
+    </div>
+    <div class="field">
+      <label>Held for someone else (optional)</label>
+      <input type="text" id="fHeldFor" placeholder="e.g. Tariq. Leave empty if it's your own money"/>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5">A held pocket is left out of your Home and Balances totals and shown on its own line. Nothing else about the pocket changes.</div>
     </div>
     <div class="modal-btns">
       <button class="btn ghost" onclick="closeModal('fundModal')">Cancel</button>
