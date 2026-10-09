@@ -265,16 +265,17 @@ function buildOdinLaunchAlerts(){
   // ── Cash flow ──
   try{
     var snap = (typeof getLendingSnapshot==='function') ? getLendingSnapshot() : null;
+    var _heldTxt = (snap && snap.heldAdj > 0) ? ' (excl. '+fmtR(snap.heldAdj)+' held for '+snap.heldNames.join(' & ')+')' : '';   // v149x
     if(snap && snap.net < -5000){
-      alerts.push({ level:'red', text:'Spent '+fmtR(Math.abs(snap.net))+' more than earned this month', tab:'cashflow',
+      alerts.push({ level:'red', text:'Spent '+fmtR(Math.abs(snap.net))+' more than earned this month'+_heldTxt, tab:'cashflow',
         actions:[{ label:'View', fn: function(){ goToTab('cashflow'); } }]
       });
     } else if(snap && snap.net < 0){
-      alerts.push({ level:'amber', text:'Spent '+fmtR(Math.abs(snap.net))+' more than earned this month', tab:'cashflow',
+      alerts.push({ level:'amber', text:'Spent '+fmtR(Math.abs(snap.net))+' more than earned this month'+_heldTxt, tab:'cashflow',
         actions:[{ label:'View', fn: function(){ goToTab('cashflow'); } }]
       });
     } else if(snap && snap.net > 0){
-      alerts.push({ level:'green', text:'Cash flow positive — '+fmtR(snap.net)+' surplus this month', tab:'cashflow',
+      alerts.push({ level:'green', text:'Cash flow positive — '+fmtR(snap.net)+' surplus this month'+_heldTxt, tab:'cashflow',
         actions:[{ label:'View', fn: function(){ goToTab('cashflow'); } }]
       });
     }

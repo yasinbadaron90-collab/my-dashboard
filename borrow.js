@@ -86,9 +86,32 @@ if(typeof window !== 'undefined'){
 }
 
 // ══ LENDING GUARDRAIL ══
-function getLendingSnapshot(){
+// v149x: money held for someone else (pocket flag f.heldFor) must not look like YOUR surplus.
+// Switch = the flag itself: name set -> the held money that arrived THIS month is left out of the
+// net / alert / safe-to-lend; name cleared -> the numbers go straight back to the full ledger.
+// Amount left out = min(pocket's current balance, money that came INTO that pocket this month),
+// so a held pocket that only holds old money (a previous month) changes nothing, and money
+// Tariq later takes out (a spend) shrinks the adjustment by the same amount.
+function _heldCashFlowAdj(mk){
+  var amount = 0, names = [];
+  try {
+    (typeof funds !== 'undefined' ? funds : []).forEach(function(f){
+      var who = (f.heldFor || '').trim();
+      if(!who || f._deleted) return;
+      var bal = (typeof fundTotal === 'function') ? fundTotal(f) : 0;
+      if(bal <= 0) return;
+      var inflow = (f.deposits || []).filter(function(d){
+        return d.txnType !== 'out' && d.date && String(d.date).slice(0,7) === mk;
+      }).reduce(function(s,d){ return s + d.amount; }, 0);
+      var a = Math.min(bal, inflow);
+      if(a > 0){ amount += a; if(names.indexOf(who) < 0) names.push(who); }
+    });
+  } catch(e){}
+  return { amount: Math.round(amount * 100) / 100, names: names };
+}
+function getLendingSnapshot(mkOverride){
   var now=new Date();
-  var mk=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  var mk=mkOverride || (now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
   var cfData=loadCFData();
   var rI=(cfData.recurring&&cfData.recurring.income)||[];
   var rE=(cfData.recurring&&cfData.recurring.expenses)||[];
@@ -121,9 +144,13 @@ function getLendingSnapshot(){
   // Auto-pulling them here was making the deficit alert fire incorrectly
   // at month-start (e.g. May 1 showed -R209 deficit just from MTN even
   // though no expenses had been entered).
-  var net=inc-exp;
+  // v149x: leave out money held for someone else (never more than the month's income)
+  var held = _heldCashFlowAdj(mk);
+  var heldAdj = Math.min(held.amount, inc);
+  inc = inc - heldAdj;
+  var net=Math.round((inc-exp)*100)/100;
   var buf=Math.max(500,inc*0.1);
-  return{net:net,totalIncome:inc,maxSafeLend:Math.max(0,net-buf)};
+  return{net:net,totalIncome:inc,maxSafeLend:Math.max(0,net-buf),heldAdj:heldAdj,heldNames:held.names};
 }
 function getPersonOwing(name){
   // Rewritten 2026-08-10 — delegates to calcPersonTotals (money.js) instead
@@ -149,6 +176,7 @@ function renderGuardrail(vEl,dEl,mEl,pEl,name,amt){
   pEl.style.display='block';
   var lines=['Net this month: '+(s.net>=0?'+':'-')+'R'+Math.abs(s.net).toFixed(2)];
   if(owing>0) lines.push(name+' still owes you R'+owing.toFixed(2));
+  if(s.heldAdj>0) lines.push('Excludes R'+s.heldAdj.toFixed(2)+' held for '+s.heldNames.join(' & '));   // v149x
   var v,vc,bc,bg;
   if(s.net<0){v='Do not lend - you are in the red';vc='#f23060';bc='#5a1a1a';bg='#1a0505';mEl.textContent='Safe to lend: R0';mEl.style.color='#f23060';}
   else if(s.maxSafeLend<=0){v='Caution - very little room';vc='#f2a830';bc='#5a3a00';bg='#1a1000';mEl.textContent='Safe to lend: R0';mEl.style.color='#f2a830';}
