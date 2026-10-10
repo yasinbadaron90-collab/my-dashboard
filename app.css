@@ -556,9 +556,12 @@ body.modal-open #fabToggle {
 .home-pocket-card:active{transform:scale(0.97);}
 .home-pocket-emoji{font-size:18px;margin-bottom:6px;display:block;}
 .home-pocket-name{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.home-pocket-bal{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;letter-spacing:-0.5px;display:block;line-height:1.15;word-break:break-word;}
-.home-pocket-held{min-height:108px;}
-.home-pocket-held-tag{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#f2a830;margin-top:6px;line-height:1.35;font-weight:600;}
+.home-pocket-bal{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;letter-spacing:-0.5px;display:block;line-height:1.2;white-space:nowrap;}
+.home-pocket-held{flex:0 0 150px;min-height:118px;}
+.home-pocket-held .home-pocket-bal{margin-top:2px;}
+.home-pocket-held-tag{display:block;margin-top:8px;padding-top:6px;border-top:1px solid #3a2800;}
+.home-pocket-held-tag > div:first-child{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#f2a830;font-weight:700;}
+.home-pocket-held-who{font-size:11px;color:#f2a830;margin-top:2px;font-weight:600;letter-spacing:0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 .home-money-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;}
 .home-money-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 10px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s;}
