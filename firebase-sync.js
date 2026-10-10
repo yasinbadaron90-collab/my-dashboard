@@ -78,6 +78,7 @@ var FB_SYNC_KEYS = [
   'yb_lends_v1',
   'yb_repayments_v1',
   'yb_carpool_payments_v1',
+  'yb_forecast_v1',          // v150f: Reports > Forecast income/spending lines + Vault goal
   'yb_bankfeed_merchants_v1',
   'yb_alert_state_v1',
   // School extras

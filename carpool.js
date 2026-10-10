@@ -2017,6 +2017,7 @@ function renderReports(){
   }
   try{ renderCarpoolWhereItWent(months, label); }catch(e){ console.warn('[reports] where-it-went failed', e); }
   try{ renderMonthlyReportControls(); }catch(e){ console.warn('[reports] money report controls failed', e); }
+  try{ if(typeof renderForecastSection === 'function') renderForecastSection(); }catch(e){ console.warn('[reports] forecast failed', e); }
   renderCarpoolChart();
 
   // MAINTENANCE (unified: original + custom cards)

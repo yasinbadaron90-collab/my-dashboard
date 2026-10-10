@@ -737,6 +737,7 @@ function buildBackupPayload(){
     spends:          JSON.parse(lsGet('yb_spend_v1')            ||'[]'),
     moves:           JSON.parse(lsGet('yb_moves_v1')            ||'[]'),
     carpoolPayments: JSON.parse(lsGet('yb_carpool_payments_v1') ||'[]'),
+    forecast:        JSON.parse(lsGet('yb_forecast_v1')         ||'null'),
     themeLight:     lsGet('yasin_theme_light')
     // Intentionally excluded:
     //   - biometric credentials (device-specific, won't transfer)
@@ -824,6 +825,7 @@ function restoreData(input){
       if(backup.spends)          lsSet('yb_spend_v1',            JSON.stringify(backup.spends));
       if(backup.moves)           lsSet('yb_moves_v1',            JSON.stringify(backup.moves));
       if(backup.carpoolPayments) lsSet('yb_carpool_payments_v1', JSON.stringify(backup.carpoolPayments));
+      if(backup.forecast)        lsSet('yb_forecast_v1',         JSON.stringify(backup.forecast));
       if(backup.themeLight !== undefined && backup.themeLight !== null){
         lsSet('yasin_theme_light', backup.themeLight);
       }
