@@ -341,11 +341,11 @@ function _renderHomeZone1Money(){
     var borderColor = isExpense ? '#3a2a00' : 'var(--border)';
 
     pocketCards += ''
-      + '<div class="home-pocket-card" style="border-color:'+borderColor+';" onclick="_homeOpenPocket(\''+f.id+'\')">'
+      + '<div class="home-pocket-card'+(heldName?' home-pocket-held':'')+'" style="border-color:'+(heldName?'#4a3000':borderColor)+';" onclick="_homeOpenPocket(\''+f.id+'\')">'
       +   '<span class="home-pocket-emoji">'+(f.emoji||'💰')+'</span>'
       +   '<div class="home-pocket-name" title="'+_escAttr(f.name)+'">'+_escHtml(f.name)+'</div>'
-      +   '<div class="home-pocket-bal" style="color:'+balColor+';">'+fmtR(bal)+'</div>'
-      +   (heldName ? '<div style="font-size:9px;letter-spacing:1px;color:#f2a830;margin-top:2px;">HELD · '+_escHtml(heldName)+'</div>' : '')
+      +   '<div class="home-pocket-bal" style="color:'+(heldName?'#f2a830':balColor)+';">'+fmtR(bal)+'</div>'
+      +   (heldName ? '<div class="home-pocket-held-tag">HELD<br>'+_escHtml(heldName)+'</div>' : '')
       + '</div>';
   });
   grandTotal = Math.round(grandTotal * 100) / 100;
