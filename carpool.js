@@ -2016,6 +2016,7 @@ function renderReports(){
     document.getElementById('rptCarpoolRows').innerHTML=carpoolRows;
   }
   try{ renderCarpoolWhereItWent(months, label); }catch(e){ console.warn('[reports] where-it-went failed', e); }
+  try{ renderMonthlyReportControls(); }catch(e){ console.warn('[reports] money report controls failed', e); }
   renderCarpoolChart();
 
   // MAINTENANCE (unified: original + custom cards)
@@ -2777,5 +2778,332 @@ function renderCarpoolWhereItWent(months, label){
   host.innerHTML = '<div style="margin-top:10px;background:var(--surface);border-radius:8px;padding:14px">'
     +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px"><span style="font-family:Syne,sans-serif;font-weight:800;font-size:14px">What you did with it</span><span style="font-size:10px;color:var(--muted);letter-spacing:1px">'+_cpmEsc(label)+'</span></div>'
     + _cpmWhereHtml(computeCarpoolWhereItWent(months), label)
+    +'</div>';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// v150a — MONTHLY MONEY REPORT (PDF)  (read-only, 2026-10-10)
+// Built from POCKET DEPOSITS (the only place every rand lands), not from
+// Cash Flow, so money that never got a ledger row still shows up.
+//   opening  = all deposits dated before the month
+//   in / out = deposits in the month with no moveId (grouped by source)
+//   moves    = deposits with a moveId (pocket → pocket, must net to R0)
+//   closing  = opening + in − out + moves
+//   Unaccounted = moves imbalance + deposits that have no valid date.
+// Cash Flow is only used as a cross-check at the end, never as the source.
+// ══════════════════════════════════════════════════════════════════════
+function _mrR2(n){ return Math.round((Number(n)||0)*100)/100; }
+function _mrClean(s){
+  return String(s==null?'':s).replace(/→|➜|▶/g,'->').replace(/←/g,'<-')
+    .replace(/[^\x20-\x7E\u00A0\u00B7]/g,'').replace(/\s+/g,' ').trim();
+}
+function _mrMoney(n){
+  var v = _mrR2(n), neg = v < 0; v = Math.abs(v);
+  var s = v.toFixed(2).split('.');
+  s[0] = s[0].replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+  return (neg?'-':'')+'R'+s[0]+'.'+s[1];
+}
+function _mrMonthLabel(mk){
+  var MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return MN[parseInt(mk.slice(5,7),10)-1]+' '+mk.slice(0,4);
+}
+function _mrDay(ds){
+  var MS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return parseInt(ds.slice(8,10),10)+' '+MS[parseInt(ds.slice(5,7),10)-1];
+}
+
+function computeMonthlyReport(mk){
+  var allFunds = (typeof funds !== 'undefined' ? funds : []);
+  var y = parseInt(mk.slice(0,4),10), m = parseInt(mk.slice(5,7),10);
+  var start = mk+'-01';
+  var ny = m === 12 ? y+1 : y, nm = m === 12 ? 1 : m+1;
+  var next = ny+'-'+String(nm).padStart(2,'0')+'-01';
+  var rep = { mk:mk, pockets:[], inRows:[], outRows:[], moves:[], inBy:{}, outBy:{},
+              opening:0, inTotal:0, outTotal:0, movesNet:0, undatedNet:0, undatedCount:0, closing:0, unaccounted:0 };
+  var moveMap = {}, profit = null;
+  allFunds.forEach(function(f){
+    var P = { name:f.name, deleted:!!f._deleted, open:0, inn:0, out:0, move:0, close:0 };
+    (f.deposits||[]).forEach(function(x){
+      var sgn = x.txnType === 'out' ? -1 : 1, amt = Number(x.amount)||0, v = sgn*amt;
+      if(!x.date || !/^\d{4}-\d{2}-\d{2}/.test(x.date)){ rep.undatedNet += v; rep.undatedCount++; return; }
+      if(x.date < start){ P.open += v; return; }
+      if(x.date >= next) return;
+      if(x.moveId){
+        P.move += v;
+        var mv = moveMap[x.moveId] || (moveMap[x.moveId] = { date:x.date, from:'', to:'', amount:0 });
+        if(sgn < 0){ mv.from = f.name; mv.amount = amt; } else { mv.to = f.name; if(!mv.amount) mv.amount = amt; }
+        return;
+      }
+      var note = _mrClean(x.note);
+      if(sgn > 0){
+        var cat = x.carpoolPaymentId ? 'Carpool' : x.moneyInId ? 'Money In' : x.repayId ? 'Repayment'
+                : /profit share/i.test(x.note||'') ? 'Profit share' : 'Other in';
+        P.inn += amt;
+        rep.inBy[cat] = rep.inBy[cat] || { amt:0, n:0 };
+        rep.inBy[cat].amt += amt; rep.inBy[cat].n++;
+        if(cat === 'Profit share'){
+          if(!profit){ profit = { date:x.date, label:'Profit share', pocket:'', amt:0, n:0, cat:cat }; rep.inRows.push(profit); }
+          profit.amt += amt; profit.n++; if(x.date > profit.date) profit.date = x.date;
+        } else {
+          rep.inRows.push({ date:x.date, label:note || cat, pocket:f.name, amt:amt, cat:cat });
+        }
+      } else {
+        var oc = x.spendId ? 'Spend' : x.instalmentPayId ? 'Instalment' : x.carExpenseId ? 'Car expense'
+               : x.payDebtId ? 'Debt payment' : 'Other out';
+        P.out += amt;
+        rep.outBy[oc] = rep.outBy[oc] || { amt:0, n:0 };
+        rep.outBy[oc].amt += amt; rep.outBy[oc].n++;
+        rep.outRows.push({ date:x.date, label:note || oc, pocket:f.name, amt:amt, cat:oc });
+      }
+    });
+    P.close = P.open + P.inn - P.out + P.move;
+    if(P.open || P.inn || P.out || P.move || P.close) rep.pockets.push(P);
+    rep.opening += P.open; rep.inTotal += P.inn; rep.outTotal += P.out; rep.movesNet += P.move;
+  });
+  if(profit) profit.pocket = profit.n + ' pockets';
+  Object.keys(moveMap).forEach(function(k){ rep.moves.push(moveMap[k]); });
+  rep.moves.sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  rep.inRows.sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  rep.outRows.sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  rep.closing = rep.opening + rep.inTotal - rep.outTotal + rep.movesNet;
+  rep.unaccounted = _mrR2(rep.movesNet + rep.undatedNet);
+  ['opening','inTotal','outTotal','movesNet','closing'].forEach(function(k){ rep[k] = _mrR2(rep[k]); });
+  // Cash Flow cross-check (informational only)
+  rep.cf = null;
+  try {
+    var cfAll = (typeof loadCFData === 'function') ? loadCFData() : {};
+    var cm = cfAll[mk];
+    if(cm){
+      var cfIn = (cm.income||[]).reduce(function(s,r){ return s + (Number(r.amount)||0); }, 0);
+      var cfOut = (cm.expenses||[]).filter(function(r){ return r.sourceType !== 'savings_deposit'; })
+                    .reduce(function(s,r){ return s + (Number(r.amount)||0); }, 0);
+      rep.cf = { income:_mrR2(cfIn), expenses:_mrR2(cfOut), inDiff:_mrR2(rep.inTotal - cfIn), outDiff:_mrR2(rep.outTotal - cfOut) };
+    }
+  } catch(e){}
+  try { rep.carpool = computeCarpoolWhereItWent([mk]); } catch(e){ rep.carpool = null; }
+  return rep;
+}
+
+function _mrBuildPdf(rep){
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({ unit:'mm', format:'a4' });
+  var L = 14, R = 196, y = 0;
+  var INK = [26,26,26], MUTE = [115,115,115], RULE = [220,220,220], LIME = [200,242,48];
+  var GREEN = [30,130,60], RED = [200,40,70], AMBER = [190,110,10];
+  function txt(s, x, yy, o){ o = o||{}; doc.setFont('helvetica', o.bold?'bold':'normal'); doc.setFontSize(o.size||9);
+    doc.setTextColor.apply(doc, o.color||INK); doc.text(String(s), x, yy, o.align?{align:o.align}:undefined); }
+  function fit(s, w, size){ doc.setFontSize(size||9); s = String(s);
+    if(doc.getTextWidth(s) <= w) return s;
+    while(s.length > 1 && doc.getTextWidth(s+'...') > w) s = s.slice(0,-1);
+    return s+'...'; }
+  function rule(yy, col){ doc.setDrawColor.apply(doc, col||RULE); doc.setLineWidth(0.2); doc.line(L, yy, R, yy); }
+  function newPage(){ doc.addPage(); y = 18; }
+  function ensure(h){ if(y + h > 280) newPage(); }
+  function section(title){ ensure(16); y += 4; txt(title.toUpperCase(), L, y, { size:8, bold:true, color:MUTE }); y += 2; rule(y, INK); y += 5; }
+
+  // ── header
+  doc.setFillColor.apply(doc, LIME); doc.rect(0, 0, 210, 3, 'F');
+  txt('MY DASHBOARD', L, 13, { size:8, bold:true, color:MUTE });
+  txt('Money report', L, 22, { size:20, bold:true });
+  txt(_mrMonthLabel(rep.mk), R, 22, { size:12, align:'right', color:MUTE });
+  y = 30;
+
+  // ── summary boxes
+  var boxes = [
+    ['Opening', _mrMoney(rep.opening), INK],
+    ['Money in', '+'+_mrMoney(rep.inTotal), GREEN],
+    ['Money out', '-'+_mrMoney(rep.outTotal), RED],
+    ['Closing', _mrMoney(rep.closing), INK]
+  ];
+  var bw = 43.5, gap = 2.67;
+  boxes.forEach(function(b, i){
+    var bx = L + i*(bw+gap);
+    doc.setFillColor(245,245,245); doc.roundedRect(bx, y, bw, 17, 1.5, 1.5, 'F');
+    txt(b[0].toUpperCase(), bx+3, y+6, { size:7, color:MUTE });
+    txt(b[2] === INK ? b[1] : b[1], bx+3, y+13, { size:11, bold:true, color:b[2] });
+  });
+  y += 21;
+  var ok = Math.abs(rep.unaccounted) < 0.005;
+  doc.setFillColor.apply(doc, ok ? [230,246,234] : [252,230,235]);
+  doc.roundedRect(L, y, R-L, 11, 1.5, 1.5, 'F');
+  txt('UNACCOUNTED', L+3, y+7, { size:8, bold:true, color: ok?GREEN:RED });
+  txt(_mrMoney(rep.unaccounted)+(ok?'  OK':'  CHECK'), R-3, y+7, { size:11, bold:true, color: ok?GREEN:RED, align:'right' });
+  y += 13;
+  txt('Opening + in - out + moves = closing. Moves between pockets are not income or spending.', L, y+2, { size:7, color:MUTE });
+  y += 5;
+  if(!ok){
+    txt('Unaccounted = moves that do not net to R0 ('+_mrMoney(rep.movesNet)+') + undated deposits ('+_mrMoney(rep.undatedNet)+', '+rep.undatedCount+').', L, y+2, { size:7, color:RED });
+    y += 5;
+  }
+
+  // ── money in by source
+  section('Money in, by source');
+  Object.keys(rep.inBy).sort(function(a,b){ return rep.inBy[b].amt - rep.inBy[a].amt; }).forEach(function(k){
+    ensure(7);
+    txt(k+'  ('+rep.inBy[k].n+')', L, y, { size:9 });
+    txt(_mrMoney(rep.inBy[k].amt), R, y, { size:9, align:'right' });
+    y += 6; rule(y-3.6);
+  });
+  ensure(8); txt('Total in', L, y+1, { size:9, bold:true }); txt(_mrMoney(rep.inTotal), R, y+1, { size:9, bold:true, align:'right' }); y += 7;
+
+  function detail(rows, sign, col){
+    rows.forEach(function(r){
+      ensure(6.5);
+      txt(_mrDay(r.date), L, y, { size:8, color:MUTE });
+      txt(fit(r.label, 94, 8), L+16, y, { size:8 });
+      txt(fit(r.pocket, 42, 8), L+114, y, { size:8, color:MUTE });
+      txt(sign+_mrMoney(r.amt), R, y, { size:8, align:'right', color:col });
+      y += 5.2; rule(y-3.3, [238,238,238]);
+    });
+  }
+  section('Money in, every entry');
+  detail(rep.inRows, '+', GREEN);
+
+  // ── money out
+  section('Money out, by type');
+  Object.keys(rep.outBy).sort(function(a,b){ return rep.outBy[b].amt - rep.outBy[a].amt; }).forEach(function(k){
+    ensure(7);
+    txt(k+'  ('+rep.outBy[k].n+')', L, y, { size:9 });
+    txt(_mrMoney(rep.outBy[k].amt), R, y, { size:9, align:'right' });
+    y += 6; rule(y-3.6);
+  });
+  if(!Object.keys(rep.outBy).length){ txt('Nothing spent this month.', L, y, { size:9, color:MUTE }); y += 6; }
+  ensure(8); txt('Total out', L, y+1, { size:9, bold:true }); txt(_mrMoney(rep.outTotal), R, y+1, { size:9, bold:true, align:'right' }); y += 7;
+  section('Money out, every entry');
+  detail(rep.outRows, '-', RED);
+
+  // ── carpool
+  var cp = rep.carpool;
+  if(cp && cp.count){
+    ensure(46);
+    section('Carpool cash, where it went');
+    var cpRows = [];
+    (cp.planRows||[]).forEach(function(r){ if(r.carpool > 0) cpRows.push([r.label+'  (plan card)', r.carpool]); });
+    (cp.pockets||[]).forEach(function(r){ cpRows.push([_mrClean(r.label)+'  (not on plan)', r.amount]); });
+    (cp.other||[]).forEach(function(r){ cpRows.push([r.label, r.amount]); });
+    if(cp.bank > 0) cpRows.push(['Bank only (Cash Flow, no pocket)', cp.bank]);
+    cpRows.forEach(function(r){ ensure(7); txt(fit(r[0], 130, 9), L, y, { size:9 }); txt(_mrMoney(r[1]), R, y, { size:9, align:'right' }); y += 6; rule(y-3.6); });
+    ensure(8); txt('Carpool cash in', L, y+1, { size:9, bold:true }); txt(_mrMoney(cp.received), R, y+1, { size:9, bold:true, align:'right' }); y += 7;
+    if(cp.planTotal === 0){ txt('None of this month\'s carpool cash went to a plan card.', L, y, { size:8, color:AMBER }); y += 5; }
+    (cp.planRows||[]).forEach(function(r){
+      if(r.monthly > 0){ ensure(6); var t = _mrR2(r.carpool + r.moneyIn);
+        txt(fit(r.label+': '+_mrMoney(t)+' of '+_mrMoney(r.monthly)+' plan  ('+_mrMoney(r.carpool)+' carpool + '+_mrMoney(r.moneyIn)+' Money In)', 182, 8), L, y, { size:8, color: t >= r.monthly ? GREEN : AMBER }); y += 5; }
+    });
+  }
+
+  // ── by pocket
+  section('By pocket');
+  ensure(8);
+  var cx = { o:92, i:118, u:144, m:170, c:196 };
+  txt('Pocket', L, y, { size:7, bold:true, color:MUTE });
+  [['Opening',cx.o],['In',cx.i],['Out',cx.u],['Moves',cx.m],['Closing',cx.c]].forEach(function(h){ txt(h[0], h[1], y, { size:7, bold:true, color:MUTE, align:'right' }); });
+  y += 2; rule(y); y += 4.5;
+  rep.pockets.forEach(function(p){
+    ensure(6);
+    txt(fit(_mrClean(p.name)+(p.deleted?' (deleted)':''), 58, 8), L, y, { size:8 });
+    txt(_mrMoney(p.open).slice(0), cx.o, y, { size:8, align:'right' });
+    txt(p.inn ? '+'+_mrMoney(p.inn) : '-', cx.i, y, { size:8, align:'right', color: p.inn?GREEN:MUTE });
+    txt(p.out ? '-'+_mrMoney(p.out) : '-', cx.u, y, { size:8, align:'right', color: p.out?RED:MUTE });
+    txt(Math.abs(p.move) > 0.004 ? (p.move>0?'+':'')+_mrMoney(p.move) : '-', cx.m, y, { size:8, align:'right', color:MUTE });
+    txt(_mrMoney(p.close), cx.c, y, { size:8, bold:true, align:'right' });
+    y += 5.2; rule(y-3.3, [238,238,238]);
+  });
+  ensure(8); rule(y-2, INK);
+  txt('Total', L, y+2, { size:8, bold:true });
+  txt(_mrMoney(rep.opening), cx.o, y+2, { size:8, bold:true, align:'right' });
+  txt('+'+_mrMoney(rep.inTotal), cx.i, y+2, { size:8, bold:true, align:'right' });
+  txt('-'+_mrMoney(rep.outTotal), cx.u, y+2, { size:8, bold:true, align:'right' });
+  txt(_mrMoney(rep.movesNet), cx.m, y+2, { size:8, bold:true, align:'right' });
+  txt(_mrMoney(rep.closing), cx.c, y+2, { size:8, bold:true, align:'right' });
+  y += 8;
+
+  // ── moves
+  section('Moves between pockets');
+  if(!rep.moves.length){ txt('No moves this month.', L, y, { size:9, color:MUTE }); y += 6; }
+  rep.moves.forEach(function(mv){
+    ensure(6.5);
+    txt(_mrDay(mv.date), L, y, { size:8, color:MUTE });
+    txt(fit(_mrClean(mv.from||'?')+'  ->  '+_mrClean(mv.to||'?'), 120, 8), L+16, y, { size:8 });
+    txt(_mrMoney(mv.amount), R, y, { size:8, align:'right', color:MUTE });
+    y += 5.2; rule(y-3.3, [238,238,238]);
+  });
+
+  // ── cash flow cross-check
+  section('Cross-check against Cash Flow');
+  if(!rep.cf){ txt('No Cash Flow entries exist for this month.', L, y, { size:9, color:MUTE }); y += 6; }
+  else {
+    var cfRows = [['Income: pockets '+_mrMoney(rep.inTotal)+' vs Cash Flow '+_mrMoney(rep.cf.income), rep.cf.inDiff],
+                  ['Spending: pockets '+_mrMoney(rep.outTotal)+' vs Cash Flow '+_mrMoney(rep.cf.expenses), rep.cf.outDiff]];
+    cfRows.forEach(function(r){
+      ensure(7);
+      var same = Math.abs(r[1]) < 0.005;
+      txt(r[0], L, y, { size:8 });
+      txt(same ? 'agrees' : 'differs by '+_mrMoney(Math.abs(r[1])), R, y, { size:8, bold:true, align:'right', color: same?GREEN:AMBER });
+      y += 6; rule(y-3.6);
+    });
+    txt('A difference means a pocket entry has no matching Cash Flow row, or the reverse (e.g. recurring Cash Flow entries). This report is built from pockets.', L, y, { size:7, color:MUTE });
+    y += 5;
+  }
+  try {
+    var rb = (typeof reconBalances !== 'undefined') ? reconBalances : null;
+    if(rb && (rb.fnb||rb.tyme||rb.cash)){ txt('Note: an Available Cash baseline exists and is not part of this pocket report.', L, y+1, { size:7, color:MUTE }); y += 5; }
+  } catch(e){}
+
+  // ── footer on every page
+  var n = doc.getNumberOfPages();
+  for(var i = 1; i <= n; i++){
+    doc.setPage(i);
+    txt('My Dashboard  -  Money report  -  '+_mrMonthLabel(rep.mk), L, 289, { size:7, color:MUTE });
+    txt('Generated '+new Date().toLocaleDateString('en-ZA')+'   -   Page '+i+' of '+n, R, 289, { size:7, color:MUTE, align:'right' });
+  }
+  return doc;
+}
+
+function exportMonthlyPdf(){
+  var sel = document.getElementById('mrMonthSel');
+  if(!sel || !sel.value) return;
+  var mk = sel.value;
+  function go(){
+    try {
+      var rep = computeMonthlyReport(mk);
+      _mrBuildPdf(rep).save('MyDashboard_MoneyReport_'+mk+'.pdf');
+    } catch(e){ console.error('[MoneyReport] failed', e); alert('Could not build the report: '+e.message); }
+  }
+  if(typeof window.jspdf === 'undefined'){
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = go;
+    s.onerror = function(){ alert('Could not load the PDF library. Check your connection and try again.'); };
+    document.head.appendChild(s);
+  } else go();
+}
+
+function renderMonthlyReportControls(){
+  var sec = document.getElementById('rpt-sec-export');
+  if(!sec) return;
+  var host = document.getElementById('mrControls');
+  if(!host){
+    host = document.createElement('div');
+    host.id = 'mrControls';
+    host.style.cssText = 'margin-top:14px;padding-top:14px;border-top:1px solid var(--border);';
+    sec.appendChild(host);
+  }
+  if(typeof currentRole !== 'undefined' && currentRole !== 'admin'){ host.style.display = 'none'; return; }
+  host.style.display = 'block';
+  var seen = {}, now = new Date();
+  seen[now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')] = true;
+  (typeof funds !== 'undefined' ? funds : []).forEach(function(f){
+    (f.deposits||[]).forEach(function(x){ if(x.date && /^\d{4}-\d{2}/.test(x.date)) seen[x.date.slice(0,7)] = true; });
+  });
+  var months = Object.keys(seen).sort().reverse();
+  var prev = document.getElementById('mrMonthSel') ? document.getElementById('mrMonthSel').value : '';
+  host.innerHTML =
+    '<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Monthly money report</div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Every rand in and out of your pockets for the month, with opening, closing and an Unaccounted check.</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<select id="mrMonthSel" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:\'DM Mono\',monospace;font-size:12px;padding:10px;border-radius:4px">'
+    + months.map(function(m){ return '<option value="'+m+'"'+(m===prev?' selected':'')+'>'+_mrMonthLabel(m)+'</option>'; }).join('')
+    +'</select>'
+    +'<button onclick="exportMonthlyPdf()" class="rpt-export-btn" style="background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;padding:10px 16px;white-space:nowrap">📄 Export PDF</button>'
     +'</div>';
 }
