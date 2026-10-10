@@ -557,9 +557,11 @@ body.modal-open #fabToggle {
 .home-pocket-emoji{font-size:18px;margin-bottom:6px;display:block;line-height:1;}
 .home-pocket-name{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
 .home-pocket-bal{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;letter-spacing:-0.5px;display:block;line-height:1.25;white-space:nowrap;max-width:100%;}
-.home-pocket-held{flex:0 0 156px;}
-.home-pocket-held .home-pocket-bal{font-size:13px;color:#f2a830;margin-bottom:0;}
-.home-pocket-held-tag{display:block;width:100%;margin-top:8px;padding-top:6px;border-top:1px solid #3a2800;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#f2a830;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.home-pocket-held{flex:0 0 156px;align-items:center;text-align:center;}
+.home-pocket-held .home-pocket-emoji{align-self:center;}
+.home-pocket-held .home-pocket-name{text-align:center;width:100%;}
+.home-pocket-held .home-pocket-bal{font-size:13px;color:#f2a830;margin-bottom:0;text-align:center;width:100%;}
+.home-pocket-held-tag{display:block;width:100%;margin-top:8px;padding-top:6px;border-top:1px solid #3a2800;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#f2a830;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
 
 .home-money-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;}
 .home-money-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 10px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s;}
