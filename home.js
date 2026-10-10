@@ -345,7 +345,7 @@ function _renderHomeZone1Money(){
       +   '<span class="home-pocket-emoji">'+(f.emoji||'💰')+'</span>'
       +   '<div class="home-pocket-name" title="'+_escAttr(f.name)+'">'+_escHtml(f.name)+'</div>'
       +   '<div class="home-pocket-bal" style="color:'+(heldName?'#f2a830':balColor)+';">'+fmtR(bal)+'</div>'
-      +   (heldName ? '<div class="home-pocket-held-tag"><div>HELD</div><div class="home-pocket-held-who">'+_escHtml(heldName)+'</div></div>' : '')
+      +   (heldName ? '<div class="home-pocket-held-tag">HELD</div><div class="home-pocket-held-who">'+_escHtml(heldName)+'</div>' : '')
       + '</div>';
   });
   grandTotal = Math.round(grandTotal * 100) / 100;
