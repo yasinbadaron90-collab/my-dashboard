@@ -100,8 +100,13 @@ function _heldCashFlowAdj(mk){
       if(!who || f._deleted) return;
       var bal = (typeof fundTotal === 'function') ? fundTotal(f) : 0;
       if(bal <= 0) return;
+      // v150i: only inflow that has a Cash Flow counterpart counts. A plain pocket deposit
+      // (e.g. profit share) has no Cash Flow income row, so subtracting it from Cash Flow income
+      // removed money that was never in it (R43.20 in Oct 2026). Moves still count: that is how
+      // money held for someone arrives in their pocket after landing elsewhere first.
       var inflow = (f.deposits || []).filter(function(d){
-        return d.txnType !== 'out' && d.date && String(d.date).slice(0,7) === mk;
+        return d.txnType !== 'out' && d.date && String(d.date).slice(0,7) === mk
+          && (d.moveId || d.moneyInId || d.cfId || d.cfRowId || d.cfPosted || d.carpoolPaymentId || d.repayId);
       }).reduce(function(s,d){ return s + d.amount; }, 0);
       var a = Math.min(bal, inflow);
       if(a > 0){ amount += a; if(names.indexOf(who) < 0) names.push(who); }
@@ -176,7 +181,7 @@ function renderGuardrail(vEl,dEl,mEl,pEl,name,amt){
   pEl.style.display='block';
   var lines=['Net this month: '+(s.net>=0?'+':'-')+'R'+Math.abs(s.net).toFixed(2)];
   if(owing>0) lines.push(name+' still owes you R'+owing.toFixed(2));
-  if(s.heldAdj>0) lines.push('Excludes R'+s.heldAdj.toFixed(2)+' held for '+s.heldNames.join(' & '));   // v149x
+  if(s.heldAdj>0) lines.push('Held money that came in this month is not counted');   // v149x, wording v150i
   var v,vc,bc,bg;
   if(s.net<0){v='Do not lend - you are in the red';vc='#f23060';bc='#5a1a1a';bg='#1a0505';mEl.textContent='Safe to lend: R0';mEl.style.color='#f23060';}
   else if(s.maxSafeLend<=0){v='Caution - very little room';vc='#f2a830';bc='#5a3a00';bg='#1a1000';mEl.textContent='Safe to lend: R0';mEl.style.color='#f2a830';}

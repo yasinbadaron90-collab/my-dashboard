@@ -265,7 +265,7 @@ function buildOdinLaunchAlerts(){
   // ── Cash flow ──
   try{
     var snap = (typeof getLendingSnapshot==='function') ? getLendingSnapshot() : null;
-    var _heldTxt = (snap && snap.heldAdj > 0) ? ' (excl. '+fmtR(snap.heldAdj)+' held for '+snap.heldNames.join(' & ')+')' : '';   // v149x
+    var _heldTxt = (snap && snap.heldAdj > 0) ? ' (held money that came in this month isn\'t counted)' : '';   // v149x, wording v150i
     if(snap && snap.net < -5000){
       alerts.push({ level:'red', text:'Spent '+fmtR(Math.abs(snap.net))+' more than earned this month'+_heldTxt, tab:'cashflow',
         actions:[{ label:'View', fn: function(){ goToTab('cashflow'); } }]
