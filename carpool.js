@@ -2594,17 +2594,31 @@ function renderCarpoolChartDaily(canvas, emptyMsg, monthKey, dayLabels) {
 
 
 // ══════════════════════════════════════════════════════════════════════
-// v149z — CARPOOL MONEY (month-to-month) + WHAT YOU DID WITH IT (plan-aware)
+// v150h — CARPOOL MONEY (month-to-month) + CASH LINES + POCKET STORIES
 // Read-only. No new storage keys, no money logic.
-//   Card numbers are strictly month-to-month: each trip counts in the month
-//   it was driven (Earned / Paid / Outstanding), never by when cash arrived.
-//   "What you did with it" is the cash side: carpool payments booked in the
-//   period, grouped by where each Mark Paid was sent, measured against the
-//   Plan tab's cards (loadPlan) and, for one month, Money In routed there.
+//   Card numbers (Earned / Paid / Outstanding) are month-to-month: a trip
+//   counts in the month it was driven.
+//   Cash lines say which month's trips each payment paid for (October cash,
+//   September cash, ...) and show a trip marked paid with no cash behind it
+//   as "Credit (no cash recorded)".
+//   "What you did with the money" is a POCKET STORY: for every pocket that
+//   received carpool cash, everything that came in, everything that went out,
+//   and the balance. Money is pooled, so nothing is tied to specific rands.
 // ══════════════════════════════════════════════════════════════════════
 function _cpmEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function _cpmPayments(){ try { return JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); } catch(e){ return []; } }
 function _cpmR2(n){ return Math.round((Number(n)||0)*100)/100; }
+function _cpmMoney(n){
+  var v = _cpmR2(n), neg = v < 0; v = Math.abs(v);
+  var whole = Math.floor(v + 1e-9), cents = Math.round((v - whole) * 100);
+  var s = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return (neg ? '-' : '') + 'R' + s + (cents ? '.' + String(cents).padStart(2, '0') : '');
+}
+var _CPM_MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+var _CPM_MS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function _cpmMonthName(mk){ return _CPM_MN[parseInt(mk.slice(5,7),10)-1]; }
+function _cpmDayLabel(ds){ return parseInt(ds.slice(8,10),10)+' '+_CPM_MS[parseInt(ds.slice(5,7),10)-1]; }
+function _cpmClean(s){ return String(s==null?'':s).replace(/^[\u2191\u2193\u21A9\u{1F504}\u2696\uFE0F\s]+/u,'').replace(/\s+/g,' ').trim(); }
 
 function computeCarpoolMoney(mk){
   var pax = PASSENGERS.slice();
@@ -2632,93 +2646,194 @@ function computeCarpoolMoney(mk){
   return out;
 }
 
-function computeCarpoolWhereItWent(months){
-  var single = !!(months && months.length === 1);
-  var pmts = _cpmPayments().filter(function(pm){
-    return pm.date && (!months || months.indexOf(pm.date.slice(0,7)) >= 0);
-  });
-  var BANKS = { fnb:'FNB', tyme:'TymeBank', cash:'Cash' };
-  var allFunds = (typeof funds !== 'undefined' ? funds : []);
-  var plan = (typeof loadPlan === 'function') ? loadPlan() : null;
-  var cards = plan ? (plan.savingsCards || []) : [];
-  var cardByPocket = {};
-  cards.forEach(function(c){ cardByPocket[c.pocketId] = c; });
-
-  var res = { received:0, count:pmts.length, single:single, planRows:[], pockets:[], bank:0, other:[], planTotal:0, pocketTotal:0, otherTotal:0 };
-  var byCard = {}, byPocket = {}, byOther = {};
+// Which month's trips did this month's cash pay for, and when was this
+// month's paid trips' cash received?
+function computeCarpoolCashSplit(mk){
+  var pmts = _cpmPayments();
+  function dayAmt(ds, p){
+    var md = cpData[ds.slice(0,7)]; var v = md && md[ds] && md[ds][p];
+    return (v && typeof v === 'object') ? (v.amt || 0) : 0;
+  }
+  var res = { mk:mk, cashTotal:0, cash:{}, unlinked:0, tripsTotal:0, trips:{} };
   pmts.forEach(function(pm){
-    var amt = Number(pm.amount) || 0;
-    var ch = pm.destChoice;
-    res.received += amt;
-    if(ch === 'cashflow'){ res.bank += amt; return; }
-    if(typeof ch === 'string' && ch.indexOf('fund:') === 0){
-      var id = ch.slice(5);
-      if(cardByPocket[id]){ byCard[id] = (byCard[id]||0) + amt; res.planTotal += amt; }
-      else { byPocket[id] = (byPocket[id]||0) + amt; res.pocketTotal += amt; }
-      return;
-    }
-    var label = (typeof ch === 'string' && ch.indexOf('maint:') === 0) ? 'Maintenance'
-              : (ch === 'split') ? 'Manual split (not tracked)' : 'Not recorded (older payment)';
-    byOther[label] = (byOther[label]||0) + amt; res.otherTotal += amt;
+    if((pm.date||'').slice(0,7) !== mk) return;
+    var amt = Number(pm.amount) || 0, covered = 0;
+    res.cashTotal += amt;
+    (pm.paidDates||[]).forEach(function(ds){
+      var a = dayAmt(ds, pm.passenger); covered += a;
+      var k = ds.slice(0,7);
+      var B = res.cash[k] || (res.cash[k] = { amt:0, who:{} });
+      B.amt += a; B.who[pm.passenger] = (B.who[pm.passenger]||0) + a;
+    });
+    var rest = _cpmR2(amt - covered);
+    if(Math.abs(rest) > 0.004) res.unlinked += rest;
   });
-
-  var mi = [];
-  if(single && typeof loadMoneyInData === 'function'){ try { mi = loadMoneyInData(); } catch(e){} }
-  cards.forEach(function(c){
-    var carpool = byCard[c.pocketId] || 0;
-    var moneyIn = 0;
-    if(single){
-      moneyIn = _cpmR2(mi.filter(function(r){ return r.date && r.date.slice(0,7) === months[0]; })
-        .reduce(function(s,r){ var sp = (r.splits||[]).find(function(x){ return x.fundId === c.pocketId; }); return s + (sp ? sp.amount : 0); }, 0));
-    }
-    var monthly = (single && c.monthly > 0) ? c.monthly : 0;
-    if(carpool > 0 || monthly > 0){
-      res.planRows.push({ label:String(c.label||'').trim() || 'Plan card', carpool:carpool, moneyIn:moneyIn, monthly:monthly });
-    }
+  var cover = {};
+  pmts.forEach(function(pm){ (pm.paidDates||[]).forEach(function(ds){ cover[pm.passenger+'|'+ds] = pm.date || ''; }); });
+  var md = cpData[mk] || {};
+  Object.keys(md).forEach(function(ds){
+    var dd = md[ds]; if(!dd || typeof dd !== 'object') return;
+    PASSENGERS.forEach(function(p){
+      var v = dd[p];
+      if(!v || typeof v !== 'object' || !v.paid || !(v.amt > 0)) return;
+      res.tripsTotal += v.amt;
+      var pd = cover[p+'|'+ds];
+      var key = !pd ? 'credit' : pd.slice(0,7);
+      var L = res.trips[key] || (res.trips[key] = { amt:0, who:{}, days:[] });
+      L.amt += v.amt; L.who[p] = (L.who[p]||0) + v.amt;
+      if(!pd) L.days.push(p+' '+_cpmDayLabel(ds));
+    });
   });
-  Object.keys(byPocket).forEach(function(id){
-    var f = allFunds.find(function(x){ return x.id === id; });
-    res.pockets.push({ label: f ? ((f.emoji||'')+' '+f.name).trim() : 'Deleted pocket', amount: byPocket[id] });
-  });
-  Object.keys(byOther).forEach(function(l){ res.other.push({ label:l, amount:byOther[l] }); });
-  res.pockets.sort(function(a,b){ return b.amount - a.amount; });
   return res;
 }
 
-function _cpmWhereHtml(r, label){
-  if(!r.count) return '<div style="font-size:11px;color:var(--muted)">No carpool payments logged in '+_cpmEsc(label)+'.</div>';
-  function pc(v){ return Math.round(v / r.received * 100); }
-  var otherAll = r.pocketTotal + r.otherTotal;
-  var bar = '<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:#2a2a2a;margin:8px 0 6px">'
-    +(r.planTotal?'<div style="width:'+pc(r.planTotal)+'%;background:#c8f230"></div>':'')
-    +(otherAll?'<div style="width:'+pc(otherAll)+'%;background:#a830f2"></div>':'')
-    +(r.bank?'<div style="width:'+pc(r.bank)+'%;background:#30c8f2"></div>':'')+'</div>'
-    +'<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:var(--muted);margin-bottom:10px">'
-    +'<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#c8f230;margin-right:4px"></span>Plan cards '+fmtR(r.planTotal)+'</span>'
-    +(otherAll?'<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#a830f2;margin-right:4px"></span>Other pockets '+fmtR(otherAll)+'</span>':'')
-    +'<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#30c8f2;margin-right:4px"></span>Stayed in bank '+fmtR(r.bank)+'</span></div>';
-  var rows = '';
-  r.planRows.forEach(function(row){
-    var sub = '';
-    if(row.monthly > 0){
-      var tot = _cpmR2(row.carpool + row.moneyIn);
-      var p = Math.max(0, Math.min(100, tot / row.monthly * 100));
-      var done = tot >= row.monthly;
-      sub = '<div style="height:5px;background:#2a2a2a;border-radius:3px;overflow:hidden;margin-top:6px"><div style="width:'+p+'%;height:100%;background:'+(done?'#c8f230':'#f2a830')+'"></div></div>'
-        +'<div style="font-size:10px;color:'+(done?'#c8f230':'#f2a830')+';margin-top:4px">'+fmtR(tot)+' of '+fmtR(row.monthly)+' plan this month'
-        +(row.moneyIn>0 ? ' <span style="color:var(--muted)">· '+fmtR(row.carpool)+' carpool + '+fmtR(row.moneyIn)+' Money In</span>' : '')+'</div>';
-    }
-    rows += '<div style="padding:9px 0;border-top:1px solid var(--border)"><div style="display:flex;justify-content:space-between;font-size:12px"><span>'+_cpmEsc(row.label)+'</span><span style="font-weight:500;color:#c8f230">'+(row.carpool>0?fmtR(row.carpool):'R0')+' carpool</span></div>'+sub+'</div>';
-  });
-  r.pockets.concat(r.other).forEach(function(row){
-    rows += '<div style="padding:9px 0;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">'+_cpmEsc(row.label)+' <span style="font-size:9px">(not on plan)</span></span><span style="font-weight:500">'+fmtR(row.amount)+'</span></div>';
-  });
-  if(r.bank > 0){
-    rows += '<div style="padding:9px 0;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">Still in the bank (Cash Flow)</span><span style="font-weight:500;color:#30c8f2">'+fmtR(r.bank)+'</span></div>';
+function _cpmWhoText(who){
+  return Object.keys(who).map(function(p){ return _cpmEsc(p)+' '+_cpmMoney(who[p]); }).join(' · ');
+}
+function _cpmCashHtml(sp){
+  if(!sp.cashTotal && !sp.tripsTotal) return '';
+  var mn = _cpmMonthName(sp.mk);
+  function row(label, amt, sub, color){
+    return '<div style="padding:7px 0;border-top:1px solid var(--border)"><div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:'+(color||'var(--text)')+'">'+label+'</span><span style="font-weight:500;color:'+(color||'var(--text)')+'">'+_cpmMoney(amt)+'</span></div>'
+      +(sub?'<div style="font-size:10px;color:var(--muted);margin-top:2px">'+sub+'</div>':'')+'</div>';
   }
-  return '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px">'+fmtR(r.received)+' <span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:10px;color:var(--muted)">carpool cash in</span></div>'
-    + bar + rows
-    +'<div style="font-size:9px;color:#555;margin-top:8px;line-height:1.5">By where each Mark Paid was sent. Plan progress adds carpool + Money In; the Plan tab itself only counts Money In.</div>';
+  function head(title, total){
+    return '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px"><span style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">'+title+'</span>'
+      +'<span style="font-family:Syne,sans-serif;font-weight:700;font-size:16px">'+_cpmMoney(total)+'</span></div>';
+  }
+  var a = head('Cash received in '+mn, sp.cashTotal);
+  Object.keys(sp.cash).sort(function(x,y){ return (x===sp.mk?'':x) < (y===sp.mk?'':y) ? -1 : 1; }).forEach(function(k){
+    var label = k === sp.mk ? mn+' cash' : (k < sp.mk ? _cpmMonthName(k)+' cash' : _cpmMonthName(k)+' cash (prepaid)');
+    a += row(label, sp.cash[k].amt, _cpmWhoText(sp.cash[k].who));
+  });
+  if(Math.abs(sp.unlinked) > 0.004) a += row('Not tied to a trip', sp.unlinked, '', '#f2a830');
+  var b = head(mn+' trips marked paid', sp.tripsTotal);
+  Object.keys(sp.trips).filter(function(k){ return k !== 'credit'; }).sort(function(x,y){ return (x===sp.mk?'':x) < (y===sp.mk?'':y) ? -1 : 1; }).forEach(function(k){
+    var label = k === sp.mk ? mn+' cash' : 'Paid in '+_cpmMonthName(k);
+    b += row(label, sp.trips[k].amt, _cpmWhoText(sp.trips[k].who));
+  });
+  if(sp.trips.credit) b += row('Credit (no cash recorded)', sp.trips.credit.amt, _cpmWhoText(sp.trips.credit.who)+' · '+sp.trips.credit.days.map(_cpmEsc).join(', '), '#7090f0');
+  return '<div style="margin:12px 0 4px;padding-top:12px;border-top:1px solid var(--border)">'+a+'</div>'
+       + '<div style="margin:12px 0 4px">'+b+'</div>';
+}
+
+// ── POCKET STORIES ───────────────────────────────────────────────────
+function computeCarpoolWhereItWent(months){
+  var allFunds = (typeof funds !== 'undefined' ? funds : []);
+  var plan = (typeof loadPlan === 'function') ? loadPlan() : null;
+  var cards = plan ? (plan.savingsCards || []) : [];
+  var sorted = months ? months.slice().sort() : null;
+  var startKey = sorted ? sorted[0]+'-01' : '0000-00-00';
+  function inPeriod(ds){ return !months || months.indexOf(ds.slice(0,7)) >= 0; }
+  var pmts = _cpmPayments();
+  var pmById = {}; pmts.forEach(function(pm){ pmById[pm.id] = pm; });
+  var inP = pmts.filter(function(pm){ return pm.date && inPeriod(pm.date); });
+  var res = { received:0, count:inP.length, bank:0, other:[], stories:[] };
+
+  var carpoolByFund = {}, otherMap = {};
+  inP.forEach(function(pm){
+    var amt = Number(pm.amount) || 0, ch = pm.destChoice;
+    res.received += amt;
+    if(ch === 'cashflow'){ res.bank += amt; }
+    else if(typeof ch === 'string' && ch.indexOf('fund:') === 0){ var id = ch.slice(5); carpoolByFund[id] = (carpoolByFund[id]||0) + amt; }
+    else {
+      var l = (typeof ch === 'string' && ch.indexOf('maint:') === 0) ? 'Maintenance' : (ch === 'split') ? 'Manual split (not tracked)' : 'Not recorded (older payment)';
+      otherMap[l] = (otherMap[l]||0) + amt;
+    }
+  });
+  Object.keys(otherMap).forEach(function(l){ res.other.push({ label:l, amount:otherMap[l] }); });
+
+  var moveMap = {};
+  allFunds.forEach(function(f){ (f.deposits||[]).forEach(function(d){
+    if(!d.moveId) return;
+    var m = moveMap[d.moveId] || (moveMap[d.moveId] = { from:'', to:'' });
+    if(d.txnType === 'out') m.from = f.name; else m.to = f.name;
+  }); });
+
+  Object.keys(carpoolByFund).forEach(function(id){
+    var f = allFunds.find(function(x){ return x.id === id; });
+    var card = cards.find(function(c){ return c.pocketId === id; });
+    var S = { id:id, name: f ? f.name : 'Deleted pocket', emoji: f ? (f.emoji||'') : '',
+              planLabel: card ? String(card.label||'').trim() : '', planMonthly: card ? (Number(card.monthly)||0) : 0,
+              carpool: carpoolByFund[id], opening:0, inRows:[], outRows:[], totalIn:0, totalOut:0, closing:0 };
+    var moveIn = {}, moveOut = {}, moneyIn = { n:0, amt:0, last:'' }, profit = { n:0, amt:0 };
+    if(f) (f.deposits||[]).forEach(function(d){
+      if(!d.date) return;
+      var out = d.txnType === 'out', amt = Number(d.amount) || 0, v = out ? -amt : amt;
+      if(d.date < startKey){ S.opening += v; return; }
+      if(!inPeriod(d.date)) return;
+      if(d.moveId){
+        var mv = moveMap[d.moveId] || {};
+        if(out){ var to = mv.to || 'another pocket'; moveOut[to] = (moveOut[to]||0) + amt; }
+        else { var fr = mv.from || 'another pocket'; moveIn[fr] = (moveIn[fr]||0) + amt; }
+        return;
+      }
+      var note = _cpmClean(d.note);
+      if(!out){
+        if(d.carpoolPaymentId){
+          var pm = pmById[d.carpoolPaymentId];
+          S.inRows.push({ kind:'carpool', date:d.date, label:'Carpool \u00B7 '+(pm ? pm.passenger : 'passenger')+' ('+_cpmDayLabel(d.date)+')', amt:amt });
+        } else if(d.repayId){ S.inRows.push({ kind:'repay', date:d.date, label:note || 'Repayment', amt:amt }); }
+        else if(d.moneyInId){ moneyIn.n++; moneyIn.amt += amt; moneyIn.last = note; }
+        else if(/profit share/i.test(d.note||'')){ profit.n++; profit.amt += amt; }
+        else { S.inRows.push({ kind:'other', date:d.date, label:note || 'Other in', amt:amt }); }
+      } else {
+        S.outRows.push({ kind:'out', date:d.date, label:(note || (d.spendId ? 'Spend' : d.instalmentPayId ? 'Instalment' : 'Other out'))+' ('+_cpmDayLabel(d.date)+')', amt:amt });
+      }
+    });
+    var order = { carpool:0, repay:1, other:2 };
+    S.inRows.sort(function(a,b){ return (order[a.kind]-order[b.kind]) || (a.date < b.date ? -1 : 1); });
+    if(moneyIn.n) S.inRows.push({ kind:'moneyin', label: moneyIn.n === 1 && moneyIn.last ? moneyIn.last : 'Money In ('+moneyIn.n+' entries)', amt:moneyIn.amt });
+    if(profit.n) S.inRows.push({ kind:'moneyin', label:'Profit share', amt:profit.amt });
+    Object.keys(moveIn).forEach(function(k){ S.inRows.push({ kind:'move', label:'Moved in from '+k, amt:moveIn[k] }); });
+    S.outRows.sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+    Object.keys(moveOut).forEach(function(k){ S.outRows.push({ kind:'move', label:'Moved to '+k, amt:moveOut[k] }); });
+    S.totalIn = _cpmR2(S.inRows.reduce(function(s,r){ return s + r.amt; }, 0));
+    S.totalOut = _cpmR2(S.outRows.reduce(function(s,r){ return s + r.amt; }, 0));
+    S.opening = _cpmR2(S.opening);
+    S.closing = _cpmR2(S.opening + S.totalIn - S.totalOut);
+    res.stories.push(S);
+  });
+  res.stories.sort(function(a,b){ return b.carpool - a.carpool; });
+  res.received = _cpmR2(res.received);
+  return res;
+}
+
+function _cpmWhereHtml(r, label, closeLabel){
+  if(!r.count) return '<div style="font-size:11px;color:var(--muted)">No carpool payments logged in '+_cpmEsc(label)+'.</div>';
+  var LIME = '#c8f230', RED = '#f23060';
+  function line(text, amt, kind){
+    var hi = kind === 'carpool', grey = kind === 'move';
+    var col = hi ? LIME : grey ? 'var(--muted)' : 'var(--text)';
+    var amtCol = hi ? LIME : grey ? 'var(--muted)' : (kind === 'out' ? RED : 'var(--text)');
+    return '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 8px;font-size:12px;'+(hi?'background:#1a2e00;border-radius:4px;margin-bottom:2px;':'')+'"><span style="color:'+col+'">'+_cpmEsc(text)+'</span>'
+      +'<span style="white-space:nowrap;font-weight:'+(hi?'500':'400')+';color:'+amtCol+'">'+(kind==='out'?'-':'+')+_cpmMoney(amt)+'</span></div>';
+  }
+  var html = '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px">'+_cpmMoney(r.received)+' <span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:10px;color:var(--muted)">carpool cash in'+(r.stories.length?', '+r.stories.length+' pocket'+(r.stories.length===1?'':'s'):'')+'</span></div>';
+  r.stories.forEach(function(S){
+    var title = _cpmEsc(((S.emoji||'')+' '+S.name).trim()) + (S.planLabel && S.planLabel !== S.name ? ' <span style="color:var(--muted);font-weight:400">\u00B7 '+_cpmEsc(S.planLabel)+'</span>' : '');
+    html += '<div style="margin-top:12px;background:#111;border:1px solid var(--border);border-radius:8px;padding:10px 10px 8px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px"><span style="font-size:13px;font-weight:500">'+title+'</span>'
+      +'<span style="font-size:10px;background:#1a2e00;color:'+LIME+';padding:2px 8px;border-radius:100px;white-space:nowrap">'+_cpmMoney(S.carpool)+' carpool</span></div>';
+    if(Math.abs(S.opening) > 0.004) html += '<div style="display:flex;justify-content:space-between;padding:4px 8px;font-size:11px;color:var(--muted)"><span>Balance before</span><span>'+_cpmMoney(S.opening)+'</span></div>';
+    html += '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:6px 0 3px">Came in</div>';
+    S.inRows.forEach(function(row){ html += line(row.label, row.amt, row.kind); });
+    html += '<div style="display:flex;justify-content:space-between;padding:6px 8px;font-size:12px;font-weight:500;border-top:1px solid var(--border);margin-top:2px"><span>Total in</span><span>'+_cpmMoney(S.totalIn)+'</span></div>';
+    html += '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:8px 0 3px">Went out</div>';
+    if(!S.outRows.length) html += '<div style="padding:6px 8px;font-size:12px;color:var(--muted)">Nothing went out.</div>';
+    S.outRows.forEach(function(row){ html += line(row.label, row.amt, row.kind === 'move' ? 'move' : 'out').replace('>+','>-'); });
+    html += '<div style="display:flex;justify-content:space-between;padding:6px 8px;font-size:12px;font-weight:500;border-top:1px solid var(--border);margin-top:2px"><span>Total out</span><span>'+_cpmMoney(S.totalOut)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding:8px 10px;background:var(--surface);border-radius:6px"><span style="font-size:11px;color:var(--muted)">'+_cpmEsc(closeLabel)+'</span><span style="font-family:Syne,sans-serif;font-weight:700;font-size:16px">'+_cpmMoney(S.closing)+'</span></div></div>';
+  });
+  if(r.bank > 0) html += '<div style="padding:9px 2px 0;display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">Stayed in the bank (Cash Flow only, no pocket)</span><span style="font-weight:500;color:#30c8f2">'+_cpmMoney(r.bank)+'</span></div>';
+  r.other.forEach(function(row){ html += '<div style="padding:9px 2px 0;display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">'+_cpmEsc(row.label)+'</span><span style="font-weight:500">'+_cpmMoney(row.amount)+'</span></div>'; });
+  html += '<div style="font-size:9px;color:#555;margin-top:10px;line-height:1.5">Carpool rows are highlighted. Grey rows are moves between your own pockets. Money is pooled, so what went out cannot be tied to specific carpool rands.</div>';
+  return html;
+}
+function _cpmCloseLabel(months, label){
+  var now = new Date(), cur = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  if(!months || months.indexOf(cur) >= 0) return 'Balance now';
+  return 'Balance at end of '+label;
 }
 
 function renderCarpoolMoneySummary(){
@@ -2732,9 +2847,8 @@ function renderCarpoolMoneySummary(){
   }
   if(currentRole !== 'admin'){ host.style.display = 'none'; return; }
   host.style.display = 'block';
-  var MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   var mk = cpKey();
-  var label = MN[cpMonth]+' '+cpYear;
+  var label = _cpmMonthName(mk)+' '+cpYear;
   var r = computeCarpoolMoney(mk);
   var outTotal = r.outMonth + r.outOther;
   var rows = PASSENGERS.map(function(p){
@@ -2742,26 +2856,27 @@ function renderCarpoolMoneySummary(){
     var out = P.outMonth + P.outOther;
     return '<div style="padding:10px 0;border-top:1px solid var(--border)">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:Syne,sans-serif;font-weight:700;font-size:14px">'+_cpmEsc(p)+'</span>'
-      +'<span style="font-size:12px;font-weight:500;color:'+(out>0?'#f2a830':'#c8f230')+'">'+(out>0?fmtR(out)+' out':'settled')+'</span></div>'
-      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.5px"><span>Earned '+fmtR(P.earned)+' · Paid '+fmtR(P.paid)+'</span><span>'+P.paidDays+' of '+P.days+' days paid</span></div>'
-      +(P.outOther>0?'<div style="font-size:10px;color:#f2a830;margin-top:3px">incl. '+fmtR(P.outOther)+' from other months</div>':'')
+      +'<span style="font-size:12px;font-weight:500;color:'+(out>0?'#f2a830':'#c8f230')+'">'+(out>0?_cpmMoney(out)+' out':'settled')+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.5px"><span>Earned '+_cpmMoney(P.earned)+' · Paid '+_cpmMoney(P.paid)+'</span><span>'+P.paidDays+' of '+P.days+' days paid</span></div>'
+      +(P.outOther>0?'<div style="font-size:10px;color:#f2a830;margin-top:3px">incl. '+_cpmMoney(P.outOther)+' from other months</div>':'')
       +'</div>';
   }).join('');
   host.innerHTML =
     '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px">'
     +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px"><span style="font-family:Syne,sans-serif;font-weight:800;font-size:15px">Carpool money</span><span style="font-size:10px;color:var(--muted);letter-spacing:1px">'+label+'</span></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
-      +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Earned</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:2px">'+fmtR(r.earned)+'</div><div style="font-size:9px;color:#555;margin-top:2px">trips driven this month</div></div>'
-      +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Paid</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:#c8f230;margin-top:2px">'+fmtR(r.paid)+'</div><div style="font-size:9px;color:#555;margin-top:2px">of those trips</div></div>'
+      +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Earned</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:2px">'+_cpmMoney(r.earned)+'</div><div style="font-size:9px;color:#555;margin-top:2px">trips this month</div></div>'
+      +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Paid</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:#c8f230;margin-top:2px">'+_cpmMoney(r.paid)+'</div><div style="font-size:9px;color:#555;margin-top:2px">of those trips</div></div>'
     +'</div>'
     +'<div style="background:#1e1400;border:1px solid #4a3000;border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
-      +'<div><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#f2a830">Outstanding · all months</div><div style="font-size:10px;color:#a87a30;margin-top:2px">This month '+fmtR(r.outMonth)+' + other months '+fmtR(r.outOther)+'</div></div>'
-      +'<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:#f2a830">'+fmtR(outTotal)+'</div>'
+      +'<div><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#f2a830">Outstanding · all months</div><div style="font-size:10px;color:#a87a30;margin-top:2px">This month '+_cpmMoney(r.outMonth)+' + other months '+_cpmMoney(r.outOther)+'</div></div>'
+      +'<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:#f2a830">'+_cpmMoney(outTotal)+'</div>'
     +'</div>'
     +'<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:2px">By person</div>'
     + rows
+    + _cpmCashHtml(computeCarpoolCashSplit(mk))
     +'<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;padding-top:12px;border-top:1px solid var(--border)">What you did with the money</div>'
-    + _cpmWhereHtml(computeCarpoolWhereItWent([mk]), label)
+    + _cpmWhereHtml(computeCarpoolWhereItWent([mk]), label, _cpmCloseLabel([mk], label))
     +'</div>';
 }
 
@@ -2778,7 +2893,7 @@ function renderCarpoolWhereItWent(months, label){
   host.style.display = 'block';
   host.innerHTML = '<div style="margin-top:10px;background:var(--surface);border-radius:8px;padding:14px">'
     +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px"><span style="font-family:Syne,sans-serif;font-weight:800;font-size:14px">What you did with it</span><span style="font-size:10px;color:var(--muted);letter-spacing:1px">'+_cpmEsc(label)+'</span></div>'
-    + _cpmWhereHtml(computeCarpoolWhereItWent(months), label)
+    + _cpmWhereHtml(computeCarpoolWhereItWent(months), label, _cpmCloseLabel(months, label))
     +'</div>';
 }
 
@@ -2976,20 +3091,21 @@ function _mrBuildPdf(rep){
   // ── carpool
   var cp = rep.carpool;
   if(cp && cp.count){
-    ensure(46);
-    section('Carpool cash, where it went');
-    var cpRows = [];
-    (cp.planRows||[]).forEach(function(r){ if(r.carpool > 0) cpRows.push([r.label+'  (plan card)', r.carpool]); });
-    (cp.pockets||[]).forEach(function(r){ cpRows.push([_mrClean(r.label)+'  (not on plan)', r.amount]); });
-    (cp.other||[]).forEach(function(r){ cpRows.push([r.label, r.amount]); });
-    if(cp.bank > 0) cpRows.push(['Bank only (Cash Flow, no pocket)', cp.bank]);
-    cpRows.forEach(function(r){ ensure(7); txt(fit(r[0], 130, 9), L, y, { size:9 }); txt(_mrMoney(r[1]), R, y, { size:9, align:'right' }); y += 6; rule(y-3.6); });
-    ensure(8); txt('Carpool cash in', L, y+1, { size:9, bold:true }); txt(_mrMoney(cp.received), R, y+1, { size:9, bold:true, align:'right' }); y += 7;
-    if(cp.planTotal === 0){ txt('None of this month\'s carpool cash went to a plan card.', L, y, { size:8, color:AMBER }); y += 5; }
-    (cp.planRows||[]).forEach(function(r){
-      if(r.monthly > 0){ ensure(6); var t = _mrR2(r.carpool + r.moneyIn);
-        txt(fit(r.label+': '+_mrMoney(t)+' of '+_mrMoney(r.monthly)+' plan  ('+_mrMoney(r.carpool)+' carpool + '+_mrMoney(r.moneyIn)+' Money In)', 182, 8), L, y, { size:8, color: t >= r.monthly ? GREEN : AMBER }); y += 5; }
+    ensure(40);
+    section('Carpool cash, pocket by pocket');
+    cp.stories.forEach(function(S){
+      ensure(16);
+      var nm = _mrClean(S.name) + (S.planLabel && S.planLabel !== S.name ? '  ('+_mrClean(S.planLabel)+' plan card)' : '');
+      txt(fit(nm, 120, 9), L, y, { size:9, bold:true });
+      txt(_mrMoney(S.carpool)+' carpool', R, y, { size:9, bold:true, align:'right', color:GREEN });
+      y += 5;
+      txt('Opening '+_mrMoney(S.opening)+'   In '+_mrMoney(S.totalIn)+'   Out '+_mrMoney(S.totalOut)+'   Balance '+_mrMoney(S.closing), L, y, { size:8, color:MUTE });
+      y += 3; rule(y, [238,238,238]); y += 5;
     });
+    if(cp.bank > 0){ ensure(7); txt('Bank only (Cash Flow, no pocket)', L, y, { size:9 }); txt(_mrMoney(cp.bank), R, y, { size:9, align:'right' }); y += 6; }
+    cp.other.forEach(function(o){ ensure(7); txt(o.label, L, y, { size:9 }); txt(_mrMoney(o.amount), R, y, { size:9, align:'right' }); y += 6; });
+    ensure(8); txt('Carpool cash in', L, y+1, { size:9, bold:true }); txt(_mrMoney(cp.received), R, y+1, { size:9, bold:true, align:'right' }); y += 7;
+    txt('Every entry in and out of these pockets is listed in the sections above and below.', L, y, { size:7, color:MUTE }); y += 5;
   }
 
   // ── by pocket
