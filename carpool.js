@@ -2015,7 +2015,7 @@ function renderReports(){
     }).join('');
     document.getElementById('rptCarpoolRows').innerHTML=carpoolRows;
   }
-  try{ renderCarpoolWhereItWent(months, label); }catch(e){ console.warn('[reports] where-it-went failed', e); }
+  try{ var _oldWhere = document.getElementById('rptCarpoolWhere'); if(_oldWhere) _oldWhere.remove(); }catch(e){}   // v150j: "What you did with it" removed from Reports (the PDF covers it)
   try{ renderMonthlyReportControls(); }catch(e){ console.warn('[reports] money report controls failed', e); }
   try{ if(typeof renderForecastSection === 'function') renderForecastSection(); }catch(e){ console.warn('[reports] forecast failed', e); }
   renderCarpoolChart();
@@ -2877,23 +2877,6 @@ function renderCarpoolMoneySummary(){
     + _cpmCashHtml(computeCarpoolCashSplit(mk))
     +'<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;padding-top:12px;border-top:1px solid var(--border)">What you did with the money</div>'
     + _cpmWhereHtml(computeCarpoolWhereItWent([mk]), label, _cpmCloseLabel([mk], label))
-    +'</div>';
-}
-
-function renderCarpoolWhereItWent(months, label){
-  var host = document.getElementById('rptCarpoolWhere');
-  if(!host){
-    var anchor = document.getElementById('cpCompareTable');
-    if(!anchor) return;
-    host = document.createElement('div');
-    host.id = 'rptCarpoolWhere';
-    anchor.insertAdjacentElement('afterend', host);
-  }
-  if(currentRole !== 'admin'){ host.style.display = 'none'; return; }
-  host.style.display = 'block';
-  host.innerHTML = '<div style="margin-top:10px;background:var(--surface);border-radius:8px;padding:14px">'
-    +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px"><span style="font-family:Syne,sans-serif;font-weight:800;font-size:14px">What you did with it</span><span style="font-size:10px;color:var(--muted);letter-spacing:1px">'+_cpmEsc(label)+'</span></div>'
-    + _cpmWhereHtml(computeCarpoolWhereItWent(months), label, _cpmCloseLabel(months, label))
     +'</div>';
 }
 
