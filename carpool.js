@@ -2601,7 +2601,9 @@ function renderCarpoolChartDaily(canvas, emptyMsg, monthKey, dayLabels) {
 //   Cash lines say which month's trips each payment paid for (October cash,
 //   September cash, ...) and show a trip marked paid with no cash behind it
 //   as "Credit (no cash recorded)".
-//   "What you did with the money" is a POCKET STORY: for every pocket that
+//   (v150k: the on-screen "What you did with the money" section was removed; the
+//   pocket story below now only feeds the Monthly Money Report PDF.)
+//   POCKET STORY: for every pocket that
 //   received carpool cash, everything that came in, everything that went out,
 //   and the balance. Money is pooled, so nothing is tied to specific rands.
 // ══════════════════════════════════════════════════════════════════════
@@ -2799,43 +2801,6 @@ function computeCarpoolWhereItWent(months){
   return res;
 }
 
-function _cpmWhereHtml(r, label, closeLabel){
-  if(!r.count) return '<div style="font-size:11px;color:var(--muted)">No carpool payments logged in '+_cpmEsc(label)+'.</div>';
-  var LIME = '#c8f230', RED = '#f23060';
-  function line(text, amt, kind){
-    var hi = kind === 'carpool', grey = kind === 'move';
-    var col = hi ? LIME : grey ? 'var(--muted)' : 'var(--text)';
-    var amtCol = hi ? LIME : grey ? 'var(--muted)' : (kind === 'out' ? RED : 'var(--text)');
-    return '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 8px;font-size:12px;'+(hi?'background:#1a2e00;border-radius:4px;margin-bottom:2px;':'')+'"><span style="color:'+col+'">'+_cpmEsc(text)+'</span>'
-      +'<span style="white-space:nowrap;font-weight:'+(hi?'500':'400')+';color:'+amtCol+'">'+(kind==='out'?'-':'+')+_cpmMoney(amt)+'</span></div>';
-  }
-  var html = '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px">'+_cpmMoney(r.received)+' <span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:10px;color:var(--muted)">carpool cash in'+(r.stories.length?', '+r.stories.length+' pocket'+(r.stories.length===1?'':'s'):'')+'</span></div>';
-  r.stories.forEach(function(S){
-    var title = _cpmEsc(((S.emoji||'')+' '+S.name).trim()) + (S.planLabel && S.planLabel !== S.name ? ' <span style="color:var(--muted);font-weight:400">\u00B7 '+_cpmEsc(S.planLabel)+'</span>' : '');
-    html += '<div style="margin-top:12px;background:#111;border:1px solid var(--border);border-radius:8px;padding:10px 10px 8px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px"><span style="font-size:13px;font-weight:500">'+title+'</span>'
-      +'<span style="font-size:10px;background:#1a2e00;color:'+LIME+';padding:2px 8px;border-radius:100px;white-space:nowrap">'+_cpmMoney(S.carpool)+' carpool</span></div>';
-    if(Math.abs(S.opening) > 0.004) html += '<div style="display:flex;justify-content:space-between;padding:4px 8px;font-size:11px;color:var(--muted)"><span>Balance before</span><span>'+_cpmMoney(S.opening)+'</span></div>';
-    html += '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:6px 0 3px">Came in</div>';
-    S.inRows.forEach(function(row){ html += line(row.label, row.amt, row.kind); });
-    html += '<div style="display:flex;justify-content:space-between;padding:6px 8px;font-size:12px;font-weight:500;border-top:1px solid var(--border);margin-top:2px"><span>Total in</span><span>'+_cpmMoney(S.totalIn)+'</span></div>';
-    html += '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:8px 0 3px">Went out</div>';
-    if(!S.outRows.length) html += '<div style="padding:6px 8px;font-size:12px;color:var(--muted)">Nothing went out.</div>';
-    S.outRows.forEach(function(row){ html += line(row.label, row.amt, row.kind === 'move' ? 'move' : 'out').replace('>+','>-'); });
-    html += '<div style="display:flex;justify-content:space-between;padding:6px 8px;font-size:12px;font-weight:500;border-top:1px solid var(--border);margin-top:2px"><span>Total out</span><span>'+_cpmMoney(S.totalOut)+'</span></div>'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding:8px 10px;background:var(--surface);border-radius:6px"><span style="font-size:11px;color:var(--muted)">'+_cpmEsc(closeLabel)+'</span><span style="font-family:Syne,sans-serif;font-weight:700;font-size:16px">'+_cpmMoney(S.closing)+'</span></div></div>';
-  });
-  if(r.bank > 0) html += '<div style="padding:9px 2px 0;display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">Stayed in the bank (Cash Flow only, no pocket)</span><span style="font-weight:500;color:#30c8f2">'+_cpmMoney(r.bank)+'</span></div>';
-  r.other.forEach(function(row){ html += '<div style="padding:9px 2px 0;display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">'+_cpmEsc(row.label)+'</span><span style="font-weight:500">'+_cpmMoney(row.amount)+'</span></div>'; });
-  html += '<div style="font-size:9px;color:#555;margin-top:10px;line-height:1.5">Carpool rows are highlighted. Grey rows are moves between your own pockets. Money is pooled, so what went out cannot be tied to specific carpool rands.</div>';
-  return html;
-}
-function _cpmCloseLabel(months, label){
-  var now = new Date(), cur = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  if(!months || months.indexOf(cur) >= 0) return 'Balance now';
-  return 'Balance at end of '+label;
-}
-
 function renderCarpoolMoneySummary(){
   var host = document.getElementById('cpMoneySummary');
   if(!host){
@@ -2875,8 +2840,6 @@ function renderCarpoolMoneySummary(){
     +'<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:2px">By person</div>'
     + rows
     + _cpmCashHtml(computeCarpoolCashSplit(mk))
-    +'<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;padding-top:12px;border-top:1px solid var(--border)">What you did with the money</div>'
-    + _cpmWhereHtml(computeCarpoolWhereItWent([mk]), label, _cpmCloseLabel([mk], label))
     +'</div>';
 }
 
