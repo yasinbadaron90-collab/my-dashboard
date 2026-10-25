@@ -143,15 +143,13 @@ function _renderOdinTabSnapshot(mk){
     var pax = loadPassengers()||[];
     pax.forEach(function(p){
       var ents = (borrowData&&borrowData[p.name])||[];
-      var b=0,r=0;
-      ents.forEach(function(e){ if(e.type==='repay') r+=Number(e.amount||0); else b+=Number(e.amount||0); });
-      totalOwed += Math.max(0,b-r);
+      var ct = calcPersonTotals(ents, true);
+      totalOwed += Math.max(0, ct.borrowed - ct.repaid);
     });
     var extD = loadExternalBorrows();
     Object.values(extD).forEach(function(p){
-      var b=0,r=0;
-      (p.entries||[]).forEach(function(e){ if(e.type==='repay') r+=Number(e.amount||0); else b+=Number(e.amount||0); });
-      totalOwed += Math.max(0,b-r);
+      var ct = calcPersonTotals(p.entries, false);
+      totalOwed += Math.max(0, ct.borrowed - ct.repaid);
     });
     tiles.push({
       label:'Owed to You',

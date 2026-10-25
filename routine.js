@@ -594,9 +594,8 @@ function renderOdinInsights(tabId){
     var totalOwed = 0;
     passengers.forEach(function(p){
       var entries = borrowData[p.name]||[];
-      var b=0,r=0;
-      entries.forEach(function(e){ if(e.type==='repay') r+=Number(e.amount||0); else b+=Number(e.amount||0); });
-      var owed = Math.max(0, b - r);
+      var ct = calcPersonTotals(entries, true);
+      var owed = Math.max(0, ct.borrowed - ct.repaid);
       if(owed > 0){
         totalOwed += owed;
         insights.push({ text: '💸 '+p.name+' owes you '+fmtR(owed)+' in borrowed money', cls:'urgent' });
@@ -661,14 +660,14 @@ function renderOdinInsights(tabId){
       try{ moPax = loadPassengers()||[]; }catch(e){}
       moPax.forEach(function(p){
         var entries = (borrowData&&borrowData[p.name])||[];
-        var b=0,r=0;
-        entries.forEach(function(e){ if(e.type==='repay') r+=Number(e.amount||0); else b+=Number(e.amount||0); });
+        var ct = calcPersonTotals(entries, true);
+        var b = ct.borrowed, r = ct.repaid;
         if(b > 0) moAll.push({ name:p.name, tag:'carpool', borrowed:b, repaid:r, owing:Math.max(0,b-r) });
       });
       var extD = loadExternalBorrows();
       Object.values(extD).forEach(function(p){
-        var b=0,r=0;
-        (p.entries||[]).forEach(function(e){ if(e.type==='repay') r+=Number(e.amount||0); else b+=Number(e.amount||0); });
+        var ct = calcPersonTotals(p.entries, false);
+        var b = ct.borrowed, r = ct.repaid;
         if(b > 0) moAll.push({ name:p.name, tag:'personal', borrowed:b, repaid:r, owing:Math.max(0,b-r) });
       });
       var grandOwing = moAll.reduce(function(s,p){ return s+p.owing; },0);

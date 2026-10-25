@@ -747,9 +747,8 @@ function openRepayModal(){
   // Default to first passenger who actually owes something
   const firstOwing = PASSENGERS.find(function(p){
     const entries = borrowData[p] || [];
-    let b=0,r=0;
-    entries.forEach(function(e){ if(e.type==='repay') r+=Number(e.amount||0); else b+=Number(e.amount||0); });
-    return (b-r) > 0;
+    const ct = calcPersonTotals(entries, true);
+    return (ct.borrowed - ct.repaid) > 0;
   });
   sel.value = firstOwing || PASSENGERS[0];
   updateRepayOwingSummary();
