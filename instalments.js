@@ -96,7 +96,7 @@ function buildInstalmentsPDF(plans){
     var monthlyTotal = _planMonthlyTotal(p);
     if(p.monthToMonth){
       totalRemaining += monthlyTotal;
-      if(p.debitDay) dueThisMonth += monthlyTotal;
+      if(p.debitDay && !_m2mPaidInMonth(p, thisMonthKey)) dueThisMonth += monthlyTotal;
     } else {
       (p.dates||[]).forEach(function(ds, i){
         if(paidIdxs.indexOf(i) > -1) return;
@@ -180,6 +180,12 @@ function planRemaining(p){
 }
 
 // v115 helper: monthly total = principal + service fee
+// v150m: has an M2M plan already had a debit logged for calendar month ym ('YYYY-MM')?
+// Same test Odin's alert rule already used; the tiles/card/PDF just never applied it.
+function _m2mPaidInMonth(plan, ym){
+  return (plan.paid||[]).some(function(x){ return x && x.date && String(x.date).slice(0,7) === ym; });
+}
+
 function _planMonthlyTotal(plan){
   return Number(plan.amt||0) + Number(plan.serviceFee||0);
 }
@@ -1102,7 +1108,7 @@ function renderInst(){
     if(p.monthToMonth){
       // Month-to-month plans: due every month on debitDay
       totalRem += monthlyTotal;
-      if(p.debitDay) totalDueMonth += monthlyTotal;
+      if(p.debitDay && !_m2mPaidInMonth(p, thisMonth)) totalDueMonth += monthlyTotal;
     } else {
       // Fixed-term plans: iterate through scheduled dates
       p.dates.forEach(function(ds, i){
@@ -1240,7 +1246,9 @@ function buildInstCard(plan, isTarget, isCleared){
   if(isM2M){
     // Month-to-month: show paid history + next due
     var nextDue = new Date(now2.getFullYear(), now2.getMonth(), plan.debitDay || 20);
-    if(nextDue < now2) nextDue = new Date(now2.getFullYear(), now2.getMonth()+1, plan.debitDay || 20);
+    if(nextDue < now2 || _m2mPaidInMonth(plan, now2.getFullYear() + '-' + String(now2.getMonth()+1).padStart(2,'0'))){
+      nextDue = new Date(now2.getFullYear(), now2.getMonth()+1, plan.debitDay || 20);
+    }
     var isToday2 = nextDue.getTime() === now2.getTime();
     rowsHtml += '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;padding-top:4px;">Next debit</div>';
     rowsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">'
