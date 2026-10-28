@@ -46,7 +46,7 @@
 //
 //  RENDER-TIME CALCS:
 //    yearMarkPct = sum of raw quiz scores + sum of raw assignment scores
-//    finalPct    = Math.round(yearMarkPct * 0.40 + examRaw * 0.60)
+//    finalPct    = ROUND UP (yearMarkPct * 0.40 + examRaw * 0.60)   ← Regent's rule (v150s)
 //    result      = resultOverride OR
 //                  (examRaw == null  → 'EXM') OR
 //                  (finalPct >= 75   → 'PD')  OR
@@ -403,7 +403,14 @@ function calcYearMarkPct(sub){
 function calcFinalPct(sub){
   var ymp = calcYearMarkPct(sub);
   if(ymp === null || sub.examRaw === null || sub.examRaw === undefined) return null;
-  return Math.round(ymp * 0.40 + sub.examRaw * 0.60);
+  // v150s: Regent rounds the final mark UP. Checked against the official
+  // statement of results (18 Aug 2026): round-up matches all 11 modules,
+  // normal rounding only 7 — e.g. Commercial Law 201: 78×0.4 + 55×0.6 = 64.2,
+  // transcript says 65. (Normal rounding can't produce 65 from a year mark
+  // shown as 78 at all, so this isn't an unrounded-year-mark effect.)
+  // Trim float noise first so an exact 68.0 doesn't become 69.
+  var raw = Math.round((ymp * 0.40 + sub.examRaw * 0.60) * 1000) / 1000;
+  return Math.ceil(raw);
 }
 
 function calcResult(sub){
