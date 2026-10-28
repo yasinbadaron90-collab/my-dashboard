@@ -1937,7 +1937,7 @@ function renderReports(){
   // Find car fund — check isExpense flag first, then fall back to name match
   // Read car fund fresh from localStorage — savings-based expense tracker only
   var _rawFunds = [];
-  try { _rawFunds = JSON.parse(localStorage.getItem('yasin_funds_v16') || '[]'); } catch(e){}
+  try { _rawFunds = JSON.parse(lsGet('yasin_funds_v16') || '[]'); } catch(e){}
   var carFundRpt = _rawFunds.find(function(f){ return f.isExpense; });
   var totalOut = 0, totalIn = 0, allOutRows = [];
   if(carFundRpt){
@@ -2010,7 +2010,7 @@ function _renderNwLine(d) {
 
   // Build monthly Net Worth history from debt repayment entries
   var extData = {};
-  try { extData = JSON.parse(localStorage.getItem('yb_external_borrows_v1') || '{}'); } catch(e) {}
+  try { extData = JSON.parse(lsGet('yb_external_borrows_v1') || '{}'); } catch(e) {}
 
   // Collect all repay entries sorted by date
   var allRepays = [];
@@ -2143,7 +2143,7 @@ function _renderNwLine(d) {
 // ── renderNetWorth ──
 function renderNetWorth() {
   var rawFunds = [];
-  try { rawFunds = JSON.parse(localStorage.getItem('yasin_funds_v16') || '[]'); } catch(e) {}
+  try { rawFunds = JSON.parse(lsGet('yasin_funds_v16') || '[]'); } catch(e) {}
 
   var assetRows = [], totalAssets = 0;
   rawFunds.forEach(function(f) {
@@ -2159,7 +2159,7 @@ function renderNetWorth() {
   });
 
   var extData = {};
-  try { extData = JSON.parse(localStorage.getItem('yb_external_borrows_v1') || '{}'); } catch(e) {}
+  try { extData = JSON.parse(lsGet('yb_external_borrows_v1') || '{}'); } catch(e) {}
 
   var liabilityRows = [], totalLiabilities = 0;
   Object.keys(extData).forEach(function(key) {

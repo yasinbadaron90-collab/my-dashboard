@@ -189,7 +189,7 @@ function _spRenderPocketList(){
       ';border-radius:7px;padding:10px 12px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:DM Mono,monospace;';
     row.innerHTML =
       '<span style="font-size:18px;flex-shrink:0;">' + (f.emoji || '💰') + '</span>' +
-      '<span style="flex:1;font-size:12px;color:' + (selected ? '#c8f230' : '#efefef') + ';">' + escapeSpHTML(f.name) + '</span>' +
+      '<span style="flex:1;font-size:12px;color:' + (selected ? '#c8f230' : '#efefef') + ';">' + escHtml(f.name) + '</span>' +
       '<span style="font-size:11px;color:' + balColor + ';font-family:Syne,sans-serif;font-weight:700;">' + fmtR(bal) + '</span>';
     list.appendChild(row);
   });
@@ -561,9 +561,3 @@ function _spendReverse(spId, opts){
 
 // ── Edit (re-opens the Spend modal with the record loaded) ─────────────
 
-// ── HTML escape (small util — keep local so we don't depend on core) ───
-function escapeSpHTML(s){
-  return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}

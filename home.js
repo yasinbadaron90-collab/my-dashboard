@@ -128,14 +128,14 @@ var _planEditMode = false;
 function _planPocketOptions(selectedId){
   var list = (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return !f._deleted; });
   return list.map(function(f){
-    return '<option value="'+f.id+'"'+(f.id===selectedId?' selected':'')+'>'+_escHtml(f.emoji||'')+' '+_escHtml(f.name)+'</option>';
+    return '<option value="'+f.id+'"'+(f.id===selectedId?' selected':'')+'>'+escHtml(f.emoji||'')+' '+escHtml(f.name)+'</option>';
   }).join('');
 }
 function _planDebtorOptions(selectedKey){
   var ext = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
   return Object.keys(ext).map(function(key){
     var name = (ext[key] && ext[key].name) ? ext[key].name : key;
-    return '<option value="'+key+'"'+(key===selectedKey?' selected':'')+'>'+_escHtml(name)+'</option>';
+    return '<option value="'+key+'"'+(key===selectedKey?' selected':'')+'>'+escHtml(name)+'</option>';
   }).join('');
 }
 
@@ -174,7 +174,7 @@ function renderPlan(){
   // WHERE YOU STAND
   var standHtml = plan.savingsCards.map(function(c, i){
     var fund = allFunds.find(function(f){ return f.id === c.pocketId && !f._deleted; });
-    var label = _escHtml(String(c.label||'').trim());
+    var label = escHtml(String(c.label||'').trim());
     if(!fund){
       return '<div style="'+(i>0?'margin-top:16px;':'')+'font-size:12px;color:'+A+';">⚠ '+label+' — pocket not found. Tap ✎ to pick one.</div>';
     }
@@ -205,14 +205,14 @@ function renderPlan(){
     }
   } catch(e){}
   var debtHtml = '<div style="margin-top:18px;padding-top:14px;border-top:1px solid #2a2a2a;">'
-    + '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#aaa;">'+_escHtml(String(debtName))+'</span><span style="color:'+M+';">'+fmtR(plan.debtCard.monthly)+'/month · don\'t accelerate yet</span></div>'
+    + '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#aaa;">'+escHtml(String(debtName))+'</span><span style="color:'+M+';">'+fmtR(plan.debtCard.monthly)+'/month · don\'t accelerate yet</span></div>'
     + '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:24px;color:'+R+';margin-top:3px;">'+fmtR(debtOwing)+'</div>'
     + '</div>';
 
   // WHERE NEW MONEY GOES (same card order the Money In waterfall walks)
   var stepsHtml = '';
   plan.savingsCards.forEach(function(c, i){
-    var label = _escHtml(String(c.label||'').trim());
+    var label = escHtml(String(c.label||'').trim());
     var right, rcol = M;
     if(!c.monthly || c.monthly <= 0){ right = 'no monthly set'; }
     else {
@@ -263,7 +263,7 @@ function renderPlan(){
     +   '<div style="'+cardBox+'">'+secHdr('WHERE YOU STAND', '<span style="color:'+L+';">LIVE</span>')+standHtml+debtHtml+'</div>'
     +   '<div style="'+cardBox+'">'+secHdr('WHERE NEW MONEY GOES')+stepsHtml+'</div>'
     +   monthHtml
-    +   (plan.notes ? '<div style="'+cardBox+'font-size:12px;color:#aaa;">'+_escHtml(plan.notes)+'</div>' : '')
+    +   (plan.notes ? '<div style="'+cardBox+'font-size:12px;color:#aaa;">'+escHtml(plan.notes)+'</div>' : '')
     +   '<div style="font-size:10px;color:#555;text-align:center;letter-spacing:1px;margin-top:4px;">'+auditBadge+' · figures live</div>'
     + '</div>';
 }
@@ -272,7 +272,7 @@ function _planRenderEditForm(plan){
   var rows = plan.savingsCards.map(function(c, i){
     return ''
       + '<div class="home-plan-card" style="border-left:3px solid #30c8f2;">'
-      +   '<div class="field"><label>Label</label><input type="text" data-plan-card="'+i+'" data-field="label" value="'+_escAttr(c.label)+'"/></div>'
+      +   '<div class="field"><label>Label</label><input type="text" data-plan-card="'+i+'" data-field="label" value="'+escHtml(c.label)+'"/></div>'
       +   '<div class="field"><label>Pocket</label><select data-plan-card="'+i+'" data-field="pocketId">'+_planPocketOptions(c.pocketId)+'</select></div>'
       +   '<div class="field"><label>Target (R)</label><input type="number" data-plan-card="'+i+'" data-field="target" value="'+c.target+'"/></div>'
       +   '<div class="field"><label>Monthly commitment (R)</label><input type="number" data-plan-card="'+i+'" data-field="monthly" value="'+c.monthly+'"/></div>'
@@ -281,7 +281,7 @@ function _planRenderEditForm(plan){
 
   var debtRow = ''
     + '<div class="home-plan-card" style="border-left:3px solid #f23060;">'
-    +   '<div class="field"><label>Debt label</label><input type="text" id="planDebtLabel" value="'+_escAttr(plan.debtCard.label)+'"/></div>'
+    +   '<div class="field"><label>Debt label</label><input type="text" id="planDebtLabel" value="'+escHtml(plan.debtCard.label)+'"/></div>'
     +   '<div class="field"><label>Person</label><select id="planDebtorKey">'+_planDebtorOptions(plan.debtCard.debtorKey)+'</select></div>'
     +   '<div class="field"><label>Monthly repayment (R)</label><input type="number" id="planDebtMonthly" value="'+plan.debtCard.monthly+'"/></div>'
     + '</div>';
@@ -292,7 +292,7 @@ function _planRenderEditForm(plan){
     +     '<button class="pane-toggle" onclick="togglePlanEdit()" title="Cancel">✕</button></div>'
     +   '<div class="home-plan-cards">'+rows+debtRow+'</div>'
     +   '<div class="field"><label>Stipend end date</label><input type="date" id="planStipendEnd" value="'+plan.stipendEnd+'"/></div>'
-    +   '<div class="field"><label>Notes (optional)</label><input type="text" id="planNotesInput" value="'+_escAttr(plan.notes||'')+'" placeholder="e.g. reassess after provident fund payout"/></div>'
+    +   '<div class="field"><label>Notes (optional)</label><input type="text" id="planNotesInput" value="'+escHtml(plan.notes||'')+'" placeholder="e.g. reassess after provident fund payout"/></div>'
     +   '<button onclick="savePlanFromForm()" style="width:100%;padding:12px;background:#c8f230;border:none;border-radius:6px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Plan</button>'
     + '</div>';
 }
@@ -343,14 +343,14 @@ function _renderHomeZone1Money(){
     pocketCards += ''
       + '<div class="home-pocket-card'+(heldName?' home-pocket-held':'')+'" style="border-color:'+(heldName?'#4a3000':borderColor)+';" onclick="_homeOpenPocket(\''+f.id+'\')">'
       +   '<span class="home-pocket-emoji">'+(f.emoji||'💰')+'</span>'
-      +   '<div class="home-pocket-name" title="'+_escAttr(f.name)+'">'+_escHtml(f.name)+'</div>'
+      +   '<div class="home-pocket-name" title="'+escHtml(f.name)+'">'+escHtml(f.name)+'</div>'
       +   '<div class="home-pocket-bal" style="color:'+(heldName?'#f2a830':balColor)+';">'+fmtR(bal)+'</div>'
-      +   (heldName ? '<div class="home-pocket-held-tag">HELD · '+_escHtml(heldName)+'</div>' : '')
+      +   (heldName ? '<div class="home-pocket-held-tag">HELD · '+escHtml(heldName)+'</div>' : '')
       + '</div>';
   });
   grandTotal = Math.round(grandTotal * 100) / 100;
   var heldLine = Object.keys(heldMap).map(function(n){
-    return '+ '+fmtR(Math.round(heldMap[n]*100)/100)+' held for '+_escHtml(n);
+    return '+ '+fmtR(Math.round(heldMap[n]*100)/100)+' held for '+escHtml(n);
   }).join(' · ');
 
   var bankNote = visibleFunds.length+' pockets · banks R0';
@@ -496,7 +496,7 @@ function _renderHomeZone2Alerts(){
     var btns = '';
     if(a.actions && a.actions.length){
       btns = a.actions.map(function(act, j){
-        var label = _escHtml(act.label || 'Action');
+        var label = escHtml(act.label || 'Action');
         return '<button class="home-alert-btn" onclick="event.stopPropagation();_homeAlertAction('+i+','+j+')">'+label+'</button>';
       }).join('');
     }
@@ -517,8 +517,8 @@ function _renderHomeZone2Alerts(){
       +   '<div class="home-alert-main" onclick="_homeAlertClick('+i+')">'
       +     '<div class="home-alert-dot '+dotClass+'"></div>'
       +     '<div class="home-alert-body">'
-      +       '<div class="home-alert-text">'+_escHtml(a.text||'')+'</div>'
-      +       (tabName ? '<div class="home-alert-meta">'+_escHtml(tabName)+'</div>' : '')
+      +       '<div class="home-alert-text">'+escHtml(a.text||'')+'</div>'
+      +       (tabName ? '<div class="home-alert-meta">'+escHtml(tabName)+'</div>' : '')
       +     '</div>'
       +     '<span class="home-alert-chev">›</span>'
       +   '</div>'
@@ -704,16 +704,3 @@ function _renderHomeZone3Folders(){
   return html;
 }
 
-
-// ════════════════════════════════════════════════════════════════════
-// HELPERS — HTML escapers (defensive: pocket names are user-typed)
-// ════════════════════════════════════════════════════════════════════
-function _escHtml(s){
-  return String(s||'')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;');
-}
-function _escAttr(s){
-  return _escHtml(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}

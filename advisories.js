@@ -62,9 +62,6 @@
     }catch(e){ return iso; }
   }
 
-  function _escape(s){
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
 
   // ── Badge HTML for car header ────────────────────────────────
 
@@ -211,8 +208,8 @@
         +   '<span style="font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:'+sevColor+';">'+sevLabel+'</span>'
         +   '<span style="font-size:10px;color:#666;">'+_fmtDate(a.flaggedDate)+'</span>'
         + '</div>'
-        + '<div style="font-size:12px;color:#efefef;line-height:1.4;margin-bottom:4px;">'+_escape(a.text)+'</div>'
-        + (a.source ? '<div style="font-size:10px;color:#666;font-style:italic;">'+_escape(a.source)+'</div>' : '')
+        + '<div style="font-size:12px;color:#efefef;line-height:1.4;margin-bottom:4px;">'+escHtml(a.text)+'</div>'
+        + (a.source ? '<div style="font-size:10px;color:#666;font-style:italic;">'+escHtml(a.source)+'</div>' : '')
         + statusPill
         + '<div style="margin-top:8px;display:flex;gap:6px;">'
         +   '<button onclick="openAdvisoryDetail(\''+a.id+'\')" '
@@ -279,7 +276,7 @@
       return '<div style="display:flex;gap:10px;margin-bottom:10px;font-size:12px;">'
         + '<div style="flex-shrink:0;width:18px;text-align:center;">'+it.icon+'</div>'
         + '<div style="flex:1;"><div style="font-size:10px;color:#666;margin-bottom:2px;">'+_fmtDate(it.date)+'</div>'
-        + '<div style="color:#ccc;line-height:1.4;">'+_escape(it.text)+'</div></div>'
+        + '<div style="color:#ccc;line-height:1.4;">'+escHtml(it.text)+'</div></div>'
         + '</div>';
     }).join('');
   }
@@ -339,7 +336,7 @@
       var exps = (car.expenses||[]).slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
       sel.innerHTML = exps.length
         ? exps.map(function(e){
-            return '<option value="'+_escape(e.id)+'">'+_escape(e.desc||e.category||'Expense')+' — R'+e.amt+' — '+_fmtDate(e.date)+'</option>';
+            return '<option value="'+escHtml(e.id)+'">'+escHtml(e.desc||e.category||'Expense')+' — R'+e.amt+' — '+_fmtDate(e.date)+'</option>';
           }).join('')
         : '<option value="">(no expenses logged on this car)</option>';
     }

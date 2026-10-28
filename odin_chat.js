@@ -207,9 +207,6 @@ function appendOdinMsg(role, html, showFeedback, turnId){
   msgs.scrollTop = msgs.scrollHeight;
 }
 
-function escHtml(str){
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
 
 // ── Build live data snapshot for system prompt ────────────────────────────────
 function _odinBuildContext(){

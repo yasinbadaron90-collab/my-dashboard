@@ -351,7 +351,7 @@ function renderBankStrip(){
   strip.innerHTML = '';
   var _grandTotal = 0;                                   // v149p/w: sum of YOUR balances (held pockets excluded)
   var _heldMap = {};                                     // v149w: name -> money held for them
-  var _esc = function(s){ return (typeof _escHtml === 'function') ? _escHtml(String(s)) : String(s).replace(/[&<>"]/g, ''); };
+  var _esc = escHtml;
   var _totEl = document.getElementById('bankTotal');
 
   if(!funds.length){

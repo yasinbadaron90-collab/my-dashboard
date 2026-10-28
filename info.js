@@ -32,7 +32,7 @@ function openInfo(title, body){
       return p.trim();
     }).filter(function(p){ return p.length > 0; });
     bodyEl.innerHTML = paras.map(function(p){
-      return '<p style="margin:0 0 12px 0;line-height:1.55;color:var(--text);font-size:13px;">'+_escInfo(p)+'</p>';
+      return '<p style="margin:0 0 12px 0;line-height:1.55;color:var(--text);font-size:13px;">'+escHtml(p)+'</p>';
     }).join('');
   }
   modal.classList.add('active');
@@ -47,13 +47,6 @@ function closeInfo(){
   if(!anyOpen) document.body.classList.remove('modal-open');
 }
 
-function _escInfo(s){
-  return String(s||'')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
-}
 
 // Tap outside to close (wires once on first openInfo)
 document.addEventListener('DOMContentLoaded', function(){

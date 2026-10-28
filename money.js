@@ -87,7 +87,7 @@ function renderExtLendPocketPicker(){
     var balC   = bal <= 0 ? '#555' : '#c8f230';
     return '<div onclick="selectExtLendPocket(\''+f.id+'\')" '
       + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+border+';background:'+bg+';">'
-      + '<span style="font-size:12px;color:'+nameC+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+escapeHtmlSafe(f.name)+'</span>'
+      + '<span style="font-size:12px;color:'+nameC+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+escHtml(f.name)+'</span>'
       + '<span style="font-size:11px;color:'+balC+';font-family:Syne,sans-serif;font-weight:700;">'+fmtR(bal)+'</span>'
       + '</div>';
   }).join('');
@@ -99,9 +99,6 @@ function selectExtLendPocket(id){
   if(typeof updateExtLendingGuardrail === 'function') try{ updateExtLendingGuardrail(); }catch(e){}
 }
 
-function escapeHtmlSafe(s){
-  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
 
 // ── v149m — Open historical borrow modal for a specific person ──
 function openHistoricalBorrowModal(key, tag){
@@ -1360,14 +1357,6 @@ function renderIOweSection(container){
   container.appendChild(section);
 }
 
-// Tiny HTML escape utility for safe concatenation. Some modules already
-// define escHtml; only declare it here if it doesn't exist.
-if(typeof escHtml === 'undefined'){
-  window.escHtml = function(s){
-    if(s == null) return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  };
-}
 
 // ── EXPORT INDIVIDUAL PERSON PDF ──
 function exportPersonPDF(btn){
@@ -1780,45 +1769,12 @@ function switchTab(tab,btn){
   _renderTabSafely(tab);
 }
 
-// Navigate to a tab without needing a button reference
+// Navigate to a tab without needing a button reference.
+// v150o: was a 40-line copy of switchTab that had drifted (never
+// highlighted the Odin nav button). Now just delegates, so the role
+// guard, nav highlighting and render dispatch live in ONE place.
 function goToTab(tab){
-  // Enforce role — same guard as switchTab so all programmatic navigation
-  // respects access control.
-  if(!_roleCanAccessTab(tab)){
-    console.warn('[role guard] Blocked goToTab to:', tab, 'role:', window.currentRole);
-    return;
-  }
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('navSavings').classList.remove('active');
-  document.getElementById('navCarpool').classList.remove('active');
-  var navHome = document.getElementById('navHome');
-  if(navHome) navHome.classList.remove('active');
-  var navCars = document.getElementById('navCars');
-  if(navCars) navCars.classList.remove('active');
-  var navPlan = document.getElementById('navPlan');
-  if(navPlan) navPlan.classList.remove('active');
-  var navInst = document.getElementById('navInstalments');
-  if(navInst) navInst.classList.remove('active');
-  var navSchool = document.getElementById('navSchool');
-  if(navSchool) navSchool.classList.remove('active');
-  var navRoutine = document.getElementById('navRoutine');
-  if(navRoutine) navRoutine.classList.remove('active');
-  var navCf = document.getElementById('navCashflow');
-  if(navCf) navCf.classList.remove('active');
-  if(tab==='home' && navHome) navHome.classList.add('active');
-  if(tab==='savings') document.getElementById('navSavings').classList.add('active');
-  if(tab==='carpool') document.getElementById('navCarpool').classList.add('active');
-  if(tab==='cars' && navCars) navCars.classList.add('active');
-  if(tab==='plan' && navPlan) navPlan.classList.add('active');
-  if(tab==='instalments' && navInst) navInst.classList.add('active');
-  if(tab==='school' && navSchool) navSchool.classList.add('active');
-  if(tab==='routine' && navRoutine) navRoutine.classList.add('active');
-  if(tab==='cashflow' && navCf) navCf.classList.add('active');
-  document.getElementById('page-'+tab).classList.add('active');
-  // Defensive render dispatch — each render call wrapped so a single
-  // failure (missing function, ReferenceError) doesn't halt others or
-  // break tab navigation. Same pattern as the maintenance card boot fix.
-  _renderTabSafely(tab);
+  switchTab(tab);
 }
 
 // ── POST-LOGIN LAUNCH MENU ──

@@ -55,6 +55,19 @@ function lsGet(key, fallback){
   return (_lsMem[key] !== undefined) ? _lsMem[key] : (fallback || null);
 }
 
+// ── HTML escape — the ONE helper for the whole app (v150o) ──────────────
+// Use for anything user-typed that goes into innerHTML: pocket names,
+// notes, labels, AI replies. Escapes all five HTML-special characters so
+// it's safe both between tags AND inside attribute values (title="",
+// value=""). null/undefined become ''; numbers (including 0) are kept.
+// Before v150o there were 9 copies of this across files, and the one that
+// actually won at runtime (odin_chat.js) did not escape quotes.
+function escHtml(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // ── Error classification ────────────────────────────────────────────────
 function _isQuotaError(e){
   if(!e) return false;
@@ -232,7 +245,7 @@ function softDeleteToast(opts){
   toast.innerHTML = ''
     + '<span style="font-size:16px;flex-shrink:0;">🗑</span>'
     + '<div style="flex:1;min-width:0;">'
-    +   '<div style="font-size:12px;color:var(--text);letter-spacing:0.3px;">Deleted '+_escSDLabel(label)+'</div>'
+    +   '<div style="font-size:12px;color:var(--text);letter-spacing:0.3px;">Deleted '+escHtml(label)+'</div>'
     +   '<div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;" id="softDeleteCountdown">'+(ms/1000)+'s to undo</div>'
     + '</div>'
     + '<button id="softDeleteUndoBtn" style="flex-shrink:0;background:#c8f230;border:none;color:#000;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:8px 14px;border-radius:5px;cursor:pointer;font-weight:700;">Undo</button>';
@@ -280,14 +293,6 @@ function softDeleteToast(opts){
   _softDeletePending = { timeoutId: timeoutId, onPurge: onPurge, toast: toast };
 }
 
-// HTML-safe label escape — small enough to inline so callers don't need
-// to remember to escape their own labels.
-function _escSDLabel(s){
-  if(s == null) return '';
-  return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
 
 // Console helper — tells you if there's a pending soft-delete and how
 // much time is left before purge.

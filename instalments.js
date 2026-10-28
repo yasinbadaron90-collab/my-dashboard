@@ -1374,12 +1374,6 @@ function openInstM2MPay(planId){
   document.getElementById('instPayModal').classList.add('active');
 }
 
-// ── Wire into switchTab ──
-var _origSwitchTab = typeof switchTab === 'function' ? switchTab : null;
-// Patch: renderInst when instalments tab is opened
-document.addEventListener('DOMContentLoaded', function(){
-  // nothing needed — switchTab handles it
-});
 
 /* ══════════════════════════════════ */
 
