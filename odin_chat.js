@@ -425,13 +425,18 @@ function _odinBuildContext(){
 
   // ── SCHOOL ──
   try{
-    var subjects = JSON.parse(lsGet('yb_school_results_v2')||'{}');
-    var subArr = Object.values(subjects);
+    // v150r: was reading 'yb_school_results_v2', a key nothing writes, so
+    // Odin never saw any school results. The live records are SCHOOL_SUBJECTS
+    // (yasin_school_results_v2), scored by school.js's own calculators.
+    var subArr = (typeof SCHOOL_SUBJECTS !== 'undefined' && Array.isArray(SCHOOL_SUBJECTS)) ? SCHOOL_SUBJECTS : [];
     if(subArr.length){
       ctx.push('\n--- SCHOOL SUBJECTS ---');
       subArr.forEach(function(s){
-        var final = s.result || (s.exam != null && s.yearPct != null
-          ? Math.round(s.yearPct*0.4 + s.exam*0.6)+'%' : 'in progress');
+        var fp = (typeof calcFinalPct === 'function') ? calcFinalPct(s) : null;
+        var rs = (typeof calcResult === 'function') ? calcResult(s) : null;
+        var ym = (typeof calcYearMarkPct === 'function') ? calcYearMarkPct(s) : null;
+        var final = (fp != null ? 'final '+fp+'%' : (ym != null ? 'year mark '+ym+'%' : 'in progress'))
+                  + (rs ? ' ('+rs+')' : '');
         ctx.push(s.code+' '+s.name+' (Year '+s.year+'): '+final+(s.examDate?' exam '+s.examDate:''));
       });
     }
@@ -459,7 +464,8 @@ function _odinBuildContext(){
 
   // ── ROUTINE ──
   try{
-    var routTasks = JSON.parse(lsGet('yb_routine_v1')||'[]');
+    // v150r: was reading 'yb_routine_v1' (nothing writes it) — use the live loader.
+    var routTasks = (typeof loadRoutineTasks === 'function') ? loadRoutineTasks() : [];
     if(routTasks.length){
       ctx.push('\n--- ROUTINE TASKS ---');
       routTasks.forEach(function(t){

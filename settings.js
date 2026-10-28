@@ -628,6 +628,12 @@ function buildBackupPayload(){
     schoolEvents: loadSchoolEvents(),
     schoolResults: ALL_YEARS_DATA,
     schoolDone: getSchoolDone(),
+    // v150r: the REAL school records (marks, exam dates, ids) live in
+    // yasin_school_results_v2. Backups only carried schoolResults (a
+    // read-only summary rebuilt from it), so restoring onto a fresh device
+    // re-seeded school from the built-in transcript and lost every mark
+    // entered in the app since (e.g. ENT-31 exam 77 / final 82 PD).
+    schoolSubjects: JSON.parse(lsGet('yasin_school_results_v2') || 'null'),
     // Previously missing — now included
     customMaint:    JSON.parse(lsGet('yasin_maint_cards_v1')  ||'[]'),
     maintSettings:  JSON.parse(lsGet('yb_maint_settings_v1')  ||'null'),
@@ -728,6 +734,12 @@ function restoreData(input){
       if(backup.schoolEvents)   lsSet(SCHOOL_EVENTS_KEY,   JSON.stringify(backup.schoolEvents));
       if(backup.schoolResults)  lsSet(SCHOOL_RESULTS_KEY,  JSON.stringify(backup.schoolResults));
       if(backup.schoolDone)     lsSet(SCHOOL_DONE_KEY,     JSON.stringify(backup.schoolDone));
+      // v150r: restore the real school records when the backup has them.
+      // Older backups don't — school then falls back to what this device
+      // already has (or the transcript seed on a brand-new device).
+      if(Array.isArray(backup.schoolSubjects) && backup.schoolSubjects.length){
+        lsSet('yasin_school_results_v2', JSON.stringify(backup.schoolSubjects));
+      }
       // Previously missing on restore — now included
       if(backup.customMaint)    lsSet('yasin_maint_cards_v1',  JSON.stringify(backup.customMaint));
       if(backup.maintSettings)  lsSet('yb_maint_settings_v1',  JSON.stringify(backup.maintSettings));
