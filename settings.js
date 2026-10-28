@@ -176,47 +176,6 @@ function _entryBank(e){
   return null;
 }
 
-// Compute live per-bucket balance for one bank label.
-// Formula: baseline + sum(tagged income created AFTER baselineISO) − sum(tagged
-//          expenses created AFTER baselineISO). Entries created on or before
-//          the baseline timestamp are treated as already-accounted-for in the
-//          baseline, since the user typed in their REAL current balance.
-//
-// Comparison uses entry.createdAt (a full ISO timestamp stamped when the entry
-// was logged), NOT entry.date (which is just a YYYY-MM-DD day). This lets us
-// distinguish entries made earlier today from entries made AFTER you saved
-// the baseline today — a same-day deposit logged after saving baseline still
-// counts. Entries that don't have createdAt (legacy data) are excluded.
-//
-// Untagged legacy entries (no destBank, no recognisable account) are ignored
-// regardless of date — they show as "—" in the UI and don't move bank totals
-// until retro-tagged.
-function _computeBankBucket(bank, cfData, baseline, baselineISO){
-  var net = baseline || 0;
-  if(!cfData || typeof cfData !== 'object') return net;
-  function isAfter(e){
-    if(!baselineISO) return !!e.createdAt; // no baseline → count anything stamped
-    if(!e || !e.createdAt) return false;   // unstamped → can't compare, skip safely
-    return e.createdAt > baselineISO;
-  }
-  Object.keys(cfData).forEach(function(mk){
-    if(!/^\d{4}-\d{2}$/.test(mk)) return; // skip 'recurring' and other meta keys
-    var month = cfData[mk] || {};
-    (month.income || []).forEach(function(e){
-      if(_entryBank(e) === bank && isAfter(e)) net += Number(e.amount) || 0;
-    });
-    (month.expenses || []).forEach(function(e){
-      // Both real expenses and savings allocations live here; both drain the
-      // bank since savings are internal transfers (your wealth doesn't shrink
-      // but your spendable cash does).
-      if(_entryBank(e) === bank && isAfter(e)) net -= Number(e.amount) || 0;
-    });
-  });
-  // Recurring entries don't have a date — skip them in the live balance math.
-  // They show in the monthly view but they're a template, not a real-money
-  // movement, so they shouldn't tweak the running bank total.
-  return net;
-}
 
 // ── Bank Bucket Math — May 2026 Redesign Round 2 ──────────────────────────
 // Earlier rounds tried to compute live balances by adding/subtracting all

@@ -375,10 +375,6 @@ function saveSchoolSubjects(arr){
 // Live cache
 var SCHOOL_SUBJECTS = loadSchoolSubjects();
 
-// Called by cloud-sync after a pull (if you ever re-enable it)
-function reloadSchoolSubjects(){
-  SCHOOL_SUBJECTS = loadSchoolSubjects();
-}
 
 // ── Calculation helpers ─────────────────────────────────────────────────────
 function _sumRaw(val){
@@ -1206,10 +1202,6 @@ Object.defineProperty(window, 'RESULTS_DATA', {
   }
 });
 
-// Old function name still referenced from core.js exportResults
-function reloadSchoolResults(){
-  reloadSchoolSubjects();
-}
 
 
 // ── INSTALMENT-RELATED CACHE FIX — kept for back-compat ─────────────────────

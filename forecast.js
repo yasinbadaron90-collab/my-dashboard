@@ -210,6 +210,7 @@ function _fcRenderOutputs(){
       { label:'Vault', data:vaultData, borderColor:'#1baf7a', backgroundColor:'#1baf7a', borderWidth:2, pointRadius:0, tension:0.2, borderDash:[6,3], hidden: vaultNow === null }
     ];
     if(_fcChart){ _fcChart.destroy(); _fcChart = null; }
+    if (typeof Chart === 'undefined') return;
     _fcChart = new Chart(cv, {
       type:'line', data:{ labels:labels, datasets:ds },
       options:{ responsive:true, maintainAspectRatio:false, animation:false,

@@ -80,6 +80,7 @@ function renderSavingsChart() {
   canvas.setAttribute('width',  W);
   canvas.setAttribute('height', 220);
 
+  if (typeof Chart === 'undefined') return;
   _savBarChart = new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
@@ -176,6 +177,7 @@ function renderCFSummaryChart(){
   canvas.setAttribute('width', W);
   canvas.setAttribute('height', 130);
 
+  if (typeof Chart === 'undefined') return;
   _cfSummaryChart = new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
@@ -631,32 +633,6 @@ function setNote(inp){
 
 // CAR FUND TRANSACTIONS
 let carTxnFundId = null, carTxnType = 'in';
-function openCarTxn(fundId, type) {
-  carTxnFundId = fundId; carTxnType = type;
-  document.getElementById('carTxnTitle').textContent = type==='in' ? 'Add Funds' : 'Log Spend';
-  // Subtitle now reads the fund's actual name instead of hardcoded "Car Fund (EE90)",
-  // because the card may have been renamed.
-  var fund = funds.find(function(x){ return x.id === fundId; });
-  var fundLabel = fund ? ((fund.emoji||'🚗') + ' ' + fund.name) : '🚗 Car Fund';
-  document.getElementById('carTxnSubtitle').textContent = type==='in' ? ('Adding to ' + fundLabel) : ('Spending from ' + fundLabel);
-  document.getElementById('carTxnConfirm').textContent = type==='in' ? 'Add' : 'Log';
-  document.getElementById('carTxnConfirm').style.background = type==='in' ? '#c8f230' : '#f23060';
-  document.getElementById('carTxnConfirm').style.color = type==='in' ? '#000' : '#fff';
-  // Bank picker label adapts to direction:
-  //   in  → "From which bank?" (you're moving money INTO the car fund — drains the bank)
-  //   out → "Paid from which bank?" (the spend draws from this bucket)
-  var lbl = document.getElementById('carTxnBankLabel');
-  if(lbl){
-    lbl.innerHTML = (type==='in' ? 'From which bank?' : 'Paid from which bank?')
-      + ' <span style="color:#f2a830;font-size:10px;">★ Required</span>';
-  }
-  document.getElementById('carTxnAmt').value = '';
-  document.getElementById('carTxnDate').value = localDateStr(new Date());
-  document.getElementById('carTxnNote').value = '';
-  // Default the bank picker to FNB on every open.
-  setCarTxnBank('FNB', null);
-  document.getElementById('carTxnModal').classList.add('active');
-}
 
 // Highlight the picked button in the Car Fund modal's bank picker.
 // Mirrors setCfBank / setDepBank visually so the three pickers feel identical.
@@ -1630,77 +1606,6 @@ function buildReportPeriods(){
   return periods;
 }
 
-// ── REPORTS FOLDER TOGGLE (Option B layout) ──────────────────────────────
-var _rptFolderState = {};
-try { _rptFolderState = JSON.parse(localStorage.getItem('yb_rpt_folders_v1') || '{}'); } catch(e) {}
-
-function rptToggleFolder(id) {
-  var body  = document.getElementById(id + 'Body');
-  var arrow = document.getElementById(id + 'Arrow');
-  if (!body) return;
-  var isOpen = body.style.display !== 'none';
-  body.style.display  = isOpen ? 'none' : 'block';
-  if (arrow) {
-    arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
-    arrow.style.color     = isOpen ? 'var(--muted)' : 'var(--accent)';
-  }
-  _rptFolderState[id] = !isOpen;
-  try { localStorage.setItem('yb_rpt_folders_v1', JSON.stringify(_rptFolderState)); } catch(e) {}
-  // Re-render Net Worth chart when its folder opens (canvas must be visible for Chart.js)
-  if (id === 'rptFolderNetworth' && !isOpen) {
-    setTimeout(function(){ if(typeof renderNetWorth==='function') renderNetWorth(); }, 50);
-  }
-}
-
-function rptRestoreFolders() {
-  // Default: all closed (user taps to open what they want)
-  var defaults = {};
-  var state = Object.assign({}, defaults, _rptFolderState);
-  var allFolders = ['rptFolderSavings','rptFolderCarpool','rptFolderFuel','rptFolderBorrow','rptFolderNetworth','rptFolderCar','rptFolderExport'];
-  allFolders.forEach(function(id) {
-    var body  = document.getElementById(id + 'Body');
-    var arrow = document.getElementById(id + 'Arrow');
-    if (!body) return;
-    var isOpen = state[id] === true;
-    body.style.display  = isOpen ? 'block' : 'none';
-    if (arrow) {
-      arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
-      arrow.style.color     = isOpen ? 'var(--accent)'  : 'var(--muted)';
-    }
-  });
-}
-
-function rptUpdateFolderMeta() {
-  // Update the summary line shown on each closed folder header
-  setTimeout(function() {
-    // Savings
-    var savEl = document.getElementById('rptFolderSavingsMeta');
-    _deferRenderSavingsChart();
-    var savVal = document.getElementById('rptTotalSaved');
-    if (savEl && savVal) savEl.textContent = savVal.textContent;
-
-    // Carpool
-    var cpEl = document.getElementById('rptFolderCarpoolMeta');
-    var cpVal = document.getElementById('rptCarpoolTotal');
-    if (cpEl && cpVal) cpEl.textContent = cpVal.textContent + ' earned';
-
-    // Borrow
-    var borEl = document.getElementById('rptFolderBorrowMeta');
-    var borVal = document.getElementById('rptBorrowOwing');
-    if (borEl && borVal) borEl.textContent = borVal.textContent + ' outstanding';
-
-    // Net Worth
-    var nwEl = document.getElementById('rptFolderNetworthMeta');
-    var nwVal = document.getElementById('nwTotal');
-    if (nwEl && nwVal) { nwEl.textContent = nwVal.textContent; nwEl.style.color = nwVal.style.color; }
-
-    // Car
-    var carEl = document.getElementById('rptFolderCarMeta');
-    var carVal = document.getElementById('rptCarSpent');
-    if (carEl && carVal) carEl.textContent = carVal.textContent + ' spent';
-  }, 200);
-}
-
 // ── REPORTS FOLDER TOGGLE ────────────────────────────────────────────────────
 var _rptFolderState = {};
 try { _rptFolderState = JSON.parse(localStorage.getItem('yb_rpt_folders_v1') || '{}'); } catch(e) {}
@@ -2080,8 +1985,8 @@ function _renderNwDonut(d) {
   var assetColors  = ['#c8f230','#a8d220','#88b210','#689200'];
   var liabColors   = ['#f23060','#d21040','#b20020','#920000'];
   var labels = [], dataVals = [], colors = [];
-  d.assetRows.forEach(function(r,i){ if(r.amount>0){ labels.push(r.label.replace(/[^ -]/g,'')); dataVals.push(r.amount); colors.push(assetColors[i%assetColors.length]); } });
-  d.liabilityRows.forEach(function(r,i){ labels.push(r.label.replace(/[^ -]/g,'')); dataVals.push(r.amount); colors.push(liabColors[i%liabColors.length]); });
+  d.assetRows.forEach(function(r,i){ if(r.amount>0){ labels.push(r.label.replace(/[^\x00-\x7f]/g,'')); dataVals.push(r.amount); colors.push(assetColors[i%assetColors.length]); } });
+  d.liabilityRows.forEach(function(r,i){ labels.push(r.label.replace(/[^\x00-\x7f]/g,'')); dataVals.push(r.amount); colors.push(liabColors[i%liabColors.length]); });
 
   if (typeof Chart === 'undefined') return;
   _nwDonutChart = new Chart(ctx, {
@@ -2466,6 +2371,7 @@ function renderCarpoolChart() {
   var gridColor = isDark ? '#2a2a2a' : '#e5e5e5';
   var tickColor = isDark ? '#555' : '#aaa';
 
+  if (typeof Chart === 'undefined') return;
   _cpChart = new Chart(canvas, {
     type: isLine ? 'line' : 'bar',
     data: { labels: labels, datasets: datasets },
@@ -2570,6 +2476,7 @@ function renderCarpoolChartDaily(canvas, emptyMsg, monthKey, dayLabels) {
     };
   });
 
+  if (typeof Chart === 'undefined') return;
   _cpChart = new Chart(canvas, {
     type: isLine ? 'line' : 'bar',
     data: { labels: dayLabels, datasets: datasets },

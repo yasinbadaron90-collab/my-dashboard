@@ -130,21 +130,19 @@ var _fb = {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 function fbInit(){
-  // Load Firebase SDK from CDN (compat version — works with vanilla JS)
-  var script1 = document.createElement('script');
-  script1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
-  script1.onload = function(){
-    var script2 = document.createElement('script');
-    script2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js';
-    script2.onload = function(){
-      var script3 = document.createElement('script');
-      script3.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js';
-      script3.onload = _fbStart;
-      document.head.appendChild(script3);
-    };
-    document.head.appendChild(script2);
-  };
-  document.head.appendChild(script1);
+  // Load Firebase SDK from CDN (compat version — works with vanilla JS).
+  // All three download in PARALLEL. async=false keeps execution in the
+  // order they were appended (app → firestore → auth), which the compat
+  // SDKs need. Previously each script waited for the one before it to
+  // finish, costing two extra network round trips on every cold launch.
+  var base = 'https://www.gstatic.com/firebasejs/10.12.0/';
+  ['firebase-app-compat.js','firebase-firestore-compat.js','firebase-auth-compat.js'].forEach(function(name, i, all){
+    var s = document.createElement('script');
+    s.src = base + name;
+    s.async = false;
+    if(i === all.length - 1) s.onload = _fbStart;  // auth runs last, after app + firestore
+    document.head.appendChild(s);
+  });
 }
 
 function _fbStart(){

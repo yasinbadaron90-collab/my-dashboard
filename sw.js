@@ -17,9 +17,13 @@
 // To force every client to upgrade: bump CACHE_VERSION below.
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'v150m';
+const CACHE_VERSION = 'v150n';
 const SHELL_CACHE   = 'my-dashboard-shell-' + CACHE_VERSION;
-const CDN_CACHE     = 'my-dashboard-cdn-'   + CACHE_VERSION;
+// CDN cache has its OWN version, independent of app bumps, so Chart.js and
+// the Firebase SDK aren't re-downloaded on every release. Bump CDN_VERSION
+// only if a cached CDN file ever needs to be thrown away.
+const CDN_VERSION   = 'cdn1';
+const CDN_CACHE     = 'my-dashboard-cdn-'   + CDN_VERSION;
 
 // App shell — the files needed for the app to load and run.
 // These are precached on install so the app works fully offline.
@@ -57,7 +61,8 @@ const SHELL_ASSETS = [
   '/my-dashboard/bankfeed.js',
   '/my-dashboard/odin-scanner.js',
   '/my-dashboard/firebase-sync.js',
-  '/my-dashboard/manifest.json'
+  '/my-dashboard/manifest.json',
+  '/my-dashboard/logo.webp'
 ];
 
 // Optional assets — files we'd LIKE to cache but won't fail install
@@ -125,8 +130,8 @@ self.addEventListener('fetch', event => {
 
   // Route 2: known CDNs (Chart.js, etc.) → cache-first
   // External libs rarely change. Cache once, use forever.
-  if(/cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|unpkg\.com|jsdelivr\.net/.test(url.hostname)){
-    event.respondWith(cacheFirst(req, CDN_CACHE));
+  if(/cdnjs\.cloudflare\.com|www\.gstatic\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|unpkg\.com|jsdelivr\.net/.test(url.hostname)){
+    event.respondWith(cdnStaleWhileRevalidate(req, CDN_CACHE));
     return;
   }
 
@@ -162,20 +167,25 @@ async function staleWhileRevalidate(request, cacheName){
 // ── Cache-first ────────────────────────────────────────────────────
 // For CDN libs that rarely change. Try cache, fall back to network and
 // cache for next time. Avoids re-downloading Chart.js on every visit.
-async function cacheFirst(request, cacheName){
+// CDN files (Chart.js, Firebase SDK) are loaded by plain <script> tags,
+// which makes the browser fetch them in no-cors mode. The response comes
+// back "opaque": status 0, ok === false. The old cacheFirst only stored
+// responses with ok === true, so CDN files were NEVER actually cached by
+// the SW — offline, the login screen could hang waiting for Firebase.
+// Fix: accept opaque responses too. Serve from cache instantly, refresh
+// in the background so a bad cached copy heals itself on the next open.
+async function cdnStaleWhileRevalidate(request, cacheName){
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
-  if(cached) return cached;
-  try {
-    const networkResponse = await fetch(request);
-    if(networkResponse && networkResponse.ok){
-      cache.put(request, networkResponse.clone());
+  const fetchPromise = fetch(request).then(response => {
+    if(response && (response.ok || response.type === 'opaque')){
+      cache.put(request, response.clone());
     }
-    return networkResponse;
-  } catch(e){
-    // Offline + not cached — let the browser show its own error
-    return new Response('', { status: 503 });
-  }
+    return response;
+  }).catch(() => null);
+  if(cached) return cached;
+  const networkResponse = await fetchPromise;
+  return networkResponse || new Response('', { status: 503 });
 }
 
 // ── Message channel — for "update available" notifications ────────

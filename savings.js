@@ -648,36 +648,7 @@ function _performDeleteFund(id){
     }
   });
 }
-function openDeposit(id){
-  depositingId=id;
-  const f=funds.find(x=>x.id===id);
-  document.getElementById('depFundName').textContent=f.emoji+' '+f.name;
-  document.getElementById('depAmount').value=f.weekly||200;
-  document.getElementById('depDate').value=localDateStr(new Date());
-  document.getElementById('depNote').value='';
-  // Default the From-bank picker to FNB (matches the default on cash-flow entries).
-  setDepBank('FNB', null);
-  document.getElementById('depModal').classList.add('active');
-}
 
-// Highlight the picked button in the deposit modal's From-bank picker.
-// Mirrors setCfBank exactly so the visual style stays consistent.
-function setDepBank(bank, btn){
-  var hidden = document.getElementById('depBank');
-  if(hidden) hidden.value = bank;
-  var fnbBtn  = document.getElementById('depBankFNB');
-  var tymeBtn = document.getElementById('depBankTyme');
-  var cashBtn = document.getElementById('depBankCash');
-  if(fnbBtn){  fnbBtn.style.borderColor  = bank==='FNB'     ? '#4a7aaa' : 'var(--border)';
-               fnbBtn.style.background   = bank==='FNB'     ? '#0a0f1a' : 'none';
-               fnbBtn.style.color        = bank==='FNB'     ? '#4a9aff' : 'var(--muted)'; }
-  if(tymeBtn){ tymeBtn.style.borderColor = bank==='TymeBank'? '#aa8a00' : 'var(--border)';
-               tymeBtn.style.background  = bank==='TymeBank'? '#1a1000' : 'none';
-               tymeBtn.style.color       = bank==='TymeBank'? '#f2a830' : 'var(--muted)'; }
-  if(cashBtn){ cashBtn.style.borderColor = bank==='Cash'    ? '#3a5a00' : 'var(--border)';
-               cashBtn.style.background  = bank==='Cash'    ? '#0d1a00' : 'none';
-               cashBtn.style.color       = bank==='Cash'    ? '#c8f230' : 'var(--muted)'; }
-}
 
 function confirmDeposit(){
   const amount=parseFloat(document.getElementById('depAmount').value);

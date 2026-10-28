@@ -74,9 +74,6 @@ function buildCFMonthData(mk){
   };
 }
 
-function cfMonthKeyFromDate(y, m){
-  return y + '-' + String(m+1).padStart(2,'0');
-}
 
 function exportCFMonthReport(){
   const mk = cfKey();
