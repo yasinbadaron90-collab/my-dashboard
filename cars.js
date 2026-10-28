@@ -498,18 +498,12 @@ function populateCarMaintDropdown(selectedId){
   // Legacy fallback options — only render if a car was already linked to one,
   // so the user can see what's wired up but the list isn't cluttered for new
   // entries.
+  // v150q: the Maintenance Fund feature is gone. A car still linked to it
+  // keeps showing this option (selected) so opening + saving Edit Car never
+  // silently changes the link. Pick a real pocket above to relink it.
   if(selectedId === '__maint__'){
-    var liveName = (typeof getMaintFundName === 'function') ? getMaintFundName() : 'Maintenance Fund';
-    options += '<option value="__maint__" selected>'+liveName+' (legacy)</option>';
+    options += '<option value="__maint__" selected>Maintenance Fund (removed) — pick a pocket</option>';
   }
-  try{
-    var legacyCards = JSON.parse(lsGet(CUSTOM_MAINT_KEY)||'[]');
-    legacyCards.forEach(function(c){
-      if(selectedId === c.id){
-        options += '<option value="'+c.id+'" selected>'+c.name+' (legacy)</option>';
-      }
-    });
-  }catch(e){}
   sel.innerHTML = options;
 }
 

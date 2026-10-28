@@ -205,8 +205,6 @@ function savePassenger(){
   try { if(typeof renderPassOptList === 'function') renderPassOptList(); } catch(e){}
   try { if(typeof loadCP === 'function') loadCP(); } catch(e){}
   try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
-  try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
-  try { if(typeof renderCustomMaintCards === 'function') renderCustomMaintCards(); } catch(e){}
   try { if(typeof showBackupReminder === 'function') showBackupReminder('Passenger list updated'); } catch(e){}
 }
 

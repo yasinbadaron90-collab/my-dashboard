@@ -430,12 +430,6 @@ function openPriorityEditor(){
 function getPriorityTargetOptions(ruleId){
   var opts = [];
   if(ruleId === 'maint'){
-    var liveMaintName = (typeof getMaintFundName === 'function') ? getMaintFundName() : 'Maintenance Fund';
-    opts.push({ value:'__maint__', label: liveMaintName });
-    try{
-      var cards = JSON.parse(lsGet(CUSTOM_MAINT_KEY)||'[]');
-      cards.forEach(function(c){ opts.push({ value:c.id, label:c.name }); });
-    }catch(e){}
     // Also include expense-type funds (e.g. Ee90 car fund) as valid maint targets
     try{
       (funds||[]).filter(function(f){ return f.isExpense; }).forEach(function(f){
@@ -758,13 +752,15 @@ function renderOdinInsights(tabId){
         if(target>0){
           var savedAmt = 0; var fundLabel = '';
           if(car.maintenanceFundId === '__maint__'){
-            try{ var mdata=getMaintData(); savedAmt=mdata.reduce(function(s,e){return s+Number(e.amount||0);},0); fundLabel='Maintenance Fund'; }catch(e){}
+            // v150q: linked to the removed Maintenance Fund — nothing to count.
+            savedAmt = 0; fundLabel = 'Maintenance Fund removed — relink in Edit Car';
           } else if(car.maintenanceFundId){
-            try{
-              var cards=JSON.parse(lsGet(CUSTOM_MAINT_KEY)||'[]');
-              var mcard=cards.find(function(c){return c.id===car.maintenanceFundId;});
-              if(mcard){ savedAmt=(mcard.entries||[]).reduce(function(s,e){return s+Number(e.amount||0);},0); fundLabel=mcard.name; }
-            }catch(e){}
+            // v150q fix: maintenanceFundId is a real POCKET id (the car's
+            // "funded from" pocket, e.g. Ee90 for the Kia). This used to look
+            // it up in the old custom maintenance cards only, so a car linked
+            // to a real pocket always showed R0 saved.
+            var lfund=(funds||[]).find(function(f){return f.id===car.maintenanceFundId && !f._deleted;});
+            if(lfund){ savedAmt=fundTotal(lfund); fundLabel=lfund.name; }
           } else {
             var sfund=(funds||[]).find(function(f){return f.id===car.serviceTargetFundId;});
             savedAmt=sfund?fundTotal(sfund):0; fundLabel=sfund?sfund.name:'';

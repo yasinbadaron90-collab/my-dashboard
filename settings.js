@@ -122,35 +122,6 @@ function renderReconPanel(){
     }
   }catch(e){}
 
-  // Custom maintenance cards
-  try{
-    var mcards = JSON.parse(lsGet(CUSTOM_MAINT_KEY)||'[]');
-    mcards.forEach(function(card){
-      var cardSaved = (card.entries||[]).reduce(function(s,e){ return s+Number(e.amount||0); },0);
-      if(cardSaved <= 0) return;
-      totalSaved += cardSaved;
-      var row = document.createElement('div');
-      row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1a3a00;';
-      row.innerHTML = '<span style="font-size:12px;color:#efefef;">'+(card.emoji||'🔧')+' '+card.name+'</span>'
-        +'<span style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#c8f230;">'+fmtR(cardSaved)+'</span>';
-      savingsContainer.appendChild(row);
-    });
-  }catch(e){}
-
-  // Maintenance fund original
-  try{
-    var mdata = getMaintData();
-    var maintTotal = mdata.reduce(function(s,e){ return s+Number(e.amount||0); },0);
-    if(maintTotal > 0){
-      totalSaved += maintTotal;
-      var row = document.createElement('div');
-      row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1a3a00;';
-      row.innerHTML = '<span style="font-size:12px;color:#efefef;">🔧 Maintenance Fund</span>'
-        +'<span style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#c8f230;">'+fmtR(maintTotal)+'</span>';
-      savingsContainer.appendChild(row);
-    }
-  }catch(e){}
-
   var totEl = document.getElementById('reconSavingsTotal');
   if(totEl) totEl.textContent = fmtR(totalSaved);
 }
@@ -646,7 +617,9 @@ function buildBackupPayload(){
     borrows: JSON.parse(lsGet(BORROW_KEY)||'{}'),
     fuel: JSON.parse(lsGet(FUEL_KEY)||'[]'),
     prayer: getPrayerData(),
-    maintenance: getMaintData(),
+    // v150q: Maintenance Fund feature removed. Its 3 legacy keys are still
+    // passed through raw so any old data in them is never dropped from a backup.
+    maintenance: JSON.parse(lsGet('yasin_maint_v1')||'[]'),
     externalBorrows: loadExternalBorrows(),
     cars: JSON.parse(lsGet(CARS_KEY)||'[]'),
     drivers: JSON.parse(lsGet(DRIVER_KEY)||'[]'),
@@ -656,8 +629,8 @@ function buildBackupPayload(){
     schoolResults: ALL_YEARS_DATA,
     schoolDone: getSchoolDone(),
     // Previously missing — now included
-    customMaint:    JSON.parse(lsGet(CUSTOM_MAINT_KEY)        ||'[]'),
-    maintSettings:  (typeof getMaintSettings === 'function') ? getMaintSettings() : null,
+    customMaint:    JSON.parse(lsGet('yasin_maint_cards_v1')  ||'[]'),
+    maintSettings:  JSON.parse(lsGet('yb_maint_settings_v1')  ||'null'),
     reconBalances:  JSON.parse(lsGet(RECON_KEY)               ||'{}'),
     routine:        JSON.parse(lsGet(ROUTINE_KEY)             ||'null'),
     dailyFuel:      JSON.parse(lsGet(DAILY_FUEL_KEY)          ||'null'),
@@ -747,7 +720,7 @@ function restoreData(input){
       if(backup.fuel)           lsSet(FUEL_KEY,     JSON.stringify(backup.fuel));
       if(backup.externalBorrows) lsSet(EXTERNAL_BORROW_KEY, JSON.stringify(backup.externalBorrows));
       if(backup.prayer)         lsSet(PRAYER_KEY,          JSON.stringify(backup.prayer));
-      if(backup.maintenance)    lsSet(MAINT_KEY,           JSON.stringify(backup.maintenance));
+      if(backup.maintenance)    lsSet('yasin_maint_v1',        JSON.stringify(backup.maintenance));
       if(backup.cars)           lsSet(CARS_KEY,     JSON.stringify(backup.cars));
       if(backup.drivers)        lsSet(DRIVER_KEY,  JSON.stringify(backup.drivers));
       if(backup.instalments)    lsSet(INST_KEY, JSON.stringify(backup.instalments));
@@ -756,8 +729,8 @@ function restoreData(input){
       if(backup.schoolResults)  lsSet(SCHOOL_RESULTS_KEY,  JSON.stringify(backup.schoolResults));
       if(backup.schoolDone)     lsSet(SCHOOL_DONE_KEY,     JSON.stringify(backup.schoolDone));
       // Previously missing on restore — now included
-      if(backup.customMaint)    lsSet(CUSTOM_MAINT_KEY,    JSON.stringify(backup.customMaint));
-      if(backup.maintSettings)  lsSet(MAINT_SETTINGS_KEY,  JSON.stringify(backup.maintSettings));
+      if(backup.customMaint)    lsSet('yasin_maint_cards_v1',  JSON.stringify(backup.customMaint));
+      if(backup.maintSettings)  lsSet('yb_maint_settings_v1',  JSON.stringify(backup.maintSettings));
       if(backup.reconBalances)  lsSet(RECON_KEY,           JSON.stringify(backup.reconBalances));
       if(backup.routine)        lsSet(ROUTINE_KEY,         JSON.stringify(backup.routine));
       if(backup.dailyFuel)      lsSet(DAILY_FUEL_KEY,      JSON.stringify(backup.dailyFuel));

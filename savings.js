@@ -111,7 +111,6 @@ function renderFunds(){
         })+'</div>'
       : '<div style="grid-column:1/-1;text-align:center;padding:48px 24px;color:var(--muted);font-size:13px;letter-spacing:1px;">No savings funds yet.<br><span style="font-size:11px;color:#2a2a2a;">Tap <strong style="color:var(--muted);">+ New Savings Fund</strong> to get started.</span></div>';
     renderBankStrip();
-    try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
     return;
   }
   visibleFunds.forEach(f=>{
@@ -211,10 +210,6 @@ function renderFunds(){
   renderArchivedSection();
   renderBankStrip();
   setTimeout(()=>{document.querySelectorAll('.prog-fill').forEach((el,i)=>{el.style.transitionDelay=(i*.08)+'s';});},50);
-  // Re-render the maintenance/car fund card alongside savings — they share
-  // the Savings tab and any data change should refresh both. Defensive guard
-  // inside renderMaintCard handles the case where it's called too early.
-  try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
 }
 
 // ── Archive: put a completed goal out of sight without deleting it ──────────

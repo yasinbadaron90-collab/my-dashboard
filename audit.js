@@ -728,7 +728,6 @@ function _auCheckLiveWriteKeysInSync(){
     { label: 'SCHOOL_DONE_KEY',       get: function(){ return (typeof SCHOOL_DONE_KEY !== 'undefined') ? SCHOOL_DONE_KEY : null; } },
     { label: 'SCHOOL_RESULTS_V2_KEY', get: function(){ return (typeof SCHOOL_RESULTS_V2_KEY !== 'undefined') ? SCHOOL_RESULTS_V2_KEY : null; } },
     { label: 'CARPOOL_TARIFF_KEY',    get: function(){ return (typeof CARPOOL_TARIFF_KEY !== 'undefined') ? CARPOOL_TARIFF_KEY : null; } },
-    { label: 'MAINT_SETTINGS_KEY',    get: function(){ return (typeof MAINT_SETTINGS_KEY !== 'undefined') ? MAINT_SETTINGS_KEY : null; } },
     { label: 'RECON_KEY',             get: function(){ return (typeof RECON_KEY !== 'undefined') ? RECON_KEY : null; } },
     { label: 'MANUAL_BAL_KEY',        get: function(){ return (typeof MANUAL_BAL_KEY !== 'undefined') ? MANUAL_BAL_KEY : null; } },
     // Hardcoded string writes that modules use without a const (still real)

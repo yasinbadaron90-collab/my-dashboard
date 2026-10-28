@@ -233,10 +233,12 @@ function _miBuildPrefill(leftover){
       var fund = funds.find(function(f){ return f.id === fundId; });
       if(!fund) return;
 
+      // v150q: the old 'maint' (Maintenance Fund) rule has no target any more.
+      // Its target came from maint.js, which returned 0, so this rule was
+      // already skipped every time — this line just says so directly.
+      if(rule.id === 'maint') return;
       // Suggested amount: monthly target (weekly*4.33 if weekly, else weekly directly for monthly)
-      var monthlyTarget = (rule.id === 'maint')
-        ? (typeof getMaintTarget === 'function' ? getMaintTarget() : 1500)
-        : (fund.targetType === 'monthly' ? (fund.weekly||0) : Math.round((fund.weekly||0) * 4.33));
+      var monthlyTarget = (fund.targetType === 'monthly' ? (fund.weekly||0) : Math.round((fund.weekly||0) * 4.33));
 
       if(!monthlyTarget || monthlyTarget <= 0) return;
       var alloc = Math.min(monthlyTarget, rem);

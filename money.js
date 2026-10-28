@@ -1678,8 +1678,6 @@ function _renderTabSafely(tab){
   if(tab==='carpool')    _safeCall(typeof renderCarpool==='function'?renderCarpool:null, 'renderCarpool');
   if(tab==='savings'){
     _safeCall(typeof renderFunds==='function'?renderFunds:null, 'renderFunds');
-    _safeCall(typeof renderCustomMaintCards==='function'?renderCustomMaintCards:null, 'renderCustomMaintCards');
-    _safeCall(typeof renderMaintCard==='function'?renderMaintCard:null, 'renderMaintCard');
   }
   if(tab==='reports'){
     _safeCall(typeof renderReportFilters==='function'?renderReportFilters:null, 'renderReportFilters');

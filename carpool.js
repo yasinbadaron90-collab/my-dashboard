@@ -1073,22 +1073,6 @@ function openPayDestModal(btn){
     }
   } catch(e){ console.warn('[Plan] Mark Paid pre-selection skipped:', e.message); }
 
-  // Maintenance Fund (original)
-  const maintMonth = getMaintData().filter(function(e){
-    const now = new Date();
-    return e.date && e.date.startsWith(now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
-  }).reduce(function(s,e){ return s+e.amount; },0);
-  optionsEl.appendChild(buildDestOption('maint:original', '🔧 '+getMaintFundName(), fmtR(maintMonth)+' this month · target '+fmtR(getMaintTarget()), '#f2a830'));
-
-  // Custom maintenance cards
-  loadCustomMaintCards().forEach(function(card){
-    const cardMonth = (card.entries||[]).filter(function(e){
-      const now = new Date();
-      return e.date && e.date.startsWith(now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
-    }).reduce(function(s,e){ return s+e.amount; },0);
-    optionsEl.appendChild(buildDestOption('maint:'+card.id, card.emoji+' '+card.name, fmtR(cardMonth)+' this month · target '+fmtR(card.target), '#f2a830'));
-  });
-
   // Cash Flow Only (just record as income, no deposit)
   // FIX 2026-07-13: emoji changed from 💵 to 📥 — 💵 is inside the
   // user-selectable EMOJIS list in savings.js, so a pocket named
@@ -1220,9 +1204,6 @@ function confirmPayDest(){
   var cfIncomeId = null;
   var pocketDepositId = null;
   var pocketDepositFundId = null;
-  var maintEntryId = null;
-  var maintCardId = null;
-  var maintOriginal = false;
   var paidBorrowIds = [];
 
   // 2. Mark borrows as repaid (capture which ones WE just paid)
@@ -1278,39 +1259,6 @@ function confirmPayDest(){
       if(saveCFData) saveCFData(data);
     }
 
-  } else if(choice.startsWith('maint:')){
-    const cardId = choice.replace('maint:','');
-    if(cardId === 'original'){
-      const data = getMaintData();
-      maintEntryId = uid();
-      maintOriginal = true;
-      data.push({ id:maintEntryId, person:passenger, amount:totalOwing, date:today, note:smartNote, carpoolPaymentId: cpPmtId });
-      saveMaintData(data);
-      renderMaintCard();
-    } else {
-      const cards = loadCustomMaintCards();
-      const card = cards.find(function(c){ return c.id === cardId; });
-      if(card){
-        if(!card.entries) card.entries = [];
-        // Find contributor ID for this passenger
-        const contrib = (card.contributors||[]).find(function(c){ return (typeof c==='object'?c.name:c) === passenger; });
-        const personId = contrib ? (typeof contrib==='object'?contrib.id:contrib) : passenger;
-        maintEntryId = uid();
-        maintCardId = card.id;
-        card.entries.push({ id:maintEntryId, personId, person:passenger, amount:totalOwing, date:today, note:smartNote, carpoolPaymentId: cpPmtId });
-        saveCustomMaintCards(cards);
-        renderCustomMaintCards();
-      }
-    }
-    // Also add to cash flow, tagged with bank
-    const data = loadCFData ? loadCFData() : {};
-    const mk = today.slice(0,7);
-    if(!data[mk]) data[mk] = { income:[], expenses:[] };
-    data[mk].income = data[mk].income || [];
-    cfIncomeId = uid();
-    data[mk].income.push({ id:cfIncomeId, label:smartNote+' → Maintenance', amount:totalOwing, icon:'🔧', auto:false, date: today, account: destBank, destBank: destBank, createdAt: nowISO, carpoolPaymentId: cpPmtId });
-    if(saveCFData) saveCFData(data);
-
   } else if(choice === 'split'){
     // For split, just close and let user manually deposit — show a toast guide
     closeModal('payDestModal');
@@ -1346,9 +1294,6 @@ function confirmPayDest(){
       cfIncomeId: cfIncomeId,
       pocketDepositId: pocketDepositId,
       pocketDepositFundId: pocketDepositFundId,
-      maintEntryId: maintEntryId,
-      maintCardId: maintCardId,
-      maintOriginal: maintOriginal,
       createdAt: nowISO
     });
     lsSet('yb_carpool_payments_v1', JSON.stringify(allPmts));
@@ -1418,7 +1363,7 @@ function confirmPayDest(){
 //   1. Un-marks the trips back to unpaid
 //   2. Un-marks the borrows back to unpaid
 //   3. Removes the pocket deposit (if any)
-//   4. Removes the maintenance entry (if any)
+//   4. (removed v150q — Maintenance Fund feature gone; old records only ever held null here)
 //   5. Removes the CF income row
 //   6. Reverses the bank baseline (money "leaves" the bank again)
 //   7. Removes the payment record from yb_carpool_payments_v1
@@ -1460,21 +1405,6 @@ function _carpoolPaymentReverse(cpPmtId, opts){
     }
   }
 
-  // 4. Remove the maintenance entry
-  if(rec.maintEntryId){
-    if(rec.maintOriginal && typeof getMaintData === 'function' && typeof saveMaintData === 'function'){
-      var md = getMaintData().filter(function(e){ return e.id !== rec.maintEntryId; });
-      saveMaintData(md);
-    } else if(rec.maintCardId && typeof loadCustomMaintCards === 'function' && typeof saveCustomMaintCards === 'function'){
-      var cards = loadCustomMaintCards();
-      var card = cards.find(function(c){ return c.id === rec.maintCardId; });
-      if(card && card.entries){
-        card.entries = card.entries.filter(function(e){ return e.id !== rec.maintEntryId; });
-        saveCustomMaintCards(cards);
-      }
-    }
-  }
-
   // 5. Remove the CF income row
   if(rec.cfIncomeId && typeof loadCFData === 'function' && typeof saveCFData === 'function'){
     var cfData = loadCFData();
@@ -1511,8 +1441,6 @@ function _carpoolPaymentReverse(cpPmtId, opts){
     try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
     try { if(typeof renderFunds === 'function') renderFunds(); } catch(e){}
     try { if(typeof renderCashFlow === 'function') renderCashFlow(); } catch(e){}
-    try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
-    try { if(typeof renderCustomMaintCards === 'function') renderCustomMaintCards(); } catch(e){}
     try { if(typeof generateStatements === 'function') generateStatements(); } catch(e){}
   }
   return true;

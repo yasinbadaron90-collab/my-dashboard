@@ -423,67 +423,6 @@ const CPK                = 'yasin_carpool_v4';
 const BORROW_KEY         = 'yasin_borrows_v1';
 const SYNC_KEY           = 'yasin_sync_meta_v1';
 const PRAYER_KEY         = 'yasin_prayer_v1';
-const MAINT_KEY          = 'yasin_maint_v1';
-// MAINT_SETTINGS_KEY holds { name: string, target: number } for the original
-// maintenance fund. Previously MAINT_TARGET was a hardcoded 1500 constant.
-// Now it's a stored, editable value with the same default for existing users.
-const MAINT_SETTINGS_KEY = 'yb_maint_settings_v1';
-const MAINT_TARGET_DEFAULT = 1500;
-const MAINT_NAME_DEFAULT   = 'Maintenance Fund';
-
-function getMaintSettings(){
-  try {
-    var raw = lsGet(MAINT_SETTINGS_KEY);
-    if(raw){
-      var parsed = JSON.parse(raw);
-      return {
-        name:   (typeof parsed.name === 'string' && parsed.name.trim()) ? parsed.name : MAINT_NAME_DEFAULT,
-        target: (typeof parsed.target === 'number' && parsed.target > 0) ? parsed.target : MAINT_TARGET_DEFAULT
-      };
-    }
-  } catch(e){}
-  return { name: MAINT_NAME_DEFAULT, target: MAINT_TARGET_DEFAULT };
-}
-function getMaintTarget(){ return getMaintSettings().target; }
-function getMaintFundName(){ return getMaintSettings().name; }
-function setMaintSettings(name, target){
-  var current = getMaintSettings();
-  var next = {
-    name:   (typeof name   === 'string' && name.trim())  ? name.trim() : current.name,
-    target: (typeof target === 'number' && target > 0)   ? target      : current.target
-  };
-  var ok = lsSet(MAINT_SETTINGS_KEY, JSON.stringify(next));
-  // Diagnostic — helps debug "rename reverts" issues. Run yb_debugMaint()
-  // in the console to see the latest state.
-  console.debug('[setMaintSettings] saved:', next, 'persisted:', ok);
-  return next;
-}
-
-// Console diagnostic — run yb_debugMaint() to see the actual stored fund
-// name + target. Helps confirm whether a rename truly persisted.
-window.yb_debugMaint = function(){
-  var raw = lsGet(MAINT_SETTINGS_KEY);
-  var live = getMaintSettings();
-  console.log('Raw stored:', raw);
-  console.log('Live getter:', live);
-  console.log('Live name shown in UI:', getMaintFundName());
-  return live;
-};
-
-// Backwards-compatibility shim: MAINT_TARGET is referenced by older code paths
-// across multiple files. We can't make a real `const` reactive, but we can use
-// a getter on `window` so any read of MAINT_TARGET returns the current stored
-// value. Going forward, prefer getMaintTarget() in new code.
-try {
-  Object.defineProperty(window, 'MAINT_TARGET', {
-    configurable: true,
-    get: function(){ return getMaintTarget(); }
-  });
-} catch(e){
-  // Fallback if defineProperty fails for some reason
-  window.MAINT_TARGET = getMaintTarget();
-}
-
 const SCHOOL_EVENTS_KEY  = 'yasin_school_events_v1';
 const SCHOOL_RESULTS_KEY = 'yasin_school_results_v1';
 const SCHOOL_DONE_KEY    = 'yasin_school_done_v1';
@@ -587,7 +526,6 @@ const PRICING_TANK_KEY   = 'yb_pricing_tank';
 const PRICING_PRIVATE_KEY= 'yb_pricing_private';
 const PASSENGERS_KEY     = 'yb_passengers_v1';
 const CF_KEY             = 'yb_cashflow_v1';
-const CUSTOM_MAINT_KEY   = 'yasin_maint_cards_v1';
 const CARS_KEY           = 'yasin_cars_v1';
 const DRIVER_KEY         = 'yasin_drivers_v1';
 const INST_KEY           = 'yasin_instalments_v1';
@@ -595,7 +533,7 @@ const EXTERNAL_BORROW_KEY= 'yb_external_borrows_v1';
 
 // Seed memory from whatever storage is available
 (function seedMem(){
-  const keys = [SK,CPK,BORROW_KEY,FUEL_KEY,PRAYER_KEY,MAINT_KEY,SYNC_KEY,PIN_STORE_KEY,INST_KEY,DRIVER_KEY,CARS_KEY,SCHOOL_EVENTS_KEY,SCHOOL_RESULTS_KEY,SCHOOL_DONE_KEY,PASSENGERS_KEY,CF_KEY,CUSTOM_MAINT_KEY,EXTERNAL_BORROW_KEY,DAILY_FUEL_KEY,FUEL_BUDGET_KEY,PRICING_TANK_KEY,PRICING_PRIVATE_KEY];
+  const keys = [SK,CPK,BORROW_KEY,FUEL_KEY,PRAYER_KEY,SYNC_KEY,PIN_STORE_KEY,INST_KEY,DRIVER_KEY,CARS_KEY,SCHOOL_EVENTS_KEY,SCHOOL_RESULTS_KEY,SCHOOL_DONE_KEY,PASSENGERS_KEY,CF_KEY,EXTERNAL_BORROW_KEY,DAILY_FUEL_KEY,FUEL_BUDGET_KEY,PRICING_TANK_KEY,PRICING_PRIVATE_KEY];
   keys.forEach(function(k){
     try{ const v=localStorage.getItem(k); if(v){ _lsMem[k]=v; return; } }catch(e){}
     try{ const v=sessionStorage.getItem(k); if(v) _lsMem[k]=v; }catch(e){}
@@ -650,7 +588,6 @@ function applyRole(){
     try { if(typeof renderHome    === 'function') renderHome();    } catch(e){}
     try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
     try { if(typeof renderFunds   === 'function') renderFunds();   } catch(e){}
-    try { if(typeof renderMaintCard === 'function') renderMaintCard(); } catch(e){}
     // Fire reminders after a short delay
     setTimeout(checkReminders, 800);
     // Weekly background Self-Audit. Read-only and gated to once every 7

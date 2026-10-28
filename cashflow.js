@@ -1596,19 +1596,6 @@ function deleteCfEntry(id, type){
         f.deposits = (f.deposits||[]).filter(function(d){ return d.cfId !== id; });
         saveFunds(); renderFunds();
       }
-    } else if(st === 'maint'){
-      var mdata = getMaintData();
-      saveMaintData(mdata.filter(function(e){ return e.cfId !== id; }));
-      renderMaintCard();
-    } else if(st === 'custommaint'){
-      try{
-        var cards = loadCustomMaintCards();
-        cards.forEach(function(card){
-          card.entries = (card.entries||[]).filter(function(e){ return e.cfId !== id; });
-        });
-        saveCustomMaintCards(cards);
-        renderMaintCard();
-      }catch(e){}
     } else if(st === 'car_service_save' || st === 'car_spend' || st === 'car_add'){
       var carFund = funds.find(function(f){ return f.isExpense; });
       if(carFund){

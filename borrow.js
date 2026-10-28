@@ -591,11 +591,6 @@ function removeSavingsDepositByBorrowId(linkedId){
     if(f.deposits.length !== before) changed = true;
   });
   if(changed){ saveFunds(); renderFunds(); }
-  // Remove from Maintenance Fund
-  const mdata = getMaintData();
-  const mBefore = mdata.length;
-  const mNew = mdata.filter(function(e){ return e.borrowEntryId !== linkedId; });
-  if(mNew.length !== mBefore){ saveMaintData(mNew); renderMaintCard(); }
 }
 
 function updateSavingsDepositByBorrowId(linkedId, newAmount, newDate, newNote){
@@ -610,15 +605,6 @@ function updateSavingsDepositByBorrowId(linkedId, newAmount, newDate, newNote){
     });
   });
   if(changed){ saveFunds(); renderFunds(); }
-  const mdata = getMaintData();
-  let mChanged = false;
-  mdata.forEach(function(e){
-    if(e.borrowEntryId === linkedId){
-      e.amount = newAmount; e.date = newDate;
-      mChanged = true;
-    }
-  });
-  if(mChanged){ saveMaintData(mdata); renderMaintCard(); }
 }
 
 function deleteBorrowEntryUnified(passengerVal, entryId){
