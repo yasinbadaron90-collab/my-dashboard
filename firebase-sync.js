@@ -301,9 +301,24 @@ function _fbPullAll(){
         if(!data || !data.value) return;
         if(FB_SYNC_KEYS.indexOf(key) < 0) return;
 
-        // Cloud always wins on manual pull — this is intentional
-        // Auto-pull on startup still uses the cautious strategy (see _fbPullAll)
-        _originalLsSet(key, data.value);
+        // v150o→v150p: compare BEFORE writing. Only a key whose cloud copy
+        // is actually different from this device's copy counts as merged.
+        // Before this, every key was rewritten and counted, so `merged` was
+        // never 0 and the app reloaded itself on EVERY cold open, even when
+        // nothing had changed anywhere (double boot + second full Firestore
+        // read). Now: device already up to date → no write, no reload.
+        // Device behind (e.g. laptop after phone edits) → write those keys
+        // and reload once, exactly as before.
+        // lsGet reads the same localStorage → sessionStorage → memory chain
+        // that _originalLsSet writes to, so the comparison sees what the app sees.
+        var cloudVal = String(data.value);
+        if(lsGet(key) === cloudVal) return;   // identical — nothing to do
+
+        // Cloud wins for keys that differ (unchanged behaviour). Known gap,
+        // audit item #16: an edit made on this device that never reached
+        // the cloud (offline / before sign-in) also "differs" and gets
+        // overwritten here.
+        _originalLsSet(key, cloudVal);
         merged++;
       });
       _fbUpdateStatus('synced');
