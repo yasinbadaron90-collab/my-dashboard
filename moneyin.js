@@ -66,6 +66,10 @@ var _miState = {
   note: '',
   sourceBank: 'FNB',
   house: 0,
+  houseCash: 0,      // v150t: part of the house money paid from a pocket
+  cashFundId: null,  // v150t: that pocket
+  subsOn: true,      // v150t: add her subscriptions on top
+  subsTouched: false,
   splits: {}  // { fundId: amount, ... }
 };
 
@@ -81,6 +85,10 @@ function openMoneyIn(editingId){
     note: '',
     sourceBank: 'FNB',
     house: 0,
+    houseCash: 0,
+    cashFundId: null,
+    subsOn: true,
+    subsTouched: false,
     splits: {}
   };
 
@@ -93,7 +101,11 @@ function openMoneyIn(editingId){
       _miState.date = rec.date;
       _miState.note = rec.note || '';
       _miState.sourceBank = rec.sourceBank || 'FNB';
-      _miState.house = rec.house || 0;
+      _miState.house = (rec.houseTotal != null ? rec.houseTotal : rec.house) || 0;   // v150t
+      _miState.houseCash = rec.houseCash ? (rec.houseCash.amount || 0) : 0;
+      _miState.cashFundId = rec.houseCash ? rec.houseCash.fundId : null;
+      _miState.subsOn = (rec.subs||[]).length > 0;
+      _miState.subsTouched = true;
       (rec.splits||[]).forEach(function(s){ _miState.splits[s.fundId] = s.amount; });
     }
   }
@@ -103,6 +115,12 @@ function openMoneyIn(editingId){
   document.getElementById('miNote').value = _miState.note;
   document.getElementById('miDate').value = _miState.date;
   document.getElementById('miHouse').value = _miState.house || '';
+  _miEnsureHouseExtra();
+  if(!_miState.cashFundId) _miState.cashFundId = _miDefaultCashPocket();
+  var _cashInp = document.getElementById('miHouseCash');
+  if(_cashInp) _cashInp.value = _miState.houseCash || '';
+  var _infoBox = document.getElementById('miHouseInfo');
+  if(_infoBox) _infoBox.style.display = 'none';
   _miSetSourceBank(_miState.sourceBank);
 
   _miRenderPocketSplit();
@@ -129,6 +147,7 @@ function _miSetSourceBank(bank){
       el.style.color = '#888';
     }
   });
+  try{ if(document.getElementById('miHouseSummary')) _miRenderHouseExtra(); }catch(e){}
 }
 
 // ── Read inputs back into state on every change ─────────────────────
@@ -137,6 +156,269 @@ function _miSyncInputs(){
   _miState.note   = document.getElementById('miNote').value.trim();
   _miState.date   = document.getElementById('miDate').value || localDateStr(new Date());
   _miState.house  = parseFloat(document.getElementById('miHouse').value) || 0;
+  var _c = document.getElementById('miHouseCash');
+  if(_c) _miState.houseCash = Math.max(0, parseFloat(_c.value) || 0);
+  var _p = document.getElementById('miCashPocket');
+  if(_p && _p.value) _miState.cashFundId = _p.value;
+}
+
+// ── v150t: House money = house amount + optional cash part + her subscriptions ──
+// Yasin gives his wife a monthly house amount on salary day. From Nov 2026 she
+// also pays MTN and Claude out of it, so those are added ON TOP of the house
+// amount he types. Part of the house money can be paid from a pocket (e.g. Cash
+// wallet) instead of the bank.
+//
+//   House amount typed (H)           -> what she gets for the house
+//   Part paid from a pocket (C)      -> a Spend from that pocket, linked here
+//   Subscriptions (S, from the Plan) -> added on top, bank doorway
+//   Off the top of the bank          =  (H - C) + S
+//
+// Stored on the record (old records have none of these and work as before):
+//   house      = H - C      (the bank part; the meaning "house" always had)
+//   houseTotal = H
+//   houseCash  = { fundId, amount, depositId, cfId } or null
+//   subs       = [ { id, label, amount, cfId } ]
+// Every row this creates carries moneyInId, so the existing hard-block guards
+// route any delete of a piece back to reversing the whole Money In.
+
+var MI_SUB_DEFAULTS = [
+  { id:'ws_mtn',    label:'MTN SuperFlex', amount:209,    day:28 },
+  { id:'ws_claude', label:'Claude Pro',    amount:399.99, day:26 }
+];
+
+function _miR2(n){ return Math.round((Number(n)||0) * 100) / 100; }
+
+function _miSubsConfig(){
+  try {
+    var plan = (typeof loadPlan === 'function') ? loadPlan() : null;
+    var list = (plan && Array.isArray(plan.wifeSubs)) ? plan.wifeSubs : MI_SUB_DEFAULTS;
+    return list.filter(function(s){ return s && String(s.label||'').trim() && Number(s.amount) > 0; });
+  } catch(e){ return MI_SUB_DEFAULTS.slice(); }
+}
+
+// Another Money In in the same month that already added the subscriptions.
+function _miSubsAlreadyIn(monthKey, excludeId){
+  var hit = loadMoneyInData().find(function(r){
+    return r.id !== excludeId && r.date && r.date.slice(0,7) === monthKey && (r.subs||[]).length > 0;
+  });
+  return hit || null;
+}
+
+// Most recent earlier Money In that had house money (for the example text).
+function _miLastHouseRec(excludeId){
+  var list = loadMoneyInData().filter(function(r){
+    return r.id !== excludeId && ((r.houseTotal != null ? r.houseTotal : r.house) > 0);
+  }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  return list[0] || null;
+}
+
+function _miHouseTotalOf(r){ return r ? _miR2(r.houseTotal != null ? r.houseTotal : r.house) : 0; }
+
+// What this entry takes off the top of the bank, worked out from the current state.
+function _miOffTop(){
+  var H = _miR2(_miState.house);
+  var C = _miR2(_miState.houseCash);
+  var subs = (H > 0 && _miState.subsOn) ? _miSubsConfig() : [];
+  var subsTotal = _miR2(subs.reduce(function(s,x){ return s + Number(x.amount); }, 0));
+  var cashOk = C <= H + 0.005;
+  var houseBank = _miR2(Math.max(0, H - (cashOk ? C : 0)));
+  return {
+    house: H, cash: cashOk ? C : 0, cashTyped: C, cashOk: cashOk,
+    houseBank: houseBank, subs: subs, subsTotal: subsTotal,
+    offTop: _miR2(houseBank + subsTotal),
+    toHer: _miR2(H + subsTotal)
+  };
+}
+
+// Pocket balance available for the cash part. When editing, the old cash part
+// from the same pocket goes back first, so it counts as available.
+function _miCashAvailable(fundId){
+  var f = funds.find(function(x){ return x.id === fundId && !x._deleted; });
+  if(!f) return null;
+  var bal = fundTotal(f);
+  if(_miState.editingId){
+    var old = loadMoneyInData().find(function(r){ return r.id === _miState.editingId; });
+    if(old && old.houseCash && old.houseCash.fundId === fundId) bal += Number(old.houseCash.amount) || 0;
+  }
+  return _miR2(bal);
+}
+
+// Problem that must block Save, or '' when the house part is fine.
+function _miHouseProblem(){
+  var o = _miOffTop();
+  if(o.cashTyped > 0 && !o.cashOk) return 'Cash part is more than the house amount';
+  if(o.cash > 0){
+    if(!_miState.cashFundId) return 'Pick the pocket the cash part comes from';
+    var avail = _miCashAvailable(_miState.cashFundId);
+    if(avail === null) return 'Cash pocket not found';
+    if(o.cash > avail + 0.005) return 'Only ' + fmtR(avail) + ' in that pocket';
+  }
+  return '';
+}
+
+function _miDefaultCashPocket(){
+  var last = _miLastHouseRec(_miState.editingId);
+  if(last && last.houseCash && funds.some(function(f){ return f.id === last.houseCash.fundId && !f._deleted; })) return last.houseCash.fundId;
+  var cw = funds.find(function(f){ return !f._deleted && /cash/i.test(f.name||''); });
+  if(cw) return cw.id;
+  var any = funds.find(function(f){ return !f._deleted; });
+  return any ? any.id : null;
+}
+
+// Build the extra House controls once, under the existing House field.
+function _miEnsureHouseExtra(){
+  var houseInp = document.getElementById('miHouse');
+  if(!houseInp) return;
+  var field = houseInp.closest('.field') || houseInp.parentNode;
+  if(!document.getElementById('miHouseInfoBtn')){
+    var lbl = field.querySelector('label');
+    if(lbl){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.id = 'miHouseInfoBtn';
+      b.setAttribute('aria-label', 'How the house money works');
+      b.textContent = 'ⓘ';
+      b.style.cssText = 'background:none;border:1px solid #5a3a00;border-radius:50%;width:20px;height:20px;line-height:16px;padding:0;margin-left:8px;color:#f2a830;font-size:12px;cursor:pointer;vertical-align:middle;';
+      b.onclick = function(){
+        var box = document.getElementById('miHouseInfo');
+        if(box) box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+      };
+      lbl.appendChild(b);
+    }
+  }
+  if(document.getElementById('miHouseExtra')) return;
+  var wrap = document.createElement('div');
+  wrap.id = 'miHouseExtra';
+  wrap.innerHTML = ''
+    + '<div id="miHouseInfo" style="display:none;background:#1a1200;border:1px solid #5a3a00;border-radius:6px;padding:10px 12px;margin-top:8px;font-size:11.5px;color:#f2a830;line-height:1.6;"></div>'
+    + '<div style="font-size:10px;letter-spacing:1px;color:var(--muted);margin-top:12px;margin-bottom:4px;">PART PAID FROM A POCKET (OPTIONAL)</div>'
+    + '<div style="display:flex;gap:8px;">'
+    +   '<input type="number" id="miHouseCash" step="0.01" min="0" placeholder="Cash part" oninput="_miOnHeaderEdit()" style="flex:0 0 34%;min-width:0;width:auto;"/>'
+    +   '<select id="miCashPocket" onchange="_miOnHeaderEdit()" style="flex:1;min-width:0;width:auto;"></select>'
+    + '</div>'
+    + '<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:none;cursor:pointer;">'
+    +   '<input type="checkbox" id="miSubsOn" onchange="_miOnSubsToggle()" style="width:16px;height:16px;margin:0;padding:0;flex-shrink:0;accent-color:#f2a830;"/>'
+    +   '<span>Add her subscriptions on top</span>'
+    + '</label>'
+    + '<div id="miSubsLines" style="margin-top:4px;"></div>'
+    + '<div id="miHouseSummary" style="margin-top:8px;"></div>';
+  field.appendChild(wrap);
+  var dateInp = document.getElementById('miDate');
+  if(dateInp && !dateInp._miHooked){
+    dateInp._miHooked = true;
+    dateInp.addEventListener('change', function(){ _miOnHeaderEdit(); });
+  }
+}
+
+function _miFillCashPocketOptions(){
+  var sel = document.getElementById('miCashPocket');
+  if(!sel) return;
+  var cur = _miState.cashFundId;
+  sel.innerHTML = funds.filter(function(f){ return !f._deleted && !f.archived; }).map(function(f){
+    var avail = _miCashAvailable(f.id);
+    return '<option value="'+f.id+'"'+(f.id===cur?' selected':'')+'>'
+      + escHtml((f.emoji||'')+' '+f.name) + ' · ' + fmtR(avail||0) + '</option>';
+  }).join('');
+  if(cur) sel.value = cur;
+}
+
+function _miOnSubsToggle(){
+  var cb = document.getElementById('miSubsOn');
+  _miState.subsOn = !!(cb && cb.checked);
+  _miState.subsTouched = true;
+  _miOnHeaderEdit(true);
+}
+
+function _miExampleText(){
+  var subs = _miSubsConfig();
+  var subsTxt = subs.map(function(s){ return s.label + ' ' + fmtR(s.amount); }).join(' + ');
+  var subsTotal = _miR2(subs.reduce(function(s,x){ return s + Number(x.amount); }, 0));
+  var last = _miLastHouseRec(_miState.editingId);
+  var H = last ? _miHouseTotalOf(last) : 7550;
+  var C = (last && last.houseCash) ? _miR2(last.houseCash.amount) : (last ? 0 : 570);
+  var src = last ? 'Last time (' + last.date + ')' : 'Example';
+  var pocketName = 'a pocket';
+  if(last && last.houseCash){
+    var pf = funds.find(function(f){ return f.id === last.houseCash.fundId; });
+    if(pf) pocketName = pf.name;
+  } else if(!last){ pocketName = 'Cash wallet'; }
+  var t = 'Type what you\'re giving her for the house. '
+    + (subs.length ? subsTxt + ' are added on top automatically (change them in Plan → ✎). ' : '')
+    + 'If part of it comes out of a pocket, type that part below and pick the pocket.<br><br>'
+    + '<b>' + src + ':</b> house ' + fmtR(H)
+    + (C > 0 ? ', ' + fmtR(C) + ' from ' + escHtml(pocketName) : '')
+    + (C > 0
+        ? ' → ' + fmtR(_miR2(H - C + subsTotal)) + ' off the bank, ' + fmtR(C) + ' from the pocket, ' + fmtR(_miR2(H + subsTotal)) + ' total to her.'
+        : ' → ' + fmtR(_miR2(H + subsTotal)) + ' to her, all off the bank.');
+  return t;
+}
+
+// Repaint the House extras (placeholder, subs lines, summary, warnings).
+function _miRenderHouseExtra(){
+  _miEnsureHouseExtra();
+  var houseInp = document.getElementById('miHouse');
+  var last = _miLastHouseRec(_miState.editingId);
+  if(houseInp){
+    houseInp.placeholder = last ? ('e.g. ' + fmtR(_miHouseTotalOf(last)) + ' last time · ask wife') : 'Ask wife how much…';
+  }
+  var cashInp = document.getElementById('miHouseCash');
+  if(cashInp){
+    cashInp.placeholder = (last && last.houseCash) ? ('e.g. ' + fmtR(last.houseCash.amount)) : 'Cash part';
+  }
+  var info = document.getElementById('miHouseInfo');
+  if(info) info.innerHTML = _miExampleText();
+  _miFillCashPocketOptions();
+
+  var monthKey = (_miState.date || localDateStr(new Date())).slice(0,7);
+  var already = _miSubsAlreadyIn(monthKey, _miState.editingId);
+  if(!_miState.subsTouched && !_miState.editingId){
+    _miState.subsOn = !already;
+  }
+  var cb = document.getElementById('miSubsOn');
+  if(cb) cb.checked = !!_miState.subsOn;
+
+  var o = _miOffTop();
+  var conf = _miSubsConfig();
+  var linesEl = document.getElementById('miSubsLines');
+  if(linesEl){
+    var lh = '';
+    if(already){
+      lh += '<div style="font-size:10.5px;color:#f2a830;margin:2px 0 4px;">Already added with the Money In on ' + escHtml(already.date) + '. Tick only if you\'re paying them twice this month.</div>';
+    }
+    if(!conf.length){
+      lh += '<div style="font-size:10.5px;color:var(--muted);">No subscriptions set. Add them in Plan → ✎.</div>';
+    }
+    conf.forEach(function(s){
+      var on = _miState.subsOn && o.house > 0;
+      lh += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:'+(on?'var(--text)':'var(--muted)')+';'+(on?'':'text-decoration:line-through;')+'">'
+        + '<span>🔒 ' + escHtml(s.label) + (s.day ? ' · ' + s.day + 'th' : '') + '</span><span>' + fmtR(s.amount) + '</span></div>';
+    });
+    linesEl.innerHTML = lh;
+  }
+
+  var sumEl = document.getElementById('miHouseSummary');
+  if(sumEl){
+    var prob = _miHouseProblem();
+    var sh = '';
+    if(o.house > 0){
+      var bank = _miState.sourceBank || 'FNB';
+      var row = function(l, v, col, bold){
+        return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:'+col+';'+(bold?'font-weight:700;':'')+'"><span>'+l+'</span><span>'+v+'</span></div>';
+      };
+      sh += '<div style="border-top:1px solid var(--border);margin-top:4px;padding-top:6px;">';
+      sh += row('Off the top (' + escHtml(bank) + ')', fmtR(o.offTop), 'var(--text)');
+      if(o.cash > 0){
+        var pf = funds.find(function(f){ return f.id === _miState.cashFundId; });
+        sh += row('From ' + escHtml(pf ? pf.name : 'pocket'), fmtR(o.cash), 'var(--text)');
+      }
+      sh += row('Total to her', fmtR(o.toHer), '#f2a830', true);
+      sh += '</div>';
+    }
+    if(prob){
+      sh += '<div style="font-size:11px;color:#f23060;margin-top:6px;">⚠ ' + escHtml(prob) + '</div>';
+    }
+    sumEl.innerHTML = sh;
+  }
 }
 
 // ── Build a priority-aware pre-fill ─────────────────────────────────
@@ -277,7 +559,8 @@ function _miBuildPrefill(leftover){
 // ── Render the pocket split UI ──────────────────────────────────────
 function _miRenderPocketSplit(){
   _miSyncInputs();
-  var leftover = Math.max(0, _miState.amount - _miState.house);
+  _miRenderHouseExtra();   // v150t
+  var leftover = Math.max(0, _miState.amount - _miOffTop().offTop);
 
   // First render only: if not editing and no manual edits yet, use prefill
   var hasUserEdits = Object.keys(_miState.splits).length > 0;
@@ -402,22 +685,29 @@ function _miOnPocketEdit(e){
 }
 
 // Re-run prefill if the user changes amount/house AFTER initial prefill.
-function _miOnHeaderEdit(){
+// v150t: compares what comes off the top (house bank part + subscriptions),
+// so changing the cash part or the subscriptions tick also re-plans the split.
+var _miLastOffTop = 0;
+function _miOnHeaderEdit(force){
   var oldAmount = _miState.amount;
-  var oldHouse = _miState.house;
+  var oldOff = _miLastOffTop;
   _miSyncInputs();
-  // If amount or house changed materially, blow away splits and re-prefill.
-  if(Math.abs(_miState.amount - oldAmount) > 0.001 || Math.abs(_miState.house - oldHouse) > 0.001){
+  var newOff = _miOffTop().offTop;
+  if(force === true || Math.abs(_miState.amount - oldAmount) > 0.001 || Math.abs(newOff - oldOff) > 0.001){
     _miState.splits = {};  // forget manual edits — header changed
     _miRenderPocketSplit();
   } else {
+    _miRenderHouseExtra();
     _miUpdateLiveTotal();
   }
 }
 
 function _miUpdateLiveTotal(){
   _miSyncInputs();
-  var leftover = Math.max(0, _miState.amount - _miState.house);
+  var _off = _miOffTop();
+  _miLastOffTop = _off.offTop;
+  var _houseProb = _miHouseProblem();
+  var leftover = Math.max(0, _miState.amount - _off.offTop);
   var placed = 0;
   Object.keys(_miState.splits).forEach(function(k){ placed += (_miState.splits[k]||0); });
   placed = Math.round(placed * 100) / 100;
@@ -456,8 +746,8 @@ function _miUpdateLiveTotal(){
   }
 
   if(saveBtn){
-    var ok = _miState.amount > 0 && Math.abs(left) < 0.005;
-    var over = _miState.amount > 0 && left < -0.005;
+    var ok = _miState.amount > 0 && Math.abs(left) < 0.005 && !_houseProb && _off.offTop <= _miState.amount + 0.005;
+    var over = _miState.amount > 0 && left < -0.005 && !_houseProb;
     // The button has THREE active states: save (green, enabled), reset (orange,
     // enabled — appears when over), and locked (dim, disabled).
     saveBtn.disabled = !(ok || over);
@@ -484,8 +774,10 @@ function _miUpdateLiveTotal(){
       saveBtn.textContent = '✓ Save Money In';
     } else if(!(_miState.amount > 0)){
       saveBtn.textContent = '🔒 Enter amount to start';
-    } else if(_miState.house > _miState.amount){
-      saveBtn.textContent = '🔒 House is more than amount';
+    } else if(_houseProb){
+      saveBtn.textContent = '🔒 ' + _houseProb;
+    } else if(_off.offTop > _miState.amount + 0.005){
+      saveBtn.textContent = '🔒 House money is more than amount';
     } else if(left > 0){
       saveBtn.textContent = '🔒 ' + fmtR(left) + ' still to place';
     } else {
@@ -505,14 +797,18 @@ function saveMoneyIn(){
   });
 
   var amount = _miState.amount;
-  var house = _miState.house;
-  var leftover = Math.max(0, amount - house);
+  var off = _miOffTop();               // v150t
+  var house = off.houseBank;           // bank part of the house money (what "house" always meant)
+  var leftover = Math.max(0, amount - off.offTop);
   var placed = 0;
   Object.keys(_miState.splits).forEach(function(k){ placed += (_miState.splits[k]||0); });
   placed = Math.round(placed * 100) / 100;
   leftover = Math.round(leftover * 100) / 100;
 
   if(amount <= 0){ alert('Enter the amount received.'); return; }
+  var _hp = _miHouseProblem();
+  if(_hp){ alert(_hp + '.'); return; }
+  if(off.offTop > amount + 0.005){ alert('House money (' + fmtR(off.offTop) + ') is more than the amount received.'); return; }
   if(Math.abs(placed - leftover) > 0.005){
     alert('Split must total exactly ' + fmtR(leftover) + '. Currently ' + fmtR(placed) + '.');
     return;
@@ -532,6 +828,9 @@ function saveMoneyIn(){
     note: _miState.note || '',
     sourceBank: _miState.sourceBank || 'FNB',
     house: house,
+    houseTotal: off.house,   // v150t: full house amount typed (bank part + pocket part)
+    houseCash: null,         // v150t: { fundId, amount, depositId, cfId }
+    subs: [],                // v150t: [ { id, label, amount, cfId } ]
     splits: [],
     cfIncomeId: null,
     cfHouseId: null,
@@ -544,6 +843,33 @@ function saveMoneyIn(){
   // 2) House expense, if any
   if(house > 0){
     rec.cfHouseId = _moneyInPostHouse(rec);
+  }
+
+  // 2b) v150t: her subscriptions, on top of the house money (bank doorway)
+  off.subs.forEach(function(s){
+    var amt = _miR2(s.amount);
+    rec.subs.push({ id: s.id || uid(), label: s.label, amount: amt, cfId: _moneyInPostSub(rec, s.label, amt) });
+  });
+
+  // 2c) v150t: part of the house money paid from a pocket. Same shape as a
+  //     Direct Spend (pocket out + Cash Flow row) but owned by this Money In.
+  //     No bank baseline: the money was already sitting in the pocket.
+  if(off.cash > 0 && _miState.cashFundId){
+    var cf2 = funds.find(function(x){ return x.id === _miState.cashFundId; });
+    if(cf2){
+      var cDepId = uid();
+      var cCfId = _moneyInPostHouseCash(rec, cf2, off.cash);
+      cf2.deposits.push({
+        id: cDepId,
+        txnType: 'out',
+        amount: _miR2(off.cash),
+        date: rec.date,
+        note: '↑ House money (cash portion)',
+        cfPosted: true,
+        moneyInId: miId
+      });
+      rec.houseCash = { fundId: cf2.id, amount: _miR2(off.cash), depositId: cDepId, cfId: cCfId };
+    }
   }
 
   // 3) Pocket splits — push deposits + post linked CF entries
@@ -604,6 +930,9 @@ function saveMoneyIn(){
     if(typeof window._adjustBaselineForBank === 'function'){
       window._adjustBaselineForBank(rec.sourceBank, amount);          // +income
       if(house > 0) window._adjustBaselineForBank(rec.sourceBank, -house); // -house
+      rec.subs.forEach(function(s){                                    // v150t: -each subscription
+        window._adjustBaselineForBank(rec.sourceBank, -s.amount);
+      });
       rec.splits.forEach(function(s){
         window._adjustBaselineForBank(rec.sourceBank, -s.amount);     // -pocket drain
       });
@@ -621,7 +950,7 @@ function saveMoneyIn(){
   // Toast
   if(typeof softDeleteToast === 'function'){
     softDeleteToast({
-      message: 'Money In saved · ' + fmtR(amount) + (house>0 ? ' (R'+house+' house)' : ''),
+      message: 'Money In saved · ' + fmtR(amount) + (off.house>0 ? ' (' + fmtR(off.toHer) + ' to her)' : ''),
       duration: 3500
     });
   }
@@ -671,6 +1000,58 @@ function _moneyInPostHouse(rec){
   return cfId;
 }
 
+// v150t: one Cash Flow row per subscription she pays out of the house money.
+function _moneyInPostSub(rec, label, amount){
+  var cfData = loadCFData();
+  var mk = (rec.date||localDateStr(new Date())).slice(0,7);
+  if(!cfData[mk]) cfData[mk] = { income:[], expenses:[] };
+  var cfId = uid();
+  cfData[mk].expenses.push({
+    id: cfId,
+    label: label,
+    amount: amount,
+    icon: '📱',
+    auto: false,
+    account: rec.sourceBank,
+    destBank: rec.sourceBank,
+    date: rec.date,
+    moneyInId: rec.id,
+    sourceType: 'house_sub',
+    category: 'Other',
+    note: 'Money In · paid by wife from the house money',
+    createdAt: rec.createdAt
+  });
+  saveCFData(cfData);
+  return cfId;
+}
+
+// v150t: Cash Flow row for the part of the house money paid from a pocket.
+// Shaped like a Direct Spend row (pocket badge, no bank) so it shows the same way.
+function _moneyInPostHouseCash(rec, fund, amount){
+  var cfData = loadCFData();
+  var mk = (rec.date||localDateStr(new Date())).slice(0,7);
+  if(!cfData[mk]) cfData[mk] = { income:[], expenses:[] };
+  var cfId = uid();
+  cfData[mk].expenses.push({
+    id: cfId,
+    label: 'House money (cash portion)',
+    amount: _miR2(amount),
+    icon: '⌂',
+    auto: false,
+    account: (fund.emoji ? fund.emoji + ' ' : '') + fund.name,
+    date: rec.date,
+    moneyInId: rec.id,
+    sourceType: 'pocket_spend',
+    sourceId: fund.id,
+    sourceCardName: fund.name,
+    category: 'Home',
+    note: 'Money In · part of the house money, from ' + fund.name,
+    createdAt: rec.createdAt
+  });
+  saveCFData(cfData);
+  return cfId;
+}
+
 // ── Reverse a Money In record (internal helper used by edit + delete) ──
 function _moneyInReverse(miId, opts){
   opts = opts || {};
@@ -710,6 +1091,38 @@ function _moneyInReverse(miId, opts){
         window._adjustBaselineForBank(rec.sourceBank, rec.house);
       }
     }catch(e){}
+  }
+
+  // 2b) v150t: reverse her subscriptions (bank doorway: +amount back each)
+  if((rec.subs||[]).length){
+    var subIds = rec.subs.map(function(s){ return s.cfId; });
+    var cfS = loadCFData();
+    var mkS = (rec.date||'').slice(0,7);
+    if(cfS[mkS] && cfS[mkS].expenses){
+      cfS[mkS].expenses = cfS[mkS].expenses.filter(function(e){ return subIds.indexOf(e.id) < 0; });
+    }
+    saveCFData(cfS);
+    rec.subs.forEach(function(s){
+      try{
+        if(typeof window._adjustBaselineForBank === 'function'){
+          window._adjustBaselineForBank(rec.sourceBank, s.amount);
+        }
+      }catch(e){}
+    });
+  }
+
+  // 2c) v150t: reverse the pocket part of the house money (no baseline: it never touched the bank)
+  if(rec.houseCash){
+    var hf = funds.find(function(x){ return x.id === rec.houseCash.fundId; });
+    if(hf){
+      hf.deposits = (hf.deposits||[]).filter(function(d){ return d.id !== rec.houseCash.depositId; });
+    }
+    var cfC = loadCFData();
+    var mkC = (rec.date||'').slice(0,7);
+    if(cfC[mkC] && cfC[mkC].expenses){
+      cfC[mkC].expenses = cfC[mkC].expenses.filter(function(e){ return e.id !== rec.houseCash.cfId; });
+    }
+    saveCFData(cfC);
   }
 
   // 3) Reverse the income line
@@ -774,7 +1187,7 @@ function renderMoneyInHistory(){
     var lbl = rec.note || 'Money In';
     var pocketsText = (rec.splits||[]).length + ' pocket' + ((rec.splits||[]).length===1?'':'s');
     info.innerHTML = '<div style="font-size:12.5px;color:#efefef;margin-bottom:3px;">'+lbl+'</div>'
-                   + '<div style="font-size:10px;color:#555;letter-spacing:1px;">'+rec.date+' · '+rec.sourceBank+' · '+pocketsText+(rec.house>0 ? ' · house '+fmtR(rec.house) : '')+'</div>';
+                   + '<div style="font-size:10px;color:#555;letter-spacing:1px;">'+rec.date+' · '+rec.sourceBank+' · '+pocketsText+(_miHouseTotalOf(rec)>0 ? ' · house '+fmtR(_miHouseTotalOf(rec)) : '')+((rec.subs||[]).length ? ' + subs' : '')+'</div>';
     var amt = document.createElement('div');
     amt.style.cssText = 'font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:#c8f230;flex-shrink:0;';
     amt.textContent = fmtR(rec.amount);
@@ -807,7 +1220,7 @@ function renderMoneyInHistory(){
 function _miOnActionTap(){
   if(!_miState) return;
   _miSyncInputs();
-  var leftover = Math.max(0, (_miState.amount||0) - (_miState.house||0));
+  var leftover = Math.max(0, (_miState.amount||0) - _miOffTop().offTop);
   var placed = 0;
   Object.keys(_miState.splits).forEach(function(k){ placed += (_miState.splits[k]||0); });
   placed = Math.round(placed * 100) / 100;
@@ -916,4 +1329,5 @@ if(typeof window !== 'undefined'){
   window._miOnHeaderEdit = _miOnHeaderEdit;
   window._miResetSplit = _miResetSplit;
   window._miOnActionTap = _miOnActionTap;
+  window._miOnSubsToggle = _miOnSubsToggle;
 }

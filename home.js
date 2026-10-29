@@ -88,7 +88,12 @@ var PLAN_DEFAULTS = {
   ],
   debtCard: { debtorKey:'nuri', label:'Nuri Debt', monthly:1000 },
   stipendEnd: '2026-10-31',
-  notes: ''
+  notes: '',
+  // v150t: subscriptions his wife pays out of the house money (added on top in Money In)
+  wifeSubs: [
+    { id:'ws_mtn',    label:'MTN SuperFlex', amount:209,    day:28 },
+    { id:'ws_claude', label:'Claude Pro',    amount:399.99, day:26 }
+  ]
 };
 function loadPlan(){
   try {
@@ -115,7 +120,8 @@ function loadPlan(){
         savingsCards: Array.isArray(saved.savingsCards) ? saved.savingsCards : PLAN_DEFAULTS.savingsCards,
         debtCard: saved.debtCard || PLAN_DEFAULTS.debtCard,
         stipendEnd: saved.stipendEnd || PLAN_DEFAULTS.stipendEnd,
-        notes: saved.notes || ''
+        notes: saved.notes || '',
+        wifeSubs: Array.isArray(saved.wifeSubs) ? saved.wifeSubs : JSON.parse(JSON.stringify(PLAN_DEFAULTS.wifeSubs))
       };
     }
   } catch(e){}
@@ -140,6 +146,97 @@ function _planDebtorOptions(selectedKey){
 }
 
 function togglePlanEdit(){ _planEditMode = !_planEditMode; renderPlan(); }
+
+// ── v150t: Wife monthly card ─────────────────────────────────────────
+// Reads the house money from Money In (nothing typed on the Plan tab).
+// Shows the current calendar month; if nothing yet, the latest month that had house money.
+var _planWifeTab = 'house';
+try { _planWifeTab = localStorage.getItem('yb_plan_wife_tab') || 'house'; } catch(e){}
+function setPlanWifeTab(t){
+  _planWifeTab = (t === 'subs') ? 'subs' : 'house';
+  try { localStorage.setItem('yb_plan_wife_tab', _planWifeTab); } catch(e){}
+  renderPlan();
+}
+function _planWifeData(monthKey){
+  var mi = (typeof loadMoneyInData === 'function') ? loadMoneyInData() : [];
+  var houseOf = function(r){ return Number(r.houseTotal != null ? r.houseTotal : r.house) || 0; };
+  var withHouse = mi.filter(function(r){ return r.date && houseOf(r) > 0; });
+  if(!withHouse.length) return null;
+  var mk = monthKey;
+  var inMonth = withHouse.filter(function(r){ return r.date.slice(0,7) === mk; });
+  var isCurrent = true;
+  if(!inMonth.length){
+    isCurrent = false;
+    mk = withHouse.map(function(r){ return r.date.slice(0,7); }).sort().pop();
+    inMonth = withHouse.filter(function(r){ return r.date.slice(0,7) === mk; });
+  }
+  var r2 = function(n){ return Math.round(n*100)/100; };
+  var d = { monthKey:mk, isCurrent:isCurrent, house:0, bank:0, pockets:{}, subs:[], subsTotal:0, dates:[] };
+  inMonth.sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); }).forEach(function(r){
+    d.house += houseOf(r);
+    d.bank  += Number(r.house) || 0;
+    if(r.houseCash && r.houseCash.amount > 0){
+      var pf = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === r.houseCash.fundId; });
+      var nm = pf ? pf.name : 'Pocket';
+      d.pockets[nm] = (d.pockets[nm]||0) + Number(r.houseCash.amount);
+    }
+    (r.subs||[]).forEach(function(s){ d.subs.push({ label:s.label, amount:Number(s.amount)||0 }); d.subsTotal += Number(s.amount)||0; });
+    d.dates.push(r.date);
+  });
+  d.house = r2(d.house); d.bank = r2(d.bank); d.subsTotal = r2(d.subsTotal);
+  return d;
+}
+function _planWifeCardHtml(plan, monthKey, cardBox, secHdr){
+  var L='#c8f230', A='#f2a830', M='#888';
+  var d = _planWifeData(monthKey);
+  var conf = (plan.wifeSubs||[]).filter(function(s){ return s && Number(s.amount) > 0; });
+  var tabBtn = function(id, lbl){
+    var on = _planWifeTab === id;
+    return '<button onclick="setPlanWifeTab(\''+id+'\')" style="flex:1;padding:8px;border-radius:6px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;'
+      + (on ? 'background:#1a2e00;border:1px solid '+L+';color:'+L+';' : 'background:transparent;border:1px solid #2a2a2a;color:'+M+';') + '">'+lbl+'</button>';
+  };
+  var row = function(l, v, col){
+    return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:'+(col||'#efefef')+';"><span>'+l+'</span><span>'+v+'</span></div>';
+  };
+  var title = 'WIFE MONTHLY';
+  if(!d){
+    return '<div style="'+cardBox+'">'+secHdr(title)
+      + '<div style="font-size:12px;color:'+M+';line-height:1.6;">Nothing yet. Type her house money in ↓ Money In on salary day and it shows here.</div></div>';
+  }
+  var mLbl = new Date(d.monthKey+'-01T00:00:00').toLocaleDateString('en-ZA',{month:'long',year:'numeric'});
+  var sub = d.isCurrent ? mLbl : 'Last given · '+mLbl;
+  var total = _planWifeTab === 'subs' ? Math.round((d.house + d.subsTotal)*100)/100 : d.house;
+  var head = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">'
+    + '<div><div style="font-size:12px;color:#aaa;">'+escHtml(sub)+'</div>'
+    +   '<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">from Money In · '+d.dates.length+' entr'+(d.dates.length===1?'y':'ies')+'</div></div>'
+    + '<div style="text-align:right;"><div style="font-size:10px;color:'+M+';letter-spacing:1px;">'+(_planWifeTab==='subs'?'TOTAL TO HER':'HOUSE')+'</div>'
+    +   '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:24px;color:#efefef;">'+fmtR(total)+'</div></div>'
+    + '</div>';
+  var tabs = '<div style="display:flex;gap:8px;margin-bottom:12px;">'+tabBtn('house','House')+tabBtn('subs','Subs added')+'</div>';
+  var body = '';
+  if(_planWifeTab === 'house'){
+    body += row('Via bank', fmtR(d.bank));
+    Object.keys(d.pockets).forEach(function(nm){ body += row('From '+escHtml(nm), fmtR(d.pockets[nm])); });
+  } else {
+    var pct = (d.house + d.subsTotal) > 0 ? (d.subsTotal / (d.house + d.subsTotal)) * 100 : 0;
+    body += '<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:#2a2a2a;margin-bottom:12px;">'
+      + '<div style="width:'+(100-pct)+'%;background:'+L+';"></div><div style="width:'+pct+'%;background:'+A+';"></div></div>';
+    body += '<div style="background:#111a00;border:1px solid #3a5a00;border-radius:8px;padding:8px 12px;margin-bottom:8px;">'
+      + row('⌂ House', fmtR(d.house), L) + '</div>';
+    body += '<div style="background:#1a1200;border:1px solid #5a3a00;border-radius:8px;padding:8px 12px;">';
+    if(d.subs.length){
+      body += row('🔒 Subscriptions', fmtR(d.subsTotal), A);
+      d.subs.forEach(function(s){
+        var c = conf.find(function(x){ return x.label === s.label; });
+        body += row(escHtml(s.label) + (c && c.day ? ' · debits '+c.day+'th' : ''), fmtR(s.amount), '#bbb');
+      });
+    } else {
+      body += '<div style="font-size:12px;color:'+A+';line-height:1.6;">No subscriptions were added with this month\'s Money In.</div>';
+    }
+    body += '</div>';
+  }
+  return '<div style="'+cardBox+'">'+secHdr(title)+head+tabs+body+'</div>';
+}
 
 function renderPlan(){
   var container = document.getElementById('planContent');
@@ -261,6 +358,7 @@ function renderPlan(){
     +     '<button class="pane-toggle" onclick="togglePlanEdit()" title="Edit Plan">✎</button>'
     +   '</div>'
     +   '<div style="'+cardBox+'">'+secHdr('WHERE YOU STAND', '<span style="color:'+L+';">LIVE</span>')+standHtml+debtHtml+'</div>'
+    +   _planWifeCardHtml(plan, monthKey, cardBox, secHdr)
     +   '<div style="'+cardBox+'">'+secHdr('WHERE NEW MONEY GOES')+stepsHtml+'</div>'
     +   monthHtml
     +   (plan.notes ? '<div style="'+cardBox+'font-size:12px;color:#aaa;">'+escHtml(plan.notes)+'</div>' : '')
@@ -286,11 +384,27 @@ function _planRenderEditForm(plan){
     +   '<div class="field"><label>Monthly repayment (R)</label><input type="number" id="planDebtMonthly" value="'+plan.debtCard.monthly+'"/></div>'
     + '</div>';
 
+  // v150t: wife's subscriptions (added on top of the house money in Money In).
+  // Blank label or R0 removes a row; the empty last row adds a new one.
+  var subRows = (plan.wifeSubs||[]).concat([{ id:'', label:'', amount:'', day:'' }]).map(function(s, i){
+    return '<div style="display:flex;gap:6px;margin-bottom:6px;">'
+      + '<input type="text" data-wife-sub="'+i+'" data-field="label" data-id="'+escHtml(s.id||'')+'" value="'+escHtml(s.label||'')+'" placeholder="New subscription" style="flex:2;min-width:0;"/>'
+      + '<input type="number" step="0.01" data-wife-sub="'+i+'" data-field="amount" value="'+(s.amount===''?'':s.amount)+'" placeholder="R" style="flex:1;min-width:0;"/>'
+      + '<input type="number" min="1" max="31" data-wife-sub="'+i+'" data-field="day" value="'+(s.day||'')+'" placeholder="Day" style="width:58px;"/>'
+      + '</div>';
+  }).join('');
+  var subsBox = ''
+    + '<div class="home-plan-card" style="border-left:3px solid #f2a830;">'
+    +   '<div class="field"><label>Wife monthly · subscriptions she pays</label>'
+    +   '<div style="font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:1px;">Added on top of the house money in Money In. Clear a name to remove it.</div>'
+    +   subRows + '</div>'
+    + '</div>';
+
   return ''
     + '<div class="home-zone">'
     +   '<div class="home-zone-hdr"><div class="home-zone-title">🎯 Edit Plan</div>'
     +     '<button class="pane-toggle" onclick="togglePlanEdit()" title="Cancel">✕</button></div>'
-    +   '<div class="home-plan-cards">'+rows+debtRow+'</div>'
+    +   '<div class="home-plan-cards">'+rows+debtRow+subsBox+'</div>'
     +   '<div class="field"><label>Stipend end date</label><input type="date" id="planStipendEnd" value="'+plan.stipendEnd+'"/></div>'
     +   '<div class="field"><label>Notes (optional)</label><input type="text" id="planNotesInput" value="'+escHtml(plan.notes||'')+'" placeholder="e.g. reassess after provident fund payout"/></div>'
     +   '<button onclick="savePlanFromForm()" style="width:100%;padding:12px;background:#c8f230;border:none;border-radius:6px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Plan</button>'
@@ -310,6 +424,21 @@ function savePlanFromForm(){
   plan.debtCard.monthly = parseFloat(document.getElementById('planDebtMonthly').value) || 0;
   plan.stipendEnd = document.getElementById('planStipendEnd').value || PLAN_DEFAULTS.stipendEnd;
   plan.notes = document.getElementById('planNotesInput').value.trim();
+  // v150t: wife's subscriptions
+  var subs = {};
+  document.querySelectorAll('[data-wife-sub]').forEach(function(el){
+    var i = el.getAttribute('data-wife-sub');
+    subs[i] = subs[i] || {};
+    var f = el.getAttribute('data-field');
+    if(f === 'label'){ subs[i].label = el.value.trim(); subs[i].id = el.getAttribute('data-id') || ''; }
+    else subs[i][f] = el.value;
+  });
+  plan.wifeSubs = Object.keys(subs).sort(function(a,b){ return a-b; }).map(function(k){
+    var s = subs[k];
+    var amt = Math.round((parseFloat(s.amount)||0)*100)/100;
+    var day = parseInt(s.day,10);
+    return { id: s.id || ('ws_'+uid()), label: s.label||'', amount: amt, day: (day>=1 && day<=31) ? day : null };
+  }).filter(function(s){ return s.label && s.amount > 0; });
   savePlan(plan);
   _planEditMode = false;
   renderPlan();
