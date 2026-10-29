@@ -197,9 +197,14 @@ function _miSubsConfig(){
 }
 
 // Another Money In in the same month that already added the subscriptions.
-function _miSubsAlreadyIn(monthKey, excludeId){
+// v150u: per pay cycle (salary day → salary day); calendar month if the Plan helpers are missing.
+function _miSubsAlreadyIn(entryDate, excludeId){
+  var isSalary = (_miState.house > 0) || /salary/i.test(_miState.note||'');
+  var cyc = (typeof planCycleFor === 'function')
+    ? planCycleFor(entryDate, { excludeId:excludeId, startOverride: isSalary ? entryDate : null }) : null;
   var hit = loadMoneyInData().find(function(r){
-    return r.id !== excludeId && r.date && r.date.slice(0,7) === monthKey && (r.subs||[]).length > 0;
+    if(r.id === excludeId || !r.date || !(r.subs||[]).length) return false;
+    return cyc ? planInCycle(r.date, cyc) : r.date.slice(0,7) === entryDate.slice(0,7);
   });
   return hit || null;
 }
@@ -220,12 +225,26 @@ function _miOffTop(){
   var C = _miR2(_miState.houseCash);
   var subs = (H > 0 && _miState.subsOn) ? _miSubsConfig() : [];
   var subsTotal = _miR2(subs.reduce(function(s,x){ return s + Number(x.amount); }, 0));
-  var cashOk = C <= H + 0.005;
-  var houseBank = _miR2(Math.max(0, H - (cashOk ? C : 0)));
+  // v150u: the pocket part can cover the house AND her subscriptions (cap = house + subs).
+  // It pays the house first; anything over the house pays the subscriptions, first one first.
+  var cashOk = C <= H + subsTotal + 0.005;
+  var c = cashOk ? C : 0;
+  var houseFromPocket = _miR2(Math.min(c, H));
+  var subsFromPocket = _miR2(c - houseFromPocket);
+  var rem = subsFromPocket;
+  var subsAlloc = subs.map(function(x){
+    var amt = _miR2(x.amount);
+    var fromPocket = _miR2(Math.min(amt, rem));
+    rem = _miR2(rem - fromPocket);
+    return { sub:x, amount:amt, pocket:fromPocket, bank:_miR2(amt - fromPocket) };
+  });
+  var subsBank = _miR2(subsAlloc.reduce(function(t,a){ return t + a.bank; }, 0));
+  var houseBank = _miR2(Math.max(0, H - houseFromPocket));
   return {
-    house: H, cash: cashOk ? C : 0, cashTyped: C, cashOk: cashOk,
-    houseBank: houseBank, subs: subs, subsTotal: subsTotal,
-    offTop: _miR2(houseBank + subsTotal),
+    house: H, cash: c, cashTyped: C, cashOk: cashOk,
+    houseFromPocket: houseFromPocket, subsFromPocket: subsFromPocket,
+    houseBank: houseBank, subs: subs, subsAlloc: subsAlloc, subsTotal: subsTotal, subsBank: subsBank,
+    offTop: _miR2(houseBank + subsBank),
     toHer: _miR2(H + subsTotal)
   };
 }
@@ -246,7 +265,7 @@ function _miCashAvailable(fundId){
 // Problem that must block Save, or '' when the house part is fine.
 function _miHouseProblem(){
   var o = _miOffTop();
-  if(o.cashTyped > 0 && !o.cashOk) return 'Cash part is more than the house amount';
+  if(o.cashTyped > 0 && !o.cashOk) return 'Pocket part is more than house' + (o.subsTotal > 0 ? ' + subscriptions' : '');
   if(o.cash > 0){
     if(!_miState.cashFundId) return 'Pick the pocket the cash part comes from';
     var avail = _miCashAvailable(_miState.cashFundId);
@@ -256,7 +275,17 @@ function _miHouseProblem(){
   return '';
 }
 
+function _miWifePocket(){
+  try {
+    var plan = (typeof loadPlan === 'function') ? loadPlan() : null;
+    var id = plan && plan.wifePocketId;
+    return id ? (funds.find(function(f){ return f.id === id && !f._deleted; }) || null) : null;
+  } catch(e){ return null; }
+}
+
 function _miDefaultCashPocket(){
+  var wp = _miWifePocket();               // v150u: the pocket carpool fills for her comes first
+  if(wp) return wp.id;
   var last = _miLastHouseRec(_miState.editingId);
   if(last && last.houseCash && funds.some(function(f){ return f.id === last.houseCash.fundId && !f._deleted; })) return last.houseCash.fundId;
   var cw = funds.find(function(f){ return !f._deleted && /cash/i.test(f.name||''); });
@@ -296,6 +325,7 @@ function _miEnsureHouseExtra(){
     +   '<input type="number" id="miHouseCash" step="0.01" min="0" placeholder="Cash part" oninput="_miOnHeaderEdit()" style="flex:0 0 34%;min-width:0;width:auto;"/>'
     +   '<select id="miCashPocket" onchange="_miOnHeaderEdit()" style="flex:1;min-width:0;width:auto;"></select>'
     + '</div>'
+    + '<div id="miUseSaved"></div>'
     + '<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:none;cursor:pointer;">'
     +   '<input type="checkbox" id="miSubsOn" onchange="_miOnSubsToggle()" style="width:16px;height:16px;margin:0;padding:0;flex-shrink:0;accent-color:#f2a830;"/>'
     +   '<span>Add her subscriptions on top</span>'
@@ -320,6 +350,21 @@ function _miFillCashPocketOptions(){
       + escHtml((f.emoji||'')+' '+f.name) + ' · ' + fmtR(avail||0) + '</option>';
   }).join('');
   if(cur) sel.value = cur;
+}
+
+// v150u: one tap to pay her from what carpool saved in the Wife monthly pocket.
+function _miUseSaved(){
+  var wp = _miWifePocket();
+  if(!wp) return;
+  _miSyncInputs();
+  var o = _miOffTop();
+  var avail = _miCashAvailable(wp.id) || 0;
+  var use = _miR2(Math.min(avail, o.toHer));
+  if(!(use > 0)) return;
+  _miState.cashFundId = wp.id;
+  var sel = document.getElementById('miCashPocket'); if(sel) sel.value = wp.id;
+  var inp = document.getElementById('miHouseCash'); if(inp) inp.value = use;
+  _miOnHeaderEdit();
 }
 
 function _miOnSubsToggle(){
@@ -369,13 +414,31 @@ function _miRenderHouseExtra(){
   if(info) info.innerHTML = _miExampleText();
   _miFillCashPocketOptions();
 
-  var monthKey = (_miState.date || localDateStr(new Date())).slice(0,7);
-  var already = _miSubsAlreadyIn(monthKey, _miState.editingId);
+  var already = _miSubsAlreadyIn(_miState.date || localDateStr(new Date()), _miState.editingId);
   if(!_miState.subsTouched && !_miState.editingId){
     _miState.subsOn = !already;
   }
   var cb = document.getElementById('miSubsOn');
   if(cb) cb.checked = !!_miState.subsOn;
+
+  // v150u: "Use R… saved" button for the Wife monthly pocket
+  var us = document.getElementById('miUseSaved');
+  if(us){
+    var uh = '';
+    var wp = _miWifePocket();
+    if(wp){
+      var av = _miCashAvailable(wp.id) || 0;
+      var o0 = _miOffTop();
+      var useAmt = _miR2(Math.min(av, o0.toHer));
+      var usedAlready = _miState.cashFundId === wp.id && Math.abs(o0.cash - useAmt) < 0.005;
+      if(av > 0 && !usedAlready){
+        uh = (o0.house > 0)
+          ? '<button type="button" onclick="_miUseSaved()" style="width:100%;margin-top:8px;padding:9px;background:#1a1200;border:1px solid #f2a830;border-radius:6px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10.5px;letter-spacing:1px;cursor:pointer;">Use '+fmtR(useAmt)+' saved in '+escHtml(wp.name)+'</button>'
+          : '<div style="font-size:10.5px;color:#f2a830;margin-top:6px;">'+fmtR(av)+' saved in '+escHtml(wp.name)+'. Type the house amount to use it.</div>';
+      }
+    }
+    us.innerHTML = uh;
+  }
 
   var o = _miOffTop();
   var conf = _miSubsConfig();
@@ -383,7 +446,7 @@ function _miRenderHouseExtra(){
   if(linesEl){
     var lh = '';
     if(already){
-      lh += '<div style="font-size:10.5px;color:#f2a830;margin:2px 0 4px;">Already added with the Money In on ' + escHtml(already.date) + '. Tick only if you\'re paying them twice this month.</div>';
+      lh += '<div style="font-size:10.5px;color:#f2a830;margin:2px 0 4px;">Already added with the Money In on ' + escHtml(already.date) + '. Tick only if you\'re paying them twice this cycle.</div>';
     }
     if(!conf.length){
       lh += '<div style="font-size:10.5px;color:var(--muted);">No subscriptions set. Add them in Plan → ✎.</div>';
@@ -450,33 +513,43 @@ function _miPlanPreAllocate(leftover){
   try {
     var plan = (typeof loadPlan === 'function') ? loadPlan() : null;
     if(!plan || !(plan.savingsCards||[]).length) return [];
-    var now = new Date();
-    var thisMonthKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-    var resetLbl = new Date(now.getFullYear(), now.getMonth()+1, 1).toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
-    var allMi = loadMoneyInData();
+    // v150u: count by pay cycle (salary day → salary day), not calendar month.
+    // A salary being typed right now (house money, or note says salary) starts a new cycle today.
+    var entryDate = _miState.date || localDateStr(new Date());
+    var isSalary = (_miState.house > 0) || /salary/i.test(_miState.note||'');
+    var cyc = (typeof planCycleFor === 'function')
+      ? planCycleFor(entryDate, { excludeId:_miState.editingId, startOverride: isSalary ? entryDate : null })
+      : null;
+    var inCyc = function(ds){
+      if(cyc) return planInCycle(ds, cyc);
+      return ds && ds.slice(0,7) === entryDate.slice(0,7);
+    };
+    var resetLbl = cyc ? planCycleLabel(cyc).to : 'next month';
+    var allMi = loadMoneyInData().filter(function(r){ return r.id !== _miState.editingId; });
     var rem = leftover, planned = {}, picks = [], rows = [];
 
     plan.savingsCards.forEach(function(c){
       var label = String(c.label||'Plan card').trim();
       var pocket = funds.find(function(f){ return f.id === c.pocketId && !f._deleted; });
       if(!pocket){ rows.push({state:'warn', label:label, amt:0, why:'Pocket not found'}); return; }
+      if(c.source === 'carpool'){ rows.push({state:'skip', label:label, amt:0, why:'Filled by carpool, not salary'}); return; }   // v150u
       if(!c.monthly || c.monthly <= 0){ rows.push({state:'warn', label:label, amt:0, why:'Monthly is R0, so this card can\'t fill'}); return; }
       if(c.target > 0 && fundTotal(pocket) >= c.target){ rows.push({state:'skip', label:label, amt:0, why:'Target of '+fmtR(c.target)+' reached'}); return; }
       var routed = allMi
-        .filter(function(r){ return r.date && r.date.slice(0,7) === thisMonthKey; })
+        .filter(function(r){ return r.date && inCyc(r.date); })
         .reduce(function(s,r){
           var split = (r.splits||[]).find(function(sp){ return sp.fundId === c.pocketId; });
           return s + (split ? split.amount : 0);
         }, 0) + (planned[c.pocketId]||0);
       routed = Math.round(routed*100)/100;
-      if(routed >= c.monthly){ rows.push({state:'skip', label:label, amt:0, why:fmtR(routed)+' of '+fmtR(c.monthly)+' already routed · resets '+resetLbl}); return; }
+      if(routed >= c.monthly){ rows.push({state:'skip', label:label, amt:0, why:fmtR(routed)+' of '+fmtR(c.monthly)+' already routed this cycle · resets '+resetLbl}); return; }
       var open = Math.round((c.monthly - routed)*100)/100;
       if(rem <= 0){ rows.push({state:'wait', label:label, amt:0, why:fmtR(open)+' still open, nothing left to place'}); return; }
       var alloc = Math.min(open, rem);
       rem = Math.round((rem - alloc)*100)/100;
       planned[c.pocketId] = (planned[c.pocketId]||0) + alloc;
       picks.push({ fundId: c.pocketId, alloc: alloc });
-      rows.push({state:'fill', label:label, amt:alloc, why: alloc < open ? 'Part of '+fmtR(open)+' open this month, '+fmtR(open-alloc)+' still to go' : 'Fills this month\'s '+fmtR(c.monthly)});
+      rows.push({state:'fill', label:label, amt:alloc, why: alloc < open ? 'Part of '+fmtR(open)+' open this cycle, '+fmtR(open-alloc)+' still to go' : 'Fills this cycle\'s '+fmtR(c.monthly)});
     });
 
     _miLastPlanRows = rows;
@@ -846,9 +919,10 @@ function saveMoneyIn(){
   }
 
   // 2b) v150t: her subscriptions, on top of the house money (bank doorway)
-  off.subs.forEach(function(s){
-    var amt = _miR2(s.amount);
-    rec.subs.push({ id: s.id || uid(), label: s.label, amount: amt, cfId: _moneyInPostSub(rec, s.label, amt) });
+  //     v150u: only the bank part of each gets a bank row; a part paid from the pocket goes in 2c.
+  off.subsAlloc.forEach(function(a){
+    var cfId = a.bank > 0 ? _moneyInPostSub(rec, a.sub.label, a.bank) : null;
+    rec.subs.push({ id: a.sub.id || uid(), label: a.sub.label, amount: a.amount, bank: a.bank, cfId: cfId });
   });
 
   // 2c) v150t: part of the house money paid from a pocket. Same shape as a
@@ -858,17 +932,18 @@ function saveMoneyIn(){
     var cf2 = funds.find(function(x){ return x.id === _miState.cashFundId; });
     if(cf2){
       var cDepId = uid();
-      var cCfId = _moneyInPostHouseCash(rec, cf2, off.cash);
+      var cCfId = off.houseFromPocket > 0 ? _moneyInPostHouseCash(rec, cf2, off.houseFromPocket) : null;
+      var sCfId = off.subsFromPocket > 0 ? _moneyInPostSubsCash(rec, cf2, off.subsFromPocket) : null;   // v150u
       cf2.deposits.push({
         id: cDepId,
         txnType: 'out',
         amount: _miR2(off.cash),
         date: rec.date,
-        note: '↑ House money (cash portion)',
+        note: off.subsFromPocket > 0 ? '↑ House money + subscriptions (from pocket)' : '↑ House money (cash portion)',
         cfPosted: true,
         moneyInId: miId
       });
-      rec.houseCash = { fundId: cf2.id, amount: _miR2(off.cash), depositId: cDepId, cfId: cCfId };
+      rec.houseCash = { fundId: cf2.id, amount: _miR2(off.cash), depositId: cDepId, cfId: cCfId, subsCfId: sCfId };
     }
   }
 
@@ -930,8 +1005,9 @@ function saveMoneyIn(){
     if(typeof window._adjustBaselineForBank === 'function'){
       window._adjustBaselineForBank(rec.sourceBank, amount);          // +income
       if(house > 0) window._adjustBaselineForBank(rec.sourceBank, -house); // -house
-      rec.subs.forEach(function(s){                                    // v150t: -each subscription
-        window._adjustBaselineForBank(rec.sourceBank, -s.amount);
+      rec.subs.forEach(function(s){                                    // v150t: -each subscription (bank part, v150u)
+        var b = (s.bank != null) ? s.bank : s.amount;
+        if(b > 0) window._adjustBaselineForBank(rec.sourceBank, -b);
       });
       rec.splits.forEach(function(s){
         window._adjustBaselineForBank(rec.sourceBank, -s.amount);     // -pocket drain
@@ -1052,6 +1128,32 @@ function _moneyInPostHouseCash(rec, fund, amount){
   return cfId;
 }
 
+// v150u: Cash Flow row for the part of her subscriptions paid from the pocket.
+function _moneyInPostSubsCash(rec, fund, amount){
+  var cfData = loadCFData();
+  var mk = (rec.date||localDateStr(new Date())).slice(0,7);
+  if(!cfData[mk]) cfData[mk] = { income:[], expenses:[] };
+  var cfId = uid();
+  cfData[mk].expenses.push({
+    id: cfId,
+    label: 'Subscriptions (from ' + fund.name + ')',
+    amount: _miR2(amount),
+    icon: '📱',
+    auto: false,
+    account: (fund.emoji ? fund.emoji + ' ' : '') + fund.name,
+    date: rec.date,
+    moneyInId: rec.id,
+    sourceType: 'pocket_spend',
+    sourceId: fund.id,
+    sourceCardName: fund.name,
+    category: 'Other',
+    note: 'Money In · subscriptions paid by wife, from ' + fund.name,
+    createdAt: rec.createdAt
+  });
+  saveCFData(cfData);
+  return cfId;
+}
+
 // ── Reverse a Money In record (internal helper used by edit + delete) ──
 function _moneyInReverse(miId, opts){
   opts = opts || {};
@@ -1095,7 +1197,7 @@ function _moneyInReverse(miId, opts){
 
   // 2b) v150t: reverse her subscriptions (bank doorway: +amount back each)
   if((rec.subs||[]).length){
-    var subIds = rec.subs.map(function(s){ return s.cfId; });
+    var subIds = rec.subs.map(function(s){ return s.cfId; }).filter(Boolean);
     var cfS = loadCFData();
     var mkS = (rec.date||'').slice(0,7);
     if(cfS[mkS] && cfS[mkS].expenses){
@@ -1105,7 +1207,8 @@ function _moneyInReverse(miId, opts){
     rec.subs.forEach(function(s){
       try{
         if(typeof window._adjustBaselineForBank === 'function'){
-          window._adjustBaselineForBank(rec.sourceBank, s.amount);
+          var b = (s.bank != null) ? s.bank : s.amount;   // v150u: only the bank part touched the bank
+          if(b > 0) window._adjustBaselineForBank(rec.sourceBank, b);
         }
       }catch(e){}
     });
@@ -1120,7 +1223,7 @@ function _moneyInReverse(miId, opts){
     var cfC = loadCFData();
     var mkC = (rec.date||'').slice(0,7);
     if(cfC[mkC] && cfC[mkC].expenses){
-      cfC[mkC].expenses = cfC[mkC].expenses.filter(function(e){ return e.id !== rec.houseCash.cfId; });
+      cfC[mkC].expenses = cfC[mkC].expenses.filter(function(e){ return e.id !== rec.houseCash.cfId && e.id !== rec.houseCash.subsCfId; });
     }
     saveCFData(cfC);
   }
@@ -1330,4 +1433,5 @@ if(typeof window !== 'undefined'){
   window._miResetSplit = _miResetSplit;
   window._miOnActionTap = _miOnActionTap;
   window._miOnSubsToggle = _miOnSubsToggle;
+  window._miUseSaved = _miUseSaved;
 }

@@ -1038,17 +1038,24 @@ function openPayDestModal(btn){
     if(plan){
       var now = new Date();
       var thisMonthKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+      // v150u: count by pay cycle (salary day → salary day) when the Plan helpers are loaded.
+      var _cyc = (typeof planCycleFor === 'function') ? planCycleFor(localDateStr(now)) : null;
+      var _inCyc = function(ds){ return _cyc ? planInCycle(ds, _cyc) : (ds && ds.slice(0,7) === thisMonthKey); };
       var allPmts = [];
       try { allPmts = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); } catch(e){}
 
+      // v150u: carpool-only cards (e.g. Wife monthly) get first claim on carpool money,
+      // then the other cards in their usual order.
+      var _cards = (plan.savingsCards||[]).filter(function(c){ return c.source === 'carpool'; })
+        .concat((plan.savingsCards||[]).filter(function(c){ return c.source !== 'carpool'; }));
       var chosenCard = null, chosenLeft = 0;
-      (plan.savingsCards||[]).some(function(c){
+      _cards.some(function(c){
         if(!c.monthly || c.monthly <= 0) return false;
         var pocket = funds.find(function(f){ return f.id === c.pocketId && !f._deleted; });
         if(!pocket) return false;
         if(c.target > 0 && fundTotal(pocket) >= c.target) return false; // overall target already met
         var routedThisMonth = allPmts
-          .filter(function(p){ return p.date && p.date.slice(0,7) === thisMonthKey && p.destChoice === 'fund:'+c.pocketId; })
+          .filter(function(p){ return p.date && _inCyc(p.date) && p.destChoice === 'fund:'+c.pocketId; })
           .reduce(function(s,p){ return s + (p.amount||0); }, 0);
         if(routedThisMonth >= c.monthly) return false; // this month's cap already used
         chosenCard = c;
@@ -1060,14 +1067,14 @@ function openPayDestModal(btn){
         var hint = document.createElement('div');
         hint.id = 'payDestPlanHint';
         hint.style.cssText = 'background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:10px;color:#c8f230;letter-spacing:0.5px;';
-        hint.textContent = 'PLAN — '+fmtR(chosenLeft)+' left on '+chosenCard.label+' this month. Change only if you need to.';
+        hint.textContent = 'PLAN — '+fmtR(chosenLeft)+' left on '+chosenCard.label+' this '+(_cyc?'cycle':'month')+'. Change only if you need to.';
         optionsEl.parentNode.insertBefore(hint, optionsEl);
         selectDestOption(fundOptionEls[chosenCard.pocketId]);
       } else {
         var hint2 = document.createElement('div');
         hint2.id = 'payDestPlanHint';
         hint2.style.cssText = 'background:#111;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:10px;color:#888;letter-spacing:0.5px;';
-        hint2.textContent = 'PLAN — this month\'s commitments are covered. Pick where this goes.';
+        hint2.textContent = 'PLAN — this '+(_cyc?'cycle':'month')+'\'s commitments are covered. Pick where this goes.';
         optionsEl.parentNode.insertBefore(hint2, optionsEl);
       }
     }
@@ -1335,12 +1342,13 @@ function confirmPayDest(){
       if(_card){
         var _now = new Date();
         var _mk = _now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0');
+        var _cyc2 = (typeof planCycleFor === 'function') ? planCycleFor(localDateStr(_now)) : null;   // v150u
         var _pmts = [];
         try { _pmts = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); } catch(e){}
-        var _routed = _pmts.filter(function(p){ return p.date && p.date.slice(0,7)===_mk && p.destChoice==='fund:'+_pocketId; })
+        var _routed = _pmts.filter(function(p){ return p.date && (_cyc2 ? planInCycle(p.date, _cyc2) : p.date.slice(0,7)===_mk) && p.destChoice==='fund:'+_pocketId; })
                            .reduce(function(s,p){ return s+(p.amount||0); }, 0);
         var _left = Math.max(0, _card.monthly - _routed);
-        planFeedback = ' · '+fmtR(_left)+' left this month';
+        planFeedback = ' · '+fmtR(_left)+' left this '+(_cyc2?'cycle':'month');
       }
     }
   } catch(e){ console.warn('[Plan] post-confirm feedback skipped:', e.message); }

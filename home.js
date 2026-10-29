@@ -121,7 +121,8 @@ function loadPlan(){
         debtCard: saved.debtCard || PLAN_DEFAULTS.debtCard,
         stipendEnd: saved.stipendEnd || PLAN_DEFAULTS.stipendEnd,
         notes: saved.notes || '',
-        wifeSubs: Array.isArray(saved.wifeSubs) ? saved.wifeSubs : JSON.parse(JSON.stringify(PLAN_DEFAULTS.wifeSubs))
+        wifeSubs: Array.isArray(saved.wifeSubs) ? saved.wifeSubs : JSON.parse(JSON.stringify(PLAN_DEFAULTS.wifeSubs)),
+        wifePocketId: saved.wifePocketId || null   // v150u: pocket that carpool fills for her monthly money
       };
     }
   } catch(e){}
@@ -147,6 +148,71 @@ function _planDebtorOptions(selectedKey){
 
 function togglePlanEdit(){ _planEditMode = !_planEditMode; renderPlan(); }
 
+// ── v150u: pay cycle = salary day → next salary day ───────────────────
+// Every Plan card counts "this cycle", not the calendar month. A cycle starts
+// on the date of a salary Money In (one with house money, or a note that says
+// "salary") and runs until the next one. Before the next salary is logged, the
+// end is shown as an estimate: one month after the start.
+// If there's no salary at all yet, falls back to the 25th → 24th.
+function _planDS(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function planSalaryDates(excludeId){
+  var mi = (typeof loadMoneyInData === 'function') ? loadMoneyInData() : [];
+  var seen = {};
+  mi.forEach(function(r){
+    if(!r || !r.date || r.id === excludeId) return;
+    var h = Number(r.houseTotal != null ? r.houseTotal : r.house) || 0;
+    if(h > 0 || /salary/i.test(r.note||'')) seen[r.date.slice(0,10)] = true;
+  });
+  return Object.keys(seen).sort();
+}
+// opts.startOverride: treat this date as a salary day (a salary being typed right now).
+function planCycleFor(dateStr, opts){
+  opts = opts || {};
+  var ds = (dateStr || _planDS(new Date())).slice(0,10);
+  var dates = planSalaryDates(opts.excludeId);
+  if(opts.startOverride){ dates.push(opts.startOverride.slice(0,10)); dates = dates.filter(function(v,i,a){ return a.indexOf(v)===i; }).sort(); }
+  var start = null, next = null;
+  dates.forEach(function(d){ if(d <= ds) start = d; else if(!next) next = d; });
+  var guessed = false;
+  if(!start){
+    guessed = true;
+    var t = new Date(ds+'T00:00:00');
+    var s0 = t.getDate() >= 25 ? new Date(t.getFullYear(), t.getMonth(), 25) : new Date(t.getFullYear(), t.getMonth()-1, 25);
+    start = _planDS(s0);
+  }
+  var sd = new Date(start+'T00:00:00');
+  var est = new Date(sd.getFullYear(), sd.getMonth()+1, sd.getDate());
+  return { start:start, next:next, estNext:_planDS(est), guessed:guessed };
+}
+function planInCycle(ds, cyc){
+  if(!ds || !cyc) return false;
+  ds = ds.slice(0,10);
+  return ds >= cyc.start && (!cyc.next || ds < cyc.next);
+}
+function planCycleLabel(cyc){
+  var f = function(d){ return new Date(d+'T00:00:00').toLocaleDateString('en-ZA',{day:'numeric',month:'short'}); };
+  var endTxt = cyc.next ? f(cyc.next) : f(cyc.estNext);
+  var days = Math.round((new Date((cyc.next||cyc.estNext)+'T00:00:00') - new Date(_planDS(new Date())+'T00:00:00'))/86400000);
+  return { from:f(cyc.start), to:endTxt, estimated:!cyc.next, days:days, guessed:cyc.guessed };
+}
+// Money routed into a pocket during a cycle: carpool payments for carpool-only
+// cards, Money In splits for the rest (same sources as before, cycle not month).
+function planRoutedInCycle(card, cyc){
+  try {
+    if(card && card.source === 'carpool'){
+      var pm = []; try { pm = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); } catch(e){}
+      return Math.round(pm.filter(function(p){ return planInCycle(p.date, cyc) && p.destChoice === 'fund:'+card.pocketId; })
+        .reduce(function(s,p){ return s + (Number(p.amount)||0); }, 0) * 100) / 100;
+    }
+    var mi = (typeof loadMoneyInData === 'function') ? loadMoneyInData() : [];
+    return Math.round(mi.filter(function(r){ return planInCycle(r.date, cyc); })
+      .reduce(function(s,r){
+        var sp = (r.splits||[]).find(function(x){ return x.fundId === card.pocketId; });
+        return s + (sp ? sp.amount : 0);
+      }, 0) * 100) / 100;
+  } catch(e){ return 0; }
+}
+
 // ── v150t: Wife monthly card ─────────────────────────────────────────
 // Reads the house money from Money In (nothing typed on the Plan tab).
 // Shows the current calendar month; if nothing yet, the latest month that had house money.
@@ -157,38 +223,41 @@ function setPlanWifeTab(t){
   try { localStorage.setItem('yb_plan_wife_tab', _planWifeTab); } catch(e){}
   renderPlan();
 }
-function _planWifeData(monthKey){
+function _planWifeData(cyc){
+  // v150u: by pay cycle (salary day → salary day), not calendar month.
   var mi = (typeof loadMoneyInData === 'function') ? loadMoneyInData() : [];
   var houseOf = function(r){ return Number(r.houseTotal != null ? r.houseTotal : r.house) || 0; };
   var withHouse = mi.filter(function(r){ return r.date && houseOf(r) > 0; });
   if(!withHouse.length) return null;
-  var mk = monthKey;
-  var inMonth = withHouse.filter(function(r){ return r.date.slice(0,7) === mk; });
   var isCurrent = true;
-  if(!inMonth.length){
+  var inCyc = withHouse.filter(function(r){ return planInCycle(r.date, cyc); });
+  if(!inCyc.length){
     isCurrent = false;
-    mk = withHouse.map(function(r){ return r.date.slice(0,7); }).sort().pop();
-    inMonth = withHouse.filter(function(r){ return r.date.slice(0,7) === mk; });
+    var lastDate = withHouse.map(function(r){ return r.date.slice(0,10); }).sort().pop();
+    cyc = planCycleFor(lastDate);
+    inCyc = withHouse.filter(function(r){ return planInCycle(r.date, cyc); });
   }
   var r2 = function(n){ return Math.round(n*100)/100; };
-  var d = { monthKey:mk, isCurrent:isCurrent, house:0, bank:0, pockets:{}, subs:[], subsTotal:0, dates:[] };
-  inMonth.sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); }).forEach(function(r){
+  var d = { cycle:cyc, isCurrent:isCurrent, house:0, bank:0, pockets:{}, subs:[], subsTotal:0, dates:[] };
+  inCyc.sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); }).forEach(function(r){
     d.house += houseOf(r);
     d.bank  += Number(r.house) || 0;
-    if(r.houseCash && r.houseCash.amount > 0){
+    var fromPocket = houseOf(r) - (Number(r.house) || 0);   // house part paid from a pocket
+    if(r.houseCash && fromPocket > 0.004){
       var pf = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === r.houseCash.fundId; });
       var nm = pf ? pf.name : 'Pocket';
-      d.pockets[nm] = (d.pockets[nm]||0) + Number(r.houseCash.amount);
+      d.pockets[nm] = (d.pockets[nm]||0) + fromPocket;
     }
     (r.subs||[]).forEach(function(s){ d.subs.push({ label:s.label, amount:Number(s.amount)||0 }); d.subsTotal += Number(s.amount)||0; });
     d.dates.push(r.date);
   });
   d.house = r2(d.house); d.bank = r2(d.bank); d.subsTotal = r2(d.subsTotal);
+  Object.keys(d.pockets).forEach(function(k){ d.pockets[k] = r2(d.pockets[k]); });
   return d;
 }
-function _planWifeCardHtml(plan, monthKey, cardBox, secHdr){
+function _planWifeCardHtml(plan, cyc, cardBox, secHdr){
   var L='#c8f230', A='#f2a830', M='#888';
-  var d = _planWifeData(monthKey);
+  var d = _planWifeData(cyc);
   var conf = (plan.wifeSubs||[]).filter(function(s){ return s && Number(s.amount) > 0; });
   var tabBtn = function(id, lbl){
     var on = _planWifeTab === id;
@@ -203,8 +272,8 @@ function _planWifeCardHtml(plan, monthKey, cardBox, secHdr){
     return '<div style="'+cardBox+'">'+secHdr(title)
       + '<div style="font-size:12px;color:'+M+';line-height:1.6;">Nothing yet. Type her house money in ↓ Money In on salary day and it shows here.</div></div>';
   }
-  var mLbl = new Date(d.monthKey+'-01T00:00:00').toLocaleDateString('en-ZA',{month:'long',year:'numeric'});
-  var sub = d.isCurrent ? mLbl : 'Last given · '+mLbl;
+  var cl = planCycleLabel(d.cycle);
+  var sub = (d.isCurrent ? 'This cycle · ' : 'Last cycle · ') + cl.from + ' → ' + (cl.estimated ? '≈ ' : '') + cl.to;
   var total = _planWifeTab === 'subs' ? Math.round((d.house + d.subsTotal)*100)/100 : d.house;
   var head = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">'
     + '<div><div style="font-size:12px;color:#aaa;">'+escHtml(sub)+'</div>'
@@ -231,7 +300,7 @@ function _planWifeCardHtml(plan, monthKey, cardBox, secHdr){
         body += row(escHtml(s.label) + (c && c.day ? ' · debits '+c.day+'th' : ''), fmtR(s.amount), '#bbb');
       });
     } else {
-      body += '<div style="font-size:12px;color:'+A+';line-height:1.6;">No subscriptions were added with this month\'s Money In.</div>';
+      body += '<div style="font-size:12px;color:'+A+';line-height:1.6;">No subscriptions were added with this cycle\'s Money In.</div>';
     }
     body += '</div>';
   }
@@ -249,23 +318,12 @@ function renderPlan(){
   var L='#c8f230', R='#f23060', A='#f2a830', M='#888';
   var now = new Date();
   var monthLbl = now.toLocaleDateString('en-ZA',{month:'long',year:'numeric'}).toUpperCase();
-  var monthKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  var cyc = planCycleFor(_planDS(now));   // v150u: pay cycle (salary day → salary day)
+  var cycL = planCycleLabel(cyc);
   var allFunds = (typeof funds !== 'undefined' ? funds : []);
   var cardBox = 'background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:14px;margin-bottom:12px;';
   var secHdr = function(t, right){
     return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:2px;color:'+M+';margin-bottom:12px;"><span>'+t+'</span>'+(right||'')+'</div>';
-  };
-
-  // Money In routed into a pocket this calendar month (same rule the Money In waterfall uses)
-  var routedThisMonth = function(pocketId){
-    try {
-      var mi = (typeof loadMoneyInData === 'function') ? loadMoneyInData() : [];
-      return Math.round(mi.filter(function(r){ return r.date && r.date.slice(0,7) === monthKey; })
-        .reduce(function(s,r){
-          var sp = (r.splits||[]).find(function(x){ return x.fundId === pocketId; });
-          return s + (sp ? sp.amount : 0);
-        }, 0) * 100) / 100;   // v149u: cents
-    } catch(e){ return 0; }
   };
 
   // WHERE YOU STAND
@@ -313,9 +371,10 @@ function renderPlan(){
     var right, rcol = M;
     if(!c.monthly || c.monthly <= 0){ right = 'no monthly set'; }
     else {
-      var rt = routedThisMonth(c.pocketId);
-      if(rt >= c.monthly){ right = fmtR(rt)+' of '+fmtR(c.monthly)+' · done this month'; rcol = L; }
-      else { right = fmtR(rt)+' of '+fmtR(c.monthly)+' this month'; }
+      var rt = planRoutedInCycle(c, cyc);   // v150u: this pay cycle, not calendar month
+      var srcTag = c.source === 'carpool' ? ' · carpool' : '';
+      if(rt >= c.monthly){ right = fmtR(rt)+' of '+fmtR(c.monthly)+' · done this cycle'+srcTag; rcol = L; }
+      else { right = fmtR(rt)+' of '+fmtR(c.monthly)+' this cycle'+srcTag; }
     }
     var dim = (!c.monthly || c.monthly <= 0) ? 'opacity:.55;' : '';
     stepsHtml += '<div style="display:flex;align-items:center;gap:12px;background:#222;border-radius:8px;padding:11px 12px;margin-bottom:6px;'+dim+'">'
@@ -354,11 +413,13 @@ function renderPlan(){
     + '<div class="home-zone">'
     +   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
     +     '<div><div style="font-size:10px;letter-spacing:3px;color:var(--accent);">'+monthLbl+'</div>'
-    +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:30px;color:var(--text);line-height:1.1;margin-top:2px;">The plan</div></div>'
+    +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:30px;color:var(--text);line-height:1.1;margin-top:2px;">The plan</div>'
+    +     '<div style="font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:0.5px;">Pay cycle · '+cycL.from+' → '+(cycL.estimated?'≈ ':'')+cycL.to
+    +       (cycL.days >= 0 ? ' · '+cycL.days+' day'+(cycL.days===1?'':'s')+' left' : ' · next salary due')+(cycL.guessed ? ' (no salary logged yet, using 25th)' : '')+'</div></div>'
     +     '<button class="pane-toggle" onclick="togglePlanEdit()" title="Edit Plan">✎</button>'
     +   '</div>'
     +   '<div style="'+cardBox+'">'+secHdr('WHERE YOU STAND', '<span style="color:'+L+';">LIVE</span>')+standHtml+debtHtml+'</div>'
-    +   _planWifeCardHtml(plan, monthKey, cardBox, secHdr)
+    +   _planWifeCardHtml(plan, cyc, cardBox, secHdr)
     +   '<div style="'+cardBox+'">'+secHdr('WHERE NEW MONEY GOES')+stepsHtml+'</div>'
     +   monthHtml
     +   (plan.notes ? '<div style="'+cardBox+'font-size:12px;color:#aaa;">'+escHtml(plan.notes)+'</div>' : '')
@@ -368,14 +429,21 @@ function renderPlan(){
 
 function _planRenderEditForm(plan){
   var rows = plan.savingsCards.map(function(c, i){
+    var carpool = c.source === 'carpool';
     return ''
-      + '<div class="home-plan-card" style="border-left:3px solid #30c8f2;">'
+      + '<div class="home-plan-card" data-plan-card-box="'+i+'" style="border-left:3px solid '+(carpool?'#7090f0':'#30c8f2')+';">'
+      +   '<div style="display:flex;justify-content:flex-end;margin-bottom:4px;"><button type="button" onclick="planToggleRemoveCard('+i+')" data-remove-btn="'+i+'" style="background:none;border:1px solid #3a1a1a;border-radius:4px;color:#f23060;font-size:10px;letter-spacing:1px;padding:3px 8px;cursor:pointer;">✕ REMOVE CARD</button></div>'
       +   '<div class="field"><label>Label</label><input type="text" data-plan-card="'+i+'" data-field="label" value="'+escHtml(c.label)+'"/></div>'
       +   '<div class="field"><label>Pocket</label><select data-plan-card="'+i+'" data-field="pocketId">'+_planPocketOptions(c.pocketId)+'</select></div>'
       +   '<div class="field"><label>Target (R)</label><input type="number" data-plan-card="'+i+'" data-field="target" value="'+c.target+'"/></div>'
-      +   '<div class="field"><label>Monthly commitment (R)</label><input type="number" data-plan-card="'+i+'" data-field="monthly" value="'+c.monthly+'"/></div>'
+      +   '<div class="field"><label>Per pay cycle (R)</label><input type="number" data-plan-card="'+i+'" data-field="monthly" value="'+c.monthly+'"/></div>'
+      +   '<div class="field"><label>Filled by</label><select data-plan-card="'+i+'" data-field="source">'
+      +     '<option value=""'+(carpool?'':' selected')+'>Salary (Money In) + carpool</option>'
+      +     '<option value="carpool"'+(carpool?' selected':'')+'>Carpool only</option>'
+      +   '</select></div>'
       + '</div>';
-  }).join('');
+  }).join('')
+    + '<button type="button" onclick="planAddCard()" style="width:100%;padding:10px;margin-bottom:12px;background:none;border:1px dashed #30c8f2;border-radius:6px;color:#30c8f2;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">＋ Add savings card</button>';
 
   var debtRow = ''
     + '<div class="home-plan-card" style="border-left:3px solid #f23060;">'
@@ -393,11 +461,20 @@ function _planRenderEditForm(plan){
       + '<input type="number" min="1" max="31" data-wife-sub="'+i+'" data-field="day" value="'+(s.day||'')+'" placeholder="Day" style="width:58px;"/>'
       + '</div>';
   }).join('');
+  // v150u: the pocket carpool fills for her monthly money (used by Money In's "part paid from a pocket").
+  var wifePocketOpts = '<option value="">— none —</option>' + (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return !f._deleted; }).map(function(f){
+    return '<option value="'+f.id+'"'+(f.id===plan.wifePocketId?' selected':'')+'>'+escHtml((f.emoji||'')+' '+f.name)+'</option>';
+  }).join('');
+  var wifeSetupBtn = plan.wifePocketId ? '' :
+    '<button type="button" onclick="planSetupWifePocket()" style="width:100%;padding:10px;margin-top:8px;background:#1a1200;border:1px solid #5a3a00;border-radius:6px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">＋ Create "Wife monthly" pocket + card</button>'
+    + '<div style="font-size:10px;color:var(--muted);margin-top:6px;letter-spacing:0.5px;line-height:1.5;">Makes a new pocket and a carpool-only Plan card with target house + subscriptions.</div>';
   var subsBox = ''
     + '<div class="home-plan-card" style="border-left:3px solid #f2a830;">'
     +   '<div class="field"><label>Wife monthly · subscriptions she pays</label>'
     +   '<div style="font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:1px;">Added on top of the house money in Money In. Clear a name to remove it.</div>'
     +   subRows + '</div>'
+    +   '<div class="field"><label>Pocket you save her money in</label><select id="planWifePocket">'+wifePocketOpts+'</select>'
+    +   wifeSetupBtn + '</div>'
     + '</div>';
 
   return ''
@@ -411,14 +488,20 @@ function _planRenderEditForm(plan){
     + '</div>';
 }
 
-function savePlanFromForm(){
-  var plan = loadPlan();
+// v150u: read the edit form into a plan object (shared by Save, Add card, Set up pocket).
+function _planCollectForm(plan){
+  var removed = {};
+  document.querySelectorAll('[data-plan-card-box]').forEach(function(box){
+    if(box.getAttribute('data-removed') === '1') removed[box.getAttribute('data-plan-card-box')] = true;
+  });
   document.querySelectorAll('[data-plan-card]').forEach(function(el){
     var i = parseInt(el.getAttribute('data-plan-card'), 10);
     var field = el.getAttribute('data-field');
     if(!plan.savingsCards[i]) return;
     plan.savingsCards[i][field] = (field==='target'||field==='monthly') ? (parseFloat(el.value)||0) : el.value;
   });
+  plan.savingsCards = plan.savingsCards.filter(function(c, i){ return !removed[i]; });
+  plan.savingsCards.forEach(function(c){ if(!c.source) delete c.source; });
   plan.debtCard.label = document.getElementById('planDebtLabel').value;
   plan.debtCard.debtorKey = document.getElementById('planDebtorKey').value;
   plan.debtCard.monthly = parseFloat(document.getElementById('planDebtMonthly').value) || 0;
@@ -439,11 +522,69 @@ function savePlanFromForm(){
     var day = parseInt(s.day,10);
     return { id: s.id || ('ws_'+uid()), label: s.label||'', amount: amt, day: (day>=1 && day<=31) ? day : null };
   }).filter(function(s){ return s.label && s.amount > 0; });
+  var wp = document.getElementById('planWifePocket');
+  if(wp) plan.wifePocketId = wp.value || null;
+  return plan;
+}
+
+function savePlanFromForm(){
+  var plan = _planCollectForm(loadPlan());
   savePlan(plan);
   _planEditMode = false;
   renderPlan();
 }
 
+function planToggleRemoveCard(i){
+  var box = document.querySelector('[data-plan-card-box="'+i+'"]');
+  if(!box) return;
+  var on = box.getAttribute('data-removed') !== '1';
+  box.setAttribute('data-removed', on ? '1' : '0');
+  box.style.opacity = on ? '.35' : '1';
+  var b = document.querySelector('[data-remove-btn="'+i+'"]');
+  if(b) b.textContent = on ? '↺ KEEP CARD' : '✕ REMOVE CARD';
+}
+
+function planAddCard(){
+  var plan = _planCollectForm(loadPlan());
+  var first = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return !f._deleted; });
+  plan.savingsCards.push({ id:'c'+uid(), pocketId: first ? first.id : '', label:'New card', target:0, monthly:0 });
+  savePlan(plan);
+  renderPlan();   // stays in edit mode
+}
+
+// One tap: new pocket "Wife monthly" + carpool-only Plan card, target = last house amount + subscriptions.
+function planSetupWifePocket(){
+  var plan = _planCollectForm(loadPlan());
+  if(typeof funds === 'undefined' || !Array.isArray(funds)) return;
+  var used = {}; funds.forEach(function(f){ if(f.emoji) used[f.emoji] = true; });
+  var pick = ['💍','🎁','🛒','💎','🔑'].find(function(e){ return !used[e]; }) || '💍';
+  var subsTotal = (plan.wifeSubs||[]).reduce(function(s,x){ return s + (Number(x.amount)||0); }, 0);
+  var lastHouse = 0;
+  try {
+    var mi = (typeof loadMoneyInData === 'function') ? loadMoneyInData() : [];
+    var last = mi.filter(function(r){ return (r.houseTotal != null ? r.houseTotal : r.house) > 0; })
+                 .sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); })[0];
+    if(last) lastHouse = Number(last.houseTotal != null ? last.houseTotal : last.house) || 0;
+  } catch(e){}
+  var target = Math.round((lastHouse + subsTotal) * 100) / 100;
+  var input = prompt('Target for her monthly money (house + subscriptions):', target ? String(target) : '');
+  if(input === null) return;
+  target = Math.round((parseFloat(input) || 0) * 100) / 100;
+  if(!(target > 0)){ alert('Enter a target above R0.'); return; }
+  var f = {
+    id: uid(), name: 'Wife monthly', emoji: pick, color: '#f2a830',
+    goal: target, weekly: 0, targetType: 'monthly',
+    start: _planDS(new Date()), deadline: '2050-12-31',
+    deposits: [], isExpense: false
+  };
+  funds.push(f);
+  saveFunds();
+  plan.savingsCards.push({ id:'c'+uid(), pocketId: f.id, label:'Wife monthly', target: target, monthly: target, source:'carpool' });
+  plan.wifePocketId = f.id;
+  savePlan(plan);
+  try { renderFunds(); } catch(e){}
+  renderPlan();
+}
 
 function _renderHomeZone1Money(){
   // Source of truth: same fundTotal calc the savings tab uses.
