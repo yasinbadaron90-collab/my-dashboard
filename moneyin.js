@@ -196,6 +196,37 @@ function _miSubsConfig(){
   } catch(e){ return MI_SUB_DEFAULTS.slice(); }
 }
 
+// v150w: monthly loan repayment to her, added on top like a subscription.
+// Comes from the Plan debt card when "Add to wife's money on salary day" is
+// ticked. Capped at what's still owed. On Save it also writes a repayment on
+// that loan (Money Owed), linked to this Money In so edit/delete undo it.
+function _miDebtLine(){
+  try {
+    var plan = (typeof loadPlan === 'function') ? loadPlan() : null;
+    var dc = plan && plan.debtCard;
+    if(!dc || !dc.addToWife || !(Number(dc.monthly) > 0) || !dc.debtorKey) return null;
+    if(typeof loadExternalBorrows !== 'function' || typeof calcPersonTotals !== 'function') return null;
+    var p = loadExternalBorrows()[dc.debtorKey];
+    if(!p) return null;
+    var t = calcPersonTotals(p.entries || [], false);
+    var owing = _miR2(t.borrowed - t.repaid);
+    if(_miState.editingId){   // this entry's own repayment goes back first when editing
+      var old = loadMoneyInData().find(function(r){ return r.id === _miState.editingId; });
+      ((old && old.subs) || []).forEach(function(s){ if(s.debtKey === dc.debtorKey) owing = _miR2(owing + (Number(s.amount)||0)); });
+    }
+    var amt = _miR2(Math.min(Number(dc.monthly), owing));
+    if(!(amt > 0)) return null;
+    return { id:'debt_' + dc.debtorKey, label:(p.name || dc.label || 'Loan') + ' loan', amount:amt, debtKey:dc.debtorKey, isDebt:true };
+  } catch(e){ return null; }
+}
+// Everything added on top of the house money: subscriptions, then the loan repayment.
+function _miWifeLines(){
+  var l = _miSubsConfig().slice();
+  var d = _miDebtLine();
+  if(d) l.push(d);
+  return l;
+}
+
 // Another Money In in the same month that already added the subscriptions.
 // v150v: per pay cycle (25th → 24th, early salary counts for the new cycle); calendar month if the Plan helpers are missing.
 function _miSubsAlreadyIn(entryDate, excludeId){
@@ -223,7 +254,7 @@ function _miHouseTotalOf(r){ return r ? _miR2(r.houseTotal != null ? r.houseTota
 function _miOffTop(){
   var H = _miR2(_miState.house);
   var C = _miR2(_miState.houseCash);
-  var subs = (H > 0 && _miState.subsOn) ? _miSubsConfig() : [];
+  var subs = (H > 0 && _miState.subsOn) ? _miWifeLines() : [];   // v150w: + loan repayment
   var subsTotal = _miR2(subs.reduce(function(s,x){ return s + Number(x.amount); }, 0));
   // v150u: the pocket part can cover the house AND her subscriptions (cap = house + subs).
   // It pays the house first; anything over the house pays the subscriptions, first one first.
@@ -328,7 +359,7 @@ function _miEnsureHouseExtra(){
     + '<div id="miUseSaved"></div>'
     + '<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:none;cursor:pointer;">'
     +   '<input type="checkbox" id="miSubsOn" onchange="_miOnSubsToggle()" style="width:16px;height:16px;margin:0;padding:0;flex-shrink:0;accent-color:#f2a830;"/>'
-    +   '<span>Add her subscriptions on top</span>'
+    +   '<span id="miSubsOnLbl">Add her subscriptions on top</span>'
     + '</label>'
     + '<div id="miSubsLines" style="margin-top:4px;"></div>'
     + '<div id="miHouseSummary" style="margin-top:8px;"></div>';
@@ -375,7 +406,7 @@ function _miOnSubsToggle(){
 }
 
 function _miExampleText(){
-  var subs = _miSubsConfig();
+  var subs = _miWifeLines();
   var subsTxt = subs.map(function(s){ return s.label + ' ' + fmtR(s.amount); }).join(' + ');
   var subsTotal = _miR2(subs.reduce(function(s,x){ return s + Number(x.amount); }, 0));
   var last = _miLastHouseRec(_miState.editingId);
@@ -441,7 +472,10 @@ function _miRenderHouseExtra(){
   }
 
   var o = _miOffTop();
-  var conf = _miSubsConfig();
+  var conf = _miWifeLines();
+  var hasDebt = conf.some(function(s){ return s.isDebt; });
+  var subsLbl = document.getElementById('miSubsOnLbl');
+  if(subsLbl) subsLbl.textContent = hasDebt ? 'Add her subscriptions + loan repayment on top' : 'Add her subscriptions on top';
   var linesEl = document.getElementById('miSubsLines');
   if(linesEl){
     var lh = '';
@@ -454,7 +488,10 @@ function _miRenderHouseExtra(){
     conf.forEach(function(s){
       var on = _miState.subsOn && o.house > 0;
       lh += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:'+(on?'var(--text)':'var(--muted)')+';'+(on?'':'text-decoration:line-through;')+'">'
-        + '<span>🔒 ' + escHtml(s.label) + (s.day ? ' · ' + s.day + 'th' : '') + '</span><span>' + fmtR(s.amount) + '</span></div>';
+        + (s.isDebt
+            ? '<span>↩ ' + escHtml(s.label) + ' <span style="font-size:10px;color:#c8f230;">· pays off loan</span></span>'
+            : '<span>🔒 ' + escHtml(s.label) + (s.day ? ' · ' + s.day + 'th' : '') + '</span>')
+        + '<span>' + fmtR(s.amount) + '</span></div>';
     });
     linesEl.innerHTML = lh;
   }
@@ -921,6 +958,26 @@ function saveMoneyIn(){
   // 2b) v150t: her subscriptions, on top of the house money (bank doorway)
   //     v150u: only the bank part of each gets a bank row; a part paid from the pocket goes in 2c.
   off.subsAlloc.forEach(function(a){
+    if(a.sub.isDebt){
+      // v150w: loan repayment. Bank part gets its own Cash Flow row; the full
+      // amount is written as a repayment on the loan, owned by this Money In.
+      var dCfId = a.bank > 0 ? _moneyInPostDebt(rec, a.sub.label, a.bank) : null;
+      var dEntryId = null;
+      try {
+        var ext = loadExternalBorrows();
+        var person = ext[a.sub.debtKey];
+        if(person){
+          dEntryId = uid();
+          person.entries = person.entries || [];
+          person.entries.push({ id: dEntryId, type: 'repay', amount: a.amount, date: rec.date,
+                                note: 'From salary · Money In', moneyInId: miId });
+          saveExternalBorrows(ext);
+        }
+      } catch(e){ console.warn('[moneyin] loan repayment failed', e); }
+      rec.subs.push({ id: a.sub.id, label: a.sub.label, amount: a.amount, bank: a.bank, cfId: dCfId,
+                      debtKey: a.sub.debtKey, debtEntryId: dEntryId });
+      return;
+    }
     var cfId = a.bank > 0 ? _moneyInPostSub(rec, a.sub.label, a.bank) : null;
     rec.subs.push({ id: a.sub.id || uid(), label: a.sub.label, amount: a.amount, bank: a.bank, cfId: cfId });
   });
@@ -933,13 +990,14 @@ function saveMoneyIn(){
     if(cf2){
       var cDepId = uid();
       var cCfId = off.houseFromPocket > 0 ? _moneyInPostHouseCash(rec, cf2, off.houseFromPocket) : null;
-      var sCfId = off.subsFromPocket > 0 ? _moneyInPostSubsCash(rec, cf2, off.subsFromPocket) : null;   // v150u
+      var _debtFromPocket = off.subsAlloc.some(function(a){ return a.sub.isDebt && a.pocket > 0; });   // v150w
+      var sCfId = off.subsFromPocket > 0 ? _moneyInPostSubsCash(rec, cf2, off.subsFromPocket, _debtFromPocket) : null;   // v150u
       cf2.deposits.push({
         id: cDepId,
         txnType: 'out',
         amount: _miR2(off.cash),
         date: rec.date,
-        note: off.subsFromPocket > 0 ? '↑ House money + subscriptions (from pocket)' : '↑ House money (cash portion)',
+        note: off.subsFromPocket > 0 ? (_debtFromPocket ? '↑ House money + subscriptions + loan (from pocket)' : '↑ House money + subscriptions (from pocket)') : '↑ House money (cash portion)',
         cfPosted: true,
         moneyInId: miId
       });
@@ -1101,6 +1159,33 @@ function _moneyInPostSub(rec, label, amount){
   return cfId;
 }
 
+// v150w: Cash Flow row for the bank part of the loan repayment to her.
+// Deliberately no payDebtId: this row belongs to the Money In, so its guards
+// send any edit/delete back to Money In (which also removes the repayment).
+function _moneyInPostDebt(rec, label, amount){
+  var cfData = loadCFData();
+  var mk = (rec.date||localDateStr(new Date())).slice(0,7);
+  if(!cfData[mk]) cfData[mk] = { income:[], expenses:[] };
+  var cfId = uid();
+  cfData[mk].expenses.push({
+    id: cfId,
+    label: label + ' repayment',
+    amount: _miR2(amount),
+    icon: '↩',
+    auto: false,
+    account: rec.sourceBank,
+    destBank: rec.sourceBank,
+    date: rec.date,
+    moneyInId: rec.id,
+    sourceType: 'house_debt',
+    category: 'Other',
+    note: 'Money In · loan repayment, given with the house money',
+    createdAt: rec.createdAt
+  });
+  saveCFData(cfData);
+  return cfId;
+}
+
 // v150t: Cash Flow row for the part of the house money paid from a pocket.
 // Shaped like a Direct Spend row (pocket badge, no bank) so it shows the same way.
 function _moneyInPostHouseCash(rec, fund, amount){
@@ -1129,14 +1214,14 @@ function _moneyInPostHouseCash(rec, fund, amount){
 }
 
 // v150u: Cash Flow row for the part of her subscriptions paid from the pocket.
-function _moneyInPostSubsCash(rec, fund, amount){
+function _moneyInPostSubsCash(rec, fund, amount, withLoan){
   var cfData = loadCFData();
   var mk = (rec.date||localDateStr(new Date())).slice(0,7);
   if(!cfData[mk]) cfData[mk] = { income:[], expenses:[] };
   var cfId = uid();
   cfData[mk].expenses.push({
     id: cfId,
-    label: 'Subscriptions (from ' + fund.name + ')',
+    label: (withLoan ? 'Subscriptions + loan (from ' : 'Subscriptions (from ') + fund.name + ')',
     amount: _miR2(amount),
     icon: '📱',
     auto: false,
@@ -1212,6 +1297,18 @@ function _moneyInReverse(miId, opts){
         }
       }catch(e){}
     });
+    // v150w: take the loan repayment back off Money Owed
+    var debtSubs = rec.subs.filter(function(s){ return s.debtKey && s.debtEntryId; });
+    if(debtSubs.length && typeof loadExternalBorrows === 'function'){
+      try {
+        var extR = loadExternalBorrows();
+        debtSubs.forEach(function(s){
+          var pr = extR[s.debtKey];
+          if(pr) pr.entries = (pr.entries||[]).filter(function(e){ return e.id !== s.debtEntryId; });
+        });
+        saveExternalBorrows(extR);
+      } catch(e){ console.warn('[moneyin] loan repayment reverse failed', e); }
+    }
   }
 
   // 2c) v150t: reverse the pocket part of the house money (no baseline: it never touched the bank)

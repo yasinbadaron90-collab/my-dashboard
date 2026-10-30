@@ -469,12 +469,32 @@ function deleteBorrowEntry(passenger, entryId){
 }
 
 // ── EDIT EXTERNAL BORROW ENTRY ──
+// v150w: a loan repayment written by a salary Money In belongs to that Money In.
+// Editing or deleting it here would leave the Money In, Cash Flow and bank out
+// of step, so send the user to Money In instead (same pattern as Cash Flow).
+function _extMoneyInGuard(entry){
+  if(!entry || !entry.moneyInId) return false;
+  var rec = null;
+  try { rec = (typeof loadMoneyInData === 'function' ? loadMoneyInData() : []).find(function(r){ return r.id === entry.moneyInId; }); } catch(e){}
+  if(!rec) return false;   // orphan: let the normal path handle it
+  var body = 'This repayment is part of:\n  ' + (rec.note || 'Money In') + ' · ' + fmtR(rec.amount) + ' · ' + rec.date + '\n\n'
+    + 'Change or delete it from that Money In, so the Cash Flow and bank stay in step.';
+  if(typeof mihbConfirm === 'function'){
+    mihbConfirm({ title:'🔒 Edit from Money In instead', body:body, dangerLabel:'✎ Open Money In', safeLabel:'Leave it alone' },
+      function(go){ if(go && typeof openMoneyIn === 'function') openMoneyIn(entry.moneyInId); });
+  } else if(confirm('🔒 Edit from Money In instead\n\n' + body)){
+    if(typeof openMoneyIn === 'function') openMoneyIn(entry.moneyInId);
+  }
+  return true;
+}
+
 function openEditExternalBorrowModal(personKey, entryId){
   const data   = loadExternalBorrows();
   const person = data[personKey];
   if(!person) return;
   const entry = (person.entries||[]).find(function(e){ return e.id === entryId; });
   if(!entry) return;
+  if(_extMoneyInGuard(entry)) return;   // v150w
   document.getElementById('editBorrowPassenger').value  = '__ext__' + personKey;
   document.getElementById('editBorrowId').value         = entryId;
   document.getElementById('editBorrowAmt').value        = entry.amount;
@@ -608,6 +628,12 @@ function updateSavingsDepositByBorrowId(linkedId, newAmount, newDate, newNote){
 }
 
 function deleteBorrowEntryUnified(passengerVal, entryId){
+  // v150w: repayment owned by a salary Money In → route to Money In
+  if(passengerVal.startsWith('__ext__')){
+    var _mk = passengerVal.replace('__ext__','');
+    var _me = ((loadExternalBorrows()[_mk]||{}).entries||[]).find(function(e){ return e.id === entryId; });
+    if(_extMoneyInGuard(_me)) return;
+  }
   // ── v90 — personal lend entries reverse atomically via _lendReverse ────
   // A pocket-first lend links pocket deposit ↔ CF row ↔ borrow entry via a
   // lendId. Routing through _lendReverse keeps the bank untouched (the

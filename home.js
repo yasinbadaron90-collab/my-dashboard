@@ -86,7 +86,7 @@ var PLAN_DEFAULTS = {
     { id:'c1', pocketId:'lyvyib7', label:'Emergency Vault', target:63000, monthly:0 },
     { id:'c2', pocketId:'murqfqm', label:'Ee90 Car Fund',   target:5000,  monthly:1200 }
   ],
-  debtCard: { debtorKey:'nuri', label:'Nuri Debt', monthly:1000 },
+  debtCard: { debtorKey:'nuri', label:'Nuri Debt', monthly:1000, addToWife:false },
   stipendEnd: '2026-10-31',
   decPayDay: 18,   // v150v: December salary comes early for Christmas
   notes: '',
@@ -342,9 +342,10 @@ function renderPlan(){
   var cyc = planCycleFor(_planDS(now));   // v150v: pay cycle 25th → 24th (early salary flips it sooner)
   var cycL = planCycleLabel(cyc);
   var monthLbl = (cycL.from+' – '+cycL.to).toUpperCase();
+  // v150w: the title already shows the cycle, so this line is just the payday countdown (fits one line on a phone)
   var cycLine = cycL.early
-    ? 'Salary in early · next cycle '+cycL.from+' → '+cycL.to
-    : 'Pay cycle · '+cycL.from+' → '+cycL.to+(cycL.days > 0 ? ' · payday '+(cycL.pay !== cycL.nextFrom ? cycL.pay+', ' : '')+'in '+cycL.days+' day'+(cycL.days===1?'':'s') : cycL.days === 0 ? ' · payday today' : ' · salary due');
+    ? 'Salary in early · new cycle starts '+cycL.from
+    : (cycL.days > 0 ? 'Payday in '+cycL.days+' day'+(cycL.days===1?'':'s')+' · '+cycL.pay : cycL.days === 0 ? 'Payday today' : 'Salary due');
   var allFunds = (typeof funds !== 'undefined' ? funds : []);
   var cardBox = 'background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:14px;margin-bottom:12px;';
   var secHdr = function(t, right){
@@ -374,7 +375,7 @@ function renderPlan(){
   }).join('');
 
   // Debt card
-  var debtOwing = 0, debtName = plan.debtCard.label;
+  var debtOwing = 0, debtName = plan.debtCard.label, debtPaidCyc = 0;
   try {
     var ext = (typeof loadExternalBorrows === 'function') ? loadExternalBorrows() : {};
     var person = ext[plan.debtCard.debtorKey];
@@ -382,10 +383,15 @@ function renderPlan(){
       var totals = calcPersonTotals(person.entries || [], false);
       debtOwing = totals.borrowed - totals.repaid;
       debtName = person.name || plan.debtCard.label;
+      debtPaidCyc = Math.round((person.entries||[]).filter(function(e){ return e.type === 'repay' && planInCycle(e.date, cyc); })
+        .reduce(function(s,e){ return s + (Number(e.amount)||0); }, 0) * 100) / 100;   // v150w
     }
   } catch(e){}
+  var debtNote = plan.debtCard.addToWife
+    ? (debtPaidCyc > 0 ? fmtR(debtPaidCyc)+' paid this cycle ✓' : 'added to her money on salary day')
+    : 'don\'t accelerate yet';
   var debtHtml = '<div style="margin-top:18px;padding-top:14px;border-top:1px solid #2a2a2a;">'
-    + '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#aaa;">'+escHtml(String(debtName))+'</span><span style="color:'+M+';">'+fmtR(plan.debtCard.monthly)+'/month · don\'t accelerate yet</span></div>'
+    + '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#aaa;">'+escHtml(String(debtName))+'</span><span style="color:'+M+';">'+fmtR(plan.debtCard.monthly)+'/month · '+debtNote+'</span></div>'
     + '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:24px;color:'+R+';margin-top:3px;">'+fmtR(debtOwing)+'</div>'
     + '</div>';
 
@@ -474,6 +480,9 @@ function _planRenderEditForm(plan){
     +   '<div class="field"><label>Debt label</label><input type="text" id="planDebtLabel" value="'+escHtml(plan.debtCard.label)+'"/></div>'
     +   '<div class="field"><label>Person</label><select id="planDebtorKey">'+_planDebtorOptions(plan.debtCard.debtorKey)+'</select></div>'
     +   '<div class="field"><label>Monthly repayment (R)</label><input type="number" id="planDebtMonthly" value="'+plan.debtCard.monthly+'"/></div>'
+    +   '<label style="display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:0.5px;color:var(--text);cursor:pointer;margin:-4px 0 8px;">'
+    +     '<input type="checkbox" id="planDebtToWife"'+(plan.debtCard.addToWife?' checked':'')+' style="width:16px;height:16px;margin:0;flex-shrink:0;accent-color:#c8f230;"/>'
+    +     '<span>Add to wife\'s money on salary day (Money In adds it on top and takes it off the loan)</span></label>'
     + '</div>';
 
   // v150t: wife's subscriptions (added on top of the house money in Money In).
@@ -531,6 +540,8 @@ function _planCollectForm(plan){
   plan.debtCard.label = document.getElementById('planDebtLabel').value;
   plan.debtCard.debtorKey = document.getElementById('planDebtorKey').value;
   plan.debtCard.monthly = parseFloat(document.getElementById('planDebtMonthly').value) || 0;
+  var dtw = document.getElementById('planDebtToWife');
+  if(dtw) plan.debtCard.addToWife = !!dtw.checked;   // v150w
   plan.stipendEnd = document.getElementById('planStipendEnd').value || PLAN_DEFAULTS.stipendEnd;
   var dpd = document.getElementById('planDecPayDay');
   if(dpd){ var dv = parseInt(dpd.value,10); plan.decPayDay = (dv>=1 && dv<=31) ? dv : 18; }
