@@ -85,6 +85,7 @@ function openMoneyIn(editingId){
     note: '',
     sourceBank: 'FNB',
     house: 0,
+    herTotal: 0,             // v150x: what's typed = total to her (house + subs + loan)
     houseCash: 0,
     cashFundId: null,
     subsOn: true,
@@ -102,6 +103,7 @@ function openMoneyIn(editingId){
       _miState.note = rec.note || '';
       _miState.sourceBank = rec.sourceBank || 'FNB';
       _miState.house = (rec.houseTotal != null ? rec.houseTotal : rec.house) || 0;   // v150t
+      _miState.herTotal = _miR2(_miState.house + (rec.subs||[]).reduce(function(t,s){ return t + (Number(s.amount)||0); }, 0));   // v150x
       _miState.houseCash = rec.houseCash ? (rec.houseCash.amount || 0) : 0;
       _miState.cashFundId = rec.houseCash ? rec.houseCash.fundId : null;
       _miState.subsOn = (rec.subs||[]).length > 0;
@@ -114,7 +116,7 @@ function openMoneyIn(editingId){
   document.getElementById('miAmount').value = _miState.amount || '';
   document.getElementById('miNote').value = _miState.note;
   document.getElementById('miDate').value = _miState.date;
-  document.getElementById('miHouse').value = _miState.house || '';
+  document.getElementById('miHouse').value = _miState.herTotal || '';   // v150x: field = total to her
   _miEnsureHouseExtra();
   if(!_miState.cashFundId) _miState.cashFundId = _miDefaultCashPocket();
   var _cashInp = document.getElementById('miHouseCash');
@@ -155,7 +157,8 @@ function _miSyncInputs(){
   _miState.amount = parseFloat(document.getElementById('miAmount').value) || 0;
   _miState.note   = document.getElementById('miNote').value.trim();
   _miState.date   = document.getElementById('miDate').value || localDateStr(new Date());
-  _miState.house  = parseFloat(document.getElementById('miHouse').value) || 0;
+  _miState.herTotal = parseFloat(document.getElementById('miHouse').value) || 0;   // v150x
+  _miState.house  = _miDeriveHouse();
   var _c = document.getElementById('miHouseCash');
   if(_c) _miState.houseCash = Math.max(0, parseFloat(_c.value) || 0);
   var _p = document.getElementById('miCashPocket');
@@ -230,7 +233,7 @@ function _miWifeLines(){
 // Another Money In in the same month that already added the subscriptions.
 // v150v: per pay cycle (25th → 24th, early salary counts for the new cycle); calendar month if the Plan helpers are missing.
 function _miSubsAlreadyIn(entryDate, excludeId){
-  var isSalary = (_miState.house > 0) || /salary/i.test(_miState.note||'');
+  var isSalary = (_miState.herTotal > 0 || _miState.house > 0) || /salary/i.test(_miState.note||'');
   var cyc = (typeof planCycleFor === 'function')
     ? planCycleFor(entryDate, { excludeId:excludeId, startOverride: isSalary ? entryDate : null }) : null;
   var hit = loadMoneyInData().find(function(r){
@@ -250,11 +253,23 @@ function _miLastHouseRec(excludeId){
 
 function _miHouseTotalOf(r){ return r ? _miR2(r.houseTotal != null ? r.houseTotal : r.house) : 0; }
 
+// v150x: he types the TOTAL she asked for; the house part is what's left after
+// her subscriptions + loan repayment come off. Untick them and it's all house.
+function _miLinesTotal(){
+  return _miR2(_miWifeLines().reduce(function(t,x){ return t + Number(x.amount); }, 0));
+}
+function _miDeriveHouse(){
+  var T = _miR2(_miState.herTotal);
+  if(!(T > 0)) return 0;
+  return _miState.subsOn ? _miR2(Math.max(0, T - _miLinesTotal())) : T;
+}
+
 // What this entry takes off the top of the bank, worked out from the current state.
 function _miOffTop(){
+  _miState.house = _miDeriveHouse();   // v150x: subsOn may have changed since the last sync
   var H = _miR2(_miState.house);
   var C = _miR2(_miState.houseCash);
-  var subs = (H > 0 && _miState.subsOn) ? _miWifeLines() : [];   // v150w: + loan repayment
+  var subs = (_miR2(_miState.herTotal) > 0 && _miState.subsOn) ? _miWifeLines() : [];   // v150w: + loan repayment; v150x: keyed off the total
   var subsTotal = _miR2(subs.reduce(function(s,x){ return s + Number(x.amount); }, 0));
   // v150u: the pocket part can cover the house AND her subscriptions (cap = house + subs).
   // It pays the house first; anything over the house pays the subscriptions, first one first.
@@ -296,6 +311,8 @@ function _miCashAvailable(fundId){
 // Problem that must block Save, or '' when the house part is fine.
 function _miHouseProblem(){
   var o = _miOffTop();
+  if(_miState.herTotal > 0 && _miState.subsOn && _miState.herTotal < _miLinesTotal() - 0.005)
+    return 'Total to her is less than her subscriptions + loan (' + fmtR(_miLinesTotal()) + ')';   // v150x
   if(o.cashTyped > 0 && !o.cashOk) return 'Pocket part is more than house' + (o.subsTotal > 0 ? ' + subscriptions' : '');
   if(o.cash > 0){
     if(!_miState.cashFundId) return 'Pick the pocket the cash part comes from';
@@ -359,7 +376,7 @@ function _miEnsureHouseExtra(){
     + '<div id="miUseSaved"></div>'
     + '<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:none;cursor:pointer;">'
     +   '<input type="checkbox" id="miSubsOn" onchange="_miOnSubsToggle()" style="width:16px;height:16px;margin:0;padding:0;flex-shrink:0;accent-color:#f2a830;"/>'
-    +   '<span id="miSubsOnLbl">Add her subscriptions on top</span>'
+    +   '<span id="miSubsOnLbl">Take her subscriptions off the total</span>'
     + '</label>'
     + '<div id="miSubsLines" style="margin-top:4px;"></div>'
     + '<div id="miHouseSummary" style="margin-top:8px;"></div>';
@@ -418,10 +435,10 @@ function _miExampleText(){
     var pf = funds.find(function(f){ return f.id === last.houseCash.fundId; });
     if(pf) pocketName = pf.name;
   } else if(!last){ pocketName = 'Cash wallet'; }
-  var t = 'Type what you\'re giving her for the house. '
-    + (subs.length ? subsTxt + ' are added on top automatically (change them in Plan → ✎). ' : '')
+  var t = 'Type the <b>total</b> she asks for. '
+    + (subs.length ? subsTxt + ' come off that total automatically (change them in Plan → ✎); what\'s left is the house money. ' : '')
     + 'If part of it comes out of a pocket, type that part below and pick the pocket.<br><br>'
-    + '<b>' + src + ':</b> house ' + fmtR(H)
+    + '<b>' + src + ':</b> total ' + fmtR(_miR2(H + subsTotal)) + ' → house ' + fmtR(H)
     + (C > 0 ? ', ' + fmtR(C) + ' from ' + escHtml(pocketName) : '')
     + (C > 0
         ? ' → ' + fmtR(_miR2(H - C + subsTotal)) + ' off the bank, ' + fmtR(C) + ' from the pocket, ' + fmtR(_miR2(H + subsTotal)) + ' total to her.'
@@ -435,7 +452,8 @@ function _miRenderHouseExtra(){
   var houseInp = document.getElementById('miHouse');
   var last = _miLastHouseRec(_miState.editingId);
   if(houseInp){
-    houseInp.placeholder = last ? ('e.g. ' + fmtR(_miHouseTotalOf(last)) + ' last time · ask wife') : 'Ask wife how much…';
+    var lastTot = last ? _miR2(_miHouseTotalOf(last) + (last.subs||[]).reduce(function(t,s){ return t + (Number(s.amount)||0); }, 0)) : 0;
+    houseInp.placeholder = last ? ('e.g. ' + fmtR(lastTot) + ' last time · ask wife') : 'Ask wife the total…';   // v150x
   }
   var cashInp = document.getElementById('miHouseCash');
   if(cashInp){
@@ -451,6 +469,7 @@ function _miRenderHouseExtra(){
   }
   var cb = document.getElementById('miSubsOn');
   if(cb) cb.checked = !!_miState.subsOn;
+  _miState.house = _miDeriveHouse();   // v150x
 
   // v150u: "Use R… saved" button for the Wife monthly pocket
   var us = document.getElementById('miUseSaved');
@@ -463,9 +482,9 @@ function _miRenderHouseExtra(){
       var useAmt = _miR2(Math.min(av, o0.toHer));
       var usedAlready = _miState.cashFundId === wp.id && Math.abs(o0.cash - useAmt) < 0.005;
       if(av > 0 && !usedAlready){
-        uh = (o0.house > 0)
+        uh = (o0.toHer > 0)
           ? '<button type="button" onclick="_miUseSaved()" style="width:100%;margin-top:8px;padding:9px;background:#1a1200;border:1px solid #f2a830;border-radius:6px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10.5px;letter-spacing:1px;cursor:pointer;">Use '+fmtR(useAmt)+' saved in '+escHtml(wp.name)+'</button>'
-          : '<div style="font-size:10.5px;color:#f2a830;margin-top:6px;">'+fmtR(av)+' saved in '+escHtml(wp.name)+'. Type the house amount to use it.</div>';
+          : '<div style="font-size:10.5px;color:#f2a830;margin-top:6px;">'+fmtR(av)+' saved in '+escHtml(wp.name)+'. Type the total to her to use it.</div>';
       }
     }
     us.innerHTML = uh;
@@ -475,7 +494,7 @@ function _miRenderHouseExtra(){
   var conf = _miWifeLines();
   var hasDebt = conf.some(function(s){ return s.isDebt; });
   var subsLbl = document.getElementById('miSubsOnLbl');
-  if(subsLbl) subsLbl.textContent = hasDebt ? 'Add her subscriptions + loan repayment on top' : 'Add her subscriptions on top';
+  if(subsLbl) subsLbl.textContent = hasDebt ? 'Take her subscriptions + loan repayment off the total' : 'Take her subscriptions off the total';   // v150x
   var linesEl = document.getElementById('miSubsLines');
   if(linesEl){
     var lh = '';
@@ -486,13 +505,17 @@ function _miRenderHouseExtra(){
       lh += '<div style="font-size:10.5px;color:var(--muted);">No subscriptions set. Add them in Plan → ✎.</div>';
     }
     conf.forEach(function(s){
-      var on = _miState.subsOn && o.house > 0;
+      var on = _miState.subsOn && _miState.herTotal > 0;
       lh += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:'+(on?'var(--text)':'var(--muted)')+';'+(on?'':'text-decoration:line-through;')+'">'
         + (s.isDebt
             ? '<span>↩ ' + escHtml(s.label) + ' <span style="font-size:10px;color:#c8f230;">· pays off loan</span></span>'
             : '<span>🔒 ' + escHtml(s.label) + (s.day ? ' · ' + s.day + 'th' : '') + '</span>')
-        + '<span>' + fmtR(s.amount) + '</span></div>';
+        + '<span>' + (on ? '−' : '') + fmtR(s.amount) + '</span></div>';
     });
+    if(_miState.herTotal > 0){   // v150x: the house part, worked out
+      lh += '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0 2px;margin-top:3px;border-top:1px dashed var(--border);color:#c8f230;">'
+        + '<span>⌂ House (what\'s left)</span><span>' + fmtR(o.house) + '</span></div>';
+    }
     linesEl.innerHTML = lh;
   }
 
@@ -500,7 +523,7 @@ function _miRenderHouseExtra(){
   if(sumEl){
     var prob = _miHouseProblem();
     var sh = '';
-    if(o.house > 0){
+    if(o.toHer > 0){
       var bank = _miState.sourceBank || 'FNB';
       var row = function(l, v, col, bold){
         return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:'+col+';'+(bold?'font-weight:700;':'')+'"><span>'+l+'</span><span>'+v+'</span></div>';
@@ -553,7 +576,7 @@ function _miPlanPreAllocate(leftover){
     // v150u: count by pay cycle (salary day → salary day), not calendar month.
     // A salary being typed right now (house money, or note says salary) starts a new cycle today.
     var entryDate = _miState.date || localDateStr(new Date());
-    var isSalary = (_miState.house > 0) || /salary/i.test(_miState.note||'');
+    var isSalary = (_miState.herTotal > 0 || _miState.house > 0) || /salary/i.test(_miState.note||'');
     var cyc = (typeof planCycleFor === 'function')
       ? planCycleFor(entryDate, { excludeId:_miState.editingId, startOverride: isSalary ? entryDate : null })
       : null;
