@@ -197,7 +197,7 @@ function _miSubsConfig(){
 }
 
 // Another Money In in the same month that already added the subscriptions.
-// v150u: per pay cycle (salary day → salary day); calendar month if the Plan helpers are missing.
+// v150v: per pay cycle (25th → 24th, early salary counts for the new cycle); calendar month if the Plan helpers are missing.
 function _miSubsAlreadyIn(entryDate, excludeId){
   var isSalary = (_miState.house > 0) || /salary/i.test(_miState.note||'');
   var cyc = (typeof planCycleFor === 'function')
@@ -524,7 +524,7 @@ function _miPlanPreAllocate(leftover){
       if(cyc) return planInCycle(ds, cyc);
       return ds && ds.slice(0,7) === entryDate.slice(0,7);
     };
-    var resetLbl = cyc ? planCycleLabel(cyc).to : 'next month';
+    var resetLbl = cyc ? (planCycleLabel(cyc).nextFrom || planCycleLabel(cyc).to) : 'next month';
     var allMi = loadMoneyInData().filter(function(r){ return r.id !== _miState.editingId; });
     var rem = leftover, planned = {}, picks = [], rows = [];
 
