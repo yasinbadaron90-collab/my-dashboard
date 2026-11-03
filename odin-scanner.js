@@ -337,7 +337,7 @@ function _scanRenderReview(){
 
   return '<div class="scan-hdr">'
     +'<div class="scan-title">'+lines.length+' line items</div>'
-    +'<div class="scan-sub">'+_scanner.date+workshop+'</div>'
+    +'<div class="scan-sub">'+_scanEsc(_scanner.date)+_scanEsc(workshop)+'</div>'
     +'</div>'
     +reconcileHtml
     +'<div class="scan-section-label">Review — tap to include/skip</div>'
@@ -494,7 +494,8 @@ function _scanRenderDone(){
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 function _scanEsc(s){
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Delegates to core.js escHtml (also escapes quotes) — audit item 3.
+  return escHtml(s == null ? '' : s);
 }
 
 // ── Expose globals ────────────────────────────────────────────────────────────

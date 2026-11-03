@@ -229,7 +229,7 @@ function _renderOdinTabActivity(mk){
     var row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;';
     row.addEventListener('click', (function(tab){ return function(){ goToTab(tab); }; })(a.tab));
-    row.innerHTML = '<div><div style="font-size:12px;color:var(--text);font-family:DM Mono,monospace;">'+a.text+'</div>'
+    row.innerHTML = '<div><div style="font-size:12px;color:var(--text);font-family:DM Mono,monospace;">'+escHtml(a.text)+'</div>'
       +'<div style="font-size:10px;color:var(--muted2);margin-top:2px;">'+a.date+'</div></div>'
       +'<span style="font-size:13px;font-weight:700;color:'+a.color+';">'+a.amount+'</span>';
     container.appendChild(row);

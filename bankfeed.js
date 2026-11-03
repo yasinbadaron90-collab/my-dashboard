@@ -387,7 +387,7 @@ function _bfRenderReview(){
       +'<div class="bf-txn-top">'
       +'<div class="bf-txn-left">'
       +'<div class="bf-txn-merchant">'+_bfEsc(t.merchant)+'</div>'
-      +'<div class="bf-txn-meta">'+t.date+'</div>'
+      +'<div class="bf-txn-meta">'+_bfEsc(t.date)+'</div>'
       +'</div>'
       +'<div class="bf-txn-right">'
       +'<div class="bf-txn-amt" style="color:'+amtColor+'">'+amtPrefix+'R'+Number(t.amount).toLocaleString('en-ZA')+'</div>'
@@ -624,7 +624,8 @@ function bfEditDate(which){
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 function _bfEsc(s){
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Delegates to core.js escHtml (also escapes quotes) — audit item 3.
+  return escHtml(s == null ? '' : s);
 }
 
 // ── _bfEntryReverse ──────────────────────────────────────────────────────────

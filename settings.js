@@ -488,7 +488,7 @@ function cfRow(e, type, isRecur){
   return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);'+rowStyle+'">'
     +'<span style="font-size:18px;flex-shrink:0;">'+e.icon+'</span>'
     +'<div style="flex:1;min-width:0;">'
-      +'<div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+labelStyle+'">'+e.label+'</div>'
+      +'<div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+labelStyle+'">'+escHtml(e.label)+'</div>'
       +subLine
     +'</div>'
     +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;white-space:nowrap;'+amtStyle+'">'+sign+fmtR(e.amount)+'</span>'
@@ -507,7 +507,7 @@ function cfAutoRow(e){
   return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);opacity:.85;">'
     +'<span style="font-size:18px;flex-shrink:0;">'+e.icon+'</span>'
     +'<div style="flex:1;min-width:0;">'
-      +'<div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+e.label+'</div>'
+      +'<div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(e.label)+'</div>'
       +'<div style="font-size:9px;color:#3a5a00;letter-spacing:1px;">'+(sourceLabel[e.source]||'Auto-imported')+'</div>'
     +'</div>'
     +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:'+color+';white-space:nowrap;">'+sign+fmtR(e.amount)+'</span>'

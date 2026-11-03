@@ -170,7 +170,7 @@ function renderCars(){
         function buildExpRow(e){
           return '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;">'
             +'<div>'
-              +'<div style="font-size:12px;"><strong style="color:var(--text);font-weight:700;">'+(e.category||'💡 Other')+'</strong><span style="color:var(--muted);font-size:11px;margin-left:6px;">'+(e.desc||'')+'</span></div>'
+              +'<div style="font-size:12px;"><strong style="color:var(--text);font-weight:700;">'+escHtml(e.category||'💡 Other')+'</strong><span style="color:var(--muted);font-size:11px;margin-left:6px;">'+escHtml(e.desc||'')+'</span></div>'
               +'<div style="color:var(--muted);font-size:10px;margin-top:2px;">'+(e.date||'')+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
             +'</div>'
             +'<span style="color:#f2a830;font-weight:700;font-size:13px;white-space:nowrap;">R'+Number(e.amt).toLocaleString('en-ZA')+'</span>'
@@ -382,7 +382,7 @@ function openAllRecords(carId){
     expenses.forEach(function(e){
       rows += '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;">'
         +'<div>'
-          +'<div style="font-size:12px;"><strong style="color:var(--text);font-weight:700;">'+(e.category||'💡 Other')+'</strong><span style="color:var(--muted);font-size:11px;margin-left:6px;">'+(e.desc||'')+'</span></div>'
+          +'<div style="font-size:12px;"><strong style="color:var(--text);font-weight:700;">'+escHtml(e.category||'💡 Other')+'</strong><span style="color:var(--muted);font-size:11px;margin-left:6px;">'+escHtml(e.desc||'')+'</span></div>'
           +'<div style="color:var(--muted);font-size:10px;margin-top:2px;">'+(e.date||'')+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
         +'</div>'
         +'<span style="color:#f2a830;font-weight:700;font-size:13px;white-space:nowrap;">R'+Number(e.amt).toLocaleString('en-ZA')+'</span>'
