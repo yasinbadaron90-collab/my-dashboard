@@ -540,6 +540,15 @@ const EXTERNAL_BORROW_KEY= 'yb_external_borrows_v1';
   });
 })();
 
+// v151b: the PIN lock screen was removed (login is Google Sign-In only), but the
+// old PINs were still stored in plain text and copied into every backup.
+// Delete them on every load (cheap, idempotent); backups no longer carry them.
+(function purgeLegacyPins(){
+  try{ localStorage.removeItem(PIN_STORE_KEY); }catch(e){}
+  try{ sessionStorage.removeItem(PIN_STORE_KEY); }catch(e){}
+  try{ delete _lsMem[PIN_STORE_KEY]; }catch(e){}
+})();
+
 
 // Auth state — set by loginSuccess (Google Sign-In via firebase-sync.js)
 let currentRole = 'guest';

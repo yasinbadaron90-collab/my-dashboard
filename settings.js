@@ -624,7 +624,6 @@ function buildBackupPayload(){
     cars: JSON.parse(lsGet(CARS_KEY)||'[]'),
     drivers: JSON.parse(lsGet(DRIVER_KEY)||'[]'),
     instalments: JSON.parse(lsGet(INST_KEY)||'[]'),
-    pins: JSON.parse(lsGet(PIN_STORE_KEY)||'null'),
     schoolEvents: loadSchoolEvents(),
     schoolResults: ALL_YEARS_DATA,
     schoolDone: getSchoolDone(),
@@ -730,7 +729,7 @@ function restoreData(input){
       if(backup.cars)           lsSet(CARS_KEY,     JSON.stringify(backup.cars));
       if(backup.drivers)        lsSet(DRIVER_KEY,  JSON.stringify(backup.drivers));
       if(backup.instalments)    lsSet(INST_KEY, JSON.stringify(backup.instalments));
-      if(backup.pins)           lsSet(PIN_STORE_KEY,           JSON.stringify(backup.pins));
+      // backup.pins (old lock-screen PINs, plain text) is ignored on purpose since v151b.
       if(backup.schoolEvents)   lsSet(SCHOOL_EVENTS_KEY,   JSON.stringify(backup.schoolEvents));
       if(backup.schoolResults)  lsSet(SCHOOL_RESULTS_KEY,  JSON.stringify(backup.schoolResults));
       if(backup.schoolDone)     lsSet(SCHOOL_DONE_KEY,     JSON.stringify(backup.schoolDone));
