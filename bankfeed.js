@@ -234,11 +234,10 @@ function bfPreFillKeyInput(){
 
 // ── Call Claude API to extract transactions ───────────────────────────────────
 function _bfCallAI(){
-  var apiKey = bfGetApiKey();
-  if(!apiKey){
+  if(!ybAiCanCall()){
     _bf.step = 'upload';
     _bfRender();
-    alert('No API key set. Go to Settings → Bank Feed AI Key and paste your Anthropic key first.');
+    alert(YB_AI_NO_ACCESS_MSG);
     return;
   }
 
@@ -278,28 +277,18 @@ function _bfCallAI(){
     { type: 'text', text: userText }
   ];
 
-  var proxyUrl = (typeof ODIN_PROXY_URL !== 'undefined' && ODIN_PROXY_URL && !ODIN_PROXY_URL.includes('YOUR-WORKER'))
-    ? ODIN_PROXY_URL : null;
-
-  fetch(proxyUrl || 'https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: proxyUrl ? {
-      'Content-Type': 'application/json',
-      'X-Api-Key': apiKey,
-      'X-Anthropic-Beta': 'pdfs-2024-09-25'
-    } : {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-      'anthropic-beta': 'pdfs-2024-09-25'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 8000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: messageContent }]
-    })
+  // Always via the Worker (audit #17) — no direct browser → Anthropic calls.
+  ybAiHeaders('pdfs-2024-09-25').then(function(hdrs){
+    return fetch(ODIN_PROXY_URL, {
+      method: 'POST',
+      headers: hdrs,
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 8000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: messageContent }]
+      })
+    });
   })
   .then(function(r){ return r.json(); })
   .then(function(data){
@@ -314,7 +303,7 @@ function _bfCallAI(){
       _bfRender();
       var msg = data.error.message || 'API error';
       if(msg.includes('api_key') || msg.includes('auth') || msg.includes('invalid x-api-key')){
-        alert('Invalid API key. Go to Settings → Bank Feed AI Key and check your key.');
+        alert('AI access refused. ' + YB_AI_NO_ACCESS_MSG);
       } else {
         alert('Could not read the statement: ' + msg);
       }

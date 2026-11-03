@@ -651,14 +651,40 @@ function _odinBuildContext(){
 // ── Cloudflare Worker proxy URL ───────────────────────────────────────────────
 var ODIN_PROXY_URL = 'https://wispy-thunder-bc04.yasin-badaron90.workers.dev';
 
+// ── AI access (audit #17) ─────────────────────────────────────────────────────
+// Every Anthropic call goes through the Worker with the Firebase login token.
+// For Yasin's verified login the Worker uses its own server-side key, so no
+// key has to live on the device. A key saved under Settings → Bank Feed AI Key
+// is still sent as a fallback (signed out, or someone else's copy of the app).
+var YB_AI_NO_ACCESS_MSG = 'Sign in with Google (Settings → Firebase Cloud Sync) to use the AI features, or add your own key under Settings → Bank Feed AI Key.';
+function ybAiSignedIn(){
+  try { return !!(typeof _fb !== 'undefined' && _fb.auth && _fb.auth.currentUser); }
+  catch(e){ return false; }
+}
+function ybAiCanCall(){
+  var k = typeof bfGetApiKey === 'function' ? bfGetApiKey() : '';
+  return ybAiSignedIn() || !!k;
+}
+function ybAiHeaders(beta){
+  var h = { 'Content-Type': 'application/json' };
+  var k = typeof bfGetApiKey === 'function' ? bfGetApiKey() : '';
+  if(k) h['X-Api-Key'] = k;
+  if(beta) h['X-Anthropic-Beta'] = beta;
+  if(!ybAiSignedIn()) return Promise.resolve(h);
+  return _fb.auth.currentUser.getIdToken()
+    .then(function(tok){ h['Authorization'] = 'Bearer ' + tok; return h; })
+    .catch(function(){ return h; });
+}
+window.ybAiCanCall = ybAiCanCall;
+window.ybAiHeaders = ybAiHeaders;
+
 // ── Send a message ────────────────────────────────────────────────────────────
 function odinChat(userText){
   if(!userText || !userText.trim()) return;
   userText = userText.trim();
 
-  var apiKey = typeof bfGetApiKey === 'function' ? bfGetApiKey() : '';
-  if(!apiKey){
-    appendOdinMsg('assistant', '⚠️ No API key set. Go to <b>Settings → Bank Feed AI Key</b> and paste your Anthropic key.', false, null);
+  if(!ybAiCanCall()){
+    appendOdinMsg('assistant', '⚠️ ' + escHtml(YB_AI_NO_ACCESS_MSG), false, null);
     return;
   }
 
@@ -703,15 +729,15 @@ function odinChat(userText){
   var messages = _odinHistory.slice();
 
   function _odinFetch(retrying){
+    ybAiHeaders().then(function(hdrs){ _odinFetchWith(retrying, hdrs); });
+  }
+  function _odinFetchWith(retrying, hdrs){
     var controller = new AbortController();
     var timer = setTimeout(function(){ controller.abort(); }, 30000);
     fetch(ODIN_PROXY_URL, {
       method: 'POST',
       signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': apiKey
-      },
+      headers: hdrs,
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,

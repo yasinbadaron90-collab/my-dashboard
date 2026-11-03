@@ -157,11 +157,10 @@ function _scanAnimateProgress(){
 
 // ── Call Claude API ───────────────────────────────────────────────────────────
 function _scanCallAI(){
-  var apiKey = typeof bfGetApiKey === 'function' ? bfGetApiKey() : '';
-  if(!apiKey){
+  if(!ybAiCanCall()){
     _scanner.step = 'upload';
     _scanRender();
-    alert('No API key set. Go to Settings → Bank Feed AI Key and paste your Anthropic key first.');
+    alert(YB_AI_NO_ACCESS_MSG);
     return;
   }
 
@@ -204,21 +203,18 @@ function _scanCallAI(){
     { type: 'text', text: userText }
   ];
 
-  fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-      'anthropic-beta': 'pdfs-2024-09-25'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: messageContent }]
-    })
+  // Via the Worker (audit #17) — no direct browser → Anthropic calls.
+  ybAiHeaders('pdfs-2024-09-25').then(function(hdrs){
+    return fetch(ODIN_PROXY_URL, {
+      method: 'POST',
+      headers: hdrs,
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: messageContent }]
+      })
+    });
   })
   .then(function(r){ return r.json(); })
   .then(function(data){
@@ -233,7 +229,7 @@ function _scanCallAI(){
       if(msg.includes('credit') || msg.includes('billing')){
         alert('Anthropic API credits needed. Go to console.anthropic.com → Plans & Billing to top up.');
       } else if(msg.includes('api_key') || msg.includes('auth')){
-        alert('Invalid API key. Go to Settings → Bank Feed AI Key and check your key.');
+        alert('AI access refused. ' + YB_AI_NO_ACCESS_MSG);
       } else {
         alert('Could not read the invoice: ' + msg);
       }
