@@ -106,7 +106,7 @@ function renderPrayer(){
   renderBreakdown(data);
 }
 
-// ── Prayer Times (Aladhan API — Cape Town) ──
+// ── Prayer Times (masjid timetable → Aladhan → static) ──
 let prayerTimesCache = null;
 let prayerTimesCacheDate = null;
 
@@ -150,38 +150,136 @@ function getStaticPrayerTimes(dateStr) {
   return { f: parts[0], d: parts[1], a: parts[2], m: parts[3], i: parts[4], j: parts[1], t: null };
 }
 
-function fetchPrayerTimes(){
-  const today = pTodayStr();
-  if(prayerTimesCache && prayerTimesCacheDate === today) return Promise.resolve(prayerTimesCache);
+// ── Masjid timetable (my-masjid.com) — v151c ─────────────────────────
+// Masjid us Salaam (34 St Athans Rd, Athlone) publishes its own adhan +
+// iqamah table on my-masjid.com — the same feed that drives the TV screen
+// in the masjid. We download the WHOLE YEAR in one call, keep it in
+// localStorage, and read each day from there. So times show offline, and
+// the ◀ ▶ day navigation shows that day's real times (before v151c every
+// day showed today's times). The copy is refreshed in the background
+// every 12h because the committee edits times (they did on 4 Nov 2026).
+// To use another masjid: lsSet('yasin_masjid_guid', '<guid>') — the
+// guid is the id in that masjid's time.my-masjid.com/timingscreen/<guid> link.
+// Fallbacks if the masjid feed has never loaded: Aladhan city times, then
+// the static table above.
+const MASJID_GUID_DEFAULT  = 'a43cf4fb-0430-4875-8f23-5860b1055fbb';
+const MASJID_GUID_KEY      = 'yasin_masjid_guid';
+const MASJID_TT_KEY        = 'yasin_masjid_tt_v1';
+const MASJID_TT_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+let _masjidTT = null;
+let _masjidFetchP = null;
 
-  // Always load static times immediately so UI never shows blank
-  const staticTimes = getStaticPrayerTimes(today);
-  if(staticTimes){
-    prayerTimesCache = staticTimes;
-    prayerTimesCacheDate = today;
-  }
+function _masjidGuid(){ return lsGet(MASJID_GUID_KEY) || MASJID_GUID_DEFAULT; }
 
-  // Try API to get accurate times — silently update cache if it works
-  const url = 'https://api.aladhan.com/v1/timingsByCity?city=Cape+Town&country=South+Africa&method=2';
+// Strict "HH:MM" — anything else becomes null. These strings come from an
+// outside API and end up in innerHTML, so only digits and ':' get through.
+function _hm(s){
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(s == null ? '' : s));
+  return m ? (m[1].length === 1 ? '0' + m[1] : m[1]) + ':' + m[2] : null;
+}
+
+function _loadMasjidTT(){
+  if(_masjidTT && _masjidTT.guid === _masjidGuid()) return _masjidTT;
+  _masjidTT = null;
+  try{
+    const o = JSON.parse(lsGet(MASJID_TT_KEY) || 'null');
+    if(o && o.guid === _masjidGuid() && o.days) _masjidTT = o;
+  } catch(e){}
+  return _masjidTT;
+}
+
+// Resolves to the timetable (fresh, or the old copy if the fetch fails).
+// One request at a time — callers share the in-flight promise.
+function refreshMasjidTimetable(force){
+  const cur = _loadMasjidTT();
+  if(!force && cur && (Date.now() - cur.fetchedAt) < MASJID_TT_MAX_AGE_MS) return Promise.resolve(cur);
+  if(_masjidFetchP) return _masjidFetchP;
+  const guid = _masjidGuid();
+  _masjidFetchP = fetch('https://time.my-masjid.com/api/TimingsInfoScreen/GetMasjidTimings?GuidId=' + encodeURIComponent(guid))
+    .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(j){
+      const m = j && j.model;
+      if(!m || !Array.isArray(m.salahTimings) || m.salahTimings.length < 28) throw new Error('unexpected payload');
+      const days = {};
+      m.salahTimings.forEach(function(d){
+        if(!d || !d.month || !d.day) return;
+        days[d.month + '-' + d.day] = [
+          d.fajr, d.shouruq, d.zuhr, d.asr, d.maghrib, d.isha,
+          d.iqamah_Fajr, d.iqamah_Zuhr, d.iqamah_Asr, d.iqamah_Maghrib, d.iqamah_Isha
+        ].map(_hm).join(',');
+      });
+      const js = Array.isArray(m.jumahSalahIqamahTimings) ? m.jumahSalahIqamahTimings : [];
+      const jp = js.find(function(x){ return x && x.isPrimary; }) || js[0];
+      const tt = {
+        guid: guid,
+        name: (m.masjidDetails && m.masjidDetails.name) || 'Masjid',
+        fetchedAt: Date.now(),
+        updatedAt: m.lastUpdatedAt || null,
+        jumah: jp ? [_hm(jp.time), _hm(jp.iqamahTime)].join(',') : '',
+        days: days
+      };
+      lsSet(MASJID_TT_KEY, JSON.stringify(tt));
+      _masjidTT = tt;
+      return tt;
+    })
+    .catch(function(e){ console.warn('[prayer] masjid timetable fetch failed:', e && e.message); return cur; })
+    .finally(function(){ _masjidFetchP = null; });
+  return _masjidFetchP;
+}
+
+// Times for one date from the stored masjid table, or null.
+// Shape matches the old cache: {t,f,d,j,a,m,i} + iq:{…} for iqamah.
+function getMasjidTimes(dateStr){
+  const tt = _loadMasjidTT();
+  if(!tt) return null;
+  const d = new Date(dateStr + 'T12:00:00');
+  const row = tt.days[(d.getMonth() + 1) + '-' + d.getDate()];
+  if(!row) return null;
+  const p  = row.split(',');
+  const jm = String(tt.jumah || '').split(',');
+  return {
+    t: null, f: p[0] || null, d: p[2] || null, a: p[3] || null, m: p[4] || null, i: p[5] || null,
+    j: jm[0] || p[2] || null,
+    iq: { f: p[6] || null, d: p[7] || null, a: p[8] || null, m: p[9] || null, i: p[10] || null, j: jm[1] || null },
+    src: 'masjid', name: tt.name
+  };
+}
+
+// Fallback when no masjid table is stored yet: Aladhan city times for the
+// date (their endpoint takes DD-MM-YYYY), static table if offline.
+function _fetchCityTimes(day){
+  if(prayerTimesCache && prayerTimesCacheDate === day && prayerTimesCache.src !== 'masjid') return Promise.resolve(prayerTimesCache);
+  const staticTimes = getStaticPrayerTimes(day);
+  if(staticTimes){ staticTimes.src = 'static'; prayerTimesCache = staticTimes; prayerTimesCacheDate = day; }
+  const ddmmyyyy = day.slice(8,10) + '-' + day.slice(5,7) + '-' + day.slice(0,4);
+  const url = 'https://api.aladhan.com/v1/timingsByCity/' + ddmmyyyy + '?city=Cape+Town&country=South+Africa&method=2';
   return fetch(url)
     .then(function(r){ return r.json(); })
     .then(function(json){
       if(json.status === 'OK'){
         const t = json.data.timings;
-        prayerTimesCache = {
-          t: null,
-          f: t.Fajr,
-          d: t.Dhuhr,
-          j: t.Jumuah || t.Dhuhr,
-          a: t.Asr,
-          m: t.Maghrib,
-          i: t.Isha
-        };
-        prayerTimesCacheDate = today;
+        prayerTimesCache = { t: null, f: _hm(t.Fajr), d: _hm(t.Dhuhr), j: _hm(t.Jumuah || t.Dhuhr),
+                             a: _hm(t.Asr), m: _hm(t.Maghrib), i: _hm(t.Isha), src: 'city' };
+        prayerTimesCacheDate = day;
       }
       return prayerTimesCache;
     })
-    .catch(function(){ return prayerTimesCache; }); // Return static times on network fail
+    .catch(function(){ return prayerTimesCache; });
+}
+
+function fetchPrayerTimes(dateStr){
+  const day = dateStr || pTodayStr();
+  const fromMasjid = getMasjidTimes(day);
+  if(fromMasjid){
+    prayerTimesCache = fromMasjid; prayerTimesCacheDate = day;
+    return Promise.resolve(fromMasjid);
+  }
+  // No stored masjid table yet (first open, or a new guid) — fetch it now
+  return refreshMasjidTimetable(true).then(function(){
+    const t = getMasjidTimes(day);
+    if(t){ prayerTimesCache = t; prayerTimesCacheDate = day; return t; }
+    return _fetchCityTimes(day);
+  });
 }
 
 function renderTodayGrid(data, today){
@@ -189,7 +287,7 @@ function renderTodayGrid(data, today){
   if(!grid) return;
   const todayEntry = data[today] || {};
   const friday = isFriday(today);
-  const times = prayerTimesCache || {};
+  const times = getMasjidTimes(today) || (prayerTimesCacheDate === today ? prayerTimesCache : null) || {};
 
   // On Fridays: replace Dhuhr with Jumuah + add Dhuhr below it (some musallahs pray both)
   const prayers = friday ? [
@@ -210,7 +308,8 @@ function renderTodayGrid(data, today){
 
   grid.innerHTML = prayers.map(p => {
     const done = todayEntry[p.key] === 1;
-    const timeStr = times[p.key] ? '<span style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:1px;">'+times[p.key]+'</span>' : '';
+    const iqStr = (times.iq && times.iq[p.key]) ? '<span style="font-size:9px;color:var(--muted);opacity:.75;letter-spacing:.5px;">iqamah '+times.iq[p.key]+'</span>' : '';
+    const timeStr = times[p.key] ? '<span style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:1px;">'+times[p.key]+'</span>' + iqStr : '';
     const isJumuah = p.key === 'j';
     const bgColor = done
       ? (p.key==='t' ? 'rgba(155,89,182,.15)' : isJumuah ? 'rgba(242,168,48,.1)' : 'rgba(200,242,48,.1)')
@@ -227,6 +326,15 @@ function renderTodayGrid(data, today){
     </button>`;
   }).join('');
 
+  // Where the times come from (v151c)
+  const srcEl = document.getElementById('prayerTimesSource');
+  if(srcEl){
+    srcEl.textContent = times.src === 'masjid' ? 'Times: ' + (times.name || 'Masjid') + ' timetable · adhan / iqamah'
+                      : times.src === 'city'   ? 'Times: Cape Town (calculated) · masjid timetable not loaded yet'
+                      : times.src === 'static' ? 'Times: offline estimate · connect once to load the masjid timetable'
+                      : '';
+  }
+
   // Friday label
   const label = document.getElementById('pFridayBadge');
   if(friday && !label){
@@ -242,8 +350,18 @@ function renderTodayGrid(data, today){
 }
 
 function renderTodayGridWithTimes(data, today){
-  fetchPrayerTimes().then(function(){
+  const before = JSON.stringify(getMasjidTimes(today));
+  fetchPrayerTimes(today).then(function(){
     renderTodayGrid(data, today);
+  });
+  // Background refresh (max every 12h). If the committee changed this
+  // day's times, redraw — only if the person is still on the same day.
+  refreshMasjidTimetable(false).then(function(){
+    const after = getMasjidTimes(today);
+    if(after && JSON.stringify(after) !== before && pSelectedDateStr() === today){
+      prayerTimesCache = after; prayerTimesCacheDate = today;
+      renderTodayGrid(getPrayerData(), today);
+    }
   });
 }
 
