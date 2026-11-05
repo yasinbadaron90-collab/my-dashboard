@@ -277,6 +277,185 @@ function _planWifeData(cyc){
   Object.keys(d.pockets).forEach(function(k){ d.pockets[k] = r2(d.pockets[k]); });
   return d;
 }
+// ── v151d: PDF report for her ────────────────────────────────────────
+// One page she can keep: total sent, house, each subscription she pays,
+// the loan repayment and what's still owed, and where the money came
+// from (salary bank vs a savings pocket). Built only from the Money In
+// records of the cycle the Wife monthly card is showing — nothing typed.
+function _planWifeReportData(cyc){
+  var d = _planWifeData(cyc);
+  if(!d) return null;
+  var r2 = function(n){ return Math.round(n*100)/100; };
+  var mi = (typeof loadMoneyInData === 'function') ? loadMoneyInData() : [];
+  var houseOf = function(r){ return Number(r.houseTotal != null ? r.houseTotal : r.house) || 0; };
+  var recs = mi.filter(function(r){ return r.date && houseOf(r) > 0 && planInCycle(r.date, d.cycle); })
+               .sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
+  var rep = { cycle:d.cycle, isCurrent:d.isCurrent, dates:[], house:0, subs:[], loans:[], total:0,
+              banks:{}, pockets:{}, loanOwing:null, loanName:null };
+  recs.forEach(function(r){
+    var house = houseOf(r);
+    var subs = r.subs || [];
+    var recTotal = house;
+    rep.house += house;
+    subs.forEach(function(s){
+      var amt = Number(s.amount) || 0;
+      recTotal += amt;
+      if(s.debtKey) rep.loans.push({ label:s.label, amount:amt, debtKey:s.debtKey });
+      else rep.subs.push({ label:s.label, amount:amt });
+    });
+    var pocketAmt = (r.houseCash && Number(r.houseCash.amount) > 0) ? Number(r.houseCash.amount) : 0;
+    if(pocketAmt > 0){
+      var pf = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f.id === r.houseCash.fundId; });
+      var nm = pf ? pf.name : 'Savings pocket';
+      rep.pockets[nm] = r2((rep.pockets[nm]||0) + pocketAmt);
+    }
+    var bankAmt = r2(recTotal - pocketAmt);
+    if(bankAmt > 0.004){
+      var bk = r.sourceBank || 'Bank';
+      rep.banks[bk] = r2((rep.banks[bk]||0) + bankAmt);
+    }
+    rep.total += recTotal;
+    rep.dates.push(r.date.slice(0,10));
+  });
+  rep.house = r2(rep.house); rep.total = r2(rep.total);
+  // Loan balance as it stands now (after every repayment logged so far)
+  var key = rep.loans.length ? rep.loans[0].debtKey : null;
+  if(key && typeof loadExternalBorrows === 'function' && typeof calcPersonTotals === 'function'){
+    try {
+      var p = loadExternalBorrows()[key];
+      if(p){ var t = calcPersonTotals(p.entries || [], false); rep.loanOwing = r2(t.borrowed - t.repaid); rep.loanName = p.name || null; }
+    } catch(e){}
+  }
+  return rep;
+}
+
+function _planWifePdfMoney(n){
+  var v = Math.round((Number(n)||0)*100)/100, neg = v < 0; v = Math.abs(v);
+  var s = v.toFixed(2).split('.');
+  s[0] = s[0].replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+  return (neg?'-':'') + 'R' + s[0] + (s[1] === '00' ? '' : '.' + s[1]);
+}
+
+// jsPDF's built-in font only knows Latin-1 — strip emoji/arrows from names.
+function _planWifePdfText(s){
+  return String(s == null ? '' : s).replace(/[^\x20-\x7E -ÿ]/g, '').replace(/\s+/g,' ').trim();
+}
+
+function _planWifeBuildPdf(rep, herName){
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({ unit:'mm', format:'a4' });
+  var L = 18, R = 192, y = 0;
+  var INK = [26,26,26], MUTE = [115,115,115], RULE = [220,220,220], LIME = [200,242,48];
+  var GREEN = [70,120,0], AMBER = [190,110,10], BLUE = [60,90,180];
+  var MS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var day = function(ds){ return parseInt(ds.slice(8,10),10)+' '+MS[parseInt(ds.slice(5,7),10)-1]+' '+ds.slice(0,4); };
+  var P = _planWifePdfText, M = _planWifePdfMoney;
+  function txt(s, x, yy, o){ o = o||{}; doc.setFont('helvetica', o.bold?'bold':'normal'); doc.setFontSize(o.size||10);
+    doc.setTextColor.apply(doc, o.color||INK); doc.text(String(s), x, yy, o.align?{align:o.align}:undefined); }
+  function rule(yy, col){ doc.setDrawColor.apply(doc, col||RULE); doc.setLineWidth(0.2); doc.line(L, yy, R, yy); }
+  function row(l, v, o){ o = o||{}; txt(l, L+4, y, { size:o.size||11, color:o.color||INK, bold:o.bold });
+    txt(v, R-4, y, { size:o.size||11, color:o.color||INK, bold:o.bold, align:'right' }); y += o.gap||7; }
+  function section(title, col){ y += 4; txt(title.toUpperCase(), L, y, { size:8, bold:true, color:col||MUTE }); y += 2.5; rule(y, col||INK); y += 6.5; }
+
+  var cl = planCycleLabel(rep.cycle);
+  var last = rep.dates[rep.dates.length-1];
+
+  // ── header
+  doc.setFillColor.apply(doc, LIME); doc.rect(0, 0, 210, 3, 'F');
+  txt('MONTHLY MONEY', L, 14, { size:8, bold:true, color:MUTE });
+  txt(herName ? 'For ' + P(herName) : 'Your money this month', L, 23, { size:20, bold:true });
+  txt('Sent ' + day(last), R, 23, { size:11, align:'right', color:MUTE });
+  txt('Pay cycle ' + P(cl.from) + ' to ' + P(cl.to), R, 29, { size:9, align:'right', color:MUTE });
+  y = 40;
+
+  // ── total
+  doc.setFillColor(245,245,245); doc.roundedRect(L, y, R-L, 26, 2, 2, 'F');
+  txt('TOTAL SENT TO YOU', L+5, y+8, { size:8, bold:true, color:MUTE });
+  txt(M(rep.total), L+5, y+20, { size:24, bold:true });
+  var bankList = Object.keys(rep.banks);
+  txt(rep.dates.length === 1 ? 'One transfer' : rep.dates.length + ' transfers', R-5, y+20, { size:9, color:MUTE, align:'right' });
+  y += 34;
+
+  // ── house
+  section('House', GREEN);
+  row('For the house', M(rep.house), { size:14, bold:true, gap:8 });
+
+  // ── subscriptions
+  if(rep.subs.length){
+    section('Subscriptions you pay', AMBER);
+    var plan = (typeof loadPlan === 'function') ? loadPlan() : {};
+    var conf = (plan.wifeSubs || []);
+    var subsTotal = 0;
+    rep.subs.forEach(function(s){
+      var c = conf.find(function(x){ return x && x.label === s.label; });
+      row(P(s.label) + (c && c.day ? '   (debits ' + c.day + 'th)' : ''), M(s.amount));
+      subsTotal += s.amount;
+    });
+    rule(y-4); y += 1.5;
+    row('Subscriptions total', M(subsTotal), { bold:true });
+  }
+
+  // ── loan
+  if(rep.loans.length){
+    section('Loan repayment', BLUE);
+    var lt = 0; rep.loans.forEach(function(l){ lt += l.amount; });
+    row('Paid back this month', M(lt), { bold:true });
+    if(rep.loanOwing != null){
+      row('Still owed after this', M(rep.loanOwing), { color:MUTE });
+      txt('Balance as at ' + day(_planDS(new Date())), L+4, y-2, { size:7.5, color:MUTE });
+      y += 4;
+    }
+  }
+
+  // ── where it came from
+  section('Where the money came from');
+  bankList.forEach(function(b){ row('From salary (' + P(b) + ')', M(rep.banks[b])); });
+  Object.keys(rep.pockets).forEach(function(nm){ row('From savings: ' + (P(nm) || 'pocket'), M(rep.pockets[nm])); });
+  rule(y-4); y += 1.5;
+  row('Total', M(rep.total), { bold:true });
+
+  // ── footer
+  txt('My Dashboard  -  generated ' + day(_planDS(new Date())), L, 287, { size:7, color:MUTE });
+  return doc;
+}
+
+function planWifeReportPdf(){
+  var plan = (typeof loadPlan === 'function') ? loadPlan() : {};
+  var cyc = planCycleFor(_planDS(new Date()));
+  var rep = _planWifeReportData(cyc);
+  if(!rep){ alert('Nothing to report yet. Log her money in Money In first.'); return; }
+  var herName = null;
+  try {
+    var key = plan.debtCard && plan.debtCard.debtorKey;
+    var p = key && typeof loadExternalBorrows === 'function' ? loadExternalBorrows()[key] : null;
+    if(p && p.name) herName = String(p.name).charAt(0).toUpperCase() + String(p.name).slice(1);
+  } catch(e){}
+  function go(){
+    try {
+      var doc = _planWifeBuildPdf(rep, herName);
+      var last = rep.dates[rep.dates.length-1];
+      var fname = 'Monthly_money_' + last + '.pdf';
+      // Phone: open the share sheet (WhatsApp, Gmail…) with the PDF attached.
+      var blob = doc.output('blob');
+      var file = (typeof File === 'function') ? new File([blob], fname, { type:'application/pdf' }) : null;
+      if(file && navigator.canShare && navigator.canShare({ files:[file] })){
+        navigator.share({ files:[file], title:'Monthly money' }).catch(function(e){
+          if(e && e.name !== 'AbortError') doc.save(fname);
+        });
+      } else {
+        doc.save(fname);
+      }
+    } catch(e){ console.error('[WifeReport] failed', e); alert('Could not build the report: ' + e.message); }
+  }
+  if(typeof window.jspdf === 'undefined'){
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = go;
+    s.onerror = function(){ alert('Could not load the PDF library. Check your connection and try again.'); };
+    document.head.appendChild(s);
+  } else go();
+}
+
 function _planWifeCardHtml(plan, cyc, cardBox, secHdr){
   var L='#c8f230', A='#f2a830', M='#888';
   var d = _planWifeData(cyc);
@@ -326,6 +505,8 @@ function _planWifeCardHtml(plan, cyc, cardBox, secHdr){
     }
     body += '</div>';
   }
+  // v151d: PDF report for her (share sheet on the phone, download elsewhere)
+  body += '<button type="button" onclick="planWifeReportPdf()" style="width:100%;margin-top:12px;padding:10px;border-radius:6px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">📄 Report for her (PDF)</button>';
   return '<div style="'+cardBox+'">'+secHdr(title)+head+tabs+body+'</div>';
 }
 
