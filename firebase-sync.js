@@ -78,6 +78,7 @@ var FB_SYNC_KEYS = [
   'yb_lends_v1',
   'yb_repayments_v1',
   'yb_carpool_payments_v1',
+  'yb_cp_credits_v1',          // v151e: carpool credits (prepaid days that later changed)
   'yb_forecast_v1',          // v150f: Reports > Forecast income/spending lines + Vault goal
   'yb_bankfeed_merchants_v1',
   'yb_alert_state_v1',
@@ -356,7 +357,7 @@ function _fbShowConflictNotice(){
   var unseen = s.filter(function(x){ return !x.seen; });
   if(!unseen.length || document.getElementById('fbConflictToast')) return;
   var LABELS = { yasin_funds_v16:'Savings pockets', yb_cashflow_v1:'Cash Flow', yasin_carpool_v4:'Carpool trips',
-    yasin_borrows_v1:'Carpool borrows', yb_external_borrows_v1:'Money owed', yb_carpool_payments_v1:'Carpool payments',
+    yasin_borrows_v1:'Carpool borrows', yb_external_borrows_v1:'Money owed', yb_carpool_payments_v1:'Carpool payments', yb_cp_credits_v1:'Carpool credits',
     yb_moneyin_v1:'Money In', yb_spend_v1:'Spends', yb_moves_v1:'Moves', yasin_instalments_v1:'Instalments',
     yasin_cars_v1:'Cars', yb_recon_balances_v1:'Available Cash', yb_lends_v1:'Lends', yb_repayments_v1:'Repayments',
     yb_plan_v1:'Plan', yb_forecast_v1:'Forecast', yasin_routine_v2:'Routine', yasin_school_results_v2:'School results' };

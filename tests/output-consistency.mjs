@@ -110,6 +110,16 @@ async function main() {
       },
     },
     {
+      key: 'credit_applied_line',
+      label: 'Carpool credit deducted from the total (v151e)',
+      expected: ['card', 'wa', 'pdf'],
+      test: {
+        card: /Credit applied/,
+        wa:   /Credit: /,
+        pdf:  /CREDIT APPLIED/,
+      },
+    },
+    {
       key: 'trips_outstanding_line',
       label: 'Per-category Trips Outstanding line',
       expected: ['card', 'pdf'], // WA intentionally omits this for brevity — known, accepted asymmetry

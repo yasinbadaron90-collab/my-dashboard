@@ -612,6 +612,29 @@ function setTripSelect(sel){
   if(!cpData[mk]) cpData[mk]={};
   if(!cpData[mk][ds]){ const d2={notes:''}; PASSENGER_DATA.forEach(function(p){ d2[p.name]={amt:0,paid:false}; }); cpData[mk][ds]=d2; }
   if(!cpData[mk][ds][p]||typeof cpData[mk][ds][p]!=='object') cpData[mk][ds][p]={amt:0,paid:false};
+  // v151e — editing a day that is ALREADY PAID down to a smaller amount means she
+  // has overpaid. The payment record can't be edited by this dropdown, so without
+  // this the overpay silently disappears (the Lezaun R81 incident). Offer to store
+  // the difference as a credit; Cancel leaves the day exactly as it was.
+  const _old=cpData[mk][ds][p];
+  let _newAmt=0;
+  if(val!=='absent') _newAmt=parseInt(val.split('_')[0]);
+  if(_old.paid && _old.amt>0 && _newAmt<_old.amt){
+    const _diff=_old.amt-_newAmt;
+    const _lbl=new Date(ds+'T00:00:00').toLocaleDateString('en-ZA',{weekday:'short',day:'2-digit',month:'short'});
+    if(!confirm(_lbl+' is already paid ('+fmtR(_old.amt)+').\n\nReduce it to '+fmtR(_newAmt)+' and store '+fmtR(_diff)+' as credit for '+p+'?\n\nOK = store credit. Cancel = leave the day unchanged.')){
+      renderCarpool(); return;
+    }
+    let _src=null;
+    try{ _src=(JSON.parse(lsGet('yb_carpool_payments_v1')||'[]').find(function(r){ return r.passenger===p && (r.paidDates||[]).indexOf(ds)>-1; })||{}).id||null; }catch(e){}
+    cpCreditAdd(p,_diff,(_newAmt===0?'Off day ':'Part day ')+_lbl,[ds],_src);
+    cpData[mk][ds][p]={amt:_newAmt,paid:true};   // stays paid: the cash for it was already received
+    styleSelect(sel, _newAmt+'_paid');
+    saveCP();
+    renderCarpool();
+    try{ if(document.getElementById('stmtCards')&&document.getElementById('stmtCards').children.length) generateStatements(); }catch(e){}
+    return;
+  }
   if(val==='absent'){
     cpData[mk][ds][p]={amt:0,paid:false};
   } else {
@@ -685,6 +708,78 @@ function confirmCarTxn() {
   }
   // Refresh the Available Cash card so the drained bucket updates live.
   try { if (typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch (e) {}
+}
+
+// ══ CARPOOL CREDIT (v151e) ═══════════════════════════════════════════
+// A credit = money a passenger has already paid that we owe back as a deduction
+// (e.g. prepaid days that later became half/off). Stored on its own key so the
+// borrow ledger readers (audit, totals, odin) never mistake it for a loan.
+// Statement subtracts open credit; Mark Paid applies it and records the use on
+// the payment so _carpoolPaymentReverse can re-open it.
+var CP_CREDIT_KEY = 'yb_cp_credits_v1';
+function cpCreditsLoad(){ try { var a = JSON.parse(lsGet(CP_CREDIT_KEY)||'[]'); return Array.isArray(a) ? a : []; } catch(e){ return []; } }
+function cpCreditsSave(a){ lsSet(CP_CREDIT_KEY, JSON.stringify(a)); }
+function _cpR2(n){ return Math.round((Number(n)||0)*100)/100; }
+function cpCreditOpen(passenger){
+  var t = 0;
+  cpCreditsLoad().forEach(function(c){ if(c.passenger === passenger && c.remaining > 0.005) t += c.remaining; });
+  return _cpR2(t);
+}
+function cpCreditAdd(passenger, amount, note, dates, srcPmtId){
+  amount = _cpR2(amount);
+  if(!(amount > 0.005)) return null;
+  var all = cpCreditsLoad();
+  var c = { id:'cc_'+uid(), passenger:passenger, amount:amount, remaining:amount, note:note||'', dates:dates||[], srcPaymentId:srcPmtId||null, date:localDateStr(new Date()), createdAt:new Date().toISOString(), uses:[] };
+  all.push(c);
+  cpCreditsSave(all);
+  return c;
+}
+// Spend up to `amount` of the passenger's open credit, oldest first.
+// Returns [{id, amount}] actually used.
+function cpCreditConsume(passenger, amount, pmtId){
+  var left = _cpR2(amount), used = [];
+  var all = cpCreditsLoad();
+  all.filter(function(c){ return c.passenger === passenger && c.remaining > 0.005; })
+     .sort(function(a,b){ return (a.createdAt||'') < (b.createdAt||'') ? -1 : 1; })
+     .forEach(function(c){
+       if(left <= 0.005) return;
+       var take = _cpR2(Math.min(c.remaining, left));
+       c.remaining = _cpR2(c.remaining - take);
+       c.uses = c.uses || []; c.uses.push({ pmtId:pmtId, amount:take, date:localDateStr(new Date()) });
+       used.push({ id:c.id, amount:take });
+       left = _cpR2(left - take);
+     });
+  if(used.length) cpCreditsSave(all);
+  return used;
+}
+function cpCreditRestore(uses, pmtId){
+  if(!uses || !uses.length) return;
+  var all = cpCreditsLoad();
+  uses.forEach(function(u){
+    var c = all.find(function(x){ return x.id === u.id; });
+    if(!c) return;
+    c.remaining = _cpR2(Math.min(c.amount, c.remaining + u.amount));
+    c.uses = (c.uses||[]).filter(function(x){ return x.pmtId !== pmtId; });
+  });
+  cpCreditsSave(all);
+}
+function addCarpoolCreditPrompt(passenger){
+  var v = prompt('Credit amount for '+passenger+' (R):', '');
+  if(v === null) return;
+  var amt = _cpR2(parseFloat(String(v).replace(',', '.')));
+  if(!(amt > 0)){ alert('Enter an amount above R0.'); return; }
+  var note = prompt('What is it for? (shown on her statement)', '') || '';
+  cpCreditAdd(passenger, amt, note, [], null);
+  generateStatements();
+}
+function deleteCarpoolCredit(creditId){
+  var all = cpCreditsLoad();
+  var c = all.find(function(x){ return x.id === creditId; });
+  if(!c) return;
+  if((c.uses||[]).length){ alert('This credit was already used on a payment. Reverse that payment first.'); return; }
+  if(!confirm('Delete the '+fmtR(c.amount)+' credit for '+c.passenger+'?')) return;
+  cpCreditsSave(all.filter(function(x){ return x.id !== creditId; }));
+  generateStatements();
 }
 
 // MINI STATEMENT
@@ -789,7 +884,13 @@ function _generateStatementsWork(){
 
     const totalOwed=tripTotal+borrowTotal;
     const totalPaid=tripPaid+borrowPaid;
-    const totalOwing=tripOwing+borrowOwing;
+    // v151e — open credit is range-independent (a credit made on 13 Nov must still
+    // apply to a 21–25 Nov statement), unlike trips/borrows which are date-scoped.
+    const grossOwing=_cpR2(tripOwing+borrowOwing);
+    const creditOpen=cpCreditOpen(passenger);
+    const creditApplied=_cpR2(Math.min(creditOpen,grossOwing));
+    const totalOwing=_cpR2(grossOwing-creditApplied);
+    const creditRows=cpCreditsLoad().filter(function(c){return c.passenger===passenger&&c.remaining>0.005;});
 
     // Status badge top-right
     const statusHtml = '';
@@ -808,6 +909,12 @@ function _generateStatementsWork(){
          +(borrowOwing>0?'<div style="display:flex;justify-content:space-between;"><span style="color:#a78bfa;letter-spacing:1px;text-transform:uppercase;">Borrow Outstanding</span><span style="color:#a78bfa;font-weight:700;">'+fmtR(borrowOwing)+'</span></div>':'')
         :''
       )
+      +(creditRows.length
+        ?'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:4px;"><span style="color:#7090f0;letter-spacing:1px;text-transform:uppercase;">Credit available</span><span style="color:#7090f0;font-weight:700;">'+fmtR(creditOpen)+'</span></div>'
+         +creditRows.map(function(c){return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);"><span>'+(c.note?c.note:'Credit')+' · '+c.date+(c.remaining<c.amount?' (R'+c.remaining+' left)':'')+'</span><span onclick="deleteCarpoolCredit(\''+c.id+'\')" style="cursor:pointer;font-size:13px;" title="Delete credit">🗑</span></div>';}).join('')
+         +(creditApplied>0?'<div style="display:flex;justify-content:space-between;"><span style="color:#7090f0;">Credit applied</span><span style="color:#7090f0;">−'+fmtR(creditApplied)+'</span></div>':'')
+        :'')
+      +'<div style="margin-top:4px;text-align:right;"><span onclick="addCarpoolCreditPrompt(\''+passenger.replace(/'/g,"\\'")+'\')" style="cursor:pointer;color:#7090f0;font-size:10px;letter-spacing:1px;text-transform:uppercase;">+ Add credit</span></div>'
       +'</div>';
 
     // WA text — one line per day with proper newlines, borrow section appended
@@ -826,7 +933,8 @@ function _generateStatementsWork(){
     const waSummary='\n\n*Trips: '+fmtR(tripTotal)+'*'
       +(borrowTotal>0?'\n*Borrowed: '+fmtR(borrowTotal)+'*':'')
       +'\n*Paid: '+fmtR(totalPaid)+'*\n'
-      +(totalOwing>0?'*Outstanding: '+fmtR(totalOwing)+'*\n\nPlease settle when convenient 🙏':'*All settled! 🎉*');
+      +(creditApplied>0?'*Credit: −'+fmtR(creditApplied)+'*\n':'')
+      +(totalOwing>0?'*Outstanding: '+fmtR(totalOwing)+'*\n\nPlease settle when convenient 🙏':(grossOwing>0?'*Covered by your credit ✓*':'*All settled! 🎉*'));
     const waText='*Carpool Statement — '+from+' to '+to+'*\nHi '+passenger+' 👋\n\n'
       +waLines.join('\n')+waBorrowSection+waSummary;
 
@@ -838,10 +946,10 @@ function _generateStatementsWork(){
       +(borrows.length?'<div style="padding:5px 12px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#6b4fa8;background:#0d0a1a;">💸 Borrowed</div>'+borrowRows:'')
       +'</div>'+breakdownHtml
       // Unified outstanding total + pay button
-      +(totalOwing>0
+      +(grossOwing>0
         ?'<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#0d1a00;border-top:1px solid #2a4a00;">'
           +'<div><div style="font-size:9px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">Total Outstanding</div>'
-          +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:20px;color:#f2a830;">'+fmtR(totalOwing)+'</div></div>'
+          +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:20px;color:#f2a830;">'+fmtR(totalOwing)+'</div>'+(creditApplied>0?'<div style="font-size:10px;color:#7090f0;margin-top:2px;">'+fmtR(grossOwing)+' − '+fmtR(creditApplied)+' credit</div>':'')+'</div>'
           +'<button onclick="openPayDestModal(this)" style="padding:10px 16px;background:#c8f230;border:none;border-radius:8px;color:#000;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💳 Mark Paid →</button>'
         +'</div>'
         :'<div style="padding:10px 12px;background:#0a1500;border-top:1px solid #1e3a00;font-size:11px;color:#c8f230;text-align:center;">✅ All settled</div>'
@@ -850,9 +958,9 @@ function _generateStatementsWork(){
       +'<button class="stmt-btn btn-copy" id="pdf_'+cardId+'" onclick="genPDF(this)">📄 Export</button>'
       +'<button class="stmt-btn btn-save" id="wa_'+cardId+'" onclick="openWA(this)">💬 Save</button>'
       +'</div>';
-    card._pdfData={passenger:passenger,from:from,to:to,totalAmt:totalOwed,tripData:tripDataArr,borrowData:borrows,tripTotal:tripTotal,borrowTotal:borrowTotal,tripPaid:tripPaid,borrowPaid:borrowPaid,tripOwing:tripOwing,borrowOwing:borrowOwing};
+    card._pdfData={passenger:passenger,from:from,to:to,totalAmt:totalOwed,tripData:tripDataArr,borrowData:borrows,tripTotal:tripTotal,borrowTotal:borrowTotal,tripPaid:tripPaid,borrowPaid:borrowPaid,tripOwing:tripOwing,borrowOwing:borrowOwing,creditApplied:creditApplied};
     card._waData=waText;
-    card._stmtMeta={passenger,tripOwing,borrowOwing,totalOwing,from,to};
+    card._stmtMeta={passenger,tripOwing,borrowOwing,totalOwing,grossOwing,creditApplied,from,to};
     container.appendChild(card);
     passengerTotals.push({name:passenger,total:totalOwed,owing:totalOwing});
     grandTotal+=totalOwed;
@@ -875,13 +983,14 @@ function genPDF(btn){
   if(typeof window.jspdf==='undefined'){
     const s=document.createElement('script');
     s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    s.onload=function(){buildPDF(passenger,from,to,totalAmt,d.tripData,d.borrowData||[],d.tripTotal||0,d.borrowTotal||0,d.tripPaid||0,d.borrowPaid||0,d.tripOwing||0,d.borrowOwing||0);};
+    s.onload=function(){buildPDF(passenger,from,to,totalAmt,d.tripData,d.borrowData||[],d.tripTotal||0,d.borrowTotal||0,d.tripPaid||0,d.borrowPaid||0,d.tripOwing||0,d.borrowOwing||0,d.creditApplied||0);};
     document.head.appendChild(s);
   } else {
-    buildPDF(passenger,from,to,totalAmt,d.tripData,d.borrowData||[],d.tripTotal||0,d.borrowTotal||0,d.tripPaid||0,d.borrowPaid||0,d.tripOwing||0,d.borrowOwing||0);
+    buildPDF(passenger,from,to,totalAmt,d.tripData,d.borrowData||[],d.tripTotal||0,d.borrowTotal||0,d.tripPaid||0,d.borrowPaid||0,d.tripOwing||0,d.borrowOwing||0,d.creditApplied||0);
   }
 }
-function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borrowTotal,tripPaid,borrowPaid,tripOwing,borrowOwing){
+function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borrowTotal,tripPaid,borrowPaid,tripOwing,borrowOwing,creditApplied){
+  creditApplied=creditApplied||0;
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'mm',format:'a4'});
   // Helper: add new page with header continuation
@@ -968,7 +1077,13 @@ function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borro
   // Unified outstanding only — tripOwing + borrowOwing combined. Gross "Total Owed"
   // removed per Yasin: it duplicated Trips+Borrowed shown above and read as a second,
   // conflicting total sitting next to the amount actually due.
-  const totalOwing=tripOwing+borrowOwing;
+  const grossOwing=tripOwing+borrowOwing;
+  const totalOwing=Math.round((grossOwing-creditApplied)*100)/100;
+  if(creditApplied>0){
+    doc.setTextColor(112,144,240);doc.setFontSize(9);doc.setFont('helvetica','normal');
+    doc.text('CREDIT APPLIED',20,y);
+    doc.text('-R'+Number(creditApplied).toLocaleString('en-ZA'),190,y,{align:'right'});y+=7;
+  }
   doc.setDrawColor(200,242,48);doc.setLineWidth(0.5);doc.line(20,y,190,y);y+=9;
   if(totalOwing>0){
     doc.setTextColor(242,168,48);doc.setFontSize(10);doc.setFont('helvetica','normal');
@@ -978,7 +1093,7 @@ function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borro
     doc.setFont('helvetica','normal');
   }else{
     doc.setTextColor(200,242,48);doc.setFontSize(12);doc.setFont('helvetica','bold');
-    doc.text('\u2713 ALL SETTLED',105,y+4,{align:'center'});
+    doc.text(grossOwing>0?'\u2713 COVERED BY CREDIT':'\u2713 ALL SETTLED',105,y+4,{align:'center'});
     doc.setFont('helvetica','normal');
   }
   // Footer on last page
@@ -994,9 +1109,11 @@ function openPayDestModal(btn){
   const passenger = meta.passenger;
   const tripOwing = meta.tripOwing || 0;
   const borrowOwing = meta.borrowOwing || 0;
-  const totalOwing = meta.totalOwing || (tripOwing + borrowOwing);
+  const creditApplied = meta.creditApplied || 0;
+  const totalOwing = (typeof meta.totalOwing === 'number') ? meta.totalOwing : (tripOwing + borrowOwing - creditApplied);
 
   document.getElementById('payDestPassenger').value = passenger;
+  document.getElementById('payDestCredit').value = creditApplied;
   document.getElementById('payDestTripOwing').value = tripOwing;
   document.getElementById('payDestBorrowOwing').value = borrowOwing;
   document.getElementById('payDestTotal').value = totalOwing;
@@ -1007,7 +1124,8 @@ function openPayDestModal(btn){
   summaryEl.innerHTML =
     '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:16px;color:var(--text);margin-bottom:6px;">'+passenger+' paying '+fmtR(totalOwing)+'</div>'
     +(tripOwing>0?'<div>🚗 Carpool outstanding: <strong style="color:#f2a830;">'+fmtR(tripOwing)+'</strong></div>':'')
-    +(borrowOwing>0?'<div>💸 Borrow outstanding: <strong style="color:#a78bfa;">'+fmtR(borrowOwing)+'</strong></div>':'');
+    +(borrowOwing>0?'<div>💸 Borrow outstanding: <strong style="color:#a78bfa;">'+fmtR(borrowOwing)+'</strong></div>':'')
+    +(creditApplied>0?'<div>🏷️ Credit applied: <strong style="color:#7090f0;">−'+fmtR(creditApplied)+'</strong></div><div style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border);">To collect: <strong style="color:var(--text);">'+fmtR(totalOwing)+'</strong></div>':'');
 
   // Build destination options
   const optionsEl = document.getElementById('payDestOptions');
@@ -1127,10 +1245,15 @@ function confirmPayDest(){
   const passenger = document.getElementById('payDestPassenger').value;
   const tripOwing = parseFloat(document.getElementById('payDestTripOwing').value) || 0;
   const borrowOwing = parseFloat(document.getElementById('payDestBorrowOwing').value) || 0;
-  const totalOwing = parseFloat(document.getElementById('payDestTotal').value) || 0;
-  const choice = document.getElementById('payDestChoice').value;
+  // v151e — recompute credit at confirm time (never trust a stale hidden field):
+  // cash to collect = trips + borrows − open credit (capped at what she owes).
+  const _grossOwing = _cpR2(tripOwing + borrowOwing);
+  const creditApplied = _cpR2(Math.min(cpCreditOpen(passenger), _grossOwing));
+  const totalOwing = _cpR2(_grossOwing - creditApplied);
+  let choice = document.getElementById('payDestChoice').value;
 
-  if(!choice){ alert('Please choose where to put the money.'); return; }
+  if(!choice && totalOwing > 0.005){ alert('Please choose where to put the money.'); return; }
+  if(totalOwing <= 0.005) choice = 'credit';   // fully covered by credit: no cash, no pocket, no bank move
 
   const today = localDateStr(new Date());
 
@@ -1212,6 +1335,10 @@ function confirmPayDest(){
   var pocketDepositId = null;
   var pocketDepositFundId = null;
   var paidBorrowIds = [];
+
+  // Spend the credit now so every path below (incl. split) sees it used once.
+  var creditUses = creditApplied > 0.005 ? cpCreditConsume(passenger, creditApplied, cpPmtId) : [];
+  if(creditApplied > 0.005) smartNote += ' · '+fmtR(creditApplied)+' credit applied';
 
   // 2. Mark borrows as repaid (capture which ones WE just paid)
   // v148c fix — REAL BUG, CONFIRMED 2026-08-27: this used to loop over the
@@ -1298,6 +1425,8 @@ function confirmPayDest(){
       destChoice: choice,
       paidDates: _markedDates.slice(),       // dates we marked paid
       paidBorrowIds: paidBorrowIds.slice(),  // borrow ids we marked paid
+      creditApplied: creditApplied,          // v151e — credit deducted from what was collected
+      creditUses: creditUses,                // v151e — [{id, amount}] so reverse can re-open it
       cfIncomeId: cfIncomeId,
       pocketDepositId: pocketDepositId,
       pocketDepositFundId: pocketDepositFundId,
@@ -1314,7 +1443,7 @@ function confirmPayDest(){
   // maint card) → bank goes DOWN by totalOwing (doorway out).
   // Net effect on bank baseline: R0. The money lives where it was sent.
   // Reverse function already symmetric — undoes the +totalOwing leg.
-  if(choice !== 'split' && typeof window._adjustBaselineForBank === 'function'){
+  if(choice !== 'split' && choice !== 'credit' && totalOwing > 0.005 && typeof window._adjustBaselineForBank === 'function'){
     window._adjustBaselineForBank(destBank, totalOwing);       // doorway IN  (+)
     // Doorway OUT: only when the money LEAVES the bank to a pocket/fund/
     // maint card. If choice === 'cashflow' the money stays in the bank as
@@ -1325,7 +1454,7 @@ function confirmPayDest(){
   }
 
   // Show success toast
-  const destName = choice === 'cashflow' ? 'Cash Flow' : choice.startsWith('fund:') ? (funds.find(function(f){ return f.id===choice.replace('fund:',''); })||{}).name||'Fund' : 'Maintenance';
+  const destName = choice === 'credit' ? 'settled by credit' : choice === 'cashflow' ? 'Cash Flow' : choice.startsWith('fund:') ? (funds.find(function(f){ return f.id===choice.replace('fund:',''); })||{}).name||'Fund' : 'Maintenance';
 
   // ── Close the loop after Mark Paid (Plan outsider improvements #4) ─────
   // If the destination is a pocket Plan is actively tracking with a monthly
@@ -1355,7 +1484,9 @@ function confirmPayDest(){
 
   const toast = document.createElement('div');
   toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d1a00;border:1px solid #c8f230;border-radius:8px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#c8f230;letter-spacing:1px;white-space:nowrap;';
-  toast.textContent = '✓ '+fmtR(totalOwing)+' from '+passenger+' → '+destName+planFeedback;
+  toast.textContent = choice === 'credit'
+    ? '✓ '+passenger+' '+destName+' ('+fmtR(creditApplied)+')'
+    : '✓ '+fmtR(totalOwing)+' from '+passenger+' → '+destName+planFeedback+(creditApplied>0?' · '+fmtR(creditApplied)+' credit applied':'');
   document.body.appendChild(toast);
   setTimeout(function(){ toast.remove(); }, 4000);
 
@@ -1403,6 +1534,9 @@ function _carpoolPaymentReverse(cpPmtId, opts){
     });
     if(typeof saveBorrows === 'function') saveBorrows();
   }
+
+  // 2b. v151e — re-open any credit this payment spent
+  if(rec.creditUses && rec.creditUses.length){ cpCreditRestore(rec.creditUses, rec.id); }
 
   // 3. Remove the pocket deposit
   if(rec.pocketDepositId && rec.pocketDepositFundId && typeof funds !== 'undefined'){
@@ -2510,7 +2644,7 @@ function computeCarpoolCashSplit(mk){
       var B = res.cash[k] || (res.cash[k] = { amt:0, who:{} });
       B.amt += a; B.who[pm.passenger] = (B.who[pm.passenger]||0) + a;
     });
-    var rest = _cpmR2(amt - covered);
+    var rest = _cpmR2(amt + (Number(pm.creditApplied)||0) - covered);   // v151e: credit-applied days were not paid in cash
     if(Math.abs(rest) > 0.004) res.unlinked += rest;
   });
   var cover = {};
