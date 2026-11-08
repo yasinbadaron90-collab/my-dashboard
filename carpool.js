@@ -825,6 +825,14 @@ function _generateStatementsWork(){
   const passengerTotals=[];let grandTotal=0;
   selected.forEach(function(passenger){
     let tripTotal=0,tripPaid=0,tripOwing=0;
+    // v151g — credit that came from a specific day (grid prompt: part/off day),
+    // so the PDF + WhatsApp can explain it on that day's row.
+    const _dayCredit={};
+    cpCreditsLoad().forEach(function(c){
+      if(c.passenger!==passenger||!Array.isArray(c.dates)||c.dates.length!==1) return;
+      _dayCredit[c.dates[0]]=_cpR2((_dayCredit[c.dates[0]]||0)+(Number(c.amount)||0));
+    });
+    function _creditKind(ds,amt){ const cr=_dayCredit[ds]||0; return amt===0?'off day':(Math.abs(cr-amt)<0.005?'half day':'part day'); }
     // Single loop — build UI rows AND tripData for PDF simultaneously
     const tripDataArr=[];
     const rows=days.map(function(day){
@@ -837,7 +845,7 @@ function _generateStatementsWork(){
       const dlLong=day.toLocaleDateString('en-ZA',{weekday:'long',day:'2-digit',month:'short'});
       tripTotal+=amt;
       if(paid)tripPaid+=amt; else if(amt>0)tripOwing+=amt;
-      tripDataArr.push({day:dlLong,amt:amt,paid:paid});
+      tripDataArr.push({day:dlLong,amt:amt,paid:paid,credit:_dayCredit[ds]||0,creditKind:_dayCredit[ds]?_creditKind(ds,amt):''});
       // Always render a row — absent shows as —. Use plain-text PAID / DUE
       // markers instead of emoji because the PDF/share renderer can't always
       // handle them (✓ and ⏳ render as garbage characters like "#ó" in some
@@ -891,6 +899,22 @@ function _generateStatementsWork(){
     const creditApplied=_cpR2(Math.min(creditOpen,grossOwing));
     const totalOwing=_cpR2(grossOwing-creditApplied);
     const creditRows=cpCreditsLoad().filter(function(c){return c.passenger===passenger&&c.remaining>0.005;});
+    // v151g — "13 Nov half day R27 + 20 Nov off R54": which credits make up creditApplied
+    let _left=creditApplied; const _why=[];
+    creditRows.slice().sort(function(a,b){return (a.createdAt||'')<(b.createdAt||'')?-1:1;}).forEach(function(c){
+      if(_left<=0.005) return;
+      const use=_cpR2(Math.min(c.remaining,_left)); _left=_cpR2(_left-use);
+      if(Array.isArray(c.dates)&&c.dates.length===1){
+        const ds=c.dates[0], mk=ds.slice(0,7);
+        const dd=(cpData[mk]&&cpData[mk][ds]&&typeof cpData[mk][ds][passenger]==='object')?cpData[mk][ds][passenger]:null;
+        const amt=dd?(dd.amt||0):0;
+        const dlab=new Date(ds+'T00:00:00').toLocaleDateString('en-ZA',{day:'2-digit',month:'short'});
+        _why.push(dlab+' '+(amt===0?'off':_creditKind(ds,amt))+' '+fmtR(use));
+      } else {
+        _why.push((c.note||'credit')+' '+fmtR(use));
+      }
+    });
+    const creditReason=_why.join(' + ');
 
     // Status badge top-right
     const statusHtml = '';
@@ -924,8 +948,9 @@ function _generateStatementsWork(){
       const amt=(dd&&dd[passenger]&&typeof dd[passenger]==='object')?dd[passenger].amt||0:0;
       const paid=(dd&&dd[passenger]&&typeof dd[passenger]==='object')?dd[passenger].paid||false:false;
       const dl=day.toLocaleDateString('en-ZA',{weekday:'short',day:'2-digit',month:'short'});
-      if(amt===0)return dl+' — absent';
-      return dl+' — '+fmtR(amt)+(paid?' ✓':' ⏳');
+      const cr=_dayCredit[ds]||0;
+      if(amt===0)return cr?dl+' — off · '+fmtR(cr)+' credit':dl+' — absent';
+      return dl+' — '+fmtR(amt)+(paid?' ✓':' ⏳')+(cr?' · '+_creditKind(ds,amt)+' · '+fmtR(cr)+' credit':'');
     });
     const waBorrowSection=borrows.length
       ?'\n\n💸 *Borrowed:*\n'+borrows.map(function(b){return b.date+(b.note?' ('+b.note+')':'')+' — '+fmtR(b.amount)+(b.paid?' ✓':' ⏳');}).join('\n')
@@ -933,7 +958,7 @@ function _generateStatementsWork(){
     const waSummary='\n\n*Total Trips: '+fmtR(tripTotal)+'*'
       +(borrowTotal>0?'\n*Borrowed: '+fmtR(borrowTotal)+'*':'')
       +'\n*Paid: '+fmtR(totalPaid)+'*\n'
-      +(creditApplied>0?'*Credit: −'+fmtR(creditApplied)+'*\n':'')
+      +(creditApplied>0?'*Credit: −'+fmtR(creditApplied)+'*\n'+(creditReason?'_('+creditReason+')_\n':''):'')
       +(totalOwing>0?'*Outstanding: '+fmtR(totalOwing)+'*\n\nPlease settle when convenient 🙏':(grossOwing>0?'*Covered by your credit ✓*':'*All settled! 🎉*'));
     const waText='*Carpool Statement — '+from+' to '+to+'*\nHi '+passenger+' 👋\n\n'
       +waLines.join('\n')+waBorrowSection+waSummary;
@@ -958,7 +983,7 @@ function _generateStatementsWork(){
       +'<button class="stmt-btn btn-copy" id="pdf_'+cardId+'" onclick="genPDF(this)">📄 Export</button>'
       +'<button class="stmt-btn btn-save" id="wa_'+cardId+'" onclick="openWA(this)">💬 Save</button>'
       +'</div>';
-    card._pdfData={passenger:passenger,from:from,to:to,totalAmt:totalOwed,tripData:tripDataArr,borrowData:borrows,tripTotal:tripTotal,borrowTotal:borrowTotal,tripPaid:tripPaid,borrowPaid:borrowPaid,tripOwing:tripOwing,borrowOwing:borrowOwing,creditApplied:creditApplied};
+    card._pdfData={passenger:passenger,from:from,to:to,totalAmt:totalOwed,tripData:tripDataArr,borrowData:borrows,tripTotal:tripTotal,borrowTotal:borrowTotal,tripPaid:tripPaid,borrowPaid:borrowPaid,tripOwing:tripOwing,borrowOwing:borrowOwing,creditApplied:creditApplied,creditReason:creditReason};
     card._waData=waText;
     card._stmtMeta={passenger,tripOwing,borrowOwing,totalOwing,grossOwing,creditApplied,from,to};
     container.appendChild(card);
@@ -983,13 +1008,13 @@ function genPDF(btn){
   if(typeof window.jspdf==='undefined'){
     const s=document.createElement('script');
     s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    s.onload=function(){buildPDF(passenger,from,to,totalAmt,d.tripData,d.borrowData||[],d.tripTotal||0,d.borrowTotal||0,d.tripPaid||0,d.borrowPaid||0,d.tripOwing||0,d.borrowOwing||0,d.creditApplied||0);};
+    s.onload=function(){buildPDF(passenger,from,to,totalAmt,d.tripData,d.borrowData||[],d.tripTotal||0,d.borrowTotal||0,d.tripPaid||0,d.borrowPaid||0,d.tripOwing||0,d.borrowOwing||0,d.creditApplied||0,d.creditReason||'');};
     document.head.appendChild(s);
   } else {
-    buildPDF(passenger,from,to,totalAmt,d.tripData,d.borrowData||[],d.tripTotal||0,d.borrowTotal||0,d.tripPaid||0,d.borrowPaid||0,d.tripOwing||0,d.borrowOwing||0,d.creditApplied||0);
+    buildPDF(passenger,from,to,totalAmt,d.tripData,d.borrowData||[],d.tripTotal||0,d.borrowTotal||0,d.tripPaid||0,d.borrowPaid||0,d.tripOwing||0,d.borrowOwing||0,d.creditApplied||0,d.creditReason||'');
   }
 }
-function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borrowTotal,tripPaid,borrowPaid,tripOwing,borrowOwing,creditApplied){
+function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borrowTotal,tripPaid,borrowPaid,tripOwing,borrowOwing,creditApplied,creditReason){
   creditApplied=creditApplied||0;
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'mm',format:'a4'});
@@ -1019,11 +1044,21 @@ function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borro
   tripData.forEach(function(t){
     if(y>bottomMargin){y=newPage();}
     doc.setTextColor(85,85,85);doc.setFontSize(11);doc.setFont('helvetica','normal');doc.text(t.day,20,y);
-    if(t.amt===0){doc.setTextColor(50,50,50);doc.text('-',190,y,{align:'right'});}
+    const cr=t.credit||0;
+    if(t.amt===0&&cr){doc.setTextColor(136,136,136);doc.text('OFF',190,y,{align:'right'});}
+    else if(t.amt===0){doc.setTextColor(50,50,50);doc.text('-',190,y,{align:'right'});}
     else if(t.paid){doc.setTextColor(200,242,48);doc.text('R'+t.amt+'  PAID',190,y,{align:'right'});}
     else{doc.setTextColor(242,168,48);doc.text('R'+t.amt+'  OWING',190,y,{align:'right'});}
-    doc.setDrawColor(30,30,30);doc.setLineWidth(0.2);doc.line(20,y+4,190,y+4);
-    y+=13;
+    if(cr){ // v151g — say why this day has a credit
+      doc.setTextColor(112,144,240);doc.setFontSize(8);
+      doc.text(t.creditKind+' \u00B7 R'+Number(cr).toLocaleString('en-ZA')+' credit',190,y+5,{align:'right'});
+      doc.setFontSize(11);
+      doc.setDrawColor(30,30,30);doc.setLineWidth(0.2);doc.line(20,y+8.5,190,y+8.5);
+      y+=17.5;
+    } else {
+      doc.setDrawColor(30,30,30);doc.setLineWidth(0.2);doc.line(20,y+4,190,y+4);
+      y+=13;
+    }
   });
 
   // Borrow section — only if there are borrows
@@ -1082,7 +1117,8 @@ function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borro
   if(creditApplied>0){
     doc.setTextColor(112,144,240);doc.setFontSize(9);doc.setFont('helvetica','normal');
     doc.text('CREDIT APPLIED',20,y);
-    doc.text('-R'+Number(creditApplied).toLocaleString('en-ZA'),190,y,{align:'right'});y+=7;
+    doc.text('-R'+Number(creditApplied).toLocaleString('en-ZA'),190,y,{align:'right'});y+=(creditReason?4.5:7);
+    if(creditReason){ doc.setFontSize(7.5);doc.text(creditReason,20,y);doc.setFontSize(9);y+=5.5; }
   }
   doc.setDrawColor(200,242,48);doc.setLineWidth(0.5);doc.line(20,y,190,y);y+=9;
   if(totalOwing>0){
