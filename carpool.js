@@ -2669,7 +2669,11 @@ function computeCarpoolCashSplit(mk){
     var md = cpData[ds.slice(0,7)]; var v = md && md[ds] && md[ds][p];
     return (v && typeof v === 'object') ? (v.amt || 0) : 0;
   }
-  var res = { mk:mk, cashTotal:0, cash:{}, unlinked:0, tripsTotal:0, trips:{} };
+  var res = { mk:mk, cashTotal:0, cash:{}, unlinked:0, credits:{}, tripsTotal:0, trips:{} };
+  // v151h — cash that a later part/off day turned into credit is not "untied":
+  // it's that passenger's credit. Group it per passenger with the reason.
+  var _crBySrc = {};
+  try { cpCreditsLoad().forEach(function(c){ if(c.srcPaymentId){ (_crBySrc[c.srcPaymentId] = _crBySrc[c.srcPaymentId] || []).push(c); } }); } catch(e){}
   pmts.forEach(function(pm){
     if((pm.date||'').slice(0,7) !== mk) return;
     var amt = Number(pm.amount) || 0, covered = 0;
@@ -2681,6 +2685,17 @@ function computeCarpoolCashSplit(mk){
       B.amt += a; B.who[pm.passenger] = (B.who[pm.passenger]||0) + a;
     });
     var rest = _cpmR2(amt + (Number(pm.creditApplied)||0) - covered);   // v151e: credit-applied days were not paid in cash
+    (_crBySrc[pm.id] || []).forEach(function(c){
+      var take = _cpmR2(Math.min(Number(c.amount)||0, Math.max(0, rest)));
+      if(!(take > 0.004)) return;
+      rest = _cpmR2(rest - take);
+      var C = res.credits[c.passenger] || (res.credits[c.passenger] = { amt:0, open:0, why:[] });
+      C.amt = _cpmR2(C.amt + take); C.open = _cpmR2(C.open + Math.min(take, Number(c.remaining)||0));
+      var ds = (c.dates||[])[0], why = c.note || 'credit';
+      if(ds){ var a = dayAmt(ds, c.passenger), lab = _cpmDayLabel(ds);
+        why = lab + ' ' + (a === 0 ? 'off' : (Math.abs((Number(c.amount)||0) - a) < 0.005 ? 'half day' : 'part day')); }
+      C.why.push(why + ' ' + _cpmMoney(take));
+    });
     if(Math.abs(rest) > 0.004) res.unlinked += rest;
   });
   var cover = {};
@@ -2720,6 +2735,11 @@ function _cpmCashHtml(sp){
   Object.keys(sp.cash).sort(function(x,y){ return (x===sp.mk?'':x) < (y===sp.mk?'':y) ? -1 : 1; }).forEach(function(k){
     var label = k === sp.mk ? mn+' cash' : (k < sp.mk ? _cpmMonthName(k)+' cash' : _cpmMonthName(k)+' cash (prepaid)');
     a += row(label, sp.cash[k].amt, _cpmWhoText(sp.cash[k].who));
+  });
+  Object.keys(sp.credits||{}).forEach(function(p){
+    var C = sp.credits[p];
+    var state = C.open > 0.004 ? (C.open < C.amt - 0.004 ? _cpmMoney(C.open)+' still to come off a payment' : 'comes off the next payment') : 'already used on a payment';
+    a += row(_cpmEsc(p)+"'s credit", C.amt, C.why.map(_cpmEsc).join(' + ')+' · '+state, '#7090f0');
   });
   if(Math.abs(sp.unlinked) > 0.004) a += row('Not tied to a trip', sp.unlinked, '', '#f2a830');
   var b = head(mn+' trips marked paid', sp.tripsTotal);
