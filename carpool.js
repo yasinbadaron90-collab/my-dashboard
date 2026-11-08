@@ -897,7 +897,7 @@ function _generateStatementsWork(){
 
     // Breakdown footer — always shows trips section; borrow section only if borrows exist
     const breakdownHtml='<div style="padding:8px 12px;border-top:1px solid #1e3a00;background:#0a1500;font-size:10px;display:flex;flex-direction:column;gap:3px;">'
-      +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Trips</span><span style="color:#c8f230;">'+fmtR(tripTotal)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Total Trips</span><span style="color:#c8f230;">'+fmtR(tripTotal)+'</span></div>'
       +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Trips Paid</span><span style="color:var(--text);">'+fmtR(tripPaid)+'</span></div>'
       +(tripOwing>0
         ?'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:2px;"><span style="color:#f2a830;letter-spacing:1px;text-transform:uppercase;">Trips Outstanding</span><span style="color:#f2a830;font-weight:700;">'+fmtR(tripOwing)+'</span></div>'
@@ -930,7 +930,7 @@ function _generateStatementsWork(){
     const waBorrowSection=borrows.length
       ?'\n\n💸 *Borrowed:*\n'+borrows.map(function(b){return b.date+(b.note?' ('+b.note+')':'')+' — '+fmtR(b.amount)+(b.paid?' ✓':' ⏳');}).join('\n')
       :'';
-    const waSummary='\n\n*Trips: '+fmtR(tripTotal)+'*'
+    const waSummary='\n\n*Total Trips: '+fmtR(tripTotal)+'*'
       +(borrowTotal>0?'\n*Borrowed: '+fmtR(borrowTotal)+'*':'')
       +'\n*Paid: '+fmtR(totalPaid)+'*\n'
       +(creditApplied>0?'*Credit: −'+fmtR(creditApplied)+'*\n':'')
@@ -1052,7 +1052,7 @@ function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borro
   doc.setDrawColor(200,242,48);doc.setLineWidth(0.5);doc.line(20,y,190,y);y+=8;
   // Trip breakdown
   doc.setFont('helvetica','normal');
-  doc.setTextColor(90,136,0);doc.setFontSize(9);doc.text('Trips',20,y);
+  doc.setTextColor(90,136,0);doc.setFontSize(9);doc.text('Total Trips',20,y);
   doc.setTextColor(200,242,48);doc.text('R'+Number(tripTotal).toLocaleString('en-ZA'),190,y,{align:'right'});y+=7;
   doc.setTextColor(90,136,0);doc.text('Trips Paid',20,y);
   doc.setTextColor(239,239,239);doc.text('R'+Number(tripPaid).toLocaleString('en-ZA'),190,y,{align:'right'});y+=7;
