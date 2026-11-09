@@ -772,6 +772,22 @@ function addCarpoolCreditPrompt(passenger){
   cpCreditAdd(passenger, amt, note, [], null);
   generateStatements();
 }
+// v151i — give the open credit back in cash. Uses the Spend sheet (pocket,
+// bank doorway, balance guard, date) so the money leaves a real pocket with a
+// Cash Flow expense; the spend record remembers which credits it closed.
+function refundCarpoolCredit(passenger){
+  var open = cpCreditOpen(passenger);
+  if(!(open > 0.005)){ alert(passenger+' has no open credit to refund.'); return; }
+  if(typeof openSpend !== 'function'){ alert('Spend is not available.'); return; }
+  openSpend(null, { label: passenger+' credit refund', amount: open, _creditRefund: { passenger: passenger } });
+}
+function undoCarpoolCreditRefund(spId){
+  var rec = (typeof loadSpendData === 'function' ? loadSpendData() : []).find(function(r){ return r.id === spId; });
+  if(!rec){ alert('That refund was not found.'); return; }
+  if(!confirm('Undo the '+fmtR(rec.amount)+' cash refund to '+(rec.creditRefund?rec.creditRefund.passenger:'')+'?\n\nThe money goes back into the pocket and the credit opens again.')) return;
+  _spendReverse(spId);
+  generateStatements();
+}
 function deleteCarpoolCredit(creditId){
   var all = cpCreditsLoad();
   var c = all.find(function(x){ return x.id === creditId; });
@@ -915,6 +931,15 @@ function _generateStatementsWork(){
       }
     });
     const creditReason=_why.join(' + ');
+    // v151i — cash refunds of this passenger's credit dated inside the statement
+    const refundRows=[];
+    try {
+      (typeof loadSpendData==='function'?loadSpendData():[]).forEach(function(r){
+        if(!r.creditRefund||r.creditRefund.passenger!==passenger) return;
+        if(r.date<from||r.date>to) return;
+        refundRows.push({ spId:r.id, amount:r.amount, dateLabel:new Date(r.date+'T00:00:00').toLocaleDateString('en-ZA',{day:'2-digit',month:'short'}) });
+      });
+    } catch(e){}
 
     // Status badge top-right
     const statusHtml = '';
@@ -938,7 +963,10 @@ function _generateStatementsWork(){
          +creditRows.map(function(c){return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);"><span>'+(c.note?c.note:'Credit')+' · '+c.date+(c.remaining<c.amount?' (R'+c.remaining+' left)':'')+'</span><span onclick="deleteCarpoolCredit(\''+c.id+'\')" style="cursor:pointer;font-size:13px;" title="Delete credit">🗑</span></div>';}).join('')
          +(creditApplied>0?'<div style="display:flex;justify-content:space-between;"><span style="color:#7090f0;">Credit applied</span><span style="color:#7090f0;">−'+fmtR(creditApplied)+'</span></div>':'')
         :'')
-      +'<div style="margin-top:4px;text-align:right;"><span onclick="addCarpoolCreditPrompt(\''+passenger.replace(/'/g,"\\'")+'\')" style="cursor:pointer;color:#7090f0;font-size:10px;letter-spacing:1px;text-transform:uppercase;">+ Add credit</span></div>'
+      +refundRows.map(function(r){return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);margin-top:4px;"><span>Credit '+fmtR(r.amount)+' refunded in cash · '+r.dateLabel+'</span><span onclick="undoCarpoolCreditRefund(\''+r.spId+'\')" style="cursor:pointer;color:#7090f0;" title="Undo refund">↩ undo</span></div>';}).join('')
+      +'<div style="margin-top:4px;text-align:right;">'
+        +(creditOpen>0.005?'<span onclick="refundCarpoolCredit(\''+passenger.replace(/'/g,"\\'")+'\')" style="cursor:pointer;color:#7090f0;font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-right:14px;">💵 Refund in cash</span>':'')
+        +'<span onclick="addCarpoolCreditPrompt(\''+passenger.replace(/'/g,"\\'")+'\')" style="cursor:pointer;color:#7090f0;font-size:10px;letter-spacing:1px;text-transform:uppercase;">+ Add credit</span></div>'
       +'</div>';
 
     // WA text — one line per day with proper newlines, borrow section appended
@@ -2691,6 +2719,7 @@ function computeCarpoolCashSplit(mk){
       rest = _cpmR2(rest - take);
       var C = res.credits[c.passenger] || (res.credits[c.passenger] = { amt:0, open:0, why:[] });
       C.amt = _cpmR2(C.amt + take); C.open = _cpmR2(C.open + Math.min(take, Number(c.remaining)||0));
+      (c.uses||[]).forEach(function(u){ if(u.refund || String(u.pmtId||'').indexOf('refund:') === 0){ C.refunded = _cpmR2((C.refunded||0) + (Number(u.amount)||0)); C.refundDate = u.date || C.refundDate; } });
       var ds = (c.dates||[])[0], why = c.note || 'credit';
       if(ds){ var a = dayAmt(ds, c.passenger), lab = _cpmDayLabel(ds);
         why = lab + ' ' + (a === 0 ? 'off' : (Math.abs((Number(c.amount)||0) - a) < 0.005 ? 'half day' : 'part day')); }
@@ -2739,6 +2768,8 @@ function _cpmCashHtml(sp){
   Object.keys(sp.credits||{}).forEach(function(p){
     var C = sp.credits[p];
     var state = C.open > 0.004 ? (C.open < C.amt - 0.004 ? _cpmMoney(C.open)+' still to come off a payment' : 'comes off the next payment') : 'already used on a payment';
+    if(C.refunded > 0.004 && C.open <= 0.004) state = 'refunded in cash' + (C.refundDate ? ' ' + _cpmDayLabel(C.refundDate) : '');
+    else if(C.refunded > 0.004) state = _cpmMoney(C.refunded) + ' refunded in cash · ' + state;
     a += row(_cpmEsc(p)+"'s credit", C.amt, C.why.map(_cpmEsc).join(' + ')+' · '+state, '#7090f0');
   });
   if(Math.abs(sp.unlinked) > 0.004) a += row('Not tied to a trip', sp.unlinked, '', '#f2a830');

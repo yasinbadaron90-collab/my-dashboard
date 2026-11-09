@@ -114,12 +114,19 @@ function openSpend(editingId, prefillData){
     if(prefillData.pocketId != null) _spState.pocketId = prefillData.pocketId;
     if(prefillData.doorway  != null) _spState.doorway  = prefillData.doorway;
     if(prefillData._fromRoutineTaskId) _spState._fromRoutineTaskId = prefillData._fromRoutineTaskId;
+    if(prefillData._creditRefund) _spState._creditRefund = prefillData._creditRefund;   // v151i
+  }
+  // v151i — editing a credit refund keeps it a credit refund
+  if(editingId){
+    var _crAll = loadSpendData(), _crRec = _crAll.find(function(r){ return r.id === editingId; });
+    if(_crRec && _crRec.creditRefund) _spState._creditRefund = { passenger:_crRec.creditRefund.passenger };
   }
 
   // Title — routine-prefilled gets a small hint
   var titleEl = document.getElementById('spModalTitle');
   if(titleEl){
-    if(editingId) titleEl.textContent = '↑ Edit Spend';
+    if(_spState._creditRefund) titleEl.textContent = '↩ Refund ' + _spState._creditRefund.passenger + "'s credit";
+    else if(editingId) titleEl.textContent = '↑ Edit Spend';
     else if(prefillData && prefillData._fromRoutineTaskId) titleEl.textContent = '↑ Spend (from routine)';
     else titleEl.textContent = '↑ Spend';
   }
@@ -383,6 +390,19 @@ function saveSpend(){
     return;
   }
 
+  // v151i — a credit refund can't pay out more credit than is open
+  if(_spState._creditRefund && typeof cpCreditOpen === 'function'){
+    var _crMax = cpCreditOpen(_spState._creditRefund.passenger);
+    if(_spState.editingId){
+      var _crOld = loadSpendData().find(function(r){ return r.id === _spState.editingId; });
+      if(_crOld && _crOld.creditRefund) _crMax += _crOld.amount;
+    }
+    if(_r2(_spState.amount) > _r2(_crMax) + 0.005){
+      alert(_spState._creditRefund.passenger + ' only has ' + fmtR(_crMax) + ' credit to refund.');
+      return;
+    }
+  }
+
   // If editing, reverse the old record first (silent — we rebuild now)
   if(_spState.editingId){
     _spendReverse(_spState.editingId, { silent: true });
@@ -469,8 +489,20 @@ function saveSpend(){
     category: _spState.category || null,
     createdAt: new Date().toISOString()
   };
+  // v151i — close the passenger's credit (oldest first) and remember which
+  // credits this refund used, so deleting/editing the spend re-opens them.
+  if(_spState._creditRefund && typeof cpCreditConsume === 'function'){
+    var _crUses = cpCreditConsume(_spState._creditRefund.passenger, _spState.amount, 'refund:' + spId);
+    try {
+      var _crList = cpCreditsLoad();
+      _crList.forEach(function(c){ (c.uses||[]).forEach(function(u){ if(u.pmtId === 'refund:' + spId){ u.date = _spState.date; u.refund = true; u.pocketId = _spState.pocketId; } }); });
+      cpCreditsSave(_crList);
+    } catch(e){}
+    rec.creditRefund = { passenger:_spState._creditRefund.passenger, uses:_crUses };
+  }
   all.push(rec);
   saveSpendData(all);
+  if(rec.creditRefund){ try { if(typeof generateStatements === 'function') generateStatements(); } catch(e){} }
 
   // Save merchant→category memory for next time
   if(_spState.category && _spState.label){
@@ -544,12 +576,18 @@ function _spendReverse(spId, opts){
   //    (We intentionally bypass removeFromCF above to avoid it trying to
   //    reverse a "phantom" baseline effect that was already netted out.)
 
+  // 3b) v151i — a credit refund re-opens the credit it closed
+  if(rec.creditRefund && typeof cpCreditRestore === 'function'){
+    try { cpCreditRestore(rec.creditRefund.uses, 'refund:' + spId); } catch(e){ console.warn('[spend] credit restore failed', e); }
+  }
+
   // 4) Remove the Spend record itself
   all = all.filter(function(r){ return r.id !== spId; });
   saveSpendData(all);
   saveFunds();
 
   if(!opts.silent){
+    if(rec.creditRefund){ try { if(typeof generateStatements === 'function') generateStatements(); } catch(e){} }
     try { renderFunds(); } catch(e){}
     try { if(typeof renderCashFlow === 'function') renderCashFlow(); } catch(e){}
     try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
