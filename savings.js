@@ -1311,8 +1311,8 @@ function openPocketStatement(fundId){
   _stmtFromISO = deps.length ? earliest.toISOString().split('T')[0] : today.toISOString().split('T')[0];
   _stmtToISO = today.toISOString().split('T')[0];
 
-  document.getElementById('stmtFrom').value = _stmtFromISO;
-  document.getElementById('stmtTo').value = _stmtToISO;
+  document.getElementById('pocketStmtFrom').value = _stmtFromISO;
+  document.getElementById('pocketStmtTo').value = _stmtToISO;
 
   // Highlight "All time" preset
   document.querySelectorAll('.stmt-preset').forEach(function(b){ b.classList.remove('sel'); });
@@ -1346,8 +1346,8 @@ function applyPocketStmtPreset(preset){
   }
   _stmtFromISO = from.toISOString().split('T')[0];
   _stmtToISO = today.toISOString().split('T')[0];
-  document.getElementById('stmtFrom').value = _stmtFromISO;
-  document.getElementById('stmtTo').value = _stmtToISO;
+  document.getElementById('pocketStmtFrom').value = _stmtFromISO;
+  document.getElementById('pocketStmtTo').value = _stmtToISO;
   document.querySelectorAll('.stmt-preset').forEach(function(b){ b.classList.remove('sel'); });
   const btn = document.querySelector('.stmt-preset[data-preset="'+preset+'"]');
   if(btn) btn.classList.add('sel');
@@ -1355,8 +1355,8 @@ function applyPocketStmtPreset(preset){
 }
 
 function onStmtDateChange(){
-  _stmtFromISO = document.getElementById('stmtFrom').value;
-  _stmtToISO = document.getElementById('stmtTo').value;
+  _stmtFromISO = document.getElementById('pocketStmtFrom').value;
+  _stmtToISO = document.getElementById('pocketStmtTo').value;
   document.querySelectorAll('.stmt-preset').forEach(function(b){ b.classList.remove('sel'); });
   renderPocketStmt();
 }
