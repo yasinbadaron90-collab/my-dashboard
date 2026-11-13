@@ -72,8 +72,8 @@ function openBankFeed(mode){
     var from = new Date(y, m, 12);
     var to   = new Date(y, m+1, 12);
   }
-  _bf.dateFrom = from.toISOString().split('T')[0];
-  _bf.dateTo   = to.toISOString().split('T')[0];
+  _bf.dateFrom = localDateStr(from);
+  _bf.dateTo   = localDateStr(to);
 
   _bfRender();
   document.getElementById('bankFeedModal').classList.add('active');

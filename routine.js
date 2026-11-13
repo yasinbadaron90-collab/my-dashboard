@@ -35,7 +35,7 @@ function _routineMarkDoneRaw(id){
   var t = tasks.find(function(x){ return x.id===id; });
   if(!t) return;
   var today = new Date();
-  t.lastDone = today.toISOString().slice(0,10);
+  t.lastDone = localDateStr(today);
   saveRoutineTasks(tasks);
   renderRoutine();
 }

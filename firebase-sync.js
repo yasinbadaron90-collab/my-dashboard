@@ -171,6 +171,21 @@ function _fbStart(){
     // Google Sign-In auth state listener
     _fb.auth.onAuthStateChanged(function(user){
       if(user){
+        // v151l — device lock. The first Google account to sign in on this device
+        // owns it. Any other account is signed straight out BEFORE sync starts, so
+        // it can neither see this device's local data nor copy it into its own cloud.
+        // Raw localStorage on purpose: this key must never sync or go into a backup.
+        var ownerUid = null;
+        try{ ownerUid = localStorage.getItem('yb_device_owner_uid'); }catch(e){}
+        if(ownerUid && ownerUid !== user.uid){
+          console.warn('[Firebase] Sign-in refused: device belongs to another account');
+          _fb.auth.signOut().catch(function(){}).then(function(){
+            var lockEl = document.getElementById('googleLoginError');
+            if(lockEl) lockEl.textContent = 'This device is linked to a different Google account. Sign in with that account.';
+          });
+          return;
+        }
+        if(!ownerUid){ try{ localStorage.setItem('yb_device_owner_uid', user.uid); }catch(e){} }
         _fb.uid   = user.uid;
         _fb.ready = true;
         _fbUpdateStatus('synced');
@@ -223,6 +238,7 @@ function fbSignInWithGoogle(){
 // session -- NOT oversights. Checked against this list so the safety-net
 // warning below only fires on genuine gaps, not on every PIN digit typed.
 var FB_EXCLUDED_KEYS = [
+  'yb_device_owner_uid',            // v151l device lock -- which Google account owns this device; local by design
   'yb_pins',                        // lock-screen PIN -- security, device-local by design
   'yb_bf_api_key_v1',               // bank-feed API credential -- security
   'yb_bankfeed_sessions_v1',        // in-progress import session state -- ephemeral

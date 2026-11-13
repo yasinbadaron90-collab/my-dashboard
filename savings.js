@@ -1308,8 +1308,8 @@ function openPocketStatement(fundId){
     const dd = new Date(d.date);
     if(!isNaN(dd) && dd < earliest) earliest = dd;
   });
-  _stmtFromISO = deps.length ? earliest.toISOString().split('T')[0] : today.toISOString().split('T')[0];
-  _stmtToISO = today.toISOString().split('T')[0];
+  _stmtFromISO = deps.length ? localDateStr(earliest) : localDateStr(today);
+  _stmtToISO = localDateStr(today);
 
   document.getElementById('pocketStmtFrom').value = _stmtFromISO;
   document.getElementById('pocketStmtTo').value = _stmtToISO;
@@ -1344,8 +1344,8 @@ function applyPocketStmtPreset(preset){
       if(!isNaN(dd) && dd < from) from = dd;
     });
   }
-  _stmtFromISO = from.toISOString().split('T')[0];
-  _stmtToISO = today.toISOString().split('T')[0];
+  _stmtFromISO = localDateStr(from);
+  _stmtToISO = localDateStr(today);
   document.getElementById('pocketStmtFrom').value = _stmtFromISO;
   document.getElementById('pocketStmtTo').value = _stmtToISO;
   document.querySelectorAll('.stmt-preset').forEach(function(b){ b.classList.remove('sel'); });

@@ -89,7 +89,7 @@ function calcNextService(car){
   // Minor reason
   var minorReason = '';
   if(daysMinor != null && (daysMinorKm == null || daysMinor <= daysMinorKm)){
-    minorReason = minorByDate.toISOString().slice(0,10)+' (6 month interval)';
+    minorReason = localDateStr(minorByDate)+' (6 month interval)';
   } else if(daysMinorKm != null){
     minorReason = fmtR(minorByKm).replace('R','')+' km ('+(carpool?'5,000':'10,000')+'km interval)';
   }
@@ -97,7 +97,7 @@ function calcNextService(car){
   // Major reason
   var majorReason = '';
   if(daysMajor != null && (daysMajorKm == null || daysMajor <= daysMajorKm)){
-    majorReason = majorByDate.toISOString().slice(0,10)+' (24 month interval)';
+    majorReason = localDateStr(majorByDate)+' (24 month interval)';
   } else if(daysMajorKm != null){
     majorReason = majorByKm.toLocaleString('en-ZA')+' km (40,000km interval)';
   }
@@ -1457,7 +1457,7 @@ function checkReminders(){
     });
   }catch(e){}
 
-  var todayStr = today.toISOString().split('T')[0];
+  var todayStr = localDateStr(today);
 
   // Separate snooze keys for cars vs school
   var carDismissed = lsGet('yb_reminder_dismissed_v1') || '';
@@ -1490,19 +1490,19 @@ function checkReminders(){
 
   function _reminderSnooze(days){
     var d = new Date(); d.setDate(d.getDate()+days);
-    var until = d.toISOString().split('T')[0];
+    var until = localDateStr(d);
     if(hasCars) lsSet('yb_reminder_dismissed_v1', until);
     if(hasSchool) lsSet('yb_school_reminder_dismissed_v1', until);
     var b = document.getElementById('reminderBanner'); if(b) b.remove();
   }
   function _reminderSnoozeCars(days){
     var d = new Date(); d.setDate(d.getDate()+days);
-    lsSet('yb_reminder_dismissed_v1', d.toISOString().split('T')[0]);
+    lsSet('yb_reminder_dismissed_v1', localDateStr(d));
     checkReminders();
   }
   function _reminderSnoozeSchool(days){
     var d = new Date(); d.setDate(d.getDate()+days);
-    lsSet('yb_school_reminder_dismissed_v1', d.toISOString().split('T')[0]);
+    lsSet('yb_school_reminder_dismissed_v1', localDateStr(d));
     checkReminders();
   }
   window._reminderSnooze = _reminderSnooze;

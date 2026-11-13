@@ -232,7 +232,7 @@
   }
 
   function _isSnoozed(a){
-    return a.snoozeUntil && a.snoozeUntil >= new Date().toISOString().split('T')[0];
+    return a.snoozeUntil && a.snoozeUntil >= localDateStr(new Date());
   }
 
   function _advStatusPill(a){
@@ -326,7 +326,7 @@
 
     // pre-fill booked fields
     var bd = document.getElementById('advBookedDate');
-    if(bd) bd.value = adv.bookedFor || new Date().toISOString().split('T')[0];
+    if(bd) bd.value = adv.bookedFor || localDateStr(new Date());
     var bn = document.getElementById('advBookedNote');
     if(bn) bn.value = adv.bookedNote || '';
 
@@ -367,7 +367,7 @@
     if(!date){ alert('Pick a date.'); return; }
     adv.bookedFor = date;
     adv.bookedNote = note;
-    adv.bookedAt = new Date().toISOString().split('T')[0];
+    adv.bookedAt = localDateStr(new Date());
     adv.snoozeUntil = null; // booking supersedes a snooze
     _saveCar(car);
     _renderAdvisoryDetail();
@@ -382,7 +382,7 @@
     var text = (document.getElementById('advNoteText').value||'').trim();
     if(!text){ alert('Write a note first.'); return; }
     if(!Array.isArray(adv.notes)) adv.notes = [];
-    adv.notes.push({ date: new Date().toISOString().split('T')[0], text: text });
+    adv.notes.push({ date: localDateStr(new Date()), text: text });
     document.getElementById('advNoteText').value = '';
     _saveCar(car);
     _renderAdvisoryDetail();
@@ -396,9 +396,9 @@
     var days = parseInt(document.getElementById('advSnoozeSelect').value, 10);
     var d = new Date();
     d.setDate(d.getDate() + days);
-    adv.snoozeUntil = d.toISOString().split('T')[0];
+    adv.snoozeUntil = localDateStr(d);
     if(!Array.isArray(adv.notes)) adv.notes = [];
-    adv.notes.push({ date: new Date().toISOString().split('T')[0], text: '😴 Snoozed '+days+' day'+(days>1?'s':'')+' (until '+_fmtDate(adv.snoozeUntil)+')' });
+    adv.notes.push({ date: localDateStr(new Date()), text: '😴 Snoozed '+days+' day'+(days>1?'s':'')+' (until '+_fmtDate(adv.snoozeUntil)+')' });
     _saveCar(car);
     _renderAdvisoryDetail();
     _renderAdvisoryList();
@@ -426,7 +426,7 @@
     }
 
     adv.status = 'resolved';
-    adv.resolvedAt = new Date().toISOString().split('T')[0];
+    adv.resolvedAt = localDateStr(new Date());
     adv.resolvedBy = reason;
     adv.resolvedReason = resolvedReason;
     adv.snoozeUntil = null;
@@ -467,7 +467,7 @@
     if(carLabelEl) carLabelEl.textContent = car.name + (car.plate ? ' · '+car.plate : '');
     if(textEl)     textEl.value = '';
     if(sourceEl)   sourceEl.value = '';
-    if(dateEl)     dateEl.value = new Date().toISOString().split('T')[0];
+    if(dateEl)     dateEl.value = localDateStr(new Date());
 
     _renderSeverityPills();
 
@@ -504,7 +504,7 @@
     if(!car){ alert('Car not found.'); return; }
     var text   = (document.getElementById('addAdvisoryText').value||'').trim();
     var source = (document.getElementById('addAdvisorySource').value||'').trim();
-    var date   = document.getElementById('addAdvisoryDate').value || new Date().toISOString().split('T')[0];
+    var date   = document.getElementById('addAdvisoryDate').value || localDateStr(new Date());
 
     if(!text){ alert('Please describe the advisory.'); return; }
 
