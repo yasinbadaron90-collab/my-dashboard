@@ -551,21 +551,18 @@ const EXTERNAL_BORROW_KEY= 'yb_external_borrows_v1';
 
 
 // Auth state — set by loginSuccess (Google Sign-In via firebase-sync.js)
-let currentRole = 'guest';
 let currentUser = null;
 
-function loginSuccess(name, role){
-  currentRole = role;
+function loginSuccess(name){
   currentUser = name;
-  window.currentRole = role;
   window.currentUser = name;
   const s = document.getElementById('loginScreen');
   s.style.opacity = '0';
   setTimeout(function(){
     s.style.display = 'none';
-    applyRole();
+    enterApp();
     document.getElementById('drawerLogoutBtn').style.display = 'flex';
-    // v101.1: launch menu replaced by Home page (Step 10). applyRole now
+    // v101.1: launch menu replaced by Home page (Step 10). enterApp now
     // lands admin on page-home directly. Old call removed:
   }, 400);
 }
@@ -583,43 +580,38 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 
-function applyRole(){
-  if(currentRole==='admin'){
-    // Admin: start on HOME (Step 10 landing), show all nav tabs
-    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-    document.getElementById('page-home').classList.add('active');
-    var navH = document.getElementById('navHome'); if(navH) navH.classList.add('active');
-    document.getElementById('navCarpool').classList.remove('active');
-    document.getElementById('navSavings').classList.remove('active');
-    // Render home + pre-render commonly-visited tabs so navigation feels instant
-    try { if(typeof renderHome    === 'function') renderHome();    } catch(e){}
-    try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
-    try { if(typeof renderFunds   === 'function') renderFunds();   } catch(e){}
-    // Fire reminders after a short delay
-    setTimeout(checkReminders, 800);
-    // Weekly background Self-Audit. Read-only and gated to once every 7
-    // days; the delay keeps it off the critical render path.
+function enterApp(){
+  // Admin: start on HOME (Step 10 landing), show all nav tabs
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('page-home').classList.add('active');
+  var navH = document.getElementById('navHome'); if(navH) navH.classList.add('active');
+  document.getElementById('navCarpool').classList.remove('active');
+  document.getElementById('navSavings').classList.remove('active');
+  // Render home + pre-render commonly-visited tabs so navigation feels instant
+  try { if(typeof renderHome    === 'function') renderHome();    } catch(e){}
+  try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
+  try { if(typeof renderFunds   === 'function') renderFunds();   } catch(e){}
+  // Fire reminders after a short delay
+  setTimeout(checkReminders, 800);
+  // Weekly background Self-Audit. Read-only and gated to once every 7
+  // days; the delay keeps it off the critical render path.
+  setTimeout(function(){
+    try { if(typeof maybeRunWeeklyAudit === 'function') maybeRunWeeklyAudit(); }
+    catch(e){ console.warn('Weekly audit skipped:', e); }
+  }, 2500);
+  // First-run wizard — triggered after createFirstAdmin sets the flag.
+  // We fire it after a brief pause so the dashboard has time to render
+  // underneath; the wizard then opens Odin chat with a welcome message.
+  if(lsGet('yb_first_run_pending_wizard') === '1'){
+    lsSet('yb_first_run_pending_wizard', null);
     setTimeout(function(){
-      try { if(typeof maybeRunWeeklyAudit === 'function') maybeRunWeeklyAudit(); }
-      catch(e){ console.warn('Weekly audit skipped:', e); }
-    }, 2500);
-    // First-run wizard — triggered after createFirstAdmin sets the flag.
-    // We fire it after a brief pause so the dashboard has time to render
-    // underneath; the wizard then opens Odin chat with a welcome message.
-    if(lsGet('yb_first_run_pending_wizard') === '1'){
-      lsSet('yb_first_run_pending_wizard', null);
-      setTimeout(function(){
-        try {
-          if(typeof startOdinFirstRunWizard === 'function'){
-            startOdinFirstRunWizard(currentUser);
-          }
-        } catch(e){ console.warn('First-run wizard failed:', e); }
-      }, 1200);
-    }
-    return;
+      try {
+        if(typeof startOdinFirstRunWizard === 'function'){
+          startOdinFirstRunWizard(currentUser);
+        }
+      } catch(e){ console.warn('First-run wizard failed:', e); }
+    }, 1200);
   }
-  // v151m: passenger and car-service logins removed — Google Sign-In only ever
-  // signs in an admin, so those branches never ran.
 }
 
 function logout(){
@@ -628,7 +620,6 @@ function logout(){
     if(window._fb && window._fb.auth) window._fb.auth.signOut().catch(function(e){ console.warn('Firebase signOut', e); });
   } catch(e){ console.warn('Firebase signOut threw', e); }
 
-  currentRole = 'guest';
   currentUser = null;
   // Clear cloud login form
   var em = document.getElementById('loginEmail'); if(em) em.value = '';
@@ -636,22 +627,8 @@ function logout(){
   var le = document.getElementById('loginError'); if(le) le.textContent = '';
   var ls = document.getElementById('loginStatus'); if(ls) ls.textContent = '';
   document.getElementById('drawerLogoutBtn').style.display = 'none';
-  // Restore hamburger button
-  var hbg = document.getElementById('hbgBtn');
-  if(hbg) hbg.style.display = '';
-  // Restore savings + carpool nav tabs
-  document.getElementById('navSavings').style.display = '';
-  document.getElementById('navCarpool').style.display = '';
-  // Restore Cars nav tab pointer events (in case carservice user was logged in)
   var navCars = document.getElementById('navCars');
-  if(navCars){ navCars.style.pointerEvents = ''; navCars.classList.remove('active'); }
-  // Restore admin-only elements (skip page divs — tab visibility controlled by CSS)
-  document.querySelectorAll('.admin-only').forEach(function(el){
-    if(el.classList.contains('page')) return;
-    el.style.display='';
-  });
-  // Hide carservice-specific reveals (admin-only will re-show them properly)
-  document.querySelectorAll('.carservice-show').forEach(function(el){ el.style.display=''; });
+  if(navCars) navCars.classList.remove('active');
   // Show login screen
   const s = document.getElementById('loginScreen');
   s.style.display = 'flex';

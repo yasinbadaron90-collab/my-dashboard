@@ -186,16 +186,16 @@ function _showUpdateToast(worker){
   <button class="hbg-btn" onclick="openDrawer()" title="Menu" id="hbgBtn">
     <span></span><span></span><span></span>
   </button>
-  <button class="nav-tab active admin-only" id="navHome" onclick="switchTab('home',this)">🏠 Home</button>
+  <button class="nav-tab active" id="navHome" onclick="switchTab('home',this)">🏠 Home</button>
   <button class="nav-tab" id="navSavings" onclick="switchTab('savings',this)">💰 Savings</button>
   <button class="nav-tab" id="navCarpool" onclick="switchTab('carpool',this)">🚗 Carpool</button>
-  <button class="nav-tab admin-only" id="navOdin" onclick="switchTab('odin',this)">🧠 Odin</button>
-  <button class="nav-tab admin-only" id="navCashflow" onclick="switchTab('cashflow',this)">💵 Cash Flow</button>
-  <button class="nav-tab admin-only" id="navCars" onclick="switchTab('cars',this)">🔧 Cars</button>
-  <button class="nav-tab admin-only" id="navPlan" onclick="switchTab('plan',this)">🎯 Plan</button>
-  <button class="nav-tab admin-only" id="navInstalments" style="display:none;" onclick="switchTab('instalments',this)">💳 Instalments</button>
-  <button class="nav-tab admin-only" id="navSchool" style="display:none;" onclick="switchTab('school',this)">🎓 School</button>
-  <button class="nav-tab admin-only" id="navRoutine" style="display:none;" onclick="switchTab('routine',this)">🔁 Routine</button>
+  <button class="nav-tab" id="navOdin" onclick="switchTab('odin',this)">🧠 Odin</button>
+  <button class="nav-tab" id="navCashflow" onclick="switchTab('cashflow',this)">💵 Cash Flow</button>
+  <button class="nav-tab" id="navCars" onclick="switchTab('cars',this)">🔧 Cars</button>
+  <button class="nav-tab" id="navPlan" onclick="switchTab('plan',this)">🎯 Plan</button>
+  <button class="nav-tab" id="navInstalments" style="display:none;" onclick="switchTab('instalments',this)">💳 Instalments</button>
+  <button class="nav-tab" id="navSchool" style="display:none;" onclick="switchTab('school',this)">🎓 School</button>
+  <button class="nav-tab" id="navRoutine" style="display:none;" onclick="switchTab('routine',this)">🔁 Routine</button>
 </nav>
 
 <!-- ── HAMBURGER DRAWER ── -->
@@ -209,7 +209,7 @@ function _showUpdateToast(worker){
   <!-- Scrollable content area -->
   <div class="hbg-drawer-scroll">
 
-    <div class="hbg-section admin-only carservice-show">
+    <div class="hbg-section">
       <div class="hbg-section-label">Data</div>
       <button class="hbg-item" onclick="closeDrawer();backupData();">
         <span class="hbg-icon">💾</span> Save Backup
@@ -222,9 +222,9 @@ function _showUpdateToast(worker){
       </button>
     </div>
 
-    <div class="hbg-divider carservice-show"></div>
+    <div class="hbg-divider"></div>
 
-    <div class="hbg-section admin-only">
+    <div class="hbg-section">
       <div class="hbg-section-label">Navigate</div>
       <button class="hbg-item" onclick="closeDrawer();goToTab('money');">
         <span class="hbg-icon">💰</span> Money Owed to Me
@@ -235,42 +235,42 @@ function _showUpdateToast(worker){
       <button class="hbg-item" onclick="closeDrawer();goToTab('reports');">
         <span class="hbg-icon">📊</span> Reports
       </button>
-      <button class="hbg-item admin-only" onclick="closeDrawer();goToTab('audit');">
+      <button class="hbg-item" onclick="closeDrawer();goToTab('audit');">
         <span class="hbg-icon">🛡️</span> Self-Audit<span id="auditDrawerBadge"></span>
       </button>
       <button class="hbg-item" onclick="closeDrawer();goToTab('prayer');">
         <span class="hbg-icon">🕌</span> Prayer Tracker
       </button>
-      <button class="hbg-item admin-only" onclick="closeDrawer();switchTab('cars',document.getElementById('navCars'));">
+      <button class="hbg-item" onclick="closeDrawer();switchTab('cars',document.getElementById('navCars'));">
         <span class="hbg-icon">🔧</span> Car Service Tracker
       </button>
-      <button class="hbg-item admin-only" onclick="closeDrawer();switchTab('plan',document.getElementById('navPlan'));">
+      <button class="hbg-item" onclick="closeDrawer();switchTab('plan',document.getElementById('navPlan'));">
         <span class="hbg-icon">🎯</span> Plan
       </button>
-      <button class="hbg-item admin-only" onclick="closeDrawer();switchTab('instalments',document.getElementById('navInstalments'));">
+      <button class="hbg-item" onclick="closeDrawer();switchTab('instalments',document.getElementById('navInstalments'));">
         <span class="hbg-icon">💳</span> Instalments
       </button>
-      <button class="hbg-item admin-only" onclick="closeDrawer();goToTab('school');">
+      <button class="hbg-item" onclick="closeDrawer();goToTab('school');">
         <span class="hbg-icon">🎓</span> School
       </button>
-      <button class="hbg-item admin-only" onclick="closeDrawer();goToTab('routine');">
+      <button class="hbg-item" onclick="closeDrawer();goToTab('routine');">
         <span class="hbg-icon">🔁</span> Routine
       </button>
-      <button class="hbg-item admin-only" onclick="closeDrawer();openAIAssistant();" style="position:relative;">
+      <button class="hbg-item" onclick="closeDrawer();openAIAssistant();" style="position:relative;">
         <span class="hbg-icon">🧠</span> Odin Chat
         <span style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:8px;letter-spacing:1.5px;background:#c8f230;color:#000;padding:2px 6px;border-radius:20px;font-weight:700;">NEW</span>
       </button>
     </div>
 
-    <div class="hbg-divider admin-only"></div>
+    <div class="hbg-divider"></div>
 
-    <div class="hbg-section admin-only">
+    <div class="hbg-section">
       <div class="hbg-section-label">Settings</div>
-      <button class="hbg-item admin-only" onclick="closeDrawer();openPriorityEditor();">
+      <button class="hbg-item" onclick="closeDrawer();openPriorityEditor();">
         <span class="hbg-icon">⚡</span>
         Priority Rules
       </button>
-      <button class="hbg-item admin-only" onclick="closeDrawer();openSettings();">
+      <button class="hbg-item" onclick="closeDrawer();openSettings();">
         <span class="hbg-icon">⚙️</span> Settings & PINs
       </button>
       <button class="theme-toggle" onclick="toggleTheme()">
@@ -299,7 +299,7 @@ function _showUpdateToast(worker){
 <!-- SAVINGS -->
 <div class="page" id="page-savings">
   <!-- Odin Bar -->
-  <div class="odin-bar admin-only" onclick="toggleOdinPanel('savings')" id="odinBar-savings">
+  <div class="odin-bar" onclick="toggleOdinPanel('savings')" id="odinBar-savings">
     <div class="odin-bar-left">
       <span style="font-size:18px;">🧠</span>
       <div>
@@ -309,7 +309,7 @@ function _showUpdateToast(worker){
     </div>
     <span class="odin-bar-chev" id="odinChev-savings">&#8964;</span>
   </div>
-  <div class="odin-panel admin-only" id="odinPanel-savings">
+  <div class="odin-panel" id="odinPanel-savings">
     <div class="odin-insights" id="odinInsights-savings"></div>
   </div>
   <div class="topbar">
@@ -336,7 +336,7 @@ function _showUpdateToast(worker){
   </div>
   <div class="fund-grid" id="fundGrid"></div>
   <div style="max-width:720px;margin:0 auto;" id="archivedSection"></div>
-  <button class="add-global-btn admin-only" onclick="openNewFund()" style="display:none;">+ New Savings Fund</button>
+  <button class="add-global-btn" onclick="openNewFund()" style="display:none;">+ New Savings Fund</button>
 </div>
 
 <!-- CARPOOL -->
@@ -369,7 +369,7 @@ function _showUpdateToast(worker){
     <!-- RIGHT PANE -->
     <div class="cp-right">
   <!-- Odin Bar -->
-  <div class="odin-bar admin-only" onclick="toggleOdinPanel('carpool')" id="odinBar-carpool">
+  <div class="odin-bar" onclick="toggleOdinPanel('carpool')" id="odinBar-carpool">
     <div class="odin-bar-left">
       <span style="font-size:18px;">🧠</span>
       <div>
@@ -379,16 +379,16 @@ function _showUpdateToast(worker){
     </div>
     <span class="odin-bar-chev" id="odinChev-carpool">&#8964;</span>
   </div>
-  <div class="odin-panel admin-only" id="odinPanel-carpool">
+  <div class="odin-panel" id="odinPanel-carpool">
     <div class="odin-insights" id="odinInsights-carpool"></div>
   </div>
       <div class="cp-topbar">
         <button id="reopenPane" onclick="togglePane()" style="display:inline-flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:4px;width:22px;height:36px;cursor:pointer;color:var(--muted);font-size:13px;margin-right:8px;">&#8250;</button>
         <h1>CAR<span>POOL</span> <button class="info-btn" onclick="openInfo('Carpool', 'Track who rides with you and what they owe — Lezaun, David, Shireen.\n\nMark trips paid as you receive money. Paid trips drop into your chosen pocket automatically (set when you log payment).\n\nTap a passenger to view their full history or generate a statement to send them.')">ⓘ</button></h1>
         <div class="cp-pills">
-          <div class="cp-pill admin-only">Unpaid: <strong id="cpUnpaid">R0</strong></div>
+          <div class="cp-pill">Unpaid: <strong id="cpUnpaid">R0</strong></div>
           <div class="cp-pill">This month: <strong id="cpMonthTotal">R0</strong></div>
-          <div class="cp-pill hi admin-only">All time: <strong id="cpGrandTotal">R0</strong></div>
+          <div class="cp-pill hi">All time: <strong id="cpGrandTotal">R0</strong></div>
         </div>
       </div>
       <div class="month-nav" style="justify-content:space-between;">
@@ -398,9 +398,9 @@ function _showUpdateToast(worker){
           <button class="mnav-btn" onclick="cpChangeMonth(1)">&#8594;</button>
         </div>
         <div style="display:flex;gap:8px;">
-          <button onclick="openQuickEntry()" class="admin-only" style="background:#c8f230;border:none;border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#000;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Quick Entry</button>
-          <button onclick="openBorrowModal()" class="admin-only" style="background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#a78bfa;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">💸 Borrow</button>
-          <button onclick="openRepayModal()" class="admin-only" style="background:#0e1a2e;border:1px solid #7090f0;border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#7090f0;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">↩ Repay</button>
+          <button onclick="openQuickEntry()" style="background:#c8f230;border:none;border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#000;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Quick Entry</button>
+          <button onclick="openBorrowModal()" style="background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#a78bfa;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">💸 Borrow</button>
+          <button onclick="openRepayModal()" style="background:#0e1a2e;border:1px solid #7090f0;border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#7090f0;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">↩ Repay</button>
         </div>
       </div>
       <div class="cp-legend">
@@ -418,9 +418,9 @@ function _showUpdateToast(worker){
 </div>
 
 <!-- CASH FLOW PAGE -->
-<div class="page admin-only" id="page-cashflow" style="padding:0 0 80px;">
+<div class="page" id="page-cashflow" style="padding:0 0 80px;">
   <!-- Odin Bar -->
-  <div class="odin-bar admin-only" onclick="toggleOdinPanel('cashflow')" id="odinBar-cashflow">
+  <div class="odin-bar" onclick="toggleOdinPanel('cashflow')" id="odinBar-cashflow">
     <div class="odin-bar-left">
       <span style="font-size:18px;">🧠</span>
       <div>
@@ -430,7 +430,7 @@ function _showUpdateToast(worker){
     </div>
     <span class="odin-bar-chev" id="odinChev-cashflow">&#8964;</span>
   </div>
-  <div class="odin-panel admin-only" id="odinPanel-cashflow">
+  <div class="odin-panel" id="odinPanel-cashflow">
     <div class="odin-insights" id="odinInsights-cashflow"></div>
   </div>
   <div style="max-width:720px;margin:0 auto;padding:28px 16px 0;">
@@ -484,7 +484,7 @@ function _showUpdateToast(worker){
     <!-- INCOME SECTION -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#c8f230;">↑ Income</div>
-      <button onclick="openCfEntryModal('income')" class="admin-only" style="padding:6px 14px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">+ Add</button>
+      <button onclick="openCfEntryModal('income')" style="padding:6px 14px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">+ Add</button>
     </div>
     <div style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:6px;">
       <div id="cfIncomeRows"></div>
@@ -497,7 +497,7 @@ function _showUpdateToast(worker){
     <!-- EXPENSES SECTION -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#f23060;">↓ Expenses</div>
-      <button onclick="openCfEntryModal('expense')" class="admin-only" style="padding:6px 14px;background:#2e0a0a;border:1px solid #5a1a1a;border-radius:6px;color:#f23060;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">+ Add</button>
+      <button onclick="openCfEntryModal('expense')" style="padding:6px 14px;background:#2e0a0a;border:1px solid #5a1a1a;border-radius:6px;color:#f23060;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">+ Add</button>
     </div>
     <div style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:6px;">
       <div id="cfExpenseRows"></div>
@@ -512,7 +512,7 @@ function _showUpdateToast(worker){
         <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#c8f230;">💰 Savings Allocations</span>
         <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px;">Internal transfers — money moved from a bank to a savings pot</div>
       </div>
-      <button onclick="openMove()" class="admin-only" style="padding:6px 14px;background:#1a1030;border:1px solid #6a4ac0;border-radius:6px;color:#a78bfa;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">🔄 Move</button>
+      <button onclick="openMove()" style="padding:6px 14px;background:#1a1030;border:1px solid #6a4ac0;border-radius:6px;color:#a78bfa;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">🔄 Move</button>
     </div>
     <div style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:6px;">
       <div id="cfSavingsAllocRows"></div>
@@ -577,7 +577,7 @@ function _showUpdateToast(worker){
       <!-- Rebuild button — wipes the bank buckets and lets the user type
            fresh real-world balances from their actual bank apps. Useful when
            the running totals have drifted (untracked payments, fees, etc). -->
-      <button onclick="openRebuildBalances()" class="admin-only" style="width:100%;background:#1a0e2e;border:1px solid #5a3a8a;border-radius:8px;padding:10px;color:#a78bfa;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-bottom:16px;">🔄 Rebuild Bank Balances</button>
+      <button onclick="openRebuildBalances()" style="width:100%;background:#1a0e2e;border:1px solid #5a3a8a;border-radius:8px;padding:10px;color:#a78bfa;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-bottom:16px;">🔄 Rebuild Bank Balances</button>
 
       <!-- Savings Balances -->
       <div style="background:#0d1a00;border:1px solid #1a3a00;border-radius:10px;padding:16px;">
@@ -968,7 +968,7 @@ function _showUpdateToast(worker){
             <input id="fuelAmountUber" type="number" placeholder="Uber fare (R)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
             <input id="fuelNote" type="text" placeholder="Note (optional)" style="grid-column:span 2;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
           </div>
-          <button onclick="addFuelEntry()" class="admin-only" style="padding:8px 14px;border:none;border-radius:6px;background:#a78bfa;color:#000;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;margin-bottom:12px;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">+ Add Entry</button>
+          <button onclick="addFuelEntry()" style="padding:8px 14px;border:none;border-radius:6px;background:#a78bfa;color:#000;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;margin-bottom:12px;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">+ Add Entry</button>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
             <div style="background:#111;border:1px solid var(--border);padding:10px;border-radius:6px;">
               <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Spent</div>
@@ -1605,7 +1605,7 @@ function _showUpdateToast(worker){
 <!-- ── MONEY OWED PAGE ── -->
 <div class="page" id="page-money" style="padding:0 0 80px;">
   <!-- Odin Bar -->
-  <div class="odin-bar admin-only" onclick="toggleOdinPanel('money')" id="odinBar-money">
+  <div class="odin-bar" onclick="toggleOdinPanel('money')" id="odinBar-money">
     <div class="odin-bar-left">
       <span style="font-size:18px;">🧠</span>
       <div>
@@ -1615,7 +1615,7 @@ function _showUpdateToast(worker){
     </div>
     <span class="odin-bar-chev" id="odinChev-money">&#8964;</span>
   </div>
-  <div class="odin-panel admin-only" id="odinPanel-money">
+  <div class="odin-panel" id="odinPanel-money">
     <div class="odin-insights" id="odinInsights-money"></div>
   </div>
   <div style="max-width:720px;margin:0 auto;padding:20px 16px 60px;">
@@ -1626,7 +1626,7 @@ function _showUpdateToast(worker){
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🤝 <span style="color:var(--muted)">MONEY OWED</span> <button class="info-btn" onclick="openInfo('Money Owed', 'People who owe you money — carpool tabs, personal lends, anything.\n\nTap ↩ Repayment when someone pays you back. Money goes back into a pocket (auto-suggests the one you lent from, but you can pick any).\n\nLent and repaid totals show at the top. Card turns green when settled.')">ⓘ</button></div>
         <div style="font-size:10px;letter-spacing:3px;color:var(--muted);margin-top:4px;text-transform:uppercase;">Everyone who owes you</div>
       </div>
-      <button onclick="openExternalBorrowModal()" class="admin-only" style="background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#a78bfa;font-weight:700;">+ Add Person</button>
+      <button onclick="openExternalBorrowModal()" style="background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#a78bfa;font-weight:700;">+ Add Person</button>
     </div>
 
     <!-- Summary pills -->
@@ -1891,13 +1891,13 @@ function _showUpdateToast(worker){
 <!-- ══════════════════════════════════════════════════════════
      CAR SERVICE TRACKER PAGE
 ══════════════════════════════════════════════════════════ -->
-<div class="page admin-only" id="page-plan" style="padding:20px 16px 80px;">
+<div class="page" id="page-plan" style="padding:20px 16px 80px;">
   <div id="planContent"></div>
 </div>
 
-<div class="page admin-only" id="page-cars" style="padding:0 0 80px;">
+<div class="page" id="page-cars" style="padding:0 0 80px;">
   <!-- Odin Bar -->
-  <div class="odin-bar admin-only" onclick="toggleOdinPanel('cars')" id="odinBar-cars">
+  <div class="odin-bar" onclick="toggleOdinPanel('cars')" id="odinBar-cars">
     <div class="odin-bar-left">
       <span style="font-size:18px;">🧠</span>
       <div>
@@ -1907,7 +1907,7 @@ function _showUpdateToast(worker){
     </div>
     <span class="odin-bar-chev" id="odinChev-cars">&#8964;</span>
   </div>
-  <div class="odin-panel admin-only" id="odinPanel-cars">
+  <div class="odin-panel" id="odinPanel-cars">
     <div class="odin-insights" id="odinInsights-cars"></div>
   </div>
   <div style="max-width:720px;margin:0 auto;padding:28px 16px 0;">
@@ -2170,7 +2170,7 @@ function _showUpdateToast(worker){
 <!-- ══════════════════════════════════════════════════════════
      INSTALMENTS PAGE
 ══════════════════════════════════════════════════════════ -->
-<div class="page admin-only" id="page-instalments" style="padding:28px 16px 80px;">
+<div class="page" id="page-instalments" style="padding:28px 16px 80px;">
   <div style="max-width:720px;margin:0 auto;">
 
     <!-- Header -->
@@ -2223,7 +2223,7 @@ function _showUpdateToast(worker){
 </div>
 
 <!-- ── SCHOOL TAB ── -->
-<div class="page admin-only" id="page-school" style="padding:20px 16px 80px;">
+<div class="page" id="page-school" style="padding:20px 16px 80px;">
   <div style="max-width:720px;margin:0 auto;">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:10px;">
       <div>
@@ -2381,7 +2381,7 @@ function _showUpdateToast(worker){
 
 
 <!-- ── ROUTINE TAB ── -->
-<div class="page admin-only" id="page-routine" style="padding:20px 16px 80px;">
+<div class="page" id="page-routine" style="padding:20px 16px 80px;">
   <div style="max-width:720px;margin:0 auto;">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:10px;">
       <div>
@@ -2449,16 +2449,16 @@ function _showUpdateToast(worker){
 </div>
 
 <!-- ══ HOME PAGE (Step 10 — landing screen) ══ -->
-<div class="page admin-only" id="page-audit" style="padding:20px 16px 80px;">
+<div class="page" id="page-audit" style="padding:20px 16px 80px;">
   <div id="auditRoot" style="max-width:720px;margin:0 auto;"></div>
 </div>
 
-<div class="page active admin-only" id="page-home" style="padding:20px 16px 80px;">
+<div class="page active" id="page-home" style="padding:20px 16px 80px;">
   <div id="homeContent"></div>
 </div>
 
 <!-- ══ ODIN COMMAND CENTRE PAGE ══ -->
-<div class="page admin-only" id="page-odin" style="padding:0 0 80px;">
+<div class="page" id="page-odin" style="padding:0 0 80px;">
 
   <!-- Header -->
   <div style="background:linear-gradient(180deg,#0d1a00 0%,#0a0a0a 100%);padding:24px 16px 16px;border-bottom:1px solid #1a2a00;">

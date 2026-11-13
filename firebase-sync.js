@@ -195,8 +195,8 @@ function _fbStart(){
         var nameEl = document.getElementById('fbUserName');
         if(nameEl) nameEl.textContent = user.displayName || user.email || 'Signed in';
         console.log('[Firebase] Ready, uid:', _fb.uid, 'name:', user.displayName);
-        // Google Sign-In is the only auth — go straight into the app as admin
-        if(typeof loginSuccess === 'function') loginSuccess(user.displayName || user.email || 'User', 'admin');
+        // Google Sign-In is the only auth — go straight into the app
+        if(typeof loginSuccess === 'function') loginSuccess(user.displayName || user.email || 'User');
       } else {
         // Not signed in — make sure login screen is visible
         _fbUpdateStatus('offline');

@@ -6,6 +6,7 @@
 //   - Lezaun double-counted repayment in calcPersonTotals (2026-08-10)
 //   - carpool credit: oldest first, capped, fully reversible (v151e-g)
 //   - UTC date slip in localDateStr callers (v151l)
+//   - Money In delete leaving money behind (_moneyInReverse, v151n)
 // Run: node tests/money-math.mjs      Exit 0 = pass, 1 = fail.
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
@@ -99,6 +100,60 @@ t('restore puts every cent back and never exceeds the original', () => {
 t('zero or negative credit is not created', () => {
   assert.equal(cpCreditAdd('P', 0, ''), null);
   assert.equal(cpCreditAdd('P', -5, ''), null);
+});
+
+console.log('money in reverse');
+t('_moneyInReverse puts every rand back: pockets, cash flow, bank, loan, record', () => {
+  // Real code, stubbed storage. Simulates one saved Money In of R5000 into FNB:
+  // house R1000, pocket split R2000, subscription R300 (R200 bank part) that repays a loan,
+  // and R500 of house money parked in a pocket.
+  const s = {}; let base = { FNB: 1000 };
+  const ext = { lender: { entries: [ {id:'old', amount:50}, {id:'rep1', amount:200} ] } };
+  const funds = [
+    { id:'f1', deposits:[ {id:'keep1', amount:10}, {id:'d1', amount:2000} ] },
+    { id:'f2', deposits:[ {id:'d2', amount:500} ] }
+  ];
+  const cf = { '2026-11': {
+    income:   [ {id:'inc', amount:5000, destBank:'FNB'}, {id:'otherInc', amount:7} ],
+    expenses: [ {id:'cfSplit', amount:2000, destBank:'FNB', sourceType:'savings_deposit'},
+                {id:'house', amount:1000, destBank:'FNB'}, {id:'sub1', amount:300, destBank:'FNB'},
+                {id:'hc', amount:500, sourceType:'savings_deposit'}, {id:'hcSubs', amount:0},
+                {id:'otherExp', amount:9, destBank:'FNB'} ] } };
+  const rec = { id:'mi1', date:'2026-11-10', amount:5000, sourceBank:'FNB', house:1000,
+    cfIncomeId:'inc', cfHouseId:'house',
+    splits:[ {fundId:'f1', depositId:'d1', cfId:'cfSplit', amount:2000} ],
+    subs:[ {cfId:'sub1', amount:300, bank:200, debtKey:'lender', debtEntryId:'rep1'} ],
+    houseCash:{ fundId:'f2', depositId:'d2', cfId:'hc', subsCfId:'hcSubs' } };
+  // Baseline as the save left it: +5000 income, -1000 house, -2000 split, -200 sub bank part.
+  base.FNB = 1000 + 5000 - 1000 - 2000 - 200;
+  s.yb_moneyin_v1 = JSON.stringify([rec, {id:'mi2'}]);
+  const c2 = vm.createContext({
+    lsGet: k => (k in s ? s[k] : null), lsSet: (k, v) => { s[k] = String(v); },
+    funds, saveFunds(){}, renderFunds(){},
+    loadCFData: () => JSON.parse(JSON.stringify(cf)),
+    saveCFData: d => { for(const k in cf) delete cf[k]; Object.assign(cf, JSON.parse(JSON.stringify(d))); },
+    loadExternalBorrows: () => JSON.parse(JSON.stringify(ext)),
+    saveExternalBorrows: d => { ext.lender = d.lender; },
+    window: { _adjustBaselineForBank: (b, amt) => { base[b] = Math.round(((base[b]||0) + amt) * 100) / 100; } },
+    console
+  });
+  const savings = read('savings.js'), cashflow = read('cashflow.js'), moneyin = read('moneyin.js');
+  vm.runInContext([
+    "const CF_SAV_SRC_TYPES = ['savings_deposit','car_add','maint','custommaint','car_service_save','savings'];",
+    "const CF_SAV_CATEGORIES = ['Savings','Cars','Maintenance'];",
+    grab(cashflow, 'cfIsSavingsAlloc'), grab(savings, 'removeFromCF'),
+    "const MONEYIN_KEY = 'yb_moneyin_v1';",
+    grab(moneyin, 'loadMoneyInData'), grab(moneyin, 'saveMoneyInData'), grab(moneyin, '_moneyInReverse')
+  ].join('\n'), c2);
+  assert.equal(c2._moneyInReverse('mi1', {silent:true}), true);
+  assert.equal(base.FNB, 1000, 'bank baseline back to where it started');
+  assert.deepEqual(funds[0].deposits.map(d => d.id), ['keep1']);
+  assert.deepEqual(funds[1].deposits.map(d => d.id), []);
+  assert.deepEqual(cf['2026-11'].income.map(e => e.id), ['otherInc']);
+  assert.deepEqual(cf['2026-11'].expenses.map(e => e.id), ['otherExp']);
+  assert.deepEqual(ext.lender.entries.map(e => e.id), ['old']);
+  assert.deepEqual(JSON.parse(s.yb_moneyin_v1).map(r => r.id), ['mi2']);
+  assert.equal(c2._moneyInReverse('nope', {silent:true}), false);
 });
 
 console.log('dates');

@@ -426,17 +426,6 @@ function renderCarpool(){
     stmtPassOpts.innerHTML = PASSENGER_DATA.map(function(p){
       return '<div class="pass-opt selected" data-name="'+p.name+'" onclick="togglePassOpt(this)"><span>'+p.name+'</span><span class="chk">✓</span></div>';
     }).join('');
-    // If passenger role, lock to current user only
-    if(currentRole !== 'admin' && currentUser){
-      stmtPassOpts.querySelectorAll('.pass-opt').forEach(function(el){
-        if(el.getAttribute('data-name') !== currentUser){
-          el.classList.remove('selected');
-          el.style.display = 'none';
-        } else {
-          el.style.pointerEvents = 'none';
-        }
-      });
-    }
   }
 
   const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -445,7 +434,7 @@ function renderCarpool(){
   const mk=cpKey();
   let monthTotal=0,unpaid=0,grand=0;
 
-  const pillPassengers = currentRole==='admin' ? PASSENGERS : [currentUser];
+  const pillPassengers = PASSENGERS;
   Object.values(cpData).forEach(md=>{
     Object.values(md).forEach(dd=>{
       if(typeof dd==='object'&&dd){
@@ -459,32 +448,25 @@ function renderCarpool(){
     });
   });
 
-  if(cpData[mk]){Object.values(cpData[mk]).forEach(dd=>{if(typeof dd==='object'&&dd){if(currentRole==='admin'){monthTotal+=dayTotal(dd);}else{monthTotal+=passengerAmt(dd,currentUser);}}});}
+  if(cpData[mk]){Object.values(cpData[mk]).forEach(dd=>{if(typeof dd==='object'&&dd){monthTotal+=dayTotal(dd);}});}
 
   document.getElementById('cpUnpaid').textContent=fmtR(unpaid);
   document.getElementById('cpMonthTotal').textContent=fmtR(monthTotal);
   document.getElementById('cpGrandTotal').textContent=fmtR(grand);
-  // Grand total bar: admin sees all-time grand total; passengers see their monthly total
-  if(currentRole==='admin'){
-    document.getElementById('cpGrandTotalBar').textContent=fmtR(grand);
-    document.getElementById('cpGrandBarLabel').textContent='Grand Total \u2014 all time';
-  } else {
-    const MN2=['January','February','March','April','May','June','July','August','September','October','November','December'];
-    document.getElementById('cpGrandTotalBar').textContent=fmtR(monthTotal);
-    document.getElementById('cpGrandBarLabel').textContent=(currentUser||'Your')+' Total \u2014 '+MN2[cpMonth];
-  }
+  document.getElementById('cpGrandTotalBar').textContent=fmtR(grand);
+  document.getElementById('cpGrandBarLabel').textContent='Grand Total \u2014 all time';
 
   try{ renderCarpoolMoneySummary(); }catch(e){ console.warn('[carpool] money summary failed', e); }
   const container=document.getElementById('cpWeeks');container.innerHTML='';
 
   weeks.forEach((wd,wi)=>{
     let wkTotal=0;
-    if(cpData[mk])wd.forEach(d=>{const ds=localDateStr(d);if(cpData[mk][ds]){const dd=cpData[mk][ds];if(currentRole==='admin'){wkTotal+=dayTotal(dd);}else{wkTotal+=passengerAmt(dd,currentUser);}}});
+    if(cpData[mk])wd.forEach(d=>{const ds=localDateStr(d);if(cpData[mk][ds]){const dd=cpData[mk][ds];wkTotal+=dayTotal(dd);}});
     const s=wd[0].toLocaleDateString('en-ZA',{day:'2-digit',month:'short'});
     const e=wd[wd.length-1].toLocaleDateString('en-ZA',{day:'2-digit',month:'short'});
     const block=document.createElement('div');block.className='week-block';
-    const visiblePassengers = currentRole==='admin' ? PASSENGERS : PASSENGERS.filter(p=>p===currentUser);
-    block.innerHTML=`<div class="week-hdr"><span class="week-hdr-label">Week ${wi+1} &nbsp; ${s} – ${e}</span><span class="week-hdr-total">${fmtR(wkTotal)}</span></div><table class="cp-table"><thead><tr><th class="dc">Day</th>${visiblePassengers.map(p=>`<th>${p}</th>`).join('')}${currentRole==='admin'?'<th class="tc">Total</th>':''}<th class="nc">Notes</th></tr></thead><tbody id="wb${wi}"></tbody></table>`;
+    const visiblePassengers = PASSENGERS;
+    block.innerHTML=`<div class="week-hdr"><span class="week-hdr-label">Week ${wi+1} &nbsp; ${s} – ${e}</span><span class="week-hdr-total">${fmtR(wkTotal)}</span></div><table class="cp-table"><thead><tr><th class="dc">Day</th>${visiblePassengers.map(p=>`<th>${p}</th>`).join('')}<th class="tc">Total</th><th class="nc">Notes</th></tr></thead><tbody id="wb${wi}"></tbody></table>`;
     container.appendChild(block);
     const tbody=document.getElementById('wb'+wi);
     wd.forEach(d=>{
@@ -536,24 +518,7 @@ function renderCarpool(){
         const halfPaidV   = halfVal+'_paid';
         const halfUnpaidV = halfVal+'_unpaid';
 
-        // Passenger view: read-only display instead of dropdown.
-        // Read amt/paid directly from the stored value string so historical
-        // entries display correctly regardless of current tariff.
-        if(currentRole !== 'admin' && p !== currentUser) return ''; // skip other columns
-        if(currentRole !== 'admin'){
-          let dispTxt='—', dispCol='#333';
-          // Parse "<amt>_<paid|unpaid>" — works for ANY amount, not just 44/22
-          if(/^\d+_(paid|unpaid)$/.test(val)){
-            const parts = val.split('_');
-            const amt = parts[0];
-            const isPaid = parts[1] === 'paid';
-            dispTxt = 'R'+amt+(isPaid?' ✓':' ⏳');
-            dispCol = isPaid ? '#c8f230' : '#f2a830';
-          } else if(val==='0_present'){dispTxt='R0';dispCol='#555';}
-          return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:12px;color:${dispCol};padding:6px 4px;">${dispTxt}</td>`;
-        }
-
-        // Admin view — full editable dropdown. If the stored value uses an
+        // Editable dropdown. If the stored value uses an
         // old historical rate (e.g. "44_paid" from pre-tariff-change), we
         // include it as an extra option so the user can see the historical
         // amount AND optionally change it. This avoids the "can't see what's
@@ -580,7 +545,7 @@ function renderCarpool(){
           <option value="${halfPaidV}"   ${val===halfPaidV  ?'selected':''} style="background:#1a2e00;color:#c8f230">R${halfVal} ✓</option>
           <option value="0_present"${val==='0_present'?'selected':''} style="background:#222;color:#555">R0</option>
         </select></td>`;
-      }).join('')}${currentRole==='admin'?'<td class="tc">'+(tot>0?fmtR(tot):'<span style="color:var(--muted2)">—</span>')+'</td>':''}${currentRole==='admin'?'<td class="nc"><input class="notes-inp" placeholder="notes..." value="'+(dd.notes||'').replace(/"/g,'&quot;')+'" data-date="'+ds+'" onchange="setNote(this)"/></td>':'<td class="nc" style="color:var(--muted);font-size:11px;">'+(dd.notes||'')+'</td>'}`;
+      }).join('')}<td class="tc">${tot>0?fmtR(tot):'<span style="color:var(--muted2)">—</span>'}</td><td class="nc"><input class="notes-inp" placeholder="notes..." value="${(dd.notes||'').replace(/"/g,'&quot;')}" data-date="${ds}" onchange="setNote(this)"/></td>`;
       tbody.appendChild(tr);
     });
   });
@@ -2894,7 +2859,6 @@ function renderCarpoolMoneySummary(){
     host.id = 'cpMoneySummary';
     anchor.insertAdjacentElement('beforebegin', host);
   }
-  if(currentRole !== 'admin'){ host.style.display = 'none'; return; }
   host.style.display = 'block';
   var mk = cpKey();
   var label = _cpmMonthName(mk)+' '+cpYear;
@@ -3235,7 +3199,6 @@ function renderMonthlyReportControls(){
     host.style.cssText = 'margin-top:14px;padding-top:14px;border-top:1px solid var(--border);';
     sec.appendChild(host);
   }
-  if(typeof currentRole !== 'undefined' && currentRole !== 'admin'){ host.style.display = 'none'; return; }
   host.style.display = 'block';
   var seen = {}, now = new Date();
   seen[now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')] = true;

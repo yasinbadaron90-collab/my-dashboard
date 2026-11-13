@@ -14,7 +14,7 @@
 // Wired into:
 //   - index.html: <button id="navHome"> + <div id="page-home">
 //   - money.js   switchTab / _renderTabSafely
-//   - core.js    applyRole (admin starts on home, not carpool)
+//   - core.js    enterApp (admin starts on home, not carpool)
 //   - sw.js      SHELL_ASSETS list
 // ════════════════════════════════════════════════════════════════════
 

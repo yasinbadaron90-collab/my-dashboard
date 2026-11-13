@@ -281,7 +281,6 @@ function renderForecastSection(){
     anchor.insertAdjacentElement('beforebegin', wrap);
     document.getElementById('rptFolderForecastInner').innerHTML = _fcBodyHtml(_fcLoad());
   }
-  if(typeof currentRole !== 'undefined' && currentRole !== 'admin'){ wrap.style.display = 'none'; return; }
   wrap.style.display = 'block';
   var body = document.getElementById('rptFolderForecastBody');
   var meta = document.getElementById('rptFolderForecastMeta');

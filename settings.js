@@ -492,7 +492,7 @@ function cfRow(e, type, isRecur){
       +subLine
     +'</div>'
     +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;white-space:nowrap;'+amtStyle+'">'+sign+fmtR(e.amount)+'</span>'
-    +'<div style="display:flex;gap:4px;" class="admin-only">'
+    +'<div style="display:flex;gap:4px;">'
       +'<button onclick="openCfEntryModal(\''+type+'\',\''+e.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;width:26px;height:26px;color:#555;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.borderColor=\'#555\'" onmouseout="this.style.borderColor=\'#2a2a2a\'">✏️</button>'
       +'<button onclick="deleteCfEntry(\''+e.id+'\',\''+type+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;width:26px;height:26px;color:#555;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">✕</button>'
     +'</div>'
