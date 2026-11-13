@@ -161,7 +161,7 @@ function renderSchool(){
   if(!el) return;
   var events = loadSchoolEvents();
   var done = getSchoolDone();
-  var today = new Date().toISOString().slice(0,10);
+  var today = localDateStr(new Date());
 
   // Filter
   var filtered = events.slice();

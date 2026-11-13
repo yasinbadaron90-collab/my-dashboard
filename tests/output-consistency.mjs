@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Output Consistency Checker — My Dashboard V34
-// Reads the LIVE carpool.js from GitHub (always current, never a stale copy) and
+// Reads the local carpool.js next to this folder (or GitHub main with --live) and
 // checks whether the three carpool-statement surfaces (on-screen card, WhatsApp
 // text, exported PDF) agree on which concepts they show. Built after the
 // "TOTAL OWED" incident (v147g/h) — a label that appeared in the PDF and never
@@ -10,7 +10,7 @@
 // if one surface starts showing something the other two don't, this fails loud,
 // before the bug ever reaches an actual generated statement.
 //
-// Run: node output-consistency.mjs
+// Run: node tests/output-consistency.mjs   (add --live for the deployed copy)
 // Exit code 0 = all expected-parity concepts consistent. Exit code 1 = drift found.
 
 const REPO_RAW = 'https://raw.githubusercontent.com/yasinbadaron90-collab/my-dashboard/main/carpool.js';
@@ -37,6 +37,12 @@ async function main() {
   if (fileArgIdx !== -1) {
     const path = process.argv[fileArgIdx + 1];
     console.log(`Reading local file: ${path}`);
+    src = await (await import('node:fs/promises')).readFile(path, 'utf8');
+  } else if (process.argv.indexOf('--live') === -1) {
+    // v151l — default is the LOCAL working copy, so the check runs BEFORE a push.
+    // Pass --live to check what is deployed on GitHub main instead.
+    const path = new URL('../carpool.js', import.meta.url);
+    console.log('Reading local working copy: carpool.js');
     src = await (await import('node:fs/promises')).readFile(path, 'utf8');
   } else {
     console.log('Fetching live carpool.js…');

@@ -211,7 +211,7 @@ function appendOdinMsg(role, html, showFeedback, turnId){
 // ── Build live data snapshot for system prompt ────────────────────────────────
 function _odinBuildContext(){
   var ctx = [];
-  var today = new Date().toISOString().split('T')[0];
+  var today = localDateStr(new Date());
   ctx.push('Today: '+today);
   ctx.push('User: Yasin Badaron (admin)');
 
@@ -391,7 +391,7 @@ function _odinBuildContext(){
     var drivers = JSON.parse(lsGet('yasin_drivers_v1')||'[]');
     if(drivers.length){
       ctx.push('\n--- DRIVER\'S LICENCES ---');
-      var today4 = new Date().toISOString().split('T')[0];
+      var today4 = localDateStr(new Date());
       drivers.forEach(function(d){
         var daysLeft = d.expiry ? Math.round((new Date(d.expiry)-new Date(today4))/(1000*60*60*24)) : null;
         ctx.push(d.name+(d.idNumber?' (ID: '+d.idNumber+')':'')+': expires '+d.expiry+(daysLeft!=null?' ('+daysLeft+' days)':''));
@@ -442,7 +442,7 @@ function _odinBuildContext(){
     }
     // School events
     var events = JSON.parse(lsGet('yasin_school_events_v1')||'[]');
-    var today2 = new Date().toISOString().split('T')[0];
+    var today2 = localDateStr(new Date());
     var upcoming = events.filter(function(e){ return e.date >= today2; })
       .sort(function(a,b){ return a.date.localeCompare(b.date); }).slice(0,8);
     if(upcoming.length){
@@ -479,9 +479,9 @@ function _odinBuildContext(){
     var spends = JSON.parse(lsGet('yb_spend_v1')||'[]');
     if(spends.length){
       var nowD  = new Date();
-      var thisMk = nowD.toISOString().slice(0,7);
+      var thisMk = localDateStr(nowD).slice(0,7);
       var prevD  = new Date(nowD.getFullYear(), nowD.getMonth()-1, 1);
-      var prevMk = prevD.toISOString().slice(0,7);
+      var prevMk = localDateStr(prevD).slice(0,7);
       var catIds = ['Food','Fuel','Kids','Car','Personal','Home','School','Social','Other'];
       var thisCats = {}, prevCats = {}, thisUntagged=0, prevUntagged=0;
       catIds.forEach(function(c){ thisCats[c]=0; prevCats[c]=0; });
@@ -596,8 +596,8 @@ function _odinBuildContext(){
         cycleStart3 = new Date(now3.getFullYear(), now3.getMonth()-1, 25);
         cycleEnd3   = new Date(now3.getFullYear(), now3.getMonth(), 24);
       }
-      var csStr = cycleStart3.toISOString().split('T')[0];
-      var ceStr = cycleEnd3.toISOString().split('T')[0];
+      var csStr = localDateStr(cycleStart3);
+      var ceStr = localDateStr(cycleEnd3);
       var cycleFuel = fuelEntries.filter(function(e){ return (e.date||'') >= csStr && (e.date||'') <= ceStr; });
       var cycleTotal = cycleFuel.reduce(function(s,e){ return s+(e.amount||0); },0);
       var FUEL_BUDGET = parseFloat(lsGet(FUEL_BUDGET_KEY)) || 2950;

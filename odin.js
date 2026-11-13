@@ -343,7 +343,7 @@ function buildOdinLaunchAlerts(){
   // ── Instalments due ──
   try{
     var plans = (typeof loadInst==='function') ? loadInst() : [];
-    var nowMonthKey = now.toISOString().slice(0,7); // 'YYYY-MM'
+    var nowMonthKey = localDateStr(now).slice(0,7); // 'YYYY-MM'
     plans.forEach(function(plan){
       var planId = plan.id;
 

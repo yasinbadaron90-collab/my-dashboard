@@ -680,7 +680,7 @@ function applyRole(){
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastDay  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const fmt = function(d){ return d.toISOString().slice(0,10); };
+  const fmt = function(d){ return localDateStr(d); };
   const sfrom = document.getElementById('stmtFrom');
   const sto   = document.getElementById('stmtTo');
   if(sfrom) sfrom.value = fmt(firstDay);

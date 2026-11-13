@@ -1025,7 +1025,7 @@ function _generateStatementsWork(){
       +'<button class="stmt-btn btn-copy" id="pdf_'+cardId+'" onclick="genPDF(this)">📄 Export</button>'
       +'<button class="stmt-btn btn-save" id="wa_'+cardId+'" onclick="openWA(this)">💬 Save</button>'
       +'</div>';
-    card._pdfData={passenger:passenger,from:from,to:to,totalAmt:totalOwed,tripData:tripDataArr,borrowData:borrows,tripTotal:tripTotal,borrowTotal:borrowTotal,tripPaid:tripPaid,borrowPaid:borrowPaid,tripOwing:tripOwing,borrowOwing:borrowOwing,creditApplied:creditApplied,creditReason:creditReason,refunds:refundRows};
+    card._pdfData={passenger:passenger,from:from,to:to,totalAmt:totalOwed,tripData:tripDataArr,borrowData:borrows,tripTotal:tripTotal,borrowTotal:borrowTotal,tripPaid:tripPaid,borrowPaid:borrowPaid,tripOwing:tripOwing,borrowOwing:borrowOwing,creditApplied:creditApplied,creditReason:creditReason,refunds:refundRows,grossOwing:grossOwing,totalOwing:totalOwing};
     card._waData=waText;
     card._stmtMeta={passenger,tripOwing,borrowOwing,totalOwing,grossOwing,creditApplied,from,to};
     container.appendChild(card);
@@ -1050,13 +1050,13 @@ function genPDF(btn){
   if(typeof window.jspdf==='undefined'){
     const s=document.createElement('script');
     s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    s.onload=function(){buildPDF(passenger,from,to,totalAmt,d.tripData,d.borrowData||[],d.tripTotal||0,d.borrowTotal||0,d.tripPaid||0,d.borrowPaid||0,d.tripOwing||0,d.borrowOwing||0,d.creditApplied||0,d.creditReason||'',d.refunds||[]);};
+    s.onload=function(){buildPDF(passenger,from,to,totalAmt,d.tripData,d.borrowData||[],d.tripTotal||0,d.borrowTotal||0,d.tripPaid||0,d.borrowPaid||0,d.tripOwing||0,d.borrowOwing||0,d.creditApplied||0,d.creditReason||'',d.refunds||[],d.grossOwing,d.totalOwing);};
     document.head.appendChild(s);
   } else {
-    buildPDF(passenger,from,to,totalAmt,d.tripData,d.borrowData||[],d.tripTotal||0,d.borrowTotal||0,d.tripPaid||0,d.borrowPaid||0,d.tripOwing||0,d.borrowOwing||0,d.creditApplied||0,d.creditReason||'',d.refunds||[]);
+    buildPDF(passenger,from,to,totalAmt,d.tripData,d.borrowData||[],d.tripTotal||0,d.borrowTotal||0,d.tripPaid||0,d.borrowPaid||0,d.tripOwing||0,d.borrowOwing||0,d.creditApplied||0,d.creditReason||'',d.refunds||[],d.grossOwing,d.totalOwing);
   }
 }
-function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borrowTotal,tripPaid,borrowPaid,tripOwing,borrowOwing,creditApplied,creditReason,refunds){
+function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borrowTotal,tripPaid,borrowPaid,tripOwing,borrowOwing,creditApplied,creditReason,refunds,grossOwing,totalOwing){
   creditApplied=creditApplied||0;
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'mm',format:'a4'});
@@ -1154,8 +1154,7 @@ function buildPDF(passenger,from,to,totalAmt,tripData,borrowData,tripTotal,borro
   // Unified outstanding only — tripOwing + borrowOwing combined. Gross "Total Owed"
   // removed per Yasin: it duplicated Trips+Borrowed shown above and read as a second,
   // conflicting total sitting next to the amount actually due.
-  const grossOwing=tripOwing+borrowOwing;
-  const totalOwing=Math.round((grossOwing-creditApplied)*100)/100;
+  // v151l — one formula: grossOwing/totalOwing come from the statement card (renderStatement), not recalculated here.
   if(creditApplied>0){
     doc.setTextColor(112,144,240);doc.setFontSize(9);doc.setFont('helvetica','normal');
     doc.text('CREDIT APPLIED',20,y);
@@ -2213,7 +2212,7 @@ function _renderNwLine(d) {
       _lineWrap.insertBefore(_sw, _lineWrap.firstChild);
     }
   }
-  var todayStr = today.toISOString().slice(0,7);
+  var todayStr = localDateStr(today).slice(0,7);
 
   var labels2 = [], dataVals2 = [], pointColors2 = [];
   months.forEach(function(m) {
