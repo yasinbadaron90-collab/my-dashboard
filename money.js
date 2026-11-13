@@ -1639,34 +1639,6 @@ function fmtR(n){
   return 'R'+r.toLocaleString('en-ZA', whole ? {} : {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 // ════════════════════════════════════════════════════════════════════
-// ROLE-BASED TAB ACCESS GUARD
-// ════════════════════════════════════════════════════════════════════
-// Returns true if the current user is allowed to navigate to the given tab.
-// Used by switchTab and goToTab to prevent restricted users (passengers,
-// carservice) from reaching admin-only areas via any code path — including
-// drawer items, Odin chat commands, and direct function calls.
-//
-// admin       → full access to everything
-// carservice  → only the cars page (Munier's role)
-// passenger   → only the carpool page (David, Lezaun, Shireen)
-function _roleCanAccessTab(tab){
-  try {
-    var role = window.currentRole || 'admin';
-    if(role === 'admin') return true;
-    if(role === 'carservice'){
-      // Munier should only see Cars. Allow only that single tab.
-      return tab === 'cars';
-    }
-    if(role === 'passenger'){
-      // Passengers should only see their own carpool view.
-      return tab === 'carpool';
-    }
-    // Unknown role — fail closed
-    return false;
-  } catch(e){ return false; }
-}
-
-// ════════════════════════════════════════════════════════════════════
 // DEFENSIVE TAB RENDER DISPATCHER (item 12)
 // ════════════════════════════════════════════════════════════════════
 // Centralises all per-tab render calls and wraps each one in a try/catch.
@@ -1724,13 +1696,6 @@ function _safeCall(fn, label){
 }
 
 function switchTab(tab,btn){
-  // Enforce role — silently ignore attempts to switch to disallowed tabs.
-  // Without this, drawer items and Odin chat commands could navigate
-  // restricted users into admin areas even when buttons are hidden.
-  if(!_roleCanAccessTab(tab)){
-    console.warn('[role guard] Blocked switchTab to:', tab, 'role:', window.currentRole);
-    return;
-  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('navSavings').classList.remove('active');
   document.getElementById('navCarpool').classList.remove('active');

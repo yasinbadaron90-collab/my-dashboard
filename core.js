@@ -557,8 +557,6 @@ let currentUser = null;
 function loginSuccess(name, role){
   currentRole = role;
   currentUser = name;
-  // Expose role on window so role-based access guards in other modules
-  // (e.g. _roleCanAccessTab in money.js) can read the current user's role.
   window.currentRole = role;
   window.currentUser = name;
   const s = document.getElementById('loginScreen');
@@ -620,74 +618,8 @@ function applyRole(){
     }
     return;
   }
-
-  // Car Service role — only show the Cars tab
-  if(currentRole === 'carservice'){
-    document.querySelectorAll('.admin-only').forEach(function(el){ el.style.display='none'; });
-    // Reveal the data section for carservice users
-    document.querySelectorAll('.carservice-show').forEach(function(el){ el.style.display=''; });
-    // Show the Cars nav tab only
-    document.getElementById('navSavings').style.display = 'none';
-    document.getElementById('navCarpool').style.display = 'none';
-    var navCars = document.getElementById('navCars');
-    if(navCars){ navCars.style.display = ''; navCars.classList.add('active'); navCars.style.pointerEvents = 'none'; }
-    // Show hamburger (so they can access data options)
-    var hbg = document.getElementById('hbgBtn');
-    if(hbg) hbg.style.display = '';
-    // Show Cars page
-    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-    document.getElementById('page-cars').classList.add('active');
-    document.getElementById('page-cars').style.display = 'block';
-    renderCars();
-    return;
-  }
-
-  // Passenger role
-  // Hide admin-only elements
-  document.querySelectorAll('.admin-only').forEach(function(el){ el.style.display='none'; });
-
-  // Hide nav tabs entirely for passengers
-  document.getElementById('navSavings').style.display = 'none';
-  document.getElementById('navCarpool').style.display = 'none';
-
-  // Also hide hamburger button for passengers
-  var hbg = document.getElementById('hbgBtn');
-  if(hbg) hbg.style.display = 'none';
-
-  // Switch to carpool
-  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-  document.getElementById('page-carpool').classList.add('active');
-
-  // Re-render carpool filtered to this user
-  renderCarpool();
-
-  // Open the left statement pane automatically
-  const pane = document.getElementById('cpLeftPane');
-  if(pane && pane.classList.contains('collapsed')) togglePane();
-
-  // Lock passenger selector to only show current user, hide others
-  document.querySelectorAll('.pass-opt').forEach(function(el){
-    if(el.getAttribute('data-name') === currentUser){
-      el.classList.add('selected');
-      el.style.pointerEvents = 'none';
-    } else {
-      el.classList.remove('selected');
-      el.style.display = 'none';
-    }
-  });
-
-  // Auto-fill current month date range
-  const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDay  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const fmt = function(d){ return localDateStr(d); };
-  const sfrom = document.getElementById('stmtFrom');
-  const sto   = document.getElementById('stmtTo');
-  if(sfrom) sfrom.value = fmt(firstDay);
-  if(sto)   sto.value   = fmt(lastDay);
-
-  // Auto-generate their statement
-  setTimeout(generateStatements, 200);
+  // v151m: passenger and car-service logins removed — Google Sign-In only ever
+  // signs in an admin, so those branches never ran.
 }
 
 function logout(){
