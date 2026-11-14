@@ -15,13 +15,13 @@ Money moves between pockets; banks are a doorway only (never hold a balance).
 ## Files
 | File | Owns |
 |---|---|
-| core.js | lsGet/lsSet, keys, `localDateStr`, login/PIN, launch menu, drawer, theme, tab switching |
+| core.js | lsGet/lsSet, keys, login/PIN, launch menu, drawer, theme, tab switching |
 | firebase-sync.js | Google sign-in, Firestore mirror, device lock, `FB_SYNC_KEYS` / `FB_EXCLUDED_KEYS` |
 | savings.js | Pockets/funds, `fundTotal`, deposits, use funds, `postToCF` / `removeFromCF` |
 | moneyin.js | Money In (income into pockets) |
 | spend.js | Spend (deduct from one pocket, posts to Cash Flow) |
 | move.js | Move between two pockets |
-| cashflow.js | Cash Flow tab, month report, reconcile, CF PDF |
+| cashflow.js | `localDateStr`, Cash Flow tab, month report, reconcile, CF PDF |
 | settings.js | Reconcile balances (`yb_recon_balances_v1`), backup/restore (`buildBackupPayload`), passenger mgmt UI |
 | money.js | Money Owed: external borrows, `calcPersonTotals`, PDF |
 | borrow.js | Borrow logging, lending guardrail, archive |
