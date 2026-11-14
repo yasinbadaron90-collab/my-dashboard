@@ -548,6 +548,11 @@ function renderCarpool(){
       }).join('')}<td class="tc">${tot>0?fmtR(tot):'<span style="color:var(--muted2)">—</span>'}</td><td class="nc"><input class="notes-inp" placeholder="notes..." value="${(dd.notes||'').replace(/"/g,'&quot;')}" data-date="${ds}" onchange="setNote(this)"/></td>`;
       tbody.appendChild(tr);
     });
+    // v151o: per-passenger week totals under Friday (quick glance; same passengerAmt as the header total)
+    const _wkP=PASSENGERS.map(p=>{let t=0;wd.forEach(d=>{const ds=localDateStr(d);const dd=cpData[mk]&&cpData[mk][ds];if(dd&&typeof dd==='object')t+=passengerAmt(dd,p);});return t;});
+    const tf=document.createElement('tfoot');
+    tf.innerHTML=`<tr style="border-top:2px solid var(--border);"><td class="dc" style="font-weight:700;color:#c8f230;">Total</td>${_wkP.map(t=>`<td style="text-align:center;font-weight:700;${t>0?'color:#efefef;':'color:var(--muted2);'}">${t>0?fmtR(t):'—'}</td>`).join('')}<td class="tc" style="font-weight:700;color:#c8f230;">${fmtR(wkTotal)}</td><td class="nc"></td></tr>`;
+    tbody.parentNode.appendChild(tf);
   });
   // Style all selects after render
   document.querySelectorAll('.cp-table select').forEach(function(sel){
