@@ -551,7 +551,7 @@ function renderCarpool(){
     // v151o: per-passenger week totals under Friday (quick glance; same passengerAmt as the header total)
     const _wkP=PASSENGERS.map(p=>{let t=0;wd.forEach(d=>{const ds=localDateStr(d);const dd=cpData[mk]&&cpData[mk][ds];if(dd&&typeof dd==='object')t+=passengerAmt(dd,p);});return t;});
     const tf=document.createElement('tfoot');
-    tf.innerHTML=`<tr style="border-top:2px solid var(--border);"><td class="dc" style="font-weight:700;color:#c8f230;">Total</td>${_wkP.map(t=>`<td style="text-align:center;font-weight:700;${t>0?'color:#efefef;':'color:var(--muted2);'}">${t>0?fmtR(t):'—'}</td>`).join('')}<td class="tc" style="font-weight:700;color:#c8f230;">${fmtR(wkTotal)}</td><td class="nc"></td></tr>`;
+    tf.innerHTML=`<tr style="border-top:2px solid var(--border);"><td class="dc" style="font-weight:700;color:#c8f230;">Total</td>${_wkP.map(t=>`<td><input readonly tabindex="-1" value="${t>0?fmtR(t):'—'}" style="background:transparent;border:1px solid transparent;color:${t>0?'#efefef':'#555'};font-family:'DM Mono',monospace;font-size:11px;font-weight:700;border-radius:4px;padding:5px 4px;width:90px;text-align:center;outline:none;pointer-events:none;"></td>`).join('')}<td class="tc" style="font-weight:700;color:#c8f230;">${fmtR(wkTotal)}</td><td class="nc"></td></tr>`;
     tbody.parentNode.appendChild(tf);
   });
   // Style all selects after render
