@@ -552,6 +552,7 @@ function renderPlan(){
       +   (c.target>0 ? '<span style="font-size:11px;color:'+M+';">of '+fmtR(c.target)+' · '+pct.toFixed(1)+'%</span>' : '<span style="font-size:11px;color:'+M+';">no target set</span>')
       + '</div>'
       + (c.target>0 ? '<div style="height:8px;background:#2a2a2a;border-radius:4px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+L+';border-radius:4px;"></div></div>' : '')
+      + (c.monthly>0 ? '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:6px;"><span style="color:'+M+';">per pay cycle</span><span style="color:#aaa;">'+fmtR(c.monthly)+' / cycle'+(c.target>0 && toGo>0 ? ' · ~'+Math.ceil(toGo/c.monthly)+' cycles left' : '')+'</span></div>' : '')
       + '</div>';
   }).join('');
 
