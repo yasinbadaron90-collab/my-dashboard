@@ -557,14 +557,14 @@ function renderPlan(){
       +   (c.target>0 ? '<span style="font-size:11px;color:'+M+';">of '+fmtR(c.target)+' · '+pct.toFixed(1)+'%</span>' : '<span style="font-size:11px;color:'+M+';">no target set</span>')
       + '</div>'
       + (c.target>0 ? '<div style="height:8px;background:#2a2a2a;border-radius:4px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+L+';border-radius:4px;"></div></div>' : '')
-      + (c.id==='c2' && c.target>0 ? (function(){
+      + (c.pocketId==='murqfqm' && c.target>0 ? (function(){
           // v151t: Ee90 measures the pocket balance against its target (option A)
           var left2 = Math.max(0, Math.round((c.target - bal)*100)/100);
           var rc2 = left2 > 0 ? R : L;
           return '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:6px;"><span style="color:'+M+';">saved · '+fmtR(bal)+' of '+fmtR(c.target)+'</span><span style="color:'+rc2+';">'+(left2>0 ? fmtR(left2)+' to add' : 'target reached')+'</span></div>'
             + '<div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;margin-top:4px;"><div style="width:'+pct+'%;height:100%;background:'+L+';"></div></div>';
         })() : '')
-      + (c.monthly>0 && !(c.id==='c2' && c.target>0) ? (function(){
+      + (c.monthly>0 && !(c.pocketId==='murqfqm' && c.target>0) ? (function(){
           var rt = planRoutedInCycle(c, cyc);
           var left = Math.max(0, Math.round((c.monthly - rt)*100)/100);
           var rc = left > 0 ? R : L;
