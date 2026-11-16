@@ -233,8 +233,20 @@ function planRoutedInCycle(card, cyc){
         return s + (sp ? sp.amount : 0);
       }, 0);
     // v151s: money moved INTO this pocket from another pocket/bank this cycle also counts
+    // v151x: a move only counts if made AFTER the pocket's last spend/move-out this cycle.
+    // Top-ups that were then spent are not savings.
+    var lastOut = '';
+    // Masud monthly is an allowance meant to be spent: every move in counts.
+    if(card.pocketId !== 'mm48mhq') try {
+      var fl = (typeof funds !== 'undefined' ? funds : []);
+      var fd = fl.find(function(f){ return f.id === card.pocketId; });
+      ((fd && fd.deposits) || []).forEach(function(d){
+        var dd = (d.date||'').slice(0,10);
+        if(d.txnType === 'out' && planInCycle(dd, cyc) && dd > lastOut) lastOut = dd;
+      });
+    } catch(e){}
     var mv = (typeof loadMoveData === 'function') ? loadMoveData() : [];
-    var fromMove = mv.filter(function(m){ return m.toId === card.pocketId && planInCycle(m.date, cyc); })
+    var fromMove = mv.filter(function(m){ return m.toId === card.pocketId && planInCycle(m.date, cyc) && (!lastOut || m.date.slice(0,10) > lastOut); })
       .reduce(function(s,m){ return s + (Number(m.amount)||0); }, 0);
     return Math.round((fromIn + fromMove) * 100) / 100;
   } catch(e){ return 0; }
@@ -558,11 +570,12 @@ function renderPlan(){
       + '</div>'
       + (c.target>0 ? '<div style="height:8px;background:#2a2a2a;border-radius:4px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+L+';border-radius:4px;"></div></div>' : '')
       + (c.monthly>0 ? (function(){
-          // v151w: every card: pocket balance vs monthly amount (target is the grand total)
-          var left2 = Math.max(0, Math.round((c.monthly - bal)*100)/100);
+          // v151x: this cycle = what was put in and kept (planRoutedInCycle), vs monthly amount
+          var rt = planRoutedInCycle(c, cyc);
+          var left2 = Math.max(0, Math.round((c.monthly - rt)*100)/100);
           var rc2 = left2 > 0 ? R : L;
-          var mp = Math.max(0, Math.min(100, (bal/c.monthly)*100));
-          return '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:6px;"><span style="color:'+M+';">saved · '+fmtR(bal)+' of '+fmtR(c.monthly)+'</span><span style="color:'+rc2+';">'+(left2>0 ? fmtR(left2)+' to add' : 'done this cycle')+'</span></div>'
+          var mp = Math.max(0, Math.min(100, (rt/c.monthly)*100));
+          return '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:6px;"><span style="color:'+M+';">this cycle · '+fmtR(rt)+' of '+fmtR(c.monthly)+'</span><span style="color:'+rc2+';">'+(left2>0 ? fmtR(left2)+' to add' : 'done this cycle')+'</span></div>'
             + '<div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;margin-top:4px;"><div style="width:'+mp+'%;height:100%;background:'+L+';"></div></div>';
         })() : '')
       + '</div>';
