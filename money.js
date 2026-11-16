@@ -58,12 +58,7 @@ if(typeof window !== 'undefined'){
 // repayment flow can auto-suggest it later (closing the lend↔repay loop).
 var _extLendSelectedPocketId = null;
 
-function _extLendBalance(f){
-  var t = (f.deposits||[]).reduce(function(s,d){
-    return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0));
-  }, 0);
-  return Math.round(t * 100) / 100 + 0;   // v149t: cents
-}
+function _extLendBalance(f){ return fundTotal(f); }
 
 function renderExtLendPocketPicker(){
   var picker = document.getElementById('extLendPocketPicker');
@@ -688,9 +683,7 @@ function renderExtRepayPocketPicker(resetToDefault){
     }
   }
   picker.innerHTML = (funds||[]).map(function(f){
-    var bal = (f.deposits||[]).reduce(function(s,d){
-      return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0));
-    }, 0);
+    var bal = fundTotal(f);
     var isOrigin = (f.id === originId);
     var isSelected = (f.id === _extRepaySelectedPocketId);
     var borderColor = isSelected ? '#a78bfa' : (isOrigin ? '#5a8800' : 'transparent');
@@ -979,7 +972,7 @@ function _renderPayDebtPocketPicker(){
   if(!picker) return;
   var list = (funds||[]).filter(function(f){ return !f._deleted; });
   picker.innerHTML = list.map(function(f){
-    var bal = (f.deposits||[]).reduce(function(s,d){ return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0)); }, 0);
+    var bal = fundTotal(f);
     var isSel = (f.id === _payDebtSelectedPocketId);
     var border = isSel ? '#8a1010' : '#1a1a1a';
     var bg     = isSel ? '#1a0808' : '#0e0e0e';
@@ -1001,7 +994,7 @@ function selectPayDebtPocket(id){
 function updatePayDebtGuardrail(){
   var amt = parseFloat(document.getElementById('payDebtAmt').value) || 0;
   var pocket = _payDebtSelectedPocketId ? (funds||[]).find(function(f){ return f.id === _payDebtSelectedPocketId; }) : null;
-  var bal = pocket ? (pocket.deposits||[]).reduce(function(s,d){ return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0)); }, 0) : 0;
+  var bal = pocket ? fundTotal(pocket) : 0;
   var guardrail = document.getElementById('payDebtGuardrail');
   var btn = document.getElementById('payDebtConfirmBtn');
   if(amt > 0 && pocket && amt > bal + 0.005){   // v149t
@@ -1023,7 +1016,7 @@ function confirmPayDebt(){
   // Pocket check — hard block
   var pocket = _payDebtSelectedPocketId ? (funds||[]).find(function(f){ return f.id === _payDebtSelectedPocketId; }) : null;
   if(!pocket){ alert('Pick a pocket to pay from.'); return; }
-  var pocketBal = (pocket.deposits||[]).reduce(function(s,d){ return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0)); }, 0);
+  var pocketBal = fundTotal(pocket);
   if(amount > pocketBal + 0.005){   // v149t
     alert('Only R'+pocketBal.toLocaleString('en-ZA')+' in '+pocket.name+'. Pick another pocket or smaller amount.');
     return;

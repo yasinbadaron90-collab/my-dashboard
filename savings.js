@@ -15,16 +15,7 @@ function saveFunds(){lsSet(SK,JSON.stringify(funds)); window.funds=funds; odinRe
 // the race window where a save could fire on empty `funds` before DOM ready.
 try { loadFunds(); window.funds=funds; } catch(e){}
 
-// ── fundTotal: sum all deposits for a fund ──
-function fundTotal(f){
-  // v149t: round to cents. Summing many 2-decimal amounts in binary floating point drifts
-  // (e.g. a real R17.95 balance came out as 17.94999999999999, which made "move R17.95" fail).
-  var t = (f.deposits||[]).reduce(function(s,d){
-    if(d.txnType==='out') return s - d.amount;
-    return s + d.amount;
-  }, 0);
-  return Math.round(t * 100) / 100 + 0;   // "+ 0" turns -0 into 0
-}
+// fundTotal lives in calc.js (v151y).
 
 function remaining(f){return Math.max(0,f.goal-fundTotal(f));}
 function pct(f){return Math.min(100,(fundTotal(f)/f.goal)*100);}

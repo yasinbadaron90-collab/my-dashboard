@@ -221,10 +221,7 @@ function _odinBuildContext(){
     if(funds.length){
       ctx.push('\n--- POCKETS / SAVINGS ---');
       funds.forEach(function(f){
-        var bal = (f.deposits||[]).reduce(function(s,d){
-          if(f.isExpense) return d.txnType==='out' ? s-d.amount : s+d.amount;
-          return d.txnType==='out' ? s-d.amount : s+d.amount;
-        },0);
+        var bal = fundTotal(f);
         ctx.push(f.emoji+' '+f.name+': R'+bal.toFixed(2)
           +(f.goal?' (goal R'+f.goal+')':'')
           +(f.isExpense?' [expense fund]':'')

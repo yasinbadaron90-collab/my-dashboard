@@ -12,7 +12,8 @@
 //   cars.js        — loadCarsData(), saveCarsData(), openAddExpense()
 //   advisories.js  — saveAdvisory(), openAdvisoryList()
 //   bankfeed.js    — bfGetApiKey() (reuses same API key)
-//   savings.js     — funds, fundTotal()
+//   savings.js     — funds
+//   calc.js        — fundTotal()
 //
 // Storage key: none (session-only state, nothing persists until Approve)
 

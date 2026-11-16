@@ -18,7 +18,8 @@ For new features: money must enter, leave or move through a pocket (Money In / S
 |---|---|
 | core.js | lsGet/lsSet, keys, Google login entry (`loginSuccess`/`enterApp`), launch menu, drawer, theme, tab switching |
 | firebase-sync.js | Google sign-in, Firestore mirror, device lock, `FB_SYNC_KEYS` / `FB_EXCLUDED_KEYS` |
-| savings.js | Pockets/funds, `fundTotal`, deposits, use funds, `postToCF` / `removeFromCF` |
+| calc.js | The one place for money maths: `fundTotal` (pocket balance), pay cycle (`planCycleFor`, `planInCycle`), `planRoutedInCycle`. Never re-add inline deposit sums elsewhere. |
+| savings.js | Pockets/funds, deposits, use funds, `postToCF` / `removeFromCF` |
 | moneyin.js | Money In (income into pockets) |
 | spend.js | Spend (deduct from one pocket, posts to Cash Flow) |
 | move.js | Move between two pockets |

@@ -17,7 +17,7 @@
 // To force every client to upgrade: bump CACHE_VERSION below.
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'v151x';
+const CACHE_VERSION = 'v151y';
 const SHELL_CACHE   = 'my-dashboard-shell-' + CACHE_VERSION;
 // CDN cache has its OWN version, independent of app bumps, so Chart.js and
 // the Firebase SDK aren't re-downloaded on every release. Bump CDN_VERSION
@@ -35,6 +35,7 @@ const SHELL_ASSETS = [
   '/my-dashboard/index.html',
   '/my-dashboard/app.css',
   '/my-dashboard/core.js',
+  '/my-dashboard/calc.js',
   '/my-dashboard/passengers.js',
   '/my-dashboard/money.js',
   '/my-dashboard/odin.js',

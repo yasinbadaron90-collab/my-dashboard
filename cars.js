@@ -936,7 +936,7 @@ function populateExpensePocketDropdown(selectedId){
   try{
     var list = (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return f && !f._deleted; });
     list.forEach(function(f){
-      var bal = (f.deposits||[]).reduce(function(s,d){ return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0)); }, 0);
+      var bal = fundTotal(f);
       var label = (f.emoji ? f.emoji + ' ' : '') + f.name + ' · ' + fmtR(bal);
       opts += '<option value="'+f.id+'"'+(selectedId===f.id?' selected':'')+'>'+label+'</option>';
     });

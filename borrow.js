@@ -808,9 +808,7 @@ function renderRepayPocketPicker(resetToDefault){
     }
   }
   picker.innerHTML = funds.map(function(f){
-    var bal = (f.deposits||[]).reduce(function(s,d){
-      return s + (d.txnType==='out' ? -Number(d.amount||0) : Number(d.amount||0));
-    }, 0);
+    var bal = fundTotal(f);
     var isOrigin = (f.id === originId);
     var isSelected = (f.id === _repaySelectedPocketId);
     var borderColor = isSelected ? '#7090f0' : (isOrigin ? '#5a8800' : 'transparent');

@@ -35,7 +35,7 @@ const ctx = vm.createContext({
 const carpool = read('carpool.js');
 vm.runInContext([
   grab(read('cashflow.js'), 'localDateStr'),
-  grab(read('savings.js'), 'fundTotal'),
+  grab(read('calc.js'), 'fundTotal'),
   grab(read('money.js'), 'calcPersonTotals'),
   "var CP_CREDIT_KEY = 'yb_cp_credits_v1';",
   ...['cpCreditsLoad','cpCreditsSave','_cpR2','cpCreditOpen','cpCreditAdd','cpCreditConsume','cpCreditRestore'].map(f => grab(carpool, f))
