@@ -227,11 +227,16 @@ function planRoutedInCycle(card, cyc){
         .reduce(function(s,p){ return s + (Number(p.amount)||0); }, 0) * 100) / 100;
     }
     var mi = (typeof loadMoneyInData === 'function') ? loadMoneyInData() : [];
-    return Math.round(mi.filter(function(r){ return planInCycle(r.date, cyc); })
+    var fromIn = mi.filter(function(r){ return planInCycle(r.date, cyc); })
       .reduce(function(s,r){
         var sp = (r.splits||[]).find(function(x){ return x.fundId === card.pocketId; });
         return s + (sp ? sp.amount : 0);
-      }, 0) * 100) / 100;
+      }, 0);
+    // v151s: money moved INTO this pocket from another pocket/bank this cycle also counts
+    var mv = (typeof loadMoveData === 'function') ? loadMoveData() : [];
+    var fromMove = mv.filter(function(m){ return m.toId === card.pocketId && planInCycle(m.date, cyc); })
+      .reduce(function(s,m){ return s + (Number(m.amount)||0); }, 0);
+    return Math.round((fromIn + fromMove) * 100) / 100;
   } catch(e){ return 0; }
 }
 
@@ -557,7 +562,9 @@ function renderPlan(){
           var left = Math.max(0, Math.round((c.monthly - rt)*100)/100);
           var rc = left > 0 ? R : L;
           var msg = left > 0 ? fmtR(left)+' to add this cycle' : 'done this cycle';
-          return '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:6px;"><span style="color:'+M+';">this cycle · '+fmtR(rt)+' of '+fmtR(c.monthly)+'</span><span style="color:'+rc+';">'+msg+'</span></div>';
+          var cpct = Math.max(0, Math.min(100, (rt/c.monthly)*100));
+          return '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:6px;"><span style="color:'+M+';">this cycle · '+fmtR(rt)+' of '+fmtR(c.monthly)+'</span><span style="color:'+rc+';">'+msg+'</span></div>'
+            + '<div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;margin-top:4px;"><div style="width:'+cpct+'%;height:100%;background:'+L+';"></div></div>';
         })() : '')
       + '</div>';
   }).join('');
