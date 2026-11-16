@@ -187,12 +187,14 @@ function _showUpdateToast(worker){
     <span></span><span></span><span></span>
   </button>
   <button class="nav-tab active" id="navHome" onclick="switchTab('home',this)">🏠 Home</button>
-  <button class="nav-tab" id="navSavings" onclick="switchTab('savings',this)">💰 Savings</button>
-  <button class="nav-tab" id="navCarpool" onclick="switchTab('carpool',this)">🚗 Carpool</button>
-  <button class="nav-tab" id="navOdin" onclick="switchTab('odin',this)">🧠 Odin</button>
-  <button class="nav-tab" id="navCashflow" onclick="switchTab('cashflow',this)">💵 Cash Flow</button>
-  <button class="nav-tab" id="navCars" onclick="switchTab('cars',this)">🔧 Cars</button>
+  <button class="nav-tab" id="navSavings" onclick="switchTab('savings',this)">💰 Pockets</button>
   <button class="nav-tab" id="navPlan" onclick="switchTab('plan',this)">🎯 Plan</button>
+  <button class="nav-tab" id="navMore" onclick="openDrawer()">☰ More</button>
+  <!-- v152a: these four moved under More (drawer). Kept hidden so code that looks them up still works. -->
+  <button class="nav-tab" id="navCarpool" style="display:none;" onclick="switchTab('carpool',this)">🚗 Carpool</button>
+  <button class="nav-tab" id="navOdin" style="display:none;" onclick="switchTab('odin',this)">🧠 Odin</button>
+  <button class="nav-tab" id="navCashflow" style="display:none;" onclick="switchTab('cashflow',this)">💵 Cash Flow</button>
+  <button class="nav-tab" id="navCars" style="display:none;" onclick="switchTab('cars',this)">🔧 Cars</button>
   <button class="nav-tab" id="navInstalments" style="display:none;" onclick="switchTab('instalments',this)">💳 Instalments</button>
   <button class="nav-tab" id="navSchool" style="display:none;" onclick="switchTab('school',this)">🎓 School</button>
   <button class="nav-tab" id="navRoutine" style="display:none;" onclick="switchTab('routine',this)">🔁 Routine</button>
@@ -225,7 +227,13 @@ function _showUpdateToast(worker){
     <div class="hbg-divider"></div>
 
     <div class="hbg-section">
-      <div class="hbg-section-label">Navigate</div>
+      <div class="hbg-section-label">Money</div>
+      <button class="hbg-item" onclick="closeDrawer();goToTab('carpool');">
+        <span class="hbg-icon">🚗</span> Carpool
+      </button>
+      <button class="hbg-item" onclick="closeDrawer();goToTab('odin');">
+        <span class="hbg-icon">🧠</span> Odin
+      </button>
       <button class="hbg-item" onclick="closeDrawer();goToTab('money');">
         <span class="hbg-icon">💰</span> Money Owed to Me
       </button>
@@ -238,27 +246,30 @@ function _showUpdateToast(worker){
       <button class="hbg-item" onclick="closeDrawer();goToTab('audit');">
         <span class="hbg-icon">🛡️</span> Self-Audit<span id="auditDrawerBadge"></span>
       </button>
-      <button class="hbg-item" onclick="closeDrawer();goToTab('prayer');">
-        <span class="hbg-icon">🕌</span> Prayer Tracker
-      </button>
       <button class="hbg-item" onclick="closeDrawer();switchTab('cars',document.getElementById('navCars'));">
         <span class="hbg-icon">🔧</span> Car Service Tracker
       </button>
-      <button class="hbg-item" onclick="closeDrawer();switchTab('plan',document.getElementById('navPlan'));">
-        <span class="hbg-icon">🎯</span> Plan
-      </button>
       <button class="hbg-item" onclick="closeDrawer();switchTab('instalments',document.getElementById('navInstalments'));">
         <span class="hbg-icon">💳</span> Instalments
+      </button>
+      <button class="hbg-item" onclick="closeDrawer();openAIAssistant();" style="position:relative;">
+        <span class="hbg-icon">🧠</span> Odin Chat
+        <span style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:8px;letter-spacing:1.5px;background:#c8f230;color:#000;padding:2px 6px;border-radius:20px;font-weight:700;">NEW</span>
+      </button>
+    </div>
+
+    <div class="hbg-divider"></div>
+
+    <div class="hbg-section">
+      <div class="hbg-section-label">Life</div>
+      <button class="hbg-item" onclick="closeDrawer();goToTab('prayer');">
+        <span class="hbg-icon">🕌</span> Prayer Tracker
       </button>
       <button class="hbg-item" onclick="closeDrawer();goToTab('school');">
         <span class="hbg-icon">🎓</span> School
       </button>
       <button class="hbg-item" onclick="closeDrawer();goToTab('routine');">
         <span class="hbg-icon">🔁</span> Routine
-      </button>
-      <button class="hbg-item" onclick="closeDrawer();openAIAssistant();" style="position:relative;">
-        <span class="hbg-icon">🧠</span> Odin Chat
-        <span style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:8px;letter-spacing:1.5px;background:#c8f230;color:#000;padding:2px 6px;border-radius:20px;font-weight:700;">NEW</span>
       </button>
     </div>
 

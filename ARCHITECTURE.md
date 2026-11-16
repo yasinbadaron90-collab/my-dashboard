@@ -57,3 +57,6 @@ For new features: money must enter, leave or move through a pocket (Money In / S
 - `tests/output-consistency.mjs` — carpool card vs PDF numbers.
 
 Keep this file current: update the table when a file is added, removed or changes job.
+
+## Navigation (v152a)
+Top bar has four tabs: Home, Pockets (`savings`), Plan, More. More opens the drawer, which lists every other screen under Money and Life. The old Carpool, Odin, Cash Flow and Cars nav buttons stay in the DOM hidden, because `switchTab` and `enterApp` look them up by id.

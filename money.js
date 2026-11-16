@@ -1713,6 +1713,9 @@ function switchTab(tab,btn){
   if(tab==='routine' && navRoutine) navRoutine.classList.add('active');
   if(tab==='cashflow' && navCf) navCf.classList.add('active');
   if(tab==='odin' && navOdin) navOdin.classList.add('active');
+  // v152a: any tab not on the top bar lights up More
+  var navMore = document.getElementById('navMore');
+  if(navMore) navMore.classList.toggle('active', ['home','savings','plan'].indexOf(tab) < 0);
   document.getElementById('page-'+tab).classList.add('active');
   // Defensive render dispatch — each render call wrapped so a single
   // failure (missing function, ReferenceError) doesn't halt others or
