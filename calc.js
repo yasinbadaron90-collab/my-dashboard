@@ -13,6 +13,17 @@ function fundTotal(f){
   return Math.round(t * 100) / 100 + 0;   // "+ 0" turns -0 into 0
 }
 
+// ── fundBalanceAsOf: balance of a pocket at the end of a day ('YYYY-MM-DD') ──
+// Counts only dated deposits on or before that day. Use for month-end history.
+function fundBalanceAsOf(f, cutoff){
+  var t = ((f && f.deposits)||[]).reduce(function(s,d){
+    if(!d.date || d.date.slice(0,10) > cutoff) return s;
+    var amt = Number(d.amount) || 0;
+    return d.txnType==='out' ? s - amt : s + amt;
+  }, 0);
+  return Math.round(t * 100) / 100 + 0;
+}
+
 // ── v150v: pay cycle = 25th → 24th ────────────────────────────────────
 // Every Plan card counts "this cycle", not the calendar month. The cycle is
 // always labelled 25th → 24th. It switches on the 25th by date, OR earlier on

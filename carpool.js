@@ -59,8 +59,7 @@ function renderSavingsChart() {
     var cutoff  = mk + '-' + String(lastDay).padStart(2,'0');
     return (typeof funds !== 'undefined' ? funds : []).reduce(function(sum, f) {
       if (f.isExpense) return sum;
-      var bal = (f.deposits||[]).filter(function(d){ return d.date <= cutoff; })
-        .reduce(function(s,d){ return s + (d.txnType==='out' ? -d.amount : d.amount); }, 0);
+      var bal = fundBalanceAsOf(f, cutoff);
       return sum + Math.max(0, bal);
     }, 0);
   });
@@ -1840,13 +1839,7 @@ function renderReports(){
     if (!monthKeys) return fundTotal(f); // all time = current total
     // Find the last month in the period and sum all deposits up to end of that month
     const lastMonth = monthKeys[monthKeys.length - 1]; // e.g. "2026-02"
-    return (f.deposits || []).reduce(function(s, d) {
-      if (!d.date) return s;
-      const mk = d.date.slice(0, 7);
-      if (mk > lastMonth) return s; // deposit is after the period end — exclude
-      if (d.txnType === 'out') return s - d.amount;
-      return s + d.amount;
-    }, 0);
+    return fundBalanceAsOf(f, lastMonth + '-31');   // every day of that month
   }
 
   // ── Also keep depositedInPeriod for "how much was added this period" ──
@@ -1929,8 +1922,7 @@ function renderReports(){
         // Ee90 _KiA picaNto: showed R1,196.93 here, R1,200 everywhere else
         // in the app (Home balances, Plan tab) — this was the outlier.
         const totalIn=f.deposits.filter(function(d){return d.txnType!=='out';}).reduce(function(s,d){return s+d.amount;},0);
-        const totalOut=f.deposits.filter(function(d){return d.txnType==='out';}).reduce(function(s,d){return s+d.amount;},0);
-        const bal=totalIn-totalOut;
+        const bal=fundTotal(f);
         totalSaved+=bal;
         displayAmt=fmtR(bal);
         displayPct=(totalIn>0?Math.min(100,(bal/totalIn)*100):0).toFixed(0)+'%';
@@ -2272,10 +2264,7 @@ function renderNetWorth() {
   var assetRows = [], totalAssets = 0;
   rawFunds.forEach(function(f) {
     // isExpense funds still hold real money — include in assets
-    var bal = 0;
-    (f.deposits || []).forEach(function(dep) {
-      bal += dep.txnType === 'out' ? -(dep.amount || 0) : (dep.amount || 0);
-    });
+    var bal = fundTotal(f);
     if (bal > 0) {
       assetRows.push({ label: (f.emoji || '') + ' ' + (f.name || ''), amount: bal });
       totalAssets += bal;

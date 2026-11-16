@@ -172,16 +172,7 @@ function _spRenderPocketList(){
   }
 
   visible.forEach(function(f){
-    var bal;
-    if(f.isExpense){
-      var totalIn  = (f.deposits||[]).filter(function(d){ return d.txnType !== 'out'; })
-                                     .reduce(function(s,d){ return s + d.amount; }, 0);
-      var totalOut = (f.deposits||[]).filter(function(d){ return d.txnType === 'out'; })
-                                     .reduce(function(s,d){ return s + d.amount; }, 0);
-      bal = totalIn - totalOut;
-    } else {
-      bal = fundTotal(f);
-    }
+    var bal = fundTotal(f);
 
     var selected = (_spState.pocketId === f.id);
     var balColor = bal <= 0 ? '#555' : '#c8f230';
@@ -290,16 +281,7 @@ function _spUpdateSaveButton(){
   }
 
   // Compute pocket balance (read-only check — we do NOT block negative; Option A)
-  var bal;
-  if(pocket.isExpense){
-    var inSum  = (pocket.deposits||[]).filter(function(d){ return d.txnType !== 'out'; })
-                                      .reduce(function(s,d){ return s + d.amount; }, 0);
-    var outSum = (pocket.deposits||[]).filter(function(d){ return d.txnType === 'out'; })
-                                      .reduce(function(s,d){ return s + d.amount; }, 0);
-    bal = inSum - outSum;
-  } else {
-    bal = fundTotal(pocket);
-  }
+  var bal = fundTotal(pocket);
 
   // If editing, the original Spend was already deducted — add it back so we
   // compare against the "pre-spend" balance.
