@@ -120,7 +120,8 @@ function planRoutedInCycle(card, cyc){
       });
     } catch(e){}
     var mv = (typeof loadMoveData === 'function') ? loadMoveData() : [];
-    var fromMove = mv.filter(function(m){ return m.toId === card.pocketId && planInCycle(m.date, cyc) && (!lastOut || m.date.slice(0,10) > lastOut); })
+    // v152d: a move flagged merge:true is two pockets being joined, not new saving
+    var fromMove = mv.filter(function(m){ return !m.merge && m.toId === card.pocketId && planInCycle(m.date, cyc) && (!lastOut || m.date.slice(0,10) > lastOut); })
       .reduce(function(s,m){ return s + (Number(m.amount)||0); }, 0);
     return Math.round((fromIn + fromMove) * 100) / 100;
   } catch(e){ return 0; }
