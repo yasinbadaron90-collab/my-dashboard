@@ -456,6 +456,7 @@ function renderCarpool(){
   document.getElementById('cpGrandBarLabel').textContent='Grand Total \u2014 all time';
 
   try{ renderCarpoolMoneySummary(); }catch(e){ console.warn('[carpool] money summary failed', e); }
+  try{ renderCpToday(); }catch(e){ console.warn('[carpool] today card failed', e); }
   const container=document.getElementById('cpWeeks');container.innerHTML='';
 
   weeks.forEach((wd,wi)=>{
@@ -465,7 +466,10 @@ function renderCarpool(){
     const e=wd[wd.length-1].toLocaleDateString('en-ZA',{day:'2-digit',month:'short'});
     const block=document.createElement('div');block.className='week-block';
     const visiblePassengers = PASSENGERS;
-    block.innerHTML=`<div class="week-hdr"><span class="week-hdr-label">Week ${wi+1} &nbsp; ${s} – ${e}</span><span class="week-hdr-total">${fmtR(wkTotal)}</span></div><table class="cp-table"><thead><tr><th class="dc">Day</th>${visiblePassengers.map(p=>`<th>${p}</th>`).join('')}<th class="tc">Total</th><th class="nc">Notes</th></tr></thead><tbody id="wb${wi}"></tbody></table>`;
+    // v152g: weeks fold up; the week holding today (or week 1) starts open
+    const _wkKey=mk+'#'+wi, _wkOpen=_cpWeekOpen(_wkKey, wd);
+    let _wkUnpaid=0; if(cpData[mk]) wd.forEach(d=>{const dd=cpData[mk][localDateStr(d)];if(dd&&typeof dd==='object')PASSENGERS.forEach(p=>{if(!passengerPaid(dd,p)&&passengerAmt(dd,p)>0)_wkUnpaid+=passengerAmt(dd,p);});});
+    block.innerHTML=`<div class="week-hdr cp-wk-tog" onclick="cpToggleWeek('${_wkKey}')"><span class="week-hdr-label">${_wkOpen?'&#9662;':'&#9656;'} Week ${wi+1} &nbsp; ${s} – ${e}</span><span class="week-hdr-total"${_wkUnpaid>0?' style="color:#f2a830" title="'+fmtR(_wkUnpaid)+' unpaid"':''}>${fmtR(wkTotal)}</span></div><table class="cp-table" style="${_wkOpen?'':'display:none'}"><thead><tr><th class="dc">Day</th>${visiblePassengers.map(p=>`<th>${p}</th>`).join('')}<th class="tc">Total</th><th class="nc">Notes</th></tr></thead><tbody id="wb${wi}"></tbody></table>`;
     container.appendChild(block);
     const tbody=document.getElementById('wb'+wi);
     wd.forEach(d=>{
@@ -776,7 +780,7 @@ function togglePane(){
   pane.classList.toggle('collapsed');
   const col=pane.classList.contains('collapsed');
   btn.innerHTML=col?'&#8250;':'&#8249;';
-  if(reopen)reopen.style.display=col?'inline-flex':'none';
+  if(reopen)reopen.style.display='none';   // v152g: statements open from the + menu or a passenger row
 }
 function generateStatements(){
   // Validate first so the spinner doesn't show for invalid input.
@@ -2645,7 +2649,8 @@ function _cpmClean(s){ return String(s==null?'':s).replace(/^[\u2191\u2193\u21A9
 function computeCarpoolMoney(mk){
   var pax = PASSENGERS.slice();
   var out = { mk:mk, people:{}, earned:0, paid:0, outMonth:0, outOther:0 };
-  pax.forEach(function(p){ out.people[p] = { earned:0, paid:0, outMonth:0, outOther:0, days:0, paidDays:0 }; });
+  var _today = localDateStr(new Date());   // v152g: split unpaid into due now vs booked ahead
+  pax.forEach(function(p){ out.people[p] = { earned:0, paid:0, outMonth:0, outOther:0, days:0, paidDays:0, due:0, ahead:0 }; });
   Object.keys(cpData).forEach(function(k){
     var md = cpData[k]; if(!md || typeof md !== 'object') return;
     Object.keys(md).forEach(function(ds){
@@ -2654,6 +2659,7 @@ function computeCarpoolMoney(mk){
         var v = dd[p]; if(!v || typeof v !== 'object') return;
         var amt = v.amt || 0; if(amt <= 0) return;
         var P = out.people[p];
+        if(!v.paid){ if(ds <= _today){ P.due += amt; if(!P.oldest || ds < P.oldest) P.oldest = ds; } else P.ahead += amt; }   // v152g: owes list
         if(k === mk){
           P.earned += amt; P.days++;
           if(v.paid){ P.paid += amt; P.paidDays++; } else P.outMonth += amt;
@@ -2868,20 +2874,46 @@ function renderCarpoolMoneySummary(){
       +(P.outOther>0?'<div style="font-size:10px;color:#f2a830;margin-top:3px">incl. '+_cpmMoney(P.outOther)+' from other months</div>':'')
       +'</div>';
   }).join('');
+  // v152g: compact "Who owes me" list on top; the full month breakdown folds
+  // into Month details. Same computeCarpoolMoney numbers, nothing re-derived.
+  var today = localDateStr(new Date());
+  var dueTotal = 0; PASSENGERS.forEach(function(p){ dueTotal += r.people[p].due; }); dueTotal = _cpmR2(dueTotal);
+  var oweRows = PASSENGERS.map(function(p){
+    var P = r.people[p], out = _cpmR2(P.due), ahead = _cpmR2(P.ahead), cr = 0;
+    try { cr = cpCreditOpen(p); } catch(e){}
+    var days = (out > 0.004 && P.oldest) ? Math.max(0, Math.round((new Date(today+'T00:00:00') - new Date(P.oldest+'T00:00:00'))/86400000)) : 0;
+    var dot = out > 0.004 ? (days > 7 ? '#f23060' : '#f2a830') : '#c8f230';
+    var sub = out > 0.004 ? (days === 0 ? 'since today' : days + (days === 1 ? ' day' : ' days'))
+            : (cr > 0.004 ? '<span style="color:#c8f230">' + _cpmMoney(cr) + ' credit</span>' : 'paid up');
+    if(ahead > 0.004) sub += ' · +' + _cpmMoney(ahead) + ' ahead';
+    var open = _cpOweOpen === p;
+    var pj = _cpmEsc(p).replace(/'/g, "\\'");
+    return '<div><div class="cp-owe-row" onclick="cpOweToggle(\'' + pj + '\')">'
+      + '<span style="width:9px;height:9px;border-radius:50%;background:' + dot + ';flex-shrink:0"></span>'
+      + '<span style="flex:1;font-size:14px">' + _cpmEsc(p) + ' <span style="font-size:11px;color:var(--muted)">' + sub + '</span></span>'
+      + '<span style="font-weight:700;font-size:14px;color:' + (out > 0.004 ? 'var(--text)' : 'var(--muted)') + '">' + _cpmMoney(out) + '</span>'
+      + '<span style="color:var(--muted);font-size:14px">' + (open ? '&#9662;' : '&#8250;') + '</span></div>'
+      + (open ? '<div class="cp-owe-acts">'
+          + (out > 0.004 ? '<button onclick="cpRemind(\'' + pj + '\')">WhatsApp reminder</button>' : '')
+          + '<button onclick="cpQuickStatement(\'' + pj + '\')">' + (out > 0.004 ? 'Statement and mark paid' : 'Statement') + '</button>'
+          + '</div>' : '')
+      + '</div>';
+  }).join('');
   host.innerHTML =
-    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px">'
-    +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px"><span style="font-family:Syne,sans-serif;font-weight:800;font-size:15px">Carpool money</span><span style="font-size:10px;color:var(--muted);letter-spacing:1px">'+label+'</span></div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:14px;overflow:hidden">'
+    +'<div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 12px 8px"><span style="font-family:Syne,sans-serif;font-weight:800;font-size:15px">Who owes me</span><span style="font-size:13px;font-weight:700;color:' + (dueTotal > 0.004 ? '#f2a830' : '#c8f230') + '">' + _cpmMoney(dueTotal) + ' due</span></div>'
+    + oweRows
+    +'<details style="border-top:1px solid var(--border);padding:10px 12px"' + (_cpDetailsOpen ? ' open' : '') + ' ontoggle="_cpDetailsOpen=this.open">'
+    +'<summary style="font-size:11px;color:var(--muted);cursor:pointer;letter-spacing:1px">Month details · ' + label + '</summary>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 10px">'
       +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Earned</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:2px">'+_cpmMoney(r.earned)+'</div><div style="font-size:9px;color:#555;margin-top:2px">trips this month</div></div>'
       +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Paid</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:#c8f230;margin-top:2px">'+_cpmMoney(r.paid)+'</div><div style="font-size:9px;color:#555;margin-top:2px">of those trips</div></div>'
     +'</div>'
-    +'<div style="background:#1e1400;border:1px solid #4a3000;border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
-      +'<div><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#f2a830">Outstanding · all months</div><div style="font-size:10px;color:#a87a30;margin-top:2px">This month '+_cpmMoney(r.outMonth)+' + other months '+_cpmMoney(r.outOther)+'</div></div>'
-      +'<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:#f2a830">'+_cpmMoney(outTotal)+'</div>'
-    +'</div>'
+    +'<div style="font-size:10px;color:#a87a30;margin-bottom:10px">Outstanding: this month '+_cpmMoney(r.outMonth)+' + other months '+_cpmMoney(r.outOther)+'</div>'
     +'<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:2px">By person</div>'
     + rows
     + _cpmCashHtml(computeCarpoolCashSplit(mk))
+    +'</details>'
     +'</div>';
 }
 
@@ -3210,4 +3242,154 @@ function renderMonthlyReportControls(){
     +'</select>'
     +'<button onclick="exportMonthlyPdf()" class="rpt-export-btn" style="background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;padding:10px 16px;white-space:nowrap">📄 Export PDF</button>'
     +'</div>';
+}
+
+
+// ══════════════════════════════════════════════════════════════════════
+// v152g — CARPOOL DECLUTTER: + menu, folding weeks, owes-list actions,
+// and the Today card (one tap logs each passenger's usual trip, unpaid).
+// Nothing here changes how money is worked out: owing comes from
+// computeCarpoolMoney, mark paid still goes through the statement card.
+// ══════════════════════════════════════════════════════════════════════
+var _cpOweOpen = null, _cpDetailsOpen = false, _cpWeekState = {};
+
+function cpTogglePlus(ev){
+  if(ev) ev.stopPropagation();
+  var m = document.getElementById('cpPlusMenu'); if(!m) return;
+  var show = m.style.display === 'none';
+  m.style.display = show ? 'block' : 'none';
+  if(show) setTimeout(function(){
+    document.addEventListener('click', function _c(){ m.style.display = 'none'; document.removeEventListener('click', _c); });
+  }, 0);
+}
+function cpPlusGo(what){
+  var m = document.getElementById('cpPlusMenu'); if(m) m.style.display = 'none';
+  if(what === 'trips' && typeof openQuickEntry === 'function') openQuickEntry();
+  else if(what === 'borrow' && typeof openBorrowModal === 'function') openBorrowModal();
+  else if(what === 'repay' && typeof openRepayModal === 'function') openRepayModal();
+  else if(what === 'stmt') _cpOpenPane();
+}
+function _cpOpenPane(){
+  var pane = document.getElementById('cpLeftPane');
+  if(pane && pane.classList.contains('collapsed')) togglePane();
+  try { pane.scrollIntoView({behavior:'smooth', block:'start'}); } catch(e){}
+}
+
+function _cpWeekOpen(key, wd){
+  if(_cpWeekState.hasOwnProperty(key)) return _cpWeekState[key];
+  var t = localDateStr(new Date());
+  var hasToday = wd.some(function(d){ return localDateStr(d) === t; });
+  var thisMonth = t.slice(0,7) === key.split('#')[0];
+  return hasToday || (!thisMonth && key.slice(-2) === '#0');
+}
+function cpToggleWeek(key){
+  var wi = +key.split('#')[1];
+  var wd = getMonthWeeks()[wi] || [];
+  _cpWeekState[key] = !_cpWeekOpen(key, wd);
+  renderCarpool();
+}
+
+function cpOweToggle(p){ _cpOweOpen = (_cpOweOpen === p) ? null : p; renderCarpoolMoneySummary(); }
+
+function cpRemind(p){
+  var r = computeCarpoolMoney(cpKey()), P = r.people[p]; if(!P) return;
+  var out = _cpmR2(P.due); if(!(out > 0.004)) return;
+  var since = P.oldest ? new Date(P.oldest+'T00:00:00').toLocaleDateString('en-ZA',{day:'numeric',month:'short'}) : '';
+  var txt = 'Hi ' + p + ', just a reminder: carpool comes to ' + fmtR(out) + (since ? ' for trips from ' + since + ' to today' : '') + '. Thanks!';
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+}
+
+// Statement for one passenger, oldest unpaid day (or month start) to today.
+// Mark paid happens on the statement card, same as before.
+function cpQuickStatement(p){
+  var r = computeCarpoolMoney(cpKey()), P = r.people[p] || {};
+  var today = localDateStr(new Date());
+  var from = P.oldest || (cpKey() + '-01');
+  var to = today < from ? from : today;
+  var mEnd = localDateStr(new Date(cpYear, cpMonth + 1, 0));
+  if(!P.oldest && mEnd < to) to = mEnd;
+  document.getElementById('stmtFrom').value = from;
+  document.getElementById('stmtTo').value = to;
+  document.querySelectorAll('#stmtPassOpts .pass-opt').forEach(function(el){
+    el.classList.toggle('selected', el.getAttribute('data-name') === p);
+  });
+  _cpOpenPane();
+  generateStatements();
+}
+
+// ── Today card ────────────────────────────────────────────────────────
+// Usual trip = most common amount on this weekday over the last 4 weeks.
+// Only shows on a working weekday with nothing logged yet, in the month
+// that holds today. Logged as UNPAID, exactly like picking it in the grid.
+var _cpTodayPick = null;
+function _cpUsual(p, today){
+  var counts = {}, base = new Date(today + 'T00:00:00');
+  for(var w = 1; w <= 4; w++){
+    var d = new Date(base); d.setDate(d.getDate() - 7*w);
+    var ds = localDateStr(d), dd = cpData[ds.slice(0,7)] && cpData[ds.slice(0,7)][ds];
+    var a = (dd && dd[p] && typeof dd[p] === 'object') ? (dd[p].amt || 0) : 0;
+    counts[a] = (counts[a] || 0) + 1;
+  }
+  var best = 0, bestN = -1;
+  Object.keys(counts).forEach(function(k){
+    var n = counts[k], a = +k;
+    if(n > bestN || (n === bestN && a === 0)){ best = a; bestN = n; }   // ties go to "not riding"
+  });
+  return best;
+}
+function _cpFullRate(p){
+  var pd = (PASSENGER_DATA||[]).find(function(x){ return x.name === p; });
+  var g = (typeof loadCarpoolTariff === 'function') ? loadCarpoolTariff() : { full: 52 };
+  return (pd && pd.defaultAmt > 0) ? pd.defaultAmt : g.full;
+}
+function renderCpToday(){
+  var host = document.getElementById('cpTodayCard');
+  if(!host){
+    var weeks = document.getElementById('cpWeeks'); if(!weeks) return;
+    host = document.createElement('div'); host.id = 'cpTodayCard';
+    weeks.insertAdjacentElement('beforebegin', host);
+  }
+  var today = localDateStr(new Date()), mk = today.slice(0,7);
+  var dow = new Date(today + 'T00:00:00').getDay();
+  var skipped = false; try { skipped = sessionStorage.getItem('cpTodaySkip') === today; } catch(e){}
+  var dd = cpData[mk] && cpData[mk][today];
+  var logged = dd && typeof dd === 'object' && PASSENGERS.some(function(p){ return dd[p] && typeof dd[p] === 'object'; });
+  if(cpKey() !== mk || dow < 1 || dow > 5 || isSAHoliday(today) || skipped || logged || !PASSENGERS.length){
+    host.innerHTML = ''; _cpTodayPick = null; return;
+  }
+  if(!_cpTodayPick || _cpTodayPick.date !== today){
+    _cpTodayPick = { date: today, p: {} };
+    PASSENGERS.forEach(function(p){ var u = _cpUsual(p, today); _cpTodayPick.p[p] = { on: u > 0, amt: u > 0 ? u : _cpFullRate(p) }; });
+  }
+  var lbl = new Date(today + 'T00:00:00').toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'short'});
+  var tot = 0;
+  var chips = PASSENGERS.map(function(p){
+    var c = _cpTodayPick.p[p]; if(c.on) tot += c.amt;
+    return '<span class="cp-today-chip' + (c.on ? ' on' : '') + '" onclick="cpTodayChip(\'' + _cpmEsc(p).replace(/'/g, "\\'") + '\')">' + _cpmEsc(p) + ' ' + fmtR(c.amt) + '</span>';
+  }).join('');
+  host.innerHTML = '<div style="background:var(--surface);border:1px solid #4a3000;border-radius:8px;padding:12px;margin-bottom:14px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><span style="font-family:Syne,sans-serif;font-weight:800;font-size:15px">Today · ' + lbl + '</span><span style="font-size:11px;color:var(--muted)">same as usual?</span></div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">' + chips + '</div>'
+    + '<div style="display:flex;gap:8px;align-items:center">'
+    + '<button onclick="cpTodayConfirm()" style="background:#c8f230;border:none;border-radius:6px;padding:9px 14px;font-family:\'DM Mono\',monospace;font-size:11px;font-weight:700;cursor:pointer;color:#000">Log it · ' + fmtR(tot) + ' unpaid</button>'
+    + '<button onclick="cpTodaySkip()" style="background:transparent;border:1px solid var(--border);border-radius:6px;padding:9px 14px;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;color:var(--muted)">No carpool today</button>'
+    + '</div><div style="font-size:10px;color:#555;margin-top:8px">Tap a name to add or remove them. Half days: change it in the week below after.</div></div>';
+}
+function cpTodayChip(p){ if(_cpTodayPick && _cpTodayPick.p[p]){ _cpTodayPick.p[p].on = !_cpTodayPick.p[p].on; renderCpToday(); } }
+function cpTodaySkip(){ try { sessionStorage.setItem('cpTodaySkip', localDateStr(new Date())); } catch(e){} renderCpToday(); }
+function cpTodayConfirm(){
+  if(!_cpTodayPick) return;
+  var ds = _cpTodayPick.date, mk = ds.slice(0,7);
+  var on = PASSENGERS.filter(function(p){ return _cpTodayPick.p[p].on; });
+  if(!on.length){ alert('Tap at least one name, or press No carpool today.'); return; }
+  if(!cpData[mk]) cpData[mk] = {};
+  if(!cpData[mk][ds]){ var d2 = { notes: '' }; PASSENGER_DATA.forEach(function(x){ d2[x.name] = { amt: 0, paid: false }; }); cpData[mk][ds] = d2; }
+  var day = cpData[mk][ds];
+  PASSENGERS.forEach(function(p){
+    if(day[p] && typeof day[p] === 'object' && day[p].paid) return;   // never overwrite a paid day
+    day[p] = _cpTodayPick.p[p].on ? { amt: _cpTodayPick.p[p].amt, paid: false } : { amt: 0, paid: false };
+  });
+  saveCP();
+  _cpTodayPick = null;
+  renderCarpool();
 }

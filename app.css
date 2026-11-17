@@ -892,3 +892,13 @@ body.modal-open #fabToggle {
 
 
 
+/* v152g: carpool declutter */
+.cp-plus-item{display:block !important;padding:11px 16px;font-size:13px;cursor:pointer;color:var(--text);}
+.cp-plus-item:hover{background:#1a1a1a;}
+.week-hdr.cp-wk-tog{display:flex !important;width:100%;box-sizing:border-box;justify-content:space-between !important;cursor:pointer;user-select:none;}
+.cp-owe-row{display:flex !important;width:100%;box-sizing:border-box;align-items:center;gap:10px;padding:11px 12px;border-top:1px solid var(--border);cursor:pointer;}
+.cp-owe-row:first-child{border-top:none;}
+.cp-owe-acts{display:flex;gap:8px;flex-wrap:wrap;padding:0 12px 12px 30px;}
+.cp-owe-acts button{background:#111;border:1px solid var(--border);border-radius:6px;padding:7px 12px;color:var(--text);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;}
+.cp-today-chip{border:1px solid var(--border);border-radius:100px;padding:6px 12px;font-size:12px;cursor:pointer;background:#111;color:var(--muted);}
+.cp-today-chip.on{background:#1e1400;border-color:#4a3000;color:#f2a830;}

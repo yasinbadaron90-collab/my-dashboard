@@ -384,9 +384,9 @@ function _showUpdateToast(worker){
     <div class="odin-insights" id="odinInsights-carpool"></div>
   </div>
       <div class="cp-topbar">
-        <button id="reopenPane" onclick="togglePane()" style="display:inline-flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:4px;width:22px;height:36px;cursor:pointer;color:var(--muted);font-size:13px;margin-right:8px;">&#8250;</button>
-        <h1>CAR<span>POOL</span> <button class="info-btn" onclick="openInfo('Carpool', 'Track who rides with you and what they owe — Lezaun, David, Shireen.\n\nMark trips paid as you receive money. Paid trips drop into your chosen pocket automatically (set when you log payment).\n\nTap a passenger to view their full history or generate a statement to send them.')">ⓘ</button></h1>
-        <div class="cp-pills">
+        <button id="reopenPane" onclick="togglePane()" style="display:none;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:4px;width:22px;height:36px;cursor:pointer;color:var(--muted);font-size:13px;margin-right:8px;">&#8250;</button>
+        <h1>CAR<span>POOL</span> <button class="info-btn" onclick="openInfo('Carpool', 'Track who rides with you and what they owe — Lezaun, David, Shireen.\n\nMark trips paid as you receive money. Paid trips drop into your chosen pocket automatically (set when you log payment).\n\nTap a passenger under Who owes me to remind them, or open their statement and mark it paid.\n\nWeeks fold up: tap a week to open it. Colours: green paid, orange unpaid, purple borrowed, dark green SA holiday.\n\nOn weekdays a Today card offers each passenger\'s usual trip. Nothing is logged until you press Log it.')">ⓘ</button></h1>
+        <div class="cp-pills" style="display:none">
           <div class="cp-pill">Unpaid: <strong id="cpUnpaid">R0</strong></div>
           <div class="cp-pill">This month: <strong id="cpMonthTotal">R0</strong></div>
           <div class="cp-pill hi">All time: <strong id="cpGrandTotal">R0</strong></div>
@@ -398,13 +398,17 @@ function _showUpdateToast(worker){
           <h2 id="cpMonthLabel"></h2>
           <button class="mnav-btn" onclick="cpChangeMonth(1)">&#8594;</button>
         </div>
-        <div style="display:flex;gap:8px;">
-          <button onclick="openQuickEntry()" style="background:#c8f230;border:none;border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#000;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Quick Entry</button>
-          <button onclick="openBorrowModal()" style="background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#a78bfa;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">💸 Borrow</button>
-          <button onclick="openRepayModal()" style="background:#0e1a2e;border:1px solid #7090f0;border-radius:6px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#7090f0;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">↩ Repay</button>
+        <div style="position:relative;">
+          <button id="cpPlusBtn" onclick="cpTogglePlus(event)" aria-label="Add" style="background:#c8f230;border:none;border-radius:8px;width:40px;height:36px;font-size:22px;line-height:1;cursor:pointer;color:#000;font-weight:700;">+</button>
+          <div id="cpPlusMenu" style="display:none;position:absolute;right:0;top:42px;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:8px;min-width:200px;padding:4px 0;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+            <div class="cp-plus-item" onclick="cpPlusGo('trips')">Log trips</div>
+            <div class="cp-plus-item" onclick="cpPlusGo('borrow')">Passenger borrowed</div>
+            <div class="cp-plus-item" onclick="cpPlusGo('repay')">Passenger repaid</div>
+            <div class="cp-plus-item" onclick="cpPlusGo('stmt')">Statements</div>
+          </div>
         </div>
       </div>
-      <div class="cp-legend">
+      <div class="cp-legend" style="display:none">
         <div class="leg-item"><div class="leg-dot" style="background:#c8f230"></div>Paid ✓</div>
         <div class="leg-item"><div class="leg-dot" style="background:#f2a830"></div>Unpaid ⏳</div>
         <div class="leg-item"><div class="leg-dot" style="background:#2a2a2a"></div>Absent / R0</div>

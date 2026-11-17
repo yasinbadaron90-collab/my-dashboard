@@ -27,7 +27,7 @@ For new features: money must enter, leave or move through a pocket (Money In / S
 | settings.js | Reconcile balances (`yb_recon_balances_v1`), backup/restore (`buildBackupPayload`), passenger mgmt UI |
 | money.js | Money Owed: external borrows, `calcPersonTotals`, PDF |
 | borrow.js | Borrow logging, lending guardrail, archive |
-| carpool.js | Carpool grid, tariffs, passenger cards, statements/PDF, savings + CF charts. Credits for prepaid days that later changed: `yb_cp_credits_v1` via `cpCreditsLoad/Save/Add/Consume` |
+| carpool.js | Carpool grid, tariffs, passenger cards, statements/PDF, savings + CF charts. Credits for prepaid days that later changed: `yb_cp_credits_v1` via `cpCreditsLoad/Save/Add/Consume`. v152g layout: Who owes me list (`renderCarpoolMoneySummary`, due vs booked ahead from `computeCarpoolMoney`), one + menu (`cpTogglePlus`), folding weeks (`cpToggleWeek`), Today card (`renderCpToday`, logs usual trips unpaid; skip is per session) |
 | passengers.js | `PASSENGERS` / `PASSENGER_DATA` globals, passenger CRUD |
 | instalments.js | Instalment plans, payments, snowball, PDF |
 | cars.js | Car service tracker, licence tracker, drivers |
