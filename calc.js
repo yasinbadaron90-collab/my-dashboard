@@ -127,7 +127,22 @@ function planRoutedInCycle(card, cyc){
     // v152d: a move flagged merge:true is two pockets being joined, not new saving
     var fromMove = mv.filter(function(m){ return !m.merge && m.toId === card.pocketId && planInCycle(m.date, cyc) && (!lastOut || m.date.slice(0,10) > lastOut); })
       .reduce(function(s,m){ return s + (Number(m.amount)||0); }, 0);
-    return Math.round((fromCp + fromIn + fromMove) * 100) / 100;
+    // v152f: repayments paid into this pocket (deposit carries repayId) and profit
+    // share deposits count too, under the same last-spend rule. Deposits already
+    // counted above (Money In split, move, carpool) are skipped.
+    var fromRep = 0;
+    try {
+      var fl2 = (typeof funds !== 'undefined' ? funds : []);
+      var fd2 = fl2.find(function(f){ return f.id === card.pocketId; });
+      ((fd2 && fd2.deposits) || []).forEach(function(d){
+        if(d.txnType === 'out' || d.moveId || d.moneyInId || d.carpoolPaymentId) return;
+        var dd = (d.date||'').slice(0,10);
+        if(!planInCycle(dd, cyc)) return;
+        if(lastOut && dd <= lastOut) return;
+        if(d.repayId || /profit share/i.test(d.note||'')) fromRep += Number(d.amount)||0;
+      });
+    } catch(e){}
+    return Math.round((fromCp + fromIn + fromMove + fromRep) * 100) / 100;
   } catch(e){ return 0; }
 }
 
