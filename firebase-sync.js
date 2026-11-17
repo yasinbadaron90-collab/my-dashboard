@@ -238,6 +238,7 @@ function fbSignInWithGoogle(){
 // session -- NOT oversights. Checked against this list so the safety-net
 // warning below only fires on genuine gaps, not on every PIN digit typed.
 var FB_EXCLUDED_KEYS = [
+  'yb_inbox_v1',                    // v152c Quick Add notes -- jotted on this phone, cleared once logged
   'yb_device_owner_uid',            // v151l device lock -- which Google account owns this device; local by design
   'yb_pins',                        // lock-screen PIN -- security, device-local by design
   'yb_bf_api_key_v1',               // bank-feed API credential -- security

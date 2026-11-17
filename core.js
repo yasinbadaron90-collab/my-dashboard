@@ -588,7 +588,7 @@ function enterApp(){
   document.getElementById('navCarpool').classList.remove('active');
   document.getElementById('navSavings').classList.remove('active');
   // Render home + pre-render commonly-visited tabs so navigation feels instant
-  try { if(typeof renderHome    === 'function') renderHome();    } catch(e){}
+  try { if(typeof switchTab     === 'function') switchTab('home'); else if(typeof renderHome === 'function') renderHome(); } catch(e){}   // v152c: switchTab also draws the sub-tab bar
   try { if(typeof renderCarpool === 'function') renderCarpool(); } catch(e){}
   try { if(typeof renderFunds   === 'function') renderFunds();   } catch(e){}
   // Fire reminders after a short delay

@@ -63,6 +63,7 @@ function renderHome(){
 
   // Build all 3 zones, concatenate, set innerHTML once (fewer reflows).
   var html = ''
+    + (typeof inboxHomeHtml === 'function' ? inboxHomeHtml() : '')   // v152c: Quick Add notes waiting
     + _renderHomeZone1Money()
     + _renderHomeZone2Alerts()
     + _renderHomeZone3Folders();

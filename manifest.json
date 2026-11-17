@@ -21,5 +21,19 @@
             "type": "image/png",
             "purpose": "any maskable"
         }
+    ],
+    "shortcuts": [
+        {
+            "name": "Quick Add",
+            "short_name": "Quick Add",
+            "description": "Jot a spend, move or money in",
+            "url": "/my-dashboard/quick.html",
+            "icons": [
+                {
+                    "src": "icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
     ]
 }
