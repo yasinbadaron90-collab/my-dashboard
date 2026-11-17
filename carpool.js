@@ -2883,7 +2883,8 @@ function renderCarpoolMoneySummary(){
     try { cr = cpCreditOpen(p); } catch(e){}
     var days = (out > 0.004 && P.oldest) ? Math.max(0, Math.round((new Date(today+'T00:00:00') - new Date(P.oldest+'T00:00:00'))/86400000)) : 0;
     var dot = out > 0.004 ? (days > 7 ? '#f23060' : '#f2a830') : '#c8f230';
-    var sub = out > 0.004 ? (days === 0 ? 'since today' : days + (days === 1 ? ' day' : ' days'))
+    // v152h: show the date of the oldest unpaid trip, not a day count
+    var sub = out > 0.004 ? ('since ' + new Date(P.oldest+'T00:00:00').toLocaleDateString('en-ZA',{weekday:'short',day:'numeric'}))
             : (cr > 0.004 ? '<span style="color:#c8f230">' + _cpmMoney(cr) + ' credit</span>' : 'paid up');
     if(ahead > 0.004) sub += ' · +' + _cpmMoney(ahead) + ' ahead';
     var open = _cpOweOpen === p;
