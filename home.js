@@ -149,6 +149,11 @@ function _planDebtorOptions(selectedKey){
   }).join('');
 }
 
+var _planOpenRows = {}, _planDoneOpen = false, _planWifeOpen = false, _planStepsOpen = false;
+function planToggleRow(k){ _planOpenRows[k] = !_planOpenRows[k]; renderPlan(); }
+function planToggleDone(){ _planDoneOpen = !_planDoneOpen; renderPlan(); }
+function planToggleWife(){ _planWifeOpen = !_planWifeOpen; renderPlan(); }
+function planToggleSteps(){ _planStepsOpen = !_planStepsOpen; renderPlan(); }
 function togglePlanEdit(){ _planEditMode = !_planEditMode; renderPlan(); }
 
 // Pay cycle helpers and planRoutedInCycle live in calc.js (v151y).
@@ -451,36 +456,58 @@ function renderPlan(){
     return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:2px;color:'+M+';margin-bottom:12px;"><span>'+t+'</span>'+(right||'')+'</div>';
   };
 
-  // WHERE YOU STAND
-  var standHtml = plan.savingsCards.map(function(c, i){
+  // THIS CYCLE (v152i): only what still needs money before payday. Long-term totals open on tap.
+  var rowsTodo = [], rowsDone = [], rowsNoGoal = [], warnHtml = '', totalToAdd = 0;
+  plan.savingsCards.forEach(function(c, i){
     var fund = allFunds.find(function(f){ return f.id === c.pocketId && !f._deleted; });
     var label = escHtml(String(c.label||'').trim());
-    if(!fund){
-      return '<div style="'+(i>0?'margin-top:16px;':'')+'font-size:12px;color:'+A+';">⚠ '+label+' — pocket not found. Tap ✎ to pick one.</div>';
-    }
+    if(!fund){ warnHtml += '<div style="font-size:12px;color:'+A+';padding:8px 0;">⚠ '+label+' — pocket not found. Tap ✎ to pick one.</div>'; return; }
     var bal = fundTotal(fund);
     var pct = c.target > 0 ? Math.max(0, Math.min(100, (bal/c.target)*100)) : 0;
     var toGo = c.target > 0 ? Math.max(0, c.target - bal) : 0;
-    var done = c.target > 0 && bal >= c.target;
-    var right = c.target > 0 ? (done ? '<span style="color:'+L+';">Target reached</span>' : '<span style="color:'+R+';">'+fmtR(toGo)+' to go</span>') : '';
-    return '<div style="'+(i>0?'margin-top:18px;':'')+'">'
-      + '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#aaa;">'+label+'</span>'+right+'</div>'
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin:3px 0 8px;">'
-      +   '<span style="font-family:Syne,sans-serif;font-weight:700;font-size:24px;color:#efefef;">'+fmtR(bal)+'</span>'
-      +   (c.target>0 ? '<span style="font-size:11px;color:'+M+';">of '+fmtR(c.target)+' · '+pct.toFixed(1)+'%</span>' : '<span style="font-size:11px;color:'+M+';">no target set</span>')
-      + '</div>'
-      + (c.target>0 ? '<div style="height:8px;background:#2a2a2a;border-radius:4px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+L+';border-radius:4px;"></div></div>' : '')
-      + (c.monthly>0 ? (function(){
-          // v151x: this cycle = what was put in and kept (planRoutedInCycle), vs monthly amount
-          var rt = planRoutedInCycle(c, cyc);
-          var left2 = Math.max(0, Math.round((c.monthly - rt)*100)/100);
-          var rc2 = left2 > 0 ? R : L;
-          var mp = Math.max(0, Math.min(100, (rt/c.monthly)*100));
-          return '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:6px;"><span style="color:'+M+';">this cycle · '+fmtR(rt)+' of '+fmtR(c.monthly)+'</span><span style="color:'+rc2+';">'+(left2>0 ? fmtR(left2)+' to add' : 'done this cycle')+'</span></div>'
-            + '<div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;margin-top:4px;"><div style="width:'+mp+'%;height:100%;background:'+L+';"></div></div>';
-        })() : '')
+    var rec = { key: String(c.pocketId||i), label: label, bal: bal, target: c.target, pct: pct, toGo: toGo, monthly: c.monthly };
+    if(c.monthly > 0){
+      rec.rt = planRoutedInCycle(c, cyc);
+      rec.left = Math.max(0, Math.round((c.monthly - rec.rt)*100)/100);
+      if(rec.left > 0){ totalToAdd = Math.round((totalToAdd + rec.left)*100)/100; rowsTodo.push(rec); } else rowsDone.push(rec);
+    } else { rowsNoGoal.push(rec); }
+  });
+  rowsTodo.sort(function(a,b){ return b.left - a.left; });
+  var rowDetail = function(r){
+    if(!_planOpenRows[r.key]) return '';
+    return '<div style="font-size:11px;color:#aaa;margin-top:8px;padding:8px 10px;background:#222;border-radius:8px;line-height:1.7;">'
+      + 'Balance <b style="color:#efefef;">'+fmtR(r.bal)+'</b>'
+      + (r.target>0 ? '<br>Goal '+fmtR(r.target)+' · '+r.pct.toFixed(1)+'% · '+(r.toGo>0 ? fmtR(r.toGo)+' to go' : 'Target reached') : '<br>No target set')
       + '</div>';
-  }).join('');
+  };
+  var todoRow = function(r){
+    var mp = Math.max(0, Math.min(100, (r.rt/r.monthly)*100));
+    return '<div style="display:block;width:100%;box-sizing:border-box;padding:12px 0;border-bottom:1px solid #2a2a2a;cursor:pointer;" onclick="planToggleRow(\''+r.key+'\')">'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-size:14px;color:#efefef;">'+r.label+'</span><span style="font-size:13px;color:'+R+';">'+fmtR(r.left)+' to add</span></div>'
+      + '<div style="height:6px;background:#2a2a2a;border-radius:3px;overflow:hidden;margin-top:6px;"><div style="width:'+mp+'%;height:100%;background:'+L+';"></div></div>'
+      + '<div style="font-size:11px;color:'+M+';margin-top:4px;">'+fmtR(r.rt)+' of '+fmtR(r.monthly)+' saved</div>'
+      + rowDetail(r) + '</div>';
+  };
+  var foldRow = function(r, note, col){
+    return '<div style="display:block;width:100%;box-sizing:border-box;padding:10px 0;border-bottom:1px solid #2a2a2a;cursor:pointer;" onclick="planToggleRow(\''+r.key+'\')">'
+      + '<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:#aaa;">'+r.label+'</span><span style="color:'+col+';">'+note+'</span></div>'
+      + rowDetail(r) + '</div>';
+  };
+  var foldedN = rowsDone.length + rowsNoGoal.length;
+  var foldHtml = '';
+  if(foldedN > 0){
+    foldHtml = '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 2px;font-size:12px;color:'+M+';cursor:pointer;" onclick="planToggleDone()">'
+      + '<span>'+(rowsDone.length ? '<span style="color:'+L+';">✓</span> '+rowsDone.length+' done this cycle' : '')+(rowsDone.length && rowsNoGoal.length ? ' · ' : '')+(rowsNoGoal.length ? rowsNoGoal.length+' no monthly goal' : '')+'</span>'
+      + '<span>'+(_planDoneOpen ? '▲' : '▼')+'</span></div>';
+    if(_planDoneOpen){
+      foldHtml += rowsDone.map(function(r){ return foldRow(r, 'done ✓', L); }).join('')
+        + rowsNoGoal.map(function(r){ return foldRow(r, fmtR(r.bal), M); }).join('');
+    }
+  }
+  var cycleTop = '<div style="position:sticky;top:0;z-index:2;background:#1a1a1a;padding:2px 0 10px;margin-bottom:2px;border-bottom:1px solid #2a2a2a;">'
+    + '<div style="font-size:11px;color:'+M+';">'+escHtml(cycLine)+'</div>'
+    + '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:26px;color:'+(totalToAdd>0?'#efefef':L)+';margin-top:2px;">'+(totalToAdd>0 ? fmtR(totalToAdd)+' to add' : (rowsDone.length ? 'All set this cycle' : 'Nothing to add'))+'</div></div>';
+  var standHtml = cycleTop + warnHtml + rowsTodo.map(todoRow).join('') + foldHtml;
 
   // Debt card
   var debtOwing = 0, debtName = plan.debtCard.label, debtPaidCyc = 0;
@@ -498,10 +525,9 @@ function renderPlan(){
   var debtNote = plan.debtCard.addToWife
     ? (debtPaidCyc > 0 ? fmtR(debtPaidCyc)+' paid this cycle ✓' : 'added to her money on salary day')
     : 'don\'t accelerate yet';
-  var debtHtml = '<div style="margin-top:18px;padding-top:14px;border-top:1px solid #2a2a2a;">'
-    + '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:#aaa;">'+escHtml(String(debtName))+'</span><span style="color:'+M+';">'+fmtR(plan.debtCard.monthly)+'/month · '+debtNote+'</span></div>'
-    + '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:24px;color:'+R+';margin-top:3px;">'+fmtR(debtOwing)+'</div>'
-    + '</div>';
+  var debtHtml = '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #2a2a2a;display:flex;justify-content:space-between;align-items:baseline;gap:10px;">'
+    + '<span style="font-size:11px;color:'+M+';">'+escHtml(String(debtName))+' · '+fmtR(plan.debtCard.monthly)+'/month · '+debtNote+'</span>'
+    + '<span style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:'+R+';white-space:nowrap;">'+fmtR(debtOwing)+'</span></div>';
 
   // WHERE NEW MONEY GOES (same card order the Money In waterfall walks)
   var stepsHtml = '';
@@ -556,9 +582,11 @@ function renderPlan(){
     +     '<div style="font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:0.5px;">'+escHtml(cycLine)+'</div></div>'
     +     '<button class="pane-toggle" onclick="togglePlanEdit()" title="Edit Plan">✎</button>'
     +   '</div>'
-    +   '<div style="'+cardBox+'">'+secHdr('WHERE YOU STAND', '<span style="color:'+L+';">LIVE</span>')+standHtml+debtHtml+'</div>'
-    +   _planWifeCardHtml(plan, cyc, cardBox, secHdr)
-    +   '<div style="'+cardBox+'">'+secHdr('WHERE NEW MONEY GOES')+stepsHtml+'</div>'
+    +   '<div style="'+cardBox+'">'+secHdr('THIS CYCLE', '<span style="color:'+L+';">LIVE</span>')+standHtml+debtHtml+'</div>'
+    +   (_planWifeOpen ? '<div onclick=\"if(event.target.closest(\'button,input\'))return;planToggleWife()\" style=\"display:block;cursor:pointer;\">'+_planWifeCardHtml(plan, cyc, cardBox, secHdr)+'</div>'
+          : '<div style=\"'+cardBox+'display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:12px;color:#aaa;\" onclick=\"planToggleWife()\"><span>WIFE MONTHLY · details</span><span>▼</span></div>')
+    +   (_planStepsOpen ? '<div style=\"'+cardBox+'\">'+'<div onclick=\"planToggleSteps()\" style=\"display:block;cursor:pointer;\">'+secHdr('WHERE NEW MONEY GOES','<span>▲</span>')+'</div>'+stepsHtml+'</div>'
+          : '<div style=\"'+cardBox+'display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:12px;color:#aaa;\" onclick=\"planToggleSteps()\"><span>WHERE NEW MONEY GOES · order</span><span>▼</span></div>')
     +   monthHtml
     +   (plan.notes ? '<div style="'+cardBox+'font-size:12px;color:#aaa;">'+escHtml(plan.notes)+'</div>' : '')
     +   '<div style="font-size:10px;color:#555;text-align:center;letter-spacing:1px;margin-top:4px;">'+auditBadge+' · figures live</div>'

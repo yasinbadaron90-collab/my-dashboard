@@ -65,3 +65,6 @@ Screens are grouped in `TAB_GROUPS` (money.js): Home = Today/Odin/Audit, Pockets
 
 ## Quick Add (v152c)
 `quick.html` is a tiny standalone page (also an app-icon shortcut). It only appends notes to `yb_inbox_v1` (device-local, not synced, not in backups). `inbox.js` lists them on Home; LOG IT opens the real Spend / Move / Money In form prefilled, and the note is removed only after that form saves a record. Never make Quick Add write to pockets directly.
+
+## Plan tab (v152i)
+`renderPlan` (home.js) shows this cycle only: pinned total to add, rows sorted by biggest to add, one bar each, done / no-goal rows folded, tap a row for balance and goal. Wife card and 'where new money goes' are collapsed behind a tap. Note: `index.html` forces `div[onclick]` to inline-flex, so clickable row divs need `display:block` inline.
