@@ -95,10 +95,14 @@ function planCycleLabel(cyc){
 // cards, Money In splits for the rest (same sources as before, cycle not month).
 function planRoutedInCycle(card, cyc){
   try {
+    // Carpool fares paid straight into this pocket. v152e: no early return --
+    // fares usually land in Cash wallet / TymeBank and are MOVED here, so the
+    // Money In + moves count below must run for carpool cards too.
+    var fromCp = 0;
     if(card && card.source === 'carpool'){
       var pm = []; try { pm = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); } catch(e){}
-      return Math.round(pm.filter(function(p){ return planInCycle(p.date, cyc) && p.destChoice === 'fund:'+card.pocketId; })
-        .reduce(function(s,p){ return s + (Number(p.amount)||0); }, 0) * 100) / 100;
+      fromCp = pm.filter(function(p){ return planInCycle(p.date, cyc) && p.destChoice === 'fund:'+card.pocketId; })
+        .reduce(function(s,p){ return s + (Number(p.amount)||0); }, 0);
     }
     var mi = (typeof loadMoneyInData === 'function') ? loadMoneyInData() : [];
     var fromIn = mi.filter(function(r){ return planInCycle(r.date, cyc); })
@@ -123,7 +127,7 @@ function planRoutedInCycle(card, cyc){
     // v152d: a move flagged merge:true is two pockets being joined, not new saving
     var fromMove = mv.filter(function(m){ return !m.merge && m.toId === card.pocketId && planInCycle(m.date, cyc) && (!lastOut || m.date.slice(0,10) > lastOut); })
       .reduce(function(s,m){ return s + (Number(m.amount)||0); }, 0);
-    return Math.round((fromIn + fromMove) * 100) / 100;
+    return Math.round((fromCp + fromIn + fromMove) * 100) / 100;
   } catch(e){ return 0; }
 }
 
