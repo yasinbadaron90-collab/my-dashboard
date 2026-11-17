@@ -60,3 +60,5 @@ Keep this file current: update the table when a file is added, removed or change
 
 ## Navigation (v152a)
 Top bar has four tabs: Home, Pockets (`savings`), Plan, More. More opens the drawer, which lists every other screen under Money and Life. The old Carpool, Odin, Cash Flow and Cars nav buttons stay in the DOM hidden, because `switchTab` and `enterApp` look them up by id.
+
+Screens are grouped in `TAB_GROUPS` (money.js): Home = Today/Odin/Audit, Pockets = Pockets/Owed to me/Instalments, More = Cash Flow/Reports. `switchTab` fills `#groupBar` with the group's sub-tabs. Add a screen to a group there, not to the drawer.

@@ -1683,6 +1683,12 @@ function _safeCall(fn, label){
   }
 }
 
+// v152b: screens that belong together. `top` = which top-bar tab lights up.
+var TAB_GROUPS = [
+  { top:'home',    tabs:[['home','Today'],['odin','Odin'],['audit','Audit']] },
+  { top:'savings', tabs:[['savings','Pockets'],['money','Owed to me'],['instalments','Instalments']] },
+  { top:'more',    tabs:[['cashflow','Cash Flow'],['reports','Reports']] }
+];
 function switchTab(tab,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('navSavings').classList.remove('active');
@@ -1713,9 +1719,23 @@ function switchTab(tab,btn){
   if(tab==='routine' && navRoutine) navRoutine.classList.add('active');
   if(tab==='cashflow' && navCf) navCf.classList.add('active');
   if(tab==='odin' && navOdin) navOdin.classList.add('active');
-  // v152a: any tab not on the top bar lights up More
+  // v152b: screens are grouped. The group's first tab owns the top-bar light,
+  // and a sub-tab bar under the nav switches between the group's screens.
+  var grp = null;
+  TAB_GROUPS.forEach(function(g){ if(g.tabs.some(function(t){ return t[0] === tab; })) grp = g; });
+  var top = grp ? grp.top : (['home','savings','plan'].indexOf(tab) >= 0 ? tab : 'more');
+  if(navHome) navHome.classList.toggle('active', top === 'home');
+  document.getElementById('navSavings').classList.toggle('active', top === 'savings');
   var navMore = document.getElementById('navMore');
-  if(navMore) navMore.classList.toggle('active', ['home','savings','plan'].indexOf(tab) < 0);
+  if(navMore) navMore.classList.toggle('active', top === 'more');
+  var gb = document.getElementById('groupBar');
+  if(gb){
+    gb.style.display = grp ? 'flex' : 'none';
+    gb.innerHTML = !grp ? '' : grp.tabs.map(function(t){
+      var on = t[0] === tab;
+      return '<button onclick="goToTab(\''+t[0]+'\')" style="flex-shrink:0;padding:7px 14px;border-radius:100px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border:1px solid '+(on?'var(--accent)':'var(--border)')+';background:'+(on?'var(--accent)':'none')+';color:'+(on?'#000':'var(--muted)')+';">'+t[1]+'</button>';
+    }).join('');
+  }
   document.getElementById('page-'+tab).classList.add('active');
   // Defensive render dispatch — each render call wrapped so a single
   // failure (missing function, ReferenceError) doesn't halt others or

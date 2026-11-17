@@ -186,7 +186,7 @@ function _showUpdateToast(worker){
   <button class="hbg-btn" onclick="openDrawer()" title="Menu" id="hbgBtn">
     <span></span><span></span><span></span>
   </button>
-  <button class="nav-tab active" id="navHome" onclick="switchTab('home',this)">🏠 Home</button>
+  <button class="nav-tab active" id="navHome" onclick="switchTab('home',this)">🏠 Home<span id="auditDrawerBadge"></span></button>
   <button class="nav-tab" id="navSavings" onclick="switchTab('savings',this)">💰 Pockets</button>
   <button class="nav-tab" id="navPlan" onclick="switchTab('plan',this)">🎯 Plan</button>
   <button class="nav-tab" id="navMore" onclick="openDrawer()">☰ More</button>
@@ -199,6 +199,8 @@ function _showUpdateToast(worker){
   <button class="nav-tab" id="navSchool" style="display:none;" onclick="switchTab('school',this)">🎓 School</button>
   <button class="nav-tab" id="navRoutine" style="display:none;" onclick="switchTab('routine',this)">🔁 Routine</button>
 </nav>
+<!-- v152b: sub-tabs for the open group (Home/Odin/Audit, Pockets/Owed/Instalments, Cash Flow/Reports). Filled by switchTab. -->
+<div id="groupBar" style="display:none;gap:6px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;"></div>
 
 <!-- ── HAMBURGER DRAWER ── -->
 <div class="hbg-overlay" id="hbgOverlay" onclick="closeDrawer()"></div>
@@ -231,26 +233,11 @@ function _showUpdateToast(worker){
       <button class="hbg-item" onclick="closeDrawer();goToTab('carpool');">
         <span class="hbg-icon">🚗</span> Carpool
       </button>
-      <button class="hbg-item" onclick="closeDrawer();goToTab('odin');">
-        <span class="hbg-icon">🧠</span> Odin
-      </button>
-      <button class="hbg-item" onclick="closeDrawer();goToTab('money');">
-        <span class="hbg-icon">💰</span> Money Owed to Me
-      </button>
       <button class="hbg-item" onclick="closeDrawer();goToTab('cashflow');">
         <span class="hbg-icon">💵</span> Cash Flow
       </button>
-      <button class="hbg-item" onclick="closeDrawer();goToTab('reports');">
-        <span class="hbg-icon">📊</span> Reports
-      </button>
-      <button class="hbg-item" onclick="closeDrawer();goToTab('audit');">
-        <span class="hbg-icon">🛡️</span> Self-Audit<span id="auditDrawerBadge"></span>
-      </button>
       <button class="hbg-item" onclick="closeDrawer();switchTab('cars',document.getElementById('navCars'));">
         <span class="hbg-icon">🔧</span> Car Service Tracker
-      </button>
-      <button class="hbg-item" onclick="closeDrawer();switchTab('instalments',document.getElementById('navInstalments'));">
-        <span class="hbg-icon">💳</span> Instalments
       </button>
       <button class="hbg-item" onclick="closeDrawer();openAIAssistant();" style="position:relative;">
         <span class="hbg-icon">🧠</span> Odin Chat
