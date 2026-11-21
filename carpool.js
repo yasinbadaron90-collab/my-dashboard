@@ -169,7 +169,7 @@ function renderCFSummaryChart(){
   if (ownEl) {
     var _own = null;
     try { _own = (typeof getLendingSnapshot === 'function') ? getLendingSnapshot() : null; } catch(e){}
-    if (_own && _own.heldAdj > 0) {
+    if (_own && (_own.heldAdj > 0 || _own.heldSpend > 0)) {
       ownEl.textContent = 'Your own: ' + fmtR(_own.net) + ' · held money not counted';
       ownEl.style.color = _own.net >= 0 ? '#c8f230' : '#f23060';
       ownEl.style.display = 'block';

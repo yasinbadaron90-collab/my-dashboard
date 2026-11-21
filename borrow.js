@@ -109,6 +109,21 @@ function _heldCashFlowAdj(mk){
   } catch(e){}
   return { amount: Math.round(amount * 100) / 100, names: names };
 }
+// v152l: money spent OUT of a held pocket (heldFor) this month is not YOUR spending, so it must not
+// count against your own net. Matches _heldCashFlowAdj: held money coming in is left out of income,
+// held money going out (posted to Cash Flow as a spend: cfPosted) is left out of expenses.
+function _heldSpendAdj(mk){
+  var amount = 0;
+  try {
+    (typeof funds !== 'undefined' ? funds : []).forEach(function(f){
+      if(!(f.heldFor || '').trim() || f._deleted) return;
+      (f.deposits || []).forEach(function(d){
+        if(d.txnType === 'out' && d.cfPosted && d.date && String(d.date).slice(0,7) === mk) amount += d.amount;
+      });
+    });
+  } catch(e){}
+  return Math.round(amount * 100) / 100;
+}
 function getLendingSnapshot(mkOverride){
   var now=new Date();
   var mk=mkOverride || (now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
@@ -148,9 +163,12 @@ function getLendingSnapshot(mkOverride){
   var held = _heldCashFlowAdj(mk);
   var heldAdj = Math.min(held.amount, inc);
   inc = inc - heldAdj;
+  // v152l: and leave out what was spent from held pockets (never more than the month's real spend)
+  var heldSpend = Math.min(_heldSpendAdj(mk), exp);
+  exp = exp - heldSpend;
   var net=Math.round((inc-exp)*100)/100;
   var buf=Math.max(500,inc*0.1);
-  return{net:net,totalIncome:inc,maxSafeLend:Math.max(0,net-buf),heldAdj:heldAdj,heldNames:held.names};
+  return{net:net,totalIncome:inc,maxSafeLend:Math.max(0,net-buf),heldAdj:heldAdj,heldSpend:heldSpend,heldNames:held.names};
 }
 function getPersonOwing(name){
   // Rewritten 2026-08-10 — delegates to calcPersonTotals (money.js) instead
