@@ -69,5 +69,5 @@ Screens are grouped in `TAB_GROUPS` (money.js): Home = Today/Odin/Audit, Pockets
 ## Plan tab (v152i)
 `renderPlan` (home.js) shows this cycle only: pinned total to add, rows sorted by biggest to add, one bar each, done / no-goal rows folded, tap a row for balance and goal. Wife card and 'where new money goes' are collapsed behind a tap. Note: `index.html` forces `div[onclick]` to inline-flex, so clickable row divs need `display:block` inline.
 
-## Working rule: second check after a mistake
-When Claude makes a mistake on this repo (wrong number, wrong assumption, broken change), the corrected work is checked by a separate sub-agent that did not build it, before Claude tells Yasin it is right. Priority: money numbers and anything that changes the dashboard. Full rule set: `yb-dashboard-rules` skill.
+## Working rule: every change gets a second check
+Every change to this repo is checked by a separate sub-agent that did not build it, before it is pushed and called done, not only when a mistake is found. It checks the code, the money numbers it touches, the phone-size test, and that this file still matches. Claude fixes what it finds, then has it re-check. Full rule set: `yb-dashboard-rules` skill.
