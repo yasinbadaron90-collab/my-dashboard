@@ -36,7 +36,7 @@ For new features: money must enter, leave or move through a pocket (Money In / S
 | bankfeed.js | Bank statement scanner → Spend entries |
 | odin.js | Odin command centre tab, launch alerts |
 | odin_chat.js | Odin chat (Claude API) |
-| forecast.js | Reports → Forecast (read-only, own key `yb_forecast_v1`) |
+| forecast.js | Reports → Forecast pane (read-only, own key `yb_forecast_v1`); opened from its tile |
 | audit.js | Self-audit data-integrity checker (read-only) |
 | home.js | Home screen, folders, Plan. Pay-cycle helpers (25th→24th, salary-date aware): `planCycleFor`, `planInCycle`, `planCycleLabel` |
 | routine.js | Recurring tasks + priorities |

@@ -1733,61 +1733,71 @@ function buildReportPeriods(){
   return periods;
 }
 
-// ── REPORTS FOLDER TOGGLE ────────────────────────────────────────────────────
-var _rptFolderState = {};
-try { _rptFolderState = JSON.parse(localStorage.getItem('yb_rpt_folders_v1') || '{}'); } catch(e) {}
+// ── REPORTS TILE VIEW (v152j) ────────────────────────────────────────────────
+// Home = Cash Flow card + tile grid. Tap a tile = that one section full-page. No accordions.
+var _rptView = null;   // null = tile grid, else a pane id like 'rptFolderSavings'
+var RPT_TILES = [
+  { id:'rptFolderSavings',  icon:'💰', label:'Savings',    val:'rptTotalSaved' },
+  { id:'rptFolderCarpool',  icon:'🚗', label:'Carpool',    val:'rptCarpoolTotal' },
+  { id:'rptFolderFuel',     icon:'⛽', label:'Fuel',       val:'fuelTotal' },
+  { id:'rptFolderBorrow',   icon:'💸', label:'Owed to me', val:'rptBorrowOwing' },
+  { id:'rptFolderNetworth', icon:'📊', label:'Net worth',  val:'nwTotal' },
+  { id:'rptFolderCar',      icon:'🔧', label:'Car costs',  val:'rptCarSpent' },
+  { id:'rptFolderForecast', icon:'🔮', label:'Forecast',   val:null },
+  { id:'rptFolderExport',   icon:'📥', label:'Export',     val:null }
+];
+var _rptForecastMeta = '';
 
-function rptToggleFolder(id) {
-  var body  = document.getElementById(id + 'Body');
-  var arrow = document.getElementById(id + 'Arrow');
-  if (!body) return;
-  var isOpen = body.style.display !== 'none';
-  body.style.display  = isOpen ? 'none' : 'block';
-  if (arrow) {
-    arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
-    arrow.style.color     = isOpen ? 'var(--muted)' : 'var(--accent)';
-  }
-  _rptFolderState[id] = !isOpen;
-  try { localStorage.setItem('yb_rpt_folders_v1', JSON.stringify(_rptFolderState)); } catch(e) {}
-  if (id === 'rptFolderNetworth' && !isOpen) {
-    setTimeout(function(){ if(typeof renderNetWorth==='function') renderNetWorth(); }, 80);
-  }
+function rptBuildTiles() {
+  var host = document.getElementById('rptTiles');
+  if (!host) return;
+  host.innerHTML = RPT_TILES.map(function(t) {
+    var el = t.val ? document.getElementById(t.val) : null;
+    var txt = t.id === 'rptFolderForecast' ? _rptForecastMeta : (el ? el.textContent : '');
+    var col = (t.id === 'rptFolderNetworth' && el && el.style.color) ? el.style.color : 'var(--text)';
+    if (t.id === 'rptFolderExport') txt = 'PDF · CSV';
+    if (!txt) txt = '—';
+    return '<div onclick="rptShowTile(\'' + t.id + '\')" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 14px 12px;cursor:pointer;min-height:82px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left;gap:8px;">'
+      + '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:left;">' + t.icon + ' ' + t.label + '</div>'
+      + '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:15px;line-height:1.2;word-break:break-word;text-align:left;color:' + col + ';">' + txt + '</div>'
+      + '</div>';
+  }).join('');
 }
 
-function rptRestoreFolders() {
-  var allFolders = ['rptFolderSavings','rptFolderCarpool','rptFolderFuel','rptFolderBorrow',
-                    'rptFolderNetworth','rptFolderCar','rptFolderExport'];
-  allFolders.forEach(function(id) {
-    var body  = document.getElementById(id + 'Body');
-    var arrow = document.getElementById(id + 'Arrow');
-    if (!body) return;
-    var isOpen = _rptFolderState[id] === true;
-    body.style.display  = isOpen ? 'block' : 'none';
-    if (arrow) {
-      arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
-      arrow.style.color     = isOpen ? 'var(--accent)'  : 'var(--muted)';
-    }
+function rptApplyView() {
+  var grid = (_rptView === null);
+  var show = function(id, on, disp) { var e = document.getElementById(id); if (e) e.style.display = on ? disp : 'none'; };
+  show('rptTiles', grid, 'grid');
+  show('cfSummaryCard', grid, 'block');
+  var bar = document.getElementById('rptBackBar');
+  if (bar) bar.style.display = grid ? 'none' : 'flex';
+  document.querySelectorAll('#page-reports .rpt-pane').forEach(function(p) {
+    p.style.display = (!grid && p.id === _rptView + 'Wrap') ? 'block' : 'none';
   });
 }
 
+function rptShowTile(id) {
+  _rptView = id;
+  rptApplyView();
+  if (id === 'rptFolderNetworth') setTimeout(function(){ if (typeof renderNetWorth === 'function') renderNetWorth(); }, 80);
+  if (id === 'rptFolderForecast')  setTimeout(function(){ if (typeof _fcRenderOutputs === 'function') _fcRenderOutputs(); }, 60);
+  var pg = document.getElementById('page-reports');
+  if (pg && pg.scrollIntoView) pg.scrollIntoView({ block: 'start' });
+  window.scrollTo(0, 0);
+}
+
+function rptShowGrid() {
+  _rptView = null;
+  rptApplyView();
+  rptBuildTiles();
+  window.scrollTo(0, 0);
+}
+
+function rptRestoreFolders() { rptApplyView(); }
+
 function rptUpdateFolderMeta() {
-  setTimeout(function() {
-    var map = {
-      'rptFolderSavings':  'rptTotalSaved',
-      'rptFolderCarpool':  'rptCarpoolTotal',
-      'rptFolderBorrow':   'rptBorrowOwing',
-      'rptFolderNetworth': 'nwTotal',
-      'rptFolderCar':      'rptCarSpent'
-    };
-    Object.keys(map).forEach(function(fid) {
-      var metaEl = document.getElementById(fid + 'Meta');
-      var valEl  = document.getElementById(map[fid]);
-      if (metaEl && valEl) {
-        metaEl.textContent = valEl.textContent;
-        if (fid === 'rptFolderNetworth') metaEl.style.color = valEl.style.color;
-      }
-    });
-  }, 300);
+  rptBuildTiles();
+  setTimeout(rptBuildTiles, 300);
 }
 
 function renderReportFilters(){

@@ -259,11 +259,6 @@ function _fcRebuildBody(){
   host.innerHTML = _fcBodyHtml(_fcLoad());
   _fcRenderOutputs();
 }
-function forecastToggleFolder(){
-  if(typeof rptToggleFolder === 'function') rptToggleFolder('rptFolderForecast');
-  setTimeout(_fcRenderOutputs, 60);
-}
-
 function renderForecastSection(){
   var anchor = document.getElementById('rptFolderExportWrap');
   if(!anchor) return;
@@ -271,23 +266,17 @@ function renderForecastSection(){
   if(!wrap){
     wrap = document.createElement('div');
     wrap.id = 'rptFolderForecastWrap';
-    wrap.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;';
-    wrap.innerHTML =
-      '<div onclick="forecastToggleFolder()" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;">'
-      +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;">🔮 Forecast</div>'
-      +'<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:11px;color:var(--muted);" id="rptFolderForecastMeta"></span>'
-      +'<span style="color:var(--muted);font-size:18px;transition:transform .2s;" id="rptFolderForecastArrow">›</span></div></div>'
-      +'<div id="rptFolderForecastBody" style="display:none;padding:0 0 8px;"><div id="rptFolderForecastInner"></div></div>';
+    wrap.className = 'rpt-pane';
+    wrap.style.cssText = 'display:none;margin-bottom:10px;';
+    wrap.innerHTML = '<div id="rptFolderForecastBody" style="padding:0 0 8px;"><div id="rptFolderForecastInner"></div></div>';
     anchor.insertAdjacentElement('beforebegin', wrap);
     document.getElementById('rptFolderForecastInner').innerHTML = _fcBodyHtml(_fcLoad());
   }
-  wrap.style.display = 'block';
-  var body = document.getElementById('rptFolderForecastBody');
-  var meta = document.getElementById('rptFolderForecastMeta');
   try {
     var m = _fcLoad();
     var f = computeForecast(m, new Date(), _fcOwnMoney(), _fcVaultNow(m));
-    if(meta) meta.textContent = f.runsOut ? 'runs out '+_fcMonthLabel(f.runsOut) : 'stays above R0';
+    _rptForecastMeta = f.runsOut ? 'runs out '+_fcMonthLabel(f.runsOut) : 'stays above R0';
   } catch(e){}
-  if(body && body.style.display !== 'none') _fcRenderOutputs();
+  if(typeof rptBuildTiles === 'function') rptBuildTiles();
+  if(typeof _rptView !== 'undefined' && _rptView === 'rptFolderForecast') _fcRenderOutputs();
 }

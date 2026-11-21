@@ -1640,6 +1640,7 @@ function _renderTabSafely(tab){
     _safeCall(typeof renderFunds==='function'?renderFunds:null, 'renderFunds');
   }
   if(tab==='reports'){
+    _rptView = null;
     _safeCall(typeof renderReportFilters==='function'?renderReportFilters:null, 'renderReportFilters');
     _safeCall(typeof renderReports==='function'?renderReports:null, 'renderReports');
     _safeCall(typeof loadBorrowReport==='function'?loadBorrowReport:null, 'loadBorrowReport');
