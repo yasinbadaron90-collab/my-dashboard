@@ -164,6 +164,18 @@ function renderCFSummaryChart(){
   if (inEl) inEl.textContent = fmtR(latest.in);
   if (outEl) outEl.textContent = fmtR(latest.out);
 
+  // v152k: "your own" net = same number as the Home alert (getLendingSnapshot leaves out held money)
+  var ownEl = document.getElementById('cfSummaryOwn');
+  if (ownEl) {
+    var _own = null;
+    try { _own = (typeof getLendingSnapshot === 'function') ? getLendingSnapshot() : null; } catch(e){}
+    if (_own && _own.heldAdj > 0) {
+      ownEl.textContent = 'Your own: ' + fmtR(_own.net) + ' · held money not counted';
+      ownEl.style.color = _own.net >= 0 ? '#c8f230' : '#f23060';
+      ownEl.style.display = 'block';
+    } else { ownEl.style.display = 'none'; }
+  }
+
   var hasAnyRows = trend.some(function(t){ return t.hasRows; });
   var footerEl = document.getElementById('cfSummaryFooter');
   if (footerEl) footerEl.textContent = hasAnyRows ? 'Full Cash Flow tab to edit · figures live' : 'No cash flow recorded yet';
