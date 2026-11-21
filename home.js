@@ -826,6 +826,8 @@ function _homeOpenPocket(fundId){
     setTimeout(function(){
       var card = document.querySelector('.fund-card[data-fund-id="'+fundId+'"]');
       if(card){
+        // v152n: pocket cards start collapsed, so open the one that was tapped
+        try { var _w = card.querySelector('.fund-body-wrap.collapsed'), _b = card.querySelector('.collapse-btn'); if(_w && _b) _b.click(); } catch(e){}
         card.scrollIntoView({behavior:'smooth', block:'center'});
         card.style.transition = 'box-shadow .5s';
         card.style.boxShadow = '0 0 18px rgba(200,242,48,.4)';

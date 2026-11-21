@@ -255,6 +255,7 @@ var FB_EXCLUDED_KEYS = [
   'yb_sync_dirty_v1',               // v150r: this device's not-yet-uploaded keys -- per-device by definition
   'yb_sync_base_v1',                // v150r: what this device last knew the cloud held -- per-device
   'yb_sync_conflicts_v1',           // v150r: this device's copy saved when both devices changed the same data
+  'yb_cf_fold_v1',                  // v152n: which Cash Flow panels are folded -- cosmetic, per-device
   'yb_last_backup_v1'               // v152m: when THIS device last downloaded a backup file -- per-device by definition
 ];
 

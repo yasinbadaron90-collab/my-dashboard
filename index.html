@@ -512,15 +512,17 @@ function _showUpdateToast(worker){
     <div style="margin-bottom:16px;"></div>
 
     <!-- SAVINGS ALLOCATIONS SECTION -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div onclick="cfFold('sav')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
       <div>
-        <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#c8f230;">💰 Savings Allocations</span>
+        <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#c8f230;"><span id="cfChev-sav" style="display:inline-block;width:14px;color:var(--muted);">▸</span>💰 Savings Allocations</span>
         <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px;">Internal transfers — money moved from a bank to a savings pot</div>
       </div>
-      <button onclick="openMove()" style="padding:6px 14px;background:#1a1030;border:1px solid #6a4ac0;border-radius:6px;color:#a78bfa;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">🔄 Move</button>
+      <button onclick="event.stopPropagation();openMove()" style="padding:6px 14px;background:#1a1030;border:1px solid #6a4ac0;border-radius:6px;color:#a78bfa;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">🔄 Move</button>
     </div>
+    <div id="cfFold-sav" style="display:none;">
     <div style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:6px;">
       <div id="cfSavingsAllocRows"></div>
+    </div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#0d1a00;border-radius:8px;margin-bottom:24px;border:1px solid #1a3a00;">
       <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#3a6a20;">Total Saved This Month</span>
@@ -536,14 +538,15 @@ function _showUpdateToast(worker){
 
     <!-- ══ RECONCILE PANEL ══ -->
     <div style="margin-top:24px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div onclick="cfFold('recon')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div>
-          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--text);">🏦 Account Balances</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--text);"><span id="cfChev-recon" style="display:inline-block;width:14px;color:var(--muted);">▸</span>🏦 Account Balances</div>
           <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px;">Type your real balances now — future entries adjust from here</div>
         </div>
-        <button onclick="saveReconBalances()" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:6px;padding:6px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">Save</button>
+        <button onclick="event.stopPropagation();saveReconBalances()" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:6px;padding:6px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">Save</button>
       </div>
 
+      <div id="cfFold-recon" style="display:none;">
       <!-- Three account inputs: FNB, TymeBank, Cash -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
         <div style="background:#0a0f1a;border:1px solid #1a2a4a;border-radius:10px;padding:12px 10px;">
@@ -592,6 +595,7 @@ function _showUpdateToast(worker){
           <span style="font-size:10px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;">Total Saved</span>
           <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#c8f230;" id="reconSavingsTotal">R0</span>
         </div>
+      </div>
       </div>
     </div>
 

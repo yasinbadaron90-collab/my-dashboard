@@ -219,7 +219,23 @@ function renderBankBalanceCard(){
   amtEl.style.color = (total <= 0 && fnb <= 0 && tyme <= 0 && cash <= 0) ? '#3a6060' : '#9be0e0';
 }
 
+// v152n: Savings Allocations list and Account Balances panel start folded; tap the header to open.
+function cfFoldState(){ try { return JSON.parse(lsGet('yb_cf_fold_v1') || '{}') || {}; } catch(e){ return {}; } }
+function cfFoldApply(){
+  var st = cfFoldState();
+  ['sav','recon'].forEach(function(k){
+    var b = document.getElementById('cfFold-'+k), c = document.getElementById('cfChev-'+k);
+    if(b) b.style.display = st[k] ? 'block' : 'none';
+    if(c) c.textContent = st[k] ? '▾' : '▸';
+  });
+}
+function cfFold(k){
+  var st = cfFoldState(); st[k] = !st[k];
+  try { lsSet('yb_cf_fold_v1', JSON.stringify(st)); } catch(e){}
+  cfFoldApply();
+}
 function renderCashFlow(){
+  try { cfFoldApply(); } catch(e){}
   const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('cfMonthLabel').textContent = MONTH_NAMES[cfMonth] + ' ' + cfYear;
 

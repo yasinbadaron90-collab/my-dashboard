@@ -64,7 +64,9 @@ Top bar has four tabs: Home, Pockets (`savings`), Plan, More. More opens the dra
 Screens are grouped in `TAB_GROUPS` (money.js): Home = Today/Odin/Audit, Pockets = Pockets/Owed to me/Instalments, More = Cash Flow/Reports. `switchTab` fills `#groupBar` with the group's sub-tabs. Add a screen to a group there, not to the drawer.
 
 ## Quick Add (v152c)
-`quick.html` is a tiny standalone page (also an app-icon shortcut). It only appends notes to `yb_inbox_v1` (device-local, not synced, not in backups). `inbox.js` lists them on Home; LOG IT opens the real Spend / Move / Money In form prefilled, and the note is removed only after that form saves a record. Never make Quick Add write to pockets directly.
+`quick.html` is a tiny standalone page (also an app-icon shortcut). It only appends notes to `yb_inbox_v1` (device-local, not synced, not in backups). `inbox.js` lists them on Home; LOG IT opens the real Spend / Move / Money In form prefilled, and the note is removed only after that form saves a record. Never make Quick Add write to pockets directly. v152n: Quick Add also remembers the last type and recent labels (device-only keys `yb_quick_type_v1`, `yb_quick_recent_v1`, written straight to localStorage by quick.html), has a Today/Yesterday toggle, and Enter moves amount -> note -> save.
+
+v152n declutter: pocket cards in `savings.js` start collapsed to a one-line summary (state in `collapse_fund_<id>`, '0' = open); Cash Flow's Savings Allocations list and Account Balances panel start folded (`cfFold()` in settings.js, state in device-only `yb_cf_fold_v1`). v152m: `yb_last_backup_v1` (device-only) drives the Home backup reminder.
 
 ## Plan tab (v152i)
 `renderPlan` (home.js) shows this cycle only: pinned total to add, rows sorted by biggest to add, one bar each, done / no-goal rows folded, tap a row for balance and goal. Wife card and 'where new money goes' are collapsed behind a tap. Note: `index.html` forces `div[onclick]` to inline-flex, so clickable row divs need `display:block` inline.

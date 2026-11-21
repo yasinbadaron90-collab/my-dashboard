@@ -107,7 +107,7 @@ function renderFunds(){
   visibleFunds.forEach(f=>{
     grand+=fundTotal(f);
     const total=fundTotal(f),rem=remaining(f),p=pct(f),done=rem===0;
-    const card=document.createElement('div');card.className='fund-card';
+    const card=document.createElement('div');card.className='fund-card';card.setAttribute('data-fund-id', f.id);   // v152n: Home's pocket shortcut finds the card by this
     const isExpense = f.isExpense || false;
     const weeklyLabel = f.targetType==='monthly' ? 'R'+Math.round(f.weekly*4.33)+'/month' : 'R'+f.weekly+'/week';
     const subtitleLabel = isExpense ? 'expense tracker' : weeklyLabel;
@@ -173,7 +173,10 @@ function renderFunds(){
       +'</div>';
 
     const cardId = 'fc-'+f.id;
-    const isCollapsed = false;
+    // v152n: cards start collapsed to a one-line summary; the choice is remembered per pocket
+    // (toggleFundCard saves collapse_fund_<id>: '1' collapsed, '0' open).
+    var _sv = lsGet('collapse_fund_'+f.id);
+    const isCollapsed = _sv === null || _sv === undefined ? true : _sv === '1';
     const chevClass = isCollapsed ? 'collapse-btn collapsed' : 'collapse-btn';
     const wrapStyle = isCollapsed ? 'max-height:0;opacity:0;' : 'max-height:2000px;opacity:1;';
     // Deadline status badge — sits under the title for non-expense cards.
@@ -195,6 +198,9 @@ function renderFunds(){
       }
     }
     card.innerHTML = '<div class="fund-top"><div><span class="fund-emoji">'+f.emoji+'</span><div class="fund-name">'+f.name+'</div><div class="fund-weekly">'+subtitleLabel+' · started '+startedLabel+'</div>'+deadlineRow+'</div><div style="display:flex;align-items:center;gap:6px"><button class="'+chevClass+'" onclick="toggleFundCard(\''+f.id+'\',this)" title="Collapse"><span class="chev">&#8964;</span></button><div class="fund-actions" style="display:flex;gap:6px"><button class="icon-btn" onclick="openHistory(\''+f.id+'\')">☰</button><button class="icon-btn" onclick="archiveFund(\''+f.id+'\')" title="Archive">📦</button><button class="icon-btn" onclick="openEditFund(\''+f.id+'\')">✎</button><button class="icon-btn danger" onclick="deleteFund(\''+f.id+'\')">✕</button></div></div></div>'
+      + '<div class="fund-sum" id="fs-'+f.id+'" onclick="toggleFundCard(\''+f.id+'\',this.parentNode.querySelector(\'.collapse-btn\'))" style="display:'+(isCollapsed?'block':'none')+';padding:12px 18px 14px;cursor:pointer;">'
+      + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;"><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:'+balColor+'">'+stat1Val+'</div><div style="font-size:10px;letter-spacing:1px;color:'+barLabelColor+';text-align:right;">'+barLabel+'</div></div>'
+      + '<div style="height:4px;background:var(--muted2);border-radius:3px;overflow:hidden;margin-top:8px"><div style="width:'+progPct+'%;height:100%;background:'+progColor+';border-radius:3px"></div></div></div>'
       + '<div class="fund-body-wrap '+(isCollapsed?'collapsed':'expanded')+'" id="'+cardId+'" style="'+wrapStyle+'">' + bodyHtml + '</div>';
     grid.appendChild(card);
   });
@@ -427,6 +433,7 @@ function toggleFundCard(id, btn){
     btn.classList.remove('collapsed');
     setTimeout(function(){ wrap.style.maxHeight = '2000px'; }, 360);
   }
+  var _fs = document.getElementById('fs-'+id); if(_fs) _fs.style.display = isNowCollapsed ? 'block' : 'none';
   lsSet('collapse_fund_'+id, isNowCollapsed ? '1' : '0');
 }
 
