@@ -254,7 +254,8 @@ var FB_EXCLUDED_KEYS = [
   'yb_audit_lastscan_v1',           // Self-Audit last-run timestamp -- per-device diagnostics
   'yb_sync_dirty_v1',               // v150r: this device's not-yet-uploaded keys -- per-device by definition
   'yb_sync_base_v1',                // v150r: what this device last knew the cloud held -- per-device
-  'yb_sync_conflicts_v1'            // v150r: this device's copy saved when both devices changed the same data
+  'yb_sync_conflicts_v1',           // v150r: this device's copy saved when both devices changed the same data
+  'yb_last_backup_v1'               // v152m: when THIS device last downloaded a backup file -- per-device by definition
 ];
 
 // ── Patch lsSet to also write to Firestore ────────────────────────────────────

@@ -490,6 +490,21 @@ function buildOdinLaunchAlerts(){
     }
   } catch(e){}
 
+  // ── Backup reminder (v152m): no backup file downloaded from this device in 7+ days ──
+  // The Sunday email also carries a backup, so this is amber, not red.
+  try {
+    var _lb = parseInt(lsGet('yb_last_backup_v1') || '0', 10);
+    var _days = _lb ? Math.floor((Date.now() - _lb) / 86400000) : null;
+    if(_days === null || _days >= 7){
+      alerts.push({ level:'amber',
+        text: _days === null ? '💾 No backup downloaded from this phone yet — tap Backup (Sunday email also has one)'
+                             : '💾 Last backup downloaded '+_days+' days ago — tap Backup (Sunday email also has one)',
+        tab:'settings',
+        actions:[ { label:'Backup', fn: function(){ if(typeof backupData==='function') backupData(); } } ]
+      });
+    }
+  } catch(e){}
+
   // ── Data integrity: negative balance on a savings pocket ──
   // Expense-tracker pockets are allowed to go "over budget" (negative) by
   // design — that's already surfaced on the Savings card itself. A regular

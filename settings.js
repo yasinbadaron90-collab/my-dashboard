@@ -539,6 +539,8 @@ function backupData(){
   a.click();
   document.body.removeChild(a);
   setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+  // v152m: remember when this device last saved a backup (drives the Home reminder)
+  try { lsSet('yb_last_backup_v1', String(Date.now())); } catch(e){}
 }
 
 // ── Round-trip integrity test (console only) ────────────────────────────

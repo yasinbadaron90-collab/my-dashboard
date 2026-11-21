@@ -173,6 +173,20 @@ async function main() {
     if (!matchesExpected) console.log(`   expected on [${c.expected.join(', ') || 'none'}], found on [${actual.join(', ') || 'none'}]`);
   }
 
+  // v152m — Home cash-flow alert vs Reports "Your own" line must read the SAME number.
+  // Both have to come from getLendingSnapshot().net; if either re-derives it (e.g. calls
+  // _heldCashFlowAdj itself) the two screens can disagree again (the v152l bug).
+  {
+    const fsp = await import('node:fs/promises');
+    const odin = await fsp.readFile(new URL('../odin.js', import.meta.url), 'utf8');
+    const homeRegion = stripLineComments(extractBetween(odin, '// ── Cash flow ──', 'catch', 'Home cash-flow alert'));
+    const reportsRegion = stripLineComments(extractBetween(src, 'var _own = null;', "ownEl.style.color", 'Reports own line'));
+    const homeOk = /getLendingSnapshot\(/.test(homeRegion) && /snap\.net/.test(homeRegion) && !/_held(CashFlow|Spend)Adj/.test(homeRegion);
+    const repOk = /getLendingSnapshot\(/.test(reportsRegion) && /_own\.net/.test(reportsRegion) && !/_held(CashFlow|Spend)Adj/.test(reportsRegion);
+    console.log('Home alert net == Reports own net'.padEnd(36), homeOk && repOk ? 'consistent' : '⚠ DRIFT');
+    if (!(homeOk && repOk)) { drift = true; console.log(`   Home alert uses snapshot: ${homeOk}, Reports uses snapshot: ${repOk}`); }
+  }
+
   console.log('-----------------------------------------------------------');
   console.log(drift
     ? '\n❌ DRIFT DETECTED — at least one concept is not showing on its expected set of surfaces.'
