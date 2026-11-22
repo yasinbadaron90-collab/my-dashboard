@@ -55,6 +55,8 @@ For new features: money must enter, leave or move through a pocket (Money In / S
 ## Tests
 - `tests/money-math.mjs` — fundTotal, calcPersonTotals, carpool credits, localDateStr, no-UTC-date scan.
 - `tests/output-consistency.mjs` — carpool card vs PDF numbers.
+- `tests/plan-scenarios.mjs` — Plan tab: pay-cycle dates and the money added/kept numbers (36 checks).
+- `tests/phone-smoke.py <backup.json>` — phone-size browser test: every tab loads with no page errors or NaN, and EVERY pocket card opens visibly and collapses again (would have caught the v152n blank-card bug). Run it before every commit.
 
 Keep this file current: update the table when a file is added, removed or changes job.
 
