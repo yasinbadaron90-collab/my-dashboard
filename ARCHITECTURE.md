@@ -79,3 +79,5 @@ v152o: `planRoutedInCycle` (calc.js) no longer drops everything added before a p
 - v152p: planRoutedInCycle also counts carpool fares paid straight into ANY plan card (not only source:'carpool') and hand top-ups made with the pocket Add button (savingsDepositId); Money In split amounts coerced to numbers. New tests/plan-scenarios.mjs (30 checks: cycle boundaries, early/late salary, top-up/spend matching).
 
 - v152q: planRoutedInCycle: spends use the pocket's older money (deposits dated before the cycle start) first; only the excess cancels this cycle's top-ups. Kept is capped at the pocket balance (not for Masud monthly 'mm48mhq'). Masud savings case is a test.
+
+- v152r: pocket cards: removed inline opacity:0 from collapsed cards (it overrode .expanded, so opened cards were blank).

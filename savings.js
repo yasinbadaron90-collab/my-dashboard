@@ -178,7 +178,7 @@ function renderFunds(){
     var _sv = lsGet('collapse_fund_'+f.id);
     const isCollapsed = _sv === null || _sv === undefined ? true : _sv === '1';
     const chevClass = isCollapsed ? 'collapse-btn collapsed' : 'collapse-btn';
-    const wrapStyle = isCollapsed ? 'max-height:0;opacity:0;' : 'max-height:2000px;opacity:1;';
+    const wrapStyle = isCollapsed ? 'max-height:0;' : 'max-height:2000px;';   // v152r: opacity comes from the .collapsed/.expanded classes; an inline opacity:0 kept opened cards invisible
     // Deadline status badge — sits under the title for non-expense cards.
     // Tappable on the "no deadline" state so user can jump straight to edit.
     var _dl = deadlineStatus(f);
