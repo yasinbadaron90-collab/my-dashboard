@@ -170,4 +170,40 @@ t('no UTC date slices left in app code', () => {
   assert.deepEqual(bad, []);
 });
 
+console.log('\nplan: money added and kept (v152o)');
+{
+  // Ee90 case: R208 added on 16-17 Nov, then a R52 top-up spent the SAME day on 20 Nov.
+  // The old "only after the last spend date" rule counted 0; the pocket really holds R208 of cycle money.
+  const pctx = vm.createContext({
+    lsGet: k => (k in store ? store[k] : null), lsSet: (k, v) => { store[k] = String(v); }, console,
+    loadMoneyInData: () => [], loadMoveData: () => pmoves, funds: []
+  });
+  var pmoves = [];
+  vm.runInContext([grab(read('calc.js'), 'planInCycle'), grab(read('calc.js'), 'planRoutedInCycle')].join('\n'), pctx);
+  const cyc = { start:'2026-10-24', next:'2026-11-25' };
+  const run = (deposits, moves) => { pmoves = moves; pctx.funds = [{ id:'p1', deposits }]; return pctx.planRoutedInCycle({ pocketId:'p1', source:'' }, cyc); };
+  t('top-up spent the same day does not wipe out older kept money', () => {
+    const r = run(
+      [ {date:'2026-11-13',amount:3300.97,txnType:'out'}, {date:'2026-11-17',amount:100,repayId:'r1'},
+        {date:'2026-11-20',amount:52,moveId:'m3'}, {date:'2026-11-20',amount:52,txnType:'out'} ],
+      [ {date:'2026-11-13',toId:'p1',amount:1114.79}, {date:'2026-11-16',toId:'p1',amount:108}, {date:'2026-11-20',toId:'p1',amount:52} ]);
+    assert.equal(r, 208);
+  });
+  t('top-ups spent in full still count as nothing', () => {
+    const r = run([ {date:'2026-11-05',amount:500,txnType:'out'} ], [ {date:'2026-11-04',toId:'p1',amount:500} ]);
+    assert.equal(r, 0);
+  });
+  t('money added after the last spend counts in full', () => {
+    const r = run([ {date:'2026-11-05',amount:500,txnType:'out'} ], [ {date:'2026-11-04',toId:'p1',amount:300}, {date:'2026-11-08',toId:'p1',amount:200} ]);
+    assert.equal(r, 200);
+  });
+  t('a small spend only cancels that much of an earlier top-up', () => {
+    const r = run([ {date:'2026-11-06',amount:120,txnType:'out'} ], [ {date:'2026-11-04',toId:'p1',amount:500} ]);
+    assert.equal(r, 380);
+  });
+  t('merge moves never count', () => {
+    assert.equal(run([], [ {date:'2026-11-04',toId:'p1',amount:900,merge:true} ]), 0);
+  });
+}
+
 console.log('\n' + (process.exitCode ? '❌ FAILED' : '✅ ' + passed + ' checks passed'));

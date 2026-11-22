@@ -73,3 +73,5 @@ v152n declutter: pocket cards in `savings.js` start collapsed to a one-line summ
 
 ## Working rule: every change gets a second check
 Every change to this repo is checked by a separate sub-agent that did not build it, before it is pushed and called done, not only when a mistake is found. It checks the code, the money numbers it touches, the phone-size test, and that this file still matches. Claude fixes what it finds, then has it re-check. Full rule set: `yb-dashboard-rules` skill.
+
+v152o: `planRoutedInCycle` (calc.js) no longer drops everything added before a pocket's last spend. Each spend/move-out now uses up the most recent counted top-ups (moves in, repayments, profit share) first; Money-In splits and carpool fares are unchanged. Fixes Ee90 showing R0 saved when it held R208. Regression tests in tests/money-math.mjs.

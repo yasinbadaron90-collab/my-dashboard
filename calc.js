@@ -110,38 +110,37 @@ function planRoutedInCycle(card, cyc){
         var sp = (r.splits||[]).find(function(x){ return x.fundId === card.pocketId; });
         return s + (sp ? sp.amount : 0);
       }, 0);
-    // v151s: money moved INTO this pocket from another pocket/bank this cycle also counts
-    // v151x: a move only counts if made AFTER the pocket's last spend/move-out this cycle.
-    // Top-ups that were then spent are not savings.
-    var lastOut = '';
-    // Masud monthly is an allowance meant to be spent: every move in counts.
-    if(card.pocketId !== 'mm48mhq') try {
-      var fl = (typeof funds !== 'undefined' ? funds : []);
-      var fd = fl.find(function(f){ return f.id === card.pocketId; });
-      ((fd && fd.deposits) || []).forEach(function(d){
-        var dd = (d.date||'').slice(0,10);
-        if(d.txnType === 'out' && planInCycle(dd, cyc) && dd > lastOut) lastOut = dd;
-      });
-    } catch(e){}
+    // v151s: money moved INTO this pocket from another pocket/bank this cycle also counts.
+    // v152o: "top-ups that were then spent are not savings" is now done by matching, not by
+    // date. Every spend/move-out this cycle uses up the MOST RECENT counted top-ups first
+    // (moves in, repayments, profit share). The old rule dropped everything added before the
+    // pocket's last spend, so a R52 top-up spent the same day wiped out R208 added days earlier.
+    var fl = (typeof funds !== 'undefined' ? funds : []);
+    var fd = fl.find(function(f){ return f.id === card.pocketId; });
     var mv = (typeof loadMoveData === 'function') ? loadMoveData() : [];
+    var ev = [];   // {d: 'YYYY-MM-DD', k: 0 credit | 1 spend, a: amount}
     // v152d: a move flagged merge:true is two pockets being joined, not new saving
-    var fromMove = mv.filter(function(m){ return !m.merge && m.toId === card.pocketId && planInCycle(m.date, cyc) && (!lastOut || m.date.slice(0,10) > lastOut); })
-      .reduce(function(s,m){ return s + (Number(m.amount)||0); }, 0);
-    // v152f: repayments paid into this pocket (deposit carries repayId) and profit
-    // share deposits count too, under the same last-spend rule. Deposits already
-    // counted above (Money In split, move, carpool) are skipped.
-    var fromRep = 0;
-    try {
-      var fl2 = (typeof funds !== 'undefined' ? funds : []);
-      var fd2 = fl2.find(function(f){ return f.id === card.pocketId; });
-      ((fd2 && fd2.deposits) || []).forEach(function(d){
-        if(d.txnType === 'out' || d.moveId || d.moneyInId || d.carpoolPaymentId) return;
-        var dd = (d.date||'').slice(0,10);
-        if(!planInCycle(dd, cyc)) return;
-        if(lastOut && dd <= lastOut) return;
-        if(d.repayId || /profit share/i.test(d.note||'')) fromRep += Number(d.amount)||0;
-      });
-    } catch(e){}
+    mv.forEach(function(m){
+      if(!m.merge && m.toId === card.pocketId && planInCycle(m.date, cyc)) ev.push({ d:(m.date||'').slice(0,10), k:0, a:Number(m.amount)||0 });
+    });
+    // v152f: repayments paid into this pocket (deposit carries repayId) and profit share
+    // deposits count too. Deposits already counted above (Money In split, move, carpool) are skipped.
+    ((fd && fd.deposits) || []).forEach(function(d){
+      var dd = (d.date||'').slice(0,10);
+      if(!planInCycle(dd, cyc)) return;
+      if(d.txnType === 'out'){
+        // Masud monthly is an allowance meant to be spent: every move in counts, spends never cancel it.
+        if(card.pocketId !== 'mm48mhq') ev.push({ d:dd, k:1, a:Number(d.amount)||0 });
+        return;
+      }
+      if(d.moveId || d.moneyInId || d.carpoolPaymentId) return;
+      if(d.repayId || /profit share/i.test(d.note||'')) ev.push({ d:dd, k:0, a:Number(d.amount)||0 });
+    });
+    // oldest first; on the same day a top-up comes before the spend it paid for
+    ev.sort(function(x,y){ return x.d < y.d ? -1 : x.d > y.d ? 1 : x.k - y.k; });
+    var pool = 0;
+    ev.forEach(function(e){ pool = e.k === 0 ? pool + e.a : Math.max(0, pool - e.a); });
+    var fromMove = pool, fromRep = 0;
     return Math.round((fromCp + fromIn + fromMove + fromRep) * 100) / 100;
   } catch(e){ return 0; }
 }
