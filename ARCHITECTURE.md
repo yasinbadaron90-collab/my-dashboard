@@ -83,3 +83,5 @@ v152o: `planRoutedInCycle` (calc.js) no longer drops everything added before a p
 - v152q: planRoutedInCycle: spends use the pocket's older money (deposits dated before the cycle start) first; only the excess cancels this cycle's top-ups. Kept is capped at the pocket balance (not for Masud monthly 'mm48mhq'). Masud savings case is a test.
 
 - v152r: pocket cards: removed inline opacity:0 from collapsed cards (it overrode .expanded, so opened cards were blank).
+
+- v152s: Fuel statement PDF now shows Budget and Budget left/over for one whole pay cycle (25th to 24th), same number as the Fuel card (budget minus petrol + Uber). Custom date ranges get no budget row. Logic in core.js `_fuelStatementBudget` (tested in tests/money-math.mjs).

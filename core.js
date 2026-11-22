@@ -1250,6 +1250,19 @@ function exportFuelStatement(){
   }
 }
 
+// v152s: the on-screen Fuel card shows "R.. left" (budget minus spend) but the PDF statement never did.
+// Budget only makes sense for one whole pay cycle (25th to the 24th of the next month), so a custom range gets none.
+// Returns null (no budget line) or {budget, left}; left < 0 means over budget. Same sum as the screen: petrol + Uber.
+function _fuelStatementBudget(fromStr, toStr, spent, budget){
+  var f = String(fromStr).split('-').map(Number), t = String(toStr).split('-').map(Number);
+  if(f.length !== 3 || t.length !== 3 || f.some(isNaN) || t.some(isNaN)) return null;
+  if(f[2] !== 25 || t[2] !== 24) return null;
+  if((t[0]*12 + t[1]) - (f[0]*12 + f[1]) !== 1) return null;
+  var b = Number(budget) || 0;
+  if(b <= 0) return null;
+  return { budget: b, left: Math.round((b - spent) * 100) / 100 + 0 };
+}
+
 function _buildFuelStatementPDF(fromStr, toStr){
   // Date-string comparison ('YYYY-MM-DD' is zero-padded and fixed-width) —
   // same trick renderSavingsChart() and inCycle() already rely on, no
@@ -1319,6 +1332,22 @@ function _buildFuelStatementPDF(fromStr, toStr){
     doc.text(totalLitres.toFixed(1)+'L @ avg R'+avgPrice.toFixed(2)+'/L', W-margin-4, y+12, {align:'right'});
   }
   y += 26;
+
+  // v152s: budget row (one whole pay cycle only) so the PDF agrees with the "left" shown on the Fuel card
+  var _fb = _fuelStatementBudget(fromStr, toStr, grandTotal, parseFloat(lsGet(FUEL_BUDGET_KEY)) || 2950);
+  if(_fb){
+    var _over = _fb.left < 0;
+    doc.setFillColor(14,14,26); doc.rect(margin,y-5,W-(margin*2),14,'F');
+    doc.setTextColor(120,120,120); doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.text('BUDGET', margin+4, y);
+    doc.text(_over ? 'OVER BUDGET' : 'BUDGET LEFT', W-margin-4, y, {align:'right'});
+    doc.setFontSize(12); doc.setFont('helvetica','bold');
+    doc.setTextColor(180,180,180);
+    doc.text('R'+_fb.budget.toFixed(2), margin+4, y+6);
+    if(_over) doc.setTextColor(242,48,96); else doc.setTextColor(200,242,48);
+    doc.text('R'+Math.abs(_fb.left).toFixed(2), W-margin-4, y+6, {align:'right'});
+    y += 18;
+  }
 
   doc.setDrawColor(42,42,42); doc.setLineWidth(0.3); doc.line(margin,y,W-margin,y); y+=8;
 

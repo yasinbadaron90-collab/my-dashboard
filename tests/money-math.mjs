@@ -206,4 +206,23 @@ console.log('\nplan: money added and kept (v152o/q)');
   });
 }
 
+console.log('\nfuel statement budget line (v152s)');
+{
+  const fctx = vm.createContext({ console });
+  vm.runInContext(grab(read('core.js'), '_fuelStatementBudget'), fctx);
+  const b = fctx._fuelStatementBudget;
+  t('one whole cycle: budget 3000 minus spent 2804.55 = 195.45 left (the on-screen number)', () => {
+    const r = b('2026-09-25', '2026-10-24', 2804.55, 3000); assert.equal(r.budget, 3000); assert.equal(r.left, 195.45);
+  });
+  t('over budget gives a negative left', () => { assert.equal(b('2026-09-25', '2026-10-24', 3100.5, 3000).left, -100.5); });
+  t('year boundary cycle 25 Dec to 24 Jan counts as one cycle', () => { assert.ok(b('2026-12-25', '2027-01-24', 100, 3000)); });
+  t('custom range gets no budget line', () => {
+    assert.equal(b('2026-10-01', '2026-10-31', 100, 3000), null);
+    assert.equal(b('2026-09-25', '2026-11-24', 100, 3000), null);
+    assert.equal(b('2026-09-26', '2026-10-24', 100, 3000), null);
+  });
+  t('no budget set or junk dates gives no line', () => { assert.equal(b('2026-09-25', '2026-10-24', 100, 0), null); assert.equal(b('', 'x', 1, 3000), null); });
+  t('exact zero left is not shown as -0', () => { assert.ok(Object.is(b('2026-09-25', '2026-10-24', 3000, 3000).left, 0)); });
+}
+
 console.log('\n' + (process.exitCode ? '❌ FAILED' : '✅ ' + passed + ' checks passed'));
