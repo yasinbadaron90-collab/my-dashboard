@@ -21,7 +21,7 @@ const ctx = vm.createContext({
   loadMoneyInData: () => st.moneyIn, loadMoveData: () => st.moves,
   get funds(){ return st.funds; }
 });
-vm.runInContext(['_planDS','planSalaryDates','_planDecPayDay','_planMonth25','_planNominal','_planSalaryCycle','_planEffStart','_planExpectedPay','planCycleFor','planInCycle','planRoutedInCycle']
+vm.runInContext(['fundTotal','_planDS','planSalaryDates','_planDecPayDay','_planMonth25','_planNominal','_planSalaryCycle','_planEffStart','_planExpectedPay','planCycleFor','planInCycle','planRoutedInCycle']
   .map(n => grab(calc, n)).join('\n'), ctx);
 const { planCycleFor, planInCycle, planRoutedInCycle } = ctx;
 let passed = 0;
@@ -66,7 +66,7 @@ t('a late salary (logged before the 10th) belongs to LAST month, so the 5th stay
 
 console.log('\nmoney added and kept this cycle');
 const C = { start:'2026-10-25', next:'2026-11-25' };
-const run = (deps, moves, card) => { st.moves = moves; st.funds = [{ id:'p', deposits: deps }]; return planRoutedInCycle(Object.assign({ pocketId:'p', source:'' }, card||{}), C); };
+const run = (deps, moves, card) => { st.moves = moves; st.funds = [{ id:'p', deposits: deps.concat(moves.filter(m=>m.toId==='p').map(m=>({ date:m.date, amount:m.amount, moveId:'mv' }))) }]; return planRoutedInCycle(Object.assign({ pocketId:'p', source:'' }, card||{}), C); };
 t('Money In split to the pocket counts in full', () => {
   reset(); st.moneyIn = [{ date:'2026-11-02', splits:[{ fundId:'p', amount:500 }] }];
   assert.equal(run([], []), 500);
@@ -90,7 +90,7 @@ t('move in on 24 Nov counts, 25 Nov does not', () => {
   assert.equal(run([], [{ date:'2026-11-25', toId:'p', amount:100 }]), 0);
 });
 t('spends before the top-up never reduce it', () => {
-  reset(); assert.equal(run([{ date:'2026-11-02', amount:300, txnType:'out' }], [{ date:'2026-11-05', toId:'p', amount:200 }]), 200);
+  reset(); assert.equal(run([{ date:'2026-10-01', amount:1000 }, { date:'2026-11-02', amount:300, txnType:'out' }], [{ date:'2026-11-05', toId:'p', amount:200 }]), 200);
 });
 t('two top-ups then one spend: the spend eats the NEWEST top-up first', () => {
   reset(); assert.equal(run([{ date:'2026-11-10', amount:150, txnType:'out' }], [{ date:'2026-11-04', toId:'p', amount:300 }, { date:'2026-11-08', toId:'p', amount:200 }]), 350);
@@ -151,6 +151,30 @@ t('results are rounded to cents', () => {
 t('missing pocket gives 0, not a crash', () => {
   reset(); st.funds = []; st.moves = [{ date:'2026-11-04', toId:'zzz', amount:5 }];
   assert.equal(planRoutedInCycle({ pocketId:'zzz', source:'' }, C), 5);
+});
+
+console.log('\nspends use older money first (v152q)');
+const OLD = { date:'2026-10-01', amount:1279.51 };
+t('Masud savings case: older R1279.51, +R350 move, +R4.82 profit, R415.35 spent -> kept 354.82', () => {
+  reset();
+  assert.equal(run([OLD, { date:'2026-11-01', amount:4.82, note:'Profit share' }, { date:'2026-11-06', amount:230, txnType:'out' }, { date:'2026-11-07', amount:185.35, txnType:'out' }], [{ date:'2026-10-26', toId:'p', amount:350 }]), 354.82);
+});
+t('spend bigger than the older money: only the excess cancels top-ups', () => {
+  reset(); assert.equal(run([{ date:'2026-10-01', amount:100 }, { date:'2026-11-06', amount:250, txnType:'out' }], [{ date:'2026-10-26', toId:'p', amount:200 }]), 50);
+});
+t('no older money (pocket was empty): behaves as before', () => {
+  reset(); assert.equal(run([{ date:'2026-11-06', amount:250, txnType:'out' }], [{ date:'2026-10-26', toId:'p', amount:200 }]), 0);
+});
+t('older money is used up once: two spends share it', () => {
+  reset(); assert.equal(run([{ date:'2026-10-01', amount:300 }, { date:'2026-11-03', amount:200, txnType:'out' }, { date:'2026-11-05', amount:200, txnType:'out' }], [{ date:'2026-10-26', toId:'p', amount:150 }]), 50);
+});
+t('kept never exceeds what the pocket holds', () => {
+  reset(); assert.equal(run([{ date:'2026-10-01', amount:10 }, { date:'2026-11-06', amount:300, txnType:'out' }, { date:'2026-11-07', amount:5, note:'Profit share' }], [{ date:'2026-10-26', toId:'p', amount:200 }]), 0 + 0);
+});
+t('Masud monthly allowance unchanged: all moves in count', () => {
+  reset(); st.moves = [{ date:'2026-11-04', toId:'mm48mhq', amount:1575 }];
+  st.funds = [{ id:'mm48mhq', deposits:[{ date:'2026-10-01', amount:50 }, { date:'2026-11-04', amount:1575, moveId:'x' }, { date:'2026-11-05', amount:1500, txnType:'out' }] }];
+  assert.equal(planRoutedInCycle({ pocketId:'mm48mhq', source:'' }, C), 1575);
 });
 
 console.log('\n' + (process.exitCode ? '❌ FAILED' : '✅ ' + passed + ' plan scenarios passed'));

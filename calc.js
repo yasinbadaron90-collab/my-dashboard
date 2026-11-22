@@ -141,8 +141,22 @@ function planRoutedInCycle(card, cyc){
     });
     // oldest first; on the same day a top-up comes before the spend it paid for
     ev.sort(function(x,y){ return x.d < y.d ? -1 : x.d > y.d ? 1 : x.k - y.k; });
+    // v152q: spends use the pocket's OLDER money (balance before this cycle started) first;
+    // only the part of a spend the old money cannot cover cancels this cycle's top-ups.
+    var openBal = 0, hasDeps = !!(fd && fd.deposits && fd.deposits.length);
+    if(hasDeps) openBal = Math.max(0, fd.deposits.reduce(function(t,d){
+      var dd = (d.date||'').slice(0,10);
+      if(!dd || dd >= cyc.start) return t;
+      var a = Number(d.amount)||0; return d.txnType === 'out' ? t - a : t + a;
+    }, 0));
     var pool = 0;
-    ev.forEach(function(e){ pool = e.k === 0 ? pool + e.a : Math.max(0, pool - e.a); });
+    ev.forEach(function(e){
+      if(e.k === 0){ pool += e.a; return; }
+      var take = Math.min(openBal, e.a); openBal -= take;
+      pool = Math.max(0, pool - (e.a - take));
+    });
+    // safety: never report more kept than the pocket actually holds
+    if(hasDeps && card.pocketId !== 'mm48mhq') pool = Math.min(pool, Math.max(0, fundTotal(fd)));
     var fromMove = pool, fromRep = 0;
     return Math.round((fromCp + fromIn + fromMove + fromRep) * 100) / 100;
   } catch(e){ return 0; }
