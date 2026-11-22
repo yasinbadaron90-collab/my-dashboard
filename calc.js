@@ -99,7 +99,9 @@ function planRoutedInCycle(card, cyc){
     // fares usually land in Cash wallet / TymeBank and are MOVED here, so the
     // Money In + moves count below must run for carpool cards too.
     var fromCp = 0;
-    if(card && card.source === 'carpool'){
+    // v152p: counts for ANY card (not just source:'carpool'): a fare paid straight into e.g. Ee90 was counted nowhere.
+    // Its pocket deposit carries carpoolPaymentId, so the deposit loop below skips it: no double count.
+    if(card && card.pocketId){
       var pm = []; try { pm = JSON.parse(lsGet('yb_carpool_payments_v1')||'[]'); } catch(e){}
       fromCp = pm.filter(function(p){ return planInCycle(p.date, cyc) && p.destChoice === 'fund:'+card.pocketId; })
         .reduce(function(s,p){ return s + (Number(p.amount)||0); }, 0);
@@ -108,7 +110,7 @@ function planRoutedInCycle(card, cyc){
     var fromIn = mi.filter(function(r){ return planInCycle(r.date, cyc); })
       .reduce(function(s,r){
         var sp = (r.splits||[]).find(function(x){ return x.fundId === card.pocketId; });
-        return s + (sp ? sp.amount : 0);
+        return s + (sp ? (Number(sp.amount)||0) : 0);
       }, 0);
     // v151s: money moved INTO this pocket from another pocket/bank this cycle also counts.
     // v152o: "top-ups that were then spent are not savings" is now done by matching, not by
@@ -134,7 +136,8 @@ function planRoutedInCycle(card, cyc){
         return;
       }
       if(d.moveId || d.moneyInId || d.carpoolPaymentId) return;
-      if(d.repayId || /profit share/i.test(d.note||'')) ev.push({ d:dd, k:0, a:Number(d.amount)||0 });
+      // v152p: money added by hand with the pocket's Add button (savingsDepositId) counts too
+      if(d.repayId || d.savingsDepositId || /profit share/i.test(d.note||'')) ev.push({ d:dd, k:0, a:Number(d.amount)||0 });
     });
     // oldest first; on the same day a top-up comes before the spend it paid for
     ev.sort(function(x,y){ return x.d < y.d ? -1 : x.d > y.d ? 1 : x.k - y.k; });
