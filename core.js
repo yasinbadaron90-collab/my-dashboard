@@ -1250,17 +1250,22 @@ function exportFuelStatement(){
   }
 }
 
-// v152s: the on-screen Fuel card shows "R.. left" (budget minus spend) but the PDF statement never did.
-// Budget only makes sense for one whole pay cycle (25th to the 24th of the next month), so a custom range gets none.
-// Returns null (no budget line) or {budget, left}; left < 0 means over budget. Same sum as the screen: petrol + Uber.
+// v152s/t: the on-screen Fuel card shows "R.. left" (budget minus spend) but the PDF statement never did.
+// Budget applies when the range starts on a cycle start (the 25th) and ends inside that same pay cycle
+// (on or before the 24th of the next month): a finished cycle, or the current one so far. Anything else gets none.
+// Returns null (no budget line) or {budget, left, partial}; left < 0 means over budget; partial = cycle not finished.
+// Same sum as the screen: petrol + Uber.
 function _fuelStatementBudget(fromStr, toStr, spent, budget){
   var f = String(fromStr).split('-').map(Number), t = String(toStr).split('-').map(Number);
   if(f.length !== 3 || t.length !== 3 || f.some(isNaN) || t.some(isNaN)) return null;
-  if(f[2] !== 25 || t[2] !== 24) return null;
-  if((t[0]*12 + t[1]) - (f[0]*12 + f[1]) !== 1) return null;
+  if(f[2] !== 25) return null;
+  var ny = f[0], nm = f[1] + 1; if(nm > 12){ nm = 1; ny++; }
+  var endStr = ny + '-' + (nm < 10 ? '0' : '') + nm + '-24';
+  var fs = String(fromStr), ts = String(toStr);
+  if(ts < fs || ts > endStr) return null;
   var b = Number(budget) || 0;
   if(b <= 0) return null;
-  return { budget: b, left: Math.round((b - spent) * 100) / 100 + 0 };
+  return { budget: b, left: Math.round((b - spent) * 100) / 100 + 0, partial: ts < endStr };
 }
 
 function _buildFuelStatementPDF(fromStr, toStr){
@@ -1340,7 +1345,7 @@ function _buildFuelStatementPDF(fromStr, toStr){
     doc.setFillColor(14,14,26); doc.rect(margin,y-5,W-(margin*2),14,'F');
     doc.setTextColor(120,120,120); doc.setFontSize(7); doc.setFont('helvetica','normal');
     doc.text('BUDGET', margin+4, y);
-    doc.text(_over ? 'OVER BUDGET' : 'BUDGET LEFT', W-margin-4, y, {align:'right'});
+    doc.text(_over ? 'OVER BUDGET' : (_fb.partial ? 'BUDGET LEFT SO FAR' : 'BUDGET LEFT'), W-margin-4, y, {align:'right'});
     doc.setFontSize(12); doc.setFont('helvetica','bold');
     doc.setTextColor(180,180,180);
     doc.text('R'+_fb.budget.toFixed(2), margin+4, y+6);

@@ -216,6 +216,12 @@ console.log('\nfuel statement budget line (v152s)');
   });
   t('over budget gives a negative left', () => { assert.equal(b('2026-09-25', '2026-10-24', 3100.5, 3000).left, -100.5); });
   t('year boundary cycle 25 Dec to 24 Jan counts as one cycle', () => { assert.ok(b('2026-12-25', '2027-01-24', 100, 3000)); });
+  t('current cycle so far (25 Oct to 22 Nov): 3000 - 2290.35 = 709.65 left, flagged partial (what the phone showed at 17:34 on 22 Nov)', () => {
+    const r = b('2026-10-25', '2026-11-22', 2290.35, 3000); assert.equal(r.left, 709.65); assert.equal(r.partial, true);
+  });
+  t('a finished cycle is not partial', () => { assert.equal(b('2026-09-25', '2026-10-24', 100, 3000).partial, false); });
+  t('end date before the start gives no line', () => { assert.equal(b('2026-10-25', '2026-10-20', 100, 3000), null); });
+  t('same-month part of a cycle (25 Oct to 31 Oct) counts as partial', () => { assert.equal(b('2026-10-25', '2026-10-31', 100, 3000).partial, true); });
   t('custom range gets no budget line', () => {
     assert.equal(b('2026-10-01', '2026-10-31', 100, 3000), null);
     assert.equal(b('2026-09-25', '2026-11-24', 100, 3000), null);

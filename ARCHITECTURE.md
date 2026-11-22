@@ -84,4 +84,6 @@ v152o: `planRoutedInCycle` (calc.js) no longer drops everything added before a p
 
 - v152r: pocket cards: removed inline opacity:0 from collapsed cards (it overrode .expanded, so opened cards were blank).
 
-- v152s: Fuel statement PDF now shows Budget and Budget left/over for one whole pay cycle (25th to 24th), same number as the Fuel card (budget minus petrol + Uber). Custom date ranges get no budget row. Logic in core.js `_fuelStatementBudget` (tested in tests/money-math.mjs).
+- v152s: Fuel statement PDF now shows Budget and Budget left/over for a pay cycle (25th to 24th), same number as the Fuel card (budget minus petrol + Uber). Logic in core.js `_fuelStatementBudget` (tested in tests/money-math.mjs). Which ranges get the row was widened in v152t (below): finished cycle or current cycle so far; other custom ranges get none.
+
+- v152t: Fuel statement budget row also covers the current pay cycle so far (range starts on a 25th and ends on or before that cycle's 24th; label 'BUDGET LEFT SO FAR'). It was missing for 25 Oct to 22 Nov. Other custom ranges still get none.
