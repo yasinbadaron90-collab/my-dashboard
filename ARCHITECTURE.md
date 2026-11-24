@@ -87,3 +87,4 @@ v152o: `planRoutedInCycle` (calc.js) no longer drops everything added before a p
 - v152s: Fuel statement PDF now shows Budget and Budget left/over for a pay cycle (25th to 24th), same number as the Fuel card (budget minus petrol + Uber). Logic in core.js `_fuelStatementBudget` (tested in tests/money-math.mjs). Which ranges get the row was widened in v152t (below): finished cycle or current cycle so far; other custom ranges get none.
 
 - v152t: Fuel statement budget row also covers the current pay cycle so far (range starts on a 25th and ends on or before that cycle's 24th; label 'BUDGET LEFT SO FAR'). It was missing for 25 Oct to 22 Nov. Other custom ranges still get none.
+- v152u: Fuel statement budget row also shows when the range ends on the 25th (e.g. 25 Oct to 25 Nov). Spend dated after the cycle's 24th is left out of the budget sum (`_fuelCycleEnd` in core.js); the TOTAL SPENT figure still counts it. Ranges ending after the 25th still get none.

@@ -1252,8 +1252,9 @@ function exportFuelStatement(){
 
 // v152s/t: the on-screen Fuel card shows "R.. left" (budget minus spend) but the PDF statement never did.
 // Budget applies when the range starts on a cycle start (the 25th) and ends inside that same pay cycle
-// (on or before the 24th of the next month): a finished cycle, or the current one so far. Anything else gets none.
-// Returns null (no budget line) or {budget, left, partial}; left < 0 means over budget; partial = cycle not finished.
+// (on or before the 24th of the next month, or the 25th = day 1 of the next cycle, v152u; the caller then sums only up to the 24th):
+// a finished cycle, or the current one so far. Anything else gets none.
+// Returns null (no budget line) or {budget, left, partial, cycleEnd}; left < 0 means over budget; partial = cycle not finished.
 // Same sum as the screen: petrol + Uber.
 function _fuelStatementBudget(fromStr, toStr, spent, budget){
   var f = String(fromStr).split('-').map(Number), t = String(toStr).split('-').map(Number);
@@ -1262,10 +1263,20 @@ function _fuelStatementBudget(fromStr, toStr, spent, budget){
   var ny = f[0], nm = f[1] + 1; if(nm > 12){ nm = 1; ny++; }
   var endStr = ny + '-' + (nm < 10 ? '0' : '') + nm + '-24';
   var fs = String(fromStr), ts = String(toStr);
-  if(ts < fs || ts > endStr) return null;
+  // v152u: a range ending on the 25th (day 1 of the next cycle) still gets the line; the caller sums only up to the 24th
+  var nextStart = ny + '-' + (nm < 10 ? '0' : '') + nm + '-25';
+  if(ts < fs || ts > nextStart) return null;
   var b = Number(budget) || 0;
   if(b <= 0) return null;
-  return { budget: b, left: Math.round((b - spent) * 100) / 100 + 0, partial: ts < endStr };
+  return { budget: b, left: Math.round((b - spent) * 100) / 100 + 0, partial: ts < endStr, cycleEnd: endStr };
+}
+
+// v152u: last day (24th) of the pay cycle that starts on fromStr, or null if fromStr is not a 25th
+function _fuelCycleEnd(fromStr){
+  var f = String(fromStr).split('-').map(Number);
+  if(f.length !== 3 || f.some(isNaN) || f[2] !== 25) return null;
+  var ny = f[0], nm = f[1] + 1; if(nm > 12){ nm = 1; ny++; }
+  return ny + '-' + (nm < 10 ? '0' : '') + nm + '-24';
 }
 
 function _buildFuelStatementPDF(fromStr, toStr){
@@ -1339,7 +1350,9 @@ function _buildFuelStatementPDF(fromStr, toStr){
   y += 26;
 
   // v152s: budget row (one whole pay cycle only) so the PDF agrees with the "left" shown on the Fuel card
-  var _fb = _fuelStatementBudget(fromStr, toStr, grandTotal, parseFloat(lsGet(FUEL_BUDGET_KEY)) || 2950);
+  var _ce = _fuelCycleEnd(fromStr); // spend after the 24th belongs to the next cycle, so it does not eat this budget
+  var _cycleSpent = rangeData.reduce(function(s,x){ return (_ce && x.date > _ce) ? s : s + Number(x.amount||0); }, 0);
+  var _fb = _fuelStatementBudget(fromStr, toStr, _cycleSpent, parseFloat(lsGet(FUEL_BUDGET_KEY)) || 2950);
   if(_fb){
     var _over = _fb.left < 0;
     doc.setFillColor(14,14,26); doc.rect(margin,y-5,W-(margin*2),14,'F');

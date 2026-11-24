@@ -210,6 +210,7 @@ console.log('\nfuel statement budget line (v152s)');
 {
   const fctx = vm.createContext({ console });
   vm.runInContext(grab(read('core.js'), '_fuelStatementBudget'), fctx);
+  vm.runInContext(grab(read('core.js'), '_fuelCycleEnd'), fctx);
   const b = fctx._fuelStatementBudget;
   t('one whole cycle: budget 3000 minus spent 2804.55 = 195.45 left (the on-screen number)', () => {
     const r = b('2026-09-25', '2026-10-24', 2804.55, 3000); assert.equal(r.budget, 3000); assert.equal(r.left, 195.45);
@@ -227,6 +228,10 @@ console.log('\nfuel statement budget line (v152s)');
     assert.equal(b('2026-09-25', '2026-11-24', 100, 3000), null);
     assert.equal(b('2026-09-26', '2026-10-24', 100, 3000), null);
   });
+  t('range ending on the 25th still gets the line (25 Oct to 25 Nov, what Yasin picked): 709.65 left, not partial (cycle finished)', () => {
+    const r = b('2026-10-25', '2026-11-25', 2290.35, 3000); assert.equal(r.left, 709.65); assert.equal(r.partial, false); assert.equal(r.cycleEnd, '2026-11-24');
+  });
+  t('range running past the 25th gets no line', () => { assert.equal(b('2026-10-25', '2026-11-26', 100, 3000), null); });
   t('no budget set or junk dates gives no line', () => { assert.equal(b('2026-09-25', '2026-10-24', 100, 0), null); assert.equal(b('', 'x', 1, 3000), null); });
   t('exact zero left is not shown as -0', () => { assert.ok(Object.is(b('2026-09-25', '2026-10-24', 3000, 3000).left, 0)); });
 }
