@@ -236,4 +236,38 @@ console.log('\nfuel statement budget line (v152s)');
   t('exact zero left is not shown as -0', () => { assert.ok(Object.is(b('2026-09-25', '2026-10-24', 3000, 3000).left, 0)); });
 }
 
+console.log('\nheld money and the month net (v152v)');
+{
+  const run = (funds, income, expenses) => {
+    const c = vm.createContext({ console, funds,
+      loadCFData: () => ({ recurring:{income:[],expenses:[]}, '2026-11':{income, expenses} }) });
+    vm.runInContext([ grab(read('calc.js'), 'fundTotal'), grab(read('borrow.js'), '_heldCashFlowAdj'),
+      grab(read('borrow.js'), '_heldSpendAdj'), grab(read('borrow.js'), 'getLendingSnapshot') ].join('\n'), c);
+    return c.getLendingSnapshot('2026-11');
+  };
+  const held = (deps) => [{ id:'h', name:'Tariq', heldFor:'Tariq', deposits: deps }];
+  t('held money in and then spent out leaves no fake surplus (R1000 in, R800 spent, own income 500, own spend 300)', () => {
+    const s = run(held([
+      { id:'a', amount:1000, date:'2026-11-05', moneyInId:'m1' },
+      { id:'b', amount:800, txnType:'out', date:'2026-11-10', cfPosted:true, spendId:'s1' } ]),
+      [{ amount:1000 }, { amount:500 }], [{ amount:800, sourceType:'pocket_spend' }, { amount:300 }]);
+    assert.equal(s.net, 200);
+  });
+  t('a fully spent held pocket (balance 0) still leaves its inflow out of income', () => {
+    const s = run(held([
+      { id:'a', amount:1000, date:'2026-11-05', moneyInId:'m1' },
+      { id:'b', amount:1000, txnType:'out', date:'2026-11-10', cfPosted:true, spendId:'s1' } ]),
+      [{ amount:1000 }, { amount:500 }], [{ amount:1000, sourceType:'pocket_spend' }, { amount:300 }]);
+    assert.equal(s.net, 200);
+  });
+  t('held money still sitting in the pocket stays out of income', () => {
+    const s = run(held([ { id:'a', amount:1000, date:'2026-11-05', moneyInId:'m1' } ]), [{ amount:1000 }, { amount:500 }], [{ amount:300 }]);
+    assert.equal(s.net, 200);
+  });
+  t('a held pocket with only old money changes nothing', () => {
+    const s = run(held([ { id:'a', amount:1000, date:'2026-10-05', moneyInId:'m1' } ]), [{ amount:500 }], [{ amount:300 }]);
+    assert.equal(s.net, 200);
+  });
+}
+
 console.log('\n' + (process.exitCode ? '❌ FAILED' : '✅ ' + passed + ' checks passed'));

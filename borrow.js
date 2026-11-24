@@ -84,9 +84,9 @@ if(typeof window !== 'undefined'){
 // v149x: money held for someone else (pocket flag f.heldFor) must not look like YOUR surplus.
 // Switch = the flag itself: name set -> the held money that arrived THIS month is left out of the
 // net / alert / safe-to-lend; name cleared -> the numbers go straight back to the full ledger.
-// Amount left out = min(pocket's current balance, money that came INTO that pocket this month),
-// so a held pocket that only holds old money (a previous month) changes nothing, and money
-// Tariq later takes out (a spend) shrinks the adjustment by the same amount.
+// Amount left out = min(pocket's balance + this month's spends out of it, money that came INTO that
+// pocket this month), so a held pocket that only holds old money (a previous month) changes nothing.
+// Spends out are already left out of expenses (_heldSpendAdj), so they must not shrink this too (v152v).
 function _heldCashFlowAdj(mk){
   var amount = 0, names = [];
   try {
@@ -94,6 +94,13 @@ function _heldCashFlowAdj(mk){
       var who = (f.heldFor || '').trim();
       if(!who || f._deleted) return;
       var bal = (typeof fundTotal === 'function') ? fundTotal(f) : 0;
+      // v152u: this month's spends out of the pocket are already left out of expenses (_heldSpendAdj), so
+      // they must not also shrink the income adjustment. Cap by balance + those spends, not balance alone,
+      // otherwise a big withdrawal (R34 000 to Tariq) left its inflow counted as income and showed a fake surplus.
+      var spentOut = (f.deposits || []).filter(function(d){
+        return d.txnType === 'out' && d.cfPosted && d.date && String(d.date).slice(0,7) === mk;
+      }).reduce(function(s,d){ return s + d.amount; }, 0);
+      bal = bal + spentOut;
       if(bal <= 0) return;
       // v150i: only inflow that has a Cash Flow counterpart counts. A plain pocket deposit
       // (e.g. profit share) has no Cash Flow income row, so subtracting it from Cash Flow income
