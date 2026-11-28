@@ -154,12 +154,12 @@
         + ' <span onclick="_setAdvListFilter(\'resolved\')" '
             + 'style="padding:4px 10px;border-radius:10px;font-size:11px;letter-spacing:1px;cursor:pointer;margin-left:4px;'
             + (_advListFilter==='resolved'
-                ? 'background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;'
+                ? 'background:#1a2e00;color:var(--accent);border:1px solid #3a5a00;'
                 : 'background:#1a1a1a;color:var(--muted);border:1px solid #2a2a2a;')
             + '">RESOLVED ('+resolvedCount+')</span>'
         + ' <span onclick="openAddAdvisory(\''+car.id+'\')" '
             + 'style="padding:4px 10px;border-radius:10px;font-size:11px;letter-spacing:1px;cursor:pointer;'
-            + 'background:#1a1a1a;color:#c8f230;border:1px solid #3a5a00;margin-left:auto;float:right;">+ Add</span>';
+            + 'background:#1a1a1a;color:var(--accent);border:1px solid #3a5a00;margin-left:auto;float:right;">+ Add</span>';
     }
 
     var items = (_advListFilter === 'open' ? getOpenAdvisories(car) : getResolvedAdvisories(car))
@@ -190,7 +190,7 @@
       var statusPill = '';
       if(a.status === 'resolved'){
         statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;letter-spacing:1px;margin-top:6px;'
-          + 'background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;">✓ Resolved '+_fmtDate(a.resolvedAt)+'</span>';
+          + 'background:#1a2e00;color:var(--accent);border:1px solid #3a5a00;">✓ Resolved '+_fmtDate(a.resolvedAt)+'</span>';
       } else if(_isSnoozed(a)){
         statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;letter-spacing:1px;margin-top:6px;'
           + 'background:#1a1a3a;color:#a8a8ff;border:1px solid #3a3a5a;">😴 Snoozed until '+_fmtDate(a.snoozeUntil)+'</span>';
@@ -213,9 +213,9 @@
         + statusPill
         + '<div style="margin-top:8px;display:flex;gap:6px;">'
         +   '<button onclick="openAdvisoryDetail(\''+a.id+'\')" '
-        +     'style="background:transparent;border:1px solid #2a2a2a;color:#888;padding:5px 10px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Open</button>'
+        +     'style="background:transparent;border:1px solid #2a2a2a;color:#888;padding:5px 10px;border-radius:6px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Open</button>'
         +   '<button onclick="deleteAdvisory(\''+a.id+'\')" '
-        +     'style="background:transparent;border:1px solid #2a1a1a;color:var(--muted);padding:5px 10px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-left:auto;">Delete</button>'
+        +     'style="background:transparent;border:1px solid #2a1a1a;color:var(--muted);padding:5px 10px;border-radius:6px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-left:auto;">Delete</button>'
         + '</div>'
         + '</div>';
     }).join('');
@@ -238,7 +238,7 @@
   function _advStatusPill(a){
     if(a.status === 'resolved'){
       return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:11px;letter-spacing:2px;'
-        + 'background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;">✓ RESOLVED · '+_fmtDate(a.resolvedAt)+'</span>';
+        + 'background:#1a2e00;color:var(--accent);border:1px solid #3a5a00;">✓ RESOLVED · '+_fmtDate(a.resolvedAt)+'</span>';
     }
     if(_isSnoozed(a)){
       return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:11px;letter-spacing:2px;'

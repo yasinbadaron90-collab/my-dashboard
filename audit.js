@@ -999,9 +999,9 @@ function renderAudit(){
   if(!root) return;
   root.innerHTML =
     '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;">🛡️ <span style="color:var(--muted)">SELF-AUDIT</span></div>'
-    + '<div style="font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin:2px 0 16px;">The app checks its own math</div>'
+    + '<div style="font-size:11px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin:2px 0 16px;">The app checks its own math</div>'
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">'
-    +   '<button onclick="runSelfAudit()" style="background:var(--accent,#c8f230);color:#000;border:none;border-radius:8px;padding:10px 18px;font-family:inherit;font-weight:600;font-size:12px;letter-spacing:1px;cursor:pointer;">▶ RUN AUDIT</button>'
+    +   '<button onclick="runSelfAudit()" style="background:var(--accent,#c8f230);color:#000;border:none;border-radius:10px;padding:10px 18px;font-family:inherit;font-weight:600;font-size:12px;letter-spacing:1px;cursor:pointer;">▶ RUN AUDIT</button>'
     +   '<div id="auditLastRun" style="font-size:11px;color:var(--muted);letter-spacing:1px;"></div>'
     + '</div>'
     + '<div id="auditVerdict"></div>'
@@ -1011,7 +1011,7 @@ function renderAudit(){
     +   '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:16px;margin-bottom:3px;">🕰️ <span style="color:var(--muted)">TIME TRAVEL</span></div>'
     +   '<div style="font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:12px;">Scan a backup file instead of your live data. Read-only — never overwrites the audit above, never touches your real pockets.</div>'
     +   '<input type="file" id="ttFileInput" accept="application/json,.json" style="display:none" onchange="_ttFileChosen(event)">'
-    +   '<button onclick="document.getElementById(\'ttFileInput\').click()" style="background:transparent;border:1px solid var(--border,#333);color:var(--muted);border-radius:8px;padding:10px 16px;font-family:inherit;font-size:11px;letter-spacing:1px;cursor:pointer;">📁 CHOOSE BACKUP FILE…</button>'
+    +   '<button onclick="document.getElementById(\'ttFileInput\').click()" style="background:transparent;border:1px solid var(--border,#333);color:var(--muted);border-radius:10px;padding:10px 16px;font-family:inherit;font-size:11px;letter-spacing:1px;cursor:pointer;">📁 CHOOSE BACKUP FILE…</button>'
     +   '<div id="ttStatus" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>'
     +   '<div id="ttResults"></div>'
     + '</div>';

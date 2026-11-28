@@ -120,7 +120,7 @@ function computeForecast(m, today, ownNow, vaultNow){
 }
 
 // ── UI ───────────────────────────────────────────────────────────────
-var _FC_IN = 'background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:\'DM Mono\',monospace;font-size:12px;padding:8px;border-radius:4px;width:100%;box-sizing:border-box;';
+var _FC_IN = 'background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:\'DM Mono\',monospace;font-size:12px;padding:8px;border-radius:6px;width:100%;box-sizing:border-box;';
 var _FC_LBL = 'display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;';
 
 function _fcLineHtml(kind, l){
@@ -128,7 +128,7 @@ function _fcLineHtml(kind, l){
   return '<div style="padding:10px 0;border-top:1px solid var(--border)">'
     +'<div style="display:flex;gap:8px;margin-bottom:6px">'
     +'<input type="text" value="'+_fcEsc(l.label)+'" oninput="fcSetLine(\''+kind+'\',\''+id+'\',\'label\',this.value)" style="'+_FC_IN+'flex:1;font-weight:500"/>'
-    +'<button onclick="fcDelLine(\''+kind+'\',\''+id+'\')" aria-label="Delete line" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:34px;cursor:pointer;font-size:13px">✕</button>'
+    +'<button onclick="fcDelLine(\''+kind+'\',\''+id+'\')" aria-label="Delete line" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:34px;cursor:pointer;font-size:13px">✕</button>'
     +'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
     +'<div><label style="'+_FC_LBL+'">R per month</label><input type="number" inputmode="decimal" value="'+(Number(l.amount)||0)+'" oninput="fcSetLine(\''+kind+'\',\''+id+'\',\'amount\',this.value)" style="'+_FC_IN+'"/></div>'
@@ -145,18 +145,18 @@ function _fcBodyHtml(m){
   return '<div style="padding:4px 14px 14px">'
     +'<div id="fcTiles" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"></div>'
     +'<div id="fcVerdict" style="font-size:11px;line-height:1.6;color:var(--muted);margin-bottom:10px"></div>'
-    +'<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-bottom:6px"><span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#2a78d6;margin-right:4px"></span>Own money</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#1baf7a;margin-right:4px"></span>Vault (surplus goes in)</span></div>'
+    +'<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-bottom:6px"><span><span style="display:inline-block;width:8px;height:8px;border-radius:6px;background:#2a78d6;margin-right:4px"></span>Own money</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:6px;background:#1baf7a;margin-right:4px"></span>Vault (surplus goes in)</span></div>'
     +'<div style="position:relative;width:100%;height:230px"><canvas id="fcChart" role="img" aria-label="Projected own money and Vault balance over the next 24 months"></canvas></div>'
-    +'<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:16px 0 6px">Vault goal</div>'
+    +'<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:16px 0 6px">Vault goal</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
     +'<div style="grid-column:span 2"><label style="'+_FC_LBL+'">Vault pocket</label><select onchange="fcSetMeta(\'vaultId\',this.value)" style="'+_FC_IN+'">'+vaultOpts+'</select></div>'
     +'<div><label style="'+_FC_LBL+'">Goal (R)</label><input type="number" inputmode="decimal" value="'+(Number(m.goal)||0)+'" oninput="fcSetMeta(\'goal\',this.value)" style="'+_FC_IN+'"/></div>'
     +'<div><label style="'+_FC_LBL+'">By month</label><input type="month" value="'+_fcEsc(m.goalDate||'')+'" onchange="fcSetMeta(\'goalDate\',this.value)" style="'+_FC_IN+'"/></div>'
     +'</div>'
-    +'<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:18px 0 0">Income</div>'
+    +'<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:18px 0 0">Income</div>'
     +'<div id="fcIncLines">'+m.incomes.map(function(l){ return _fcLineHtml('inc', l); }).join('')+'</div>'
     +'<button onclick="fcAddLine(\'inc\')" style="'+btn+'">+ Add income</button>'
-    +'<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:18px 0 0">Spending</div>'
+    +'<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:18px 0 0">Spending</div>'
     +'<div id="fcExpLines">'+m.expenses.map(function(l){ return _fcLineHtml('exp', l); }).join('')+'</div>'
     +'<button onclick="fcAddLine(\'exp\')" style="'+btn+'">+ Add spending</button>'
     +'<div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:14px">Leave From / Until empty to count every month. To model a new salary: set Until on the old one, then add a new income line with From. This month only counts what is still to come. Starting amounts are assumptions, not your actual averages.</div>'
@@ -191,7 +191,7 @@ function _fcRenderOutputs(){
     var parts = [];
     if(f.need !== null && vaultNow !== null){
       parts.push('To reach '+_fcMoney(m.goal)+' by '+_fcMonthLabel(m.goalDate)+' the Vault needs about <b style="color:var(--text)">'+_fcMoney(f.need)+'/month</b>.');
-      if(f.vaultDate && f.vaultDate <= m.goalDate) parts.push('At the lines below you get there around <b style="color:#c8f230">'+_fcMonthLabel(f.vaultDate)+'</b>.');
+      if(f.vaultDate && f.vaultDate <= m.goalDate) parts.push('At the lines below you get there around <b style="color:var(--accent)">'+_fcMonthLabel(f.vaultDate)+'</b>.');
       else if(f.vaultDate) parts.push('At the lines below you get there around <b style="color:#f2a830">'+_fcMonthLabel(f.vaultDate)+'</b>, after your goal month.');
       else parts.push('At the lines below you do not get there within 12 years; next month nets '+_fcMoney(nextNet)+'.');
     } else if(vaultNow !== null && f.monthsToGoal !== null && f.monthsToGoal <= 0){

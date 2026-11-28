@@ -621,7 +621,7 @@ function confirmAddMoreBorrow(){
   if(old) old.remove();
   var toast = document.createElement('div');
   toast.id = 'borrowAddToast';
-  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a0e2e;border:1px solid #a78bfa;border-radius:8px;padding:12px 16px;z-index:9999;display:flex;align-items:center;gap:10px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;color:#a78bfa;box-shadow:0 4px 20px rgba(0,0,0,.6);min-width:260px;';
+  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a0e2e;border:1px solid #a78bfa;border-radius:10px;padding:12px 16px;z-index:9999;display:flex;align-items:center;gap:10px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;color:#a78bfa;box-shadow:0 4px 20px rgba(0,0,0,.6);min-width:260px;';
   toast.innerHTML = '<span>💸 R'+Number(amount).toLocaleString('en-ZA')+' added to <strong style="color:var(--text);">'+personName+'</strong> · from '+account+' · logged to cashflow</span><button onclick="document.getElementById(\'borrowAddToast\').remove();" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
   document.body.appendChild(toast);
   setTimeout(function(){ if(toast.parentNode) toast.remove(); }, 5000);
@@ -685,7 +685,7 @@ function renderExtRepayPocketPicker(resetToDefault){
     var bgColor = isSelected ? '#0d0a1a' : (isOrigin ? '#0d1a00' : '#0e0e0e');
     var nameColor = isSelected ? '#a78bfa' : '#efefef';
     var tag = isOrigin
-      ? '<span style="font-size:11px;background:#3a5a00;color:#c8f230;border-radius:3px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
+      ? '<span style="font-size:11px;background:#3a5a00;color:var(--accent);border-radius:6px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
       : '';
     return '<button type="button" onclick="selectExtRepayPocket(\''+f.id+'\')" '
       + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';width:100%;font-family:inherit;color:inherit;text-align:left;">'
@@ -717,7 +717,7 @@ function openExternalRepayModal(key){
   const owing = borrowed - repaid;
   if(owing <= 0){
     document.getElementById('extRepayOwingSummary').innerHTML =
-      '<span style="color:#c8f230;">✓ ' + person.name + ' has no outstanding balance.</span>';
+      '<span style="color:var(--accent);">✓ ' + person.name + ' has no outstanding balance.</span>';
   } else {
     document.getElementById('extRepayOwingSummary').innerHTML =
       person.name + ' currently owes <strong style="color:#f2a830;font-size:13px;">R' + owing.toLocaleString('en-ZA') + '</strong>';
@@ -862,7 +862,7 @@ function confirmExternalRepay(){
   // Toast
   try{
     const toast = document.createElement('div');
-    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d0a1a;border:1px solid #a78bfa;border-radius:8px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#a78bfa;letter-spacing:1px;white-space:nowrap;';
+    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d0a1a;border:1px solid #a78bfa;border-radius:10px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#a78bfa;letter-spacing:1px;white-space:nowrap;';
     toast.textContent = '✓ R'+amount+' from '+personName+' → '+pocket.name;
     document.body.appendChild(toast);
     setTimeout(function(){ toast.remove(); }, 4000);
@@ -1174,7 +1174,7 @@ function renderMoneyOwed(){
     const pct     = p.borrowed > 0 ? Math.min(100, Math.round((p.repaid/p.borrowed)*100)) : 0;
     const settled = owing <= 0;
     const tagHtml = p.tag === 'carpool'
-      ? '<span style="font-size:11px;padding:2px 8px;border-radius:100px;background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;letter-spacing:1px;">🚗 CARPOOL</span>'
+      ? '<span style="font-size:11px;padding:2px 8px;border-radius:100px;background:#1a2e00;color:var(--accent);border:1px solid #3a5a00;letter-spacing:1px;">🚗 CARPOOL</span>'
       : '<span style="font-size:11px;padding:2px 8px;border-radius:100px;background:#1a1a2e;color:#7090f0;border:1px solid #2a2a5a;letter-spacing:1px;">👤 PERSONAL</span>';
 
     // Entry rows
@@ -1189,7 +1189,7 @@ function renderMoneyOwed(){
         +'<span onclick="'+delFn+'" style="cursor:pointer;color:var(--muted);font-size:13px;padding:2px 5px;" title="Delete">🗑</span>';
       if(e.type==='repay') return ''; // repayments hidden from mini statement
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:11px;border-bottom:1px solid var(--border);">'
-        +'<span style="color:var(--muted);">'+e.date+(e.note?' · '+e.note:'')+(e.account?' <span style="font-size:11px;background:#1a0e2e;border:1px solid #3a2060;border-radius:3px;padding:1px 4px;color:#a78bfa;">'+e.account+'</span>':'')+' </span>'
+        +'<span style="color:var(--muted);">'+e.date+(e.note?' · '+e.note:'')+(e.account?' <span style="font-size:11px;background:#1a0e2e;border:1px solid #3a2060;border-radius:6px;padding:1px 4px;color:#a78bfa;">'+e.account+'</span>':'')+' </span>'
         +'<span style="display:flex;align-items:center;gap:4px;"><span style="color:#a78bfa;">💸 R'+Number(e.amount).toLocaleString('en-ZA')+'</span>'+actionBtns+'</span>'
         +'</div>';
     }).join('');
@@ -1234,8 +1234,8 @@ function renderMoneyOwed(){
           +'<span>'+pct+'% repaid</span>'
           +'<span>Repaid R'+p.repaid.toLocaleString('en-ZA')+'</span>'
         +'</div>'
-        +'<div style="height:4px;background:#1a1a1a;border-radius:2px;overflow:hidden;">'
-          +'<div style="height:100%;width:'+pct+'%;background:'+(settled?'#c8f230':'#7090f0')+';border-radius:2px;transition:width .5s;"></div>'
+        +'<div style="height:4px;background:#1a1a1a;border-radius:6px;overflow:hidden;">'
+          +'<div style="height:100%;width:'+pct+'%;background:'+(settled?'#c8f230':'#7090f0')+';border-radius:6px;transition:width .5s;"></div>'
         +'</div>'
       +'</div>'
       // Entry history
@@ -1252,7 +1252,7 @@ function renderMoneyOwed(){
           // this, a stale repayment silently distorts the running total.
           var _rc = (p.entries||[]).filter(function(e){ return !e._deleted && e.type==='repay'; }).length;
           if(_rc === 0) return '';
-          return '<button onclick="openRepaymentsManager(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#0e2e1a;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">↩ Repayments ('+_rc+')</button>';
+          return '<button onclick="openRepaymentsManager(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#0e2e1a;border:1px solid #3a5a00;border-radius:6px;color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">↩ Repayments ('+_rc+')</button>';
         })()
         +'<button onclick="openAddMoreBorrowModal(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;color:#a78bfa;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">➕ More Borrowed</button>'
         +'<button onclick="openHistoricalBorrowModal(\''+p.key+'\',\''+p.tag+'\')" style="padding:7px 14px;background:#2e1a1a;border:1px solid #7a4a4a;border-radius:6px;color:#d2a599;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">📋 Add Historical</button>'
@@ -1330,7 +1330,7 @@ function renderIOweSection(container){
     var storeAttr = r.store;
     var keyAttr = r.store === 'external' ? (r.extKey || '') : (r.name || '');
     html += ''
-      + '<div style="background:#1a0f00;border:1px solid #5a3a00;border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">'
+      + '<div style="background:#1a0f00;border:1px solid #5a3a00;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">'
       +   '<div style="flex:1;min-width:0;">'
       +     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#f2a830;">'+escHtml(r.name)+'</div>'
       +     '<div style="font-size:11px;color:#aa7a00;letter-spacing:0.5px;margin-top:2px;">'+escHtml(noteStr || ('Owe back to '+r.name))+(dateStr ? ' · '+dateStr : '')+'</div>'
@@ -1576,19 +1576,19 @@ function loadBorrowReport() {
     const settled  = rawOwing <= 0;
     const tagBadge = b.tag === 'personal'
       ? '<span style="font-size:11px;padding:1px 7px;border-radius:100px;background:#1a1a2e;color:#7090f0;border:1px solid #2a2a5a;letter-spacing:1px;margin-left:6px;">👤 PERSONAL</span>'
-      : '<span style="font-size:11px;padding:1px 7px;border-radius:100px;background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;letter-spacing:1px;margin-left:6px;">🚗 CARPOOL</span>';
+      : '<span style="font-size:11px;padding:1px 7px;border-radius:100px;background:#1a2e00;color:var(--accent);border:1px solid #3a5a00;letter-spacing:1px;margin-left:6px;">🚗 CARPOOL</span>';
     const row = document.createElement('div');
     row.className = 'rpt-row';
     row.style.gridTemplateColumns = '1.5fr 1fr 1fr 1fr';
     // Settled balances show "✓ Settled" in green; outstanding balances
     // show the amount in orange. Either way, no negatives ever leak out.
     const owingCell = settled
-      ? '<span style="color:#c8f230;font-weight:500">✓ Settled</span>'
+      ? '<span style="color:var(--accent);font-weight:500">✓ Settled</span>'
       : '<span style="color:#f2a830;font-weight:500">' + fmtR(owing) + '</span>';
     row.innerHTML =
       '<span style="color:var(--text);display:flex;align-items:center;">' + name + tagBadge + '</span>' +
       '<span style="color:var(--muted)">' + fmtR(b.borrowed) + '</span>' +
-      '<span style="color:#c8f230">' + fmtR(b.repaid) + '</span>' +
+      '<span style="color:var(--accent)">' + fmtR(b.repaid) + '</span>' +
       owingCell;
     container.appendChild(row);
   });
@@ -1799,7 +1799,7 @@ function openIOwePayBack(store, key, entryId){
     +   '<div style="margin-bottom:10px;">'
     +     '<div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Amount paid</div>'
     +     '<input type="number" id="iOweAmt" value="'+amt.toFixed(2)+'" step="0.01" '
-    +       'style="width:100%;background:#111;border:1px solid #2a2a2a;color:#c8f230;font-family:DM Mono,monospace;font-size:16px;font-weight:700;padding:10px 12px;border-radius:6px;outline:none;box-sizing:border-box;"/>'
+    +       'style="width:100%;background:#111;border:1px solid #2a2a2a;color:var(--accent);font-family:DM Mono,monospace;font-size:16px;font-weight:700;padding:10px 12px;border-radius:6px;outline:none;box-sizing:border-box;"/>'
     +   '</div>'
     +   '<div style="margin-bottom:10px;">'
     +     '<div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Paid from</div>'
@@ -1992,11 +1992,11 @@ function openRepaymentsManager(personKey, tag){
           ? "deleteRepayFromManager('" + personKey + "','" + e.id + "','carpool')"
           : "deleteRepayFromManager('" + personKey + "','" + e.id + "','external')";
         var acct = e.account
-          ? ' <span style="font-size:11px;background:#1a0e2e;border:1px solid #3a2060;border-radius:3px;padding:1px 4px;color:#a78bfa;">' + e.account + '</span>'
+          ? ' <span style="font-size:11px;background:#1a0e2e;border:1px solid #3a2060;border-radius:6px;padding:1px 4px;color:#a78bfa;">' + e.account + '</span>'
           : '';
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">'
           + '<div style="display:flex;flex-direction:column;gap:2px;">'
-          + '<span style="font-size:12px;color:#c8f230;font-weight:500;">+R' + Number(e.amount).toLocaleString('en-ZA') + '</span>'
+          + '<span style="font-size:12px;color:var(--accent);font-weight:500;">+R' + Number(e.amount).toLocaleString('en-ZA') + '</span>'
           + '<span style="font-size:11px;color:var(--muted);">' + (e.date || '—') + (e.note ? ' · ' + e.note : '') + acct + '</span>'
           + '</div>'
           + '<button onclick="' + delFn + '" style="background:#1a0000;border:1px solid #5a1a1a;border-radius:6px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;padding:6px 12px;cursor:pointer;">🗑 Delete</button>'

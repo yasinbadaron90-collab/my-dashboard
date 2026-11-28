@@ -284,7 +284,7 @@ function renderCars(){
           +'</div>'
           +'<div style="padding:12px 16px;border-bottom:1px solid var(--border);">'
             +'<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Next Service Due</div>'
-            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#c8f230;">'+(nextSvc?formatDisplayDate(nextSvc):'<span style="color:var(--muted2);">—</span>')+'</div>'
+            +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--accent);">'+(nextSvc?formatDisplayDate(nextSvc):'<span style="color:var(--muted2);">—</span>')+'</div>'
             +(car.nextServiceKm?'<div style="font-size:11px;color:#5a8800;margin-top:2px;">or '+Number(car.nextServiceKm).toLocaleString('en-ZA')+' km</div>':'')
             +(svcCd?'<div style="margin-top:2px;">'+svcCd+'</div>':'')
           +'</div>'
@@ -616,7 +616,7 @@ function buildCarPDF(carId){
   var toast = document.createElement('div');
   toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #3a5a00;border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 24px rgba(0,0,0,.5);min-width:240px;';
   toast.innerHTML =
-    '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:#c8f230;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
+    '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
     +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:var(--text);">Generating PDF...</div>'
     +'<div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;">'+car.name+'</div></div>';
   if(!document.getElementById('spinStyle')){
@@ -1297,8 +1297,8 @@ function renderDrivers(){
         +(cd?'<div>'+cd+'</div>':'')
       +'</div>'
       +'<div style="display:flex;gap:6px;">'
-        +'<button onclick="openEditDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:4px 10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#444\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'">✏️ Edit</button>'
-        +'<button onclick="deleteDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:4px 10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">🗑</button>'
+        +'<button onclick="openEditDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:6px;padding:4px 10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#444\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'">✏️ Edit</button>'
+        +'<button onclick="deleteDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;padding:4px 10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">🗑</button>'
       +'</div>'
     +'</div>';
   }).join('');
@@ -1306,7 +1306,7 @@ function renderDrivers(){
   wrap.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);">'
       +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:var(--text);">🪪 Driver\'s Licences</div>'
-      +'<button onclick="openAddDriver()" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:6px 12px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">+ Add Person</button>'
+      +'<button onclick="openAddDriver()" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:6px 12px;color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">+ Add Person</button>'
     +'</div>'
     +(drivers.length===0
       ? '<div style="padding:20px 16px;text-align:center;color:var(--muted);font-size:12px;">No driver licences added yet</div>'
@@ -1511,12 +1511,12 @@ function checkReminders(){
 
   banner.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#1a0000;border-bottom:1px solid #3a0000;flex-wrap:wrap;gap:6px;">'
-      +'<span style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#f23060;font-weight:700;">⚠ '+totalCount+' Reminder'+(totalCount>1?'s':'')+'</span>'
+      +'<span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#f23060;font-weight:700;">⚠ '+totalCount+' Reminder'+(totalCount>1?'s':'')+'</span>'
       +'<div style="display:flex;gap:6px;align-items:center;">'
-        +'<button onclick="_reminderSnooze(1)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:11px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">😴 1 day</button>'
-        +'<button onclick="_reminderSnooze(3)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:11px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">3 days</button>'
-        +'<button onclick="_reminderSnooze(7)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:11px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">1 week</button>'
-        +'<button onclick="_reminderSnooze(0)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#f23060;font-size:11px;padding:3px 10px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">✕ today</button>'
+        +'<button onclick="_reminderSnooze(1)" style="background:none;border:1px solid #3a0000;border-radius:6px;color:#888;font-size:11px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">😴 1 day</button>'
+        +'<button onclick="_reminderSnooze(3)" style="background:none;border:1px solid #3a0000;border-radius:6px;color:#888;font-size:11px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">3 days</button>'
+        +'<button onclick="_reminderSnooze(7)" style="background:none;border:1px solid #3a0000;border-radius:6px;color:#888;font-size:11px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">1 week</button>'
+        +'<button onclick="_reminderSnooze(0)" style="background:none;border:1px solid #3a0000;border-radius:6px;color:#f23060;font-size:11px;padding:3px 10px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">✕ today</button>'
       +'</div>'
     +'</div>'
     +rows;

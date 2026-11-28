@@ -102,7 +102,7 @@ function renderReconPanel(){
     var row = document.createElement('div');
     row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1a3a00;';
     row.innerHTML = '<span style="font-size:12px;color:#efefef;">'+(f.emoji||'💰')+' '+f.name+'</span>'
-      +'<span style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#c8f230;">'+fmtR(saved)+'</span>';
+      +'<span style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:var(--accent);">'+fmtR(saved)+'</span>';
     savingsContainer.appendChild(row);
   });
 
@@ -116,7 +116,7 @@ function renderReconPanel(){
         var carRow = document.createElement('div');
         carRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1a3a00;';
         carRow.innerHTML = '<span style="font-size:12px;color:#efefef;">'+(carFundRecon.emoji||'🚗')+' '+carFundRecon.name+'</span>'
-          +'<span style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#c8f230;">'+fmtR(carSaved)+'</span>';
+          +'<span style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:var(--accent);">'+fmtR(carSaved)+'</span>';
         savingsContainer.appendChild(carRow);
       }
     }
@@ -451,9 +451,9 @@ function renderCashFlow(){
 
 // Map a destBank value → coloured pill markup.
 function _bankBadge(bank){
-  if(bank === 'FNB')      return '<span style="color:#4a9aff;background:#0a0f1a;border:1px solid #4a7aaa;border-radius:3px;padding:1px 6px;letter-spacing:1px;">🏛 FNB</span>';
-  if(bank === 'TymeBank') return '<span style="color:#f2a830;background:#1a0f00;border:1px solid #aa8a00;border-radius:3px;padding:1px 6px;letter-spacing:1px;">🏦 Tyme</span>';
-  if(bank === 'Cash')     return '<span style="color:#c8f230;background:#0d1a00;border:1px solid #3a5a00;border-radius:3px;padding:1px 6px;letter-spacing:1px;">💵 Cash</span>';
+  if(bank === 'FNB')      return '<span style="color:#4a9aff;background:#0a0f1a;border:1px solid #4a7aaa;border-radius:6px;padding:1px 6px;letter-spacing:1px;">🏛 FNB</span>';
+  if(bank === 'TymeBank') return '<span style="color:#f2a830;background:#1a0f00;border:1px solid #aa8a00;border-radius:6px;padding:1px 6px;letter-spacing:1px;">🏦 Tyme</span>';
+  if(bank === 'Cash')     return '<span style="color:var(--accent);background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:1px 6px;letter-spacing:1px;">💵 Cash</span>';
   return '';
 }
 
@@ -465,7 +465,7 @@ function cfRow(e, type, isRecur){
   if(type === 'income' && e.date){
     try{
       const d = new Date(e.date+'T00:00:00');
-      dateBadge = ' <span style="color:#5a8800;font-size:11px;background:#0d1a00;border:1px solid #2a4a00;border-radius:3px;padding:1px 5px;letter-spacing:0.5px;">'+d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'})+'</span>';
+      dateBadge = ' <span style="color:#5a8800;font-size:11px;background:#0d1a00;border:1px solid #2a4a00;border-radius:6px;padding:1px 5px;letter-spacing:0.5px;">'+d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'})+'</span>';
     }catch(ex){}
   }
   // ── BANK BADGE ──
@@ -482,7 +482,7 @@ function cfRow(e, type, isRecur){
   // All three render as a purple pocket badge instead of "— Untagged".
   var isPocketRow = (e && (e.sourceType === 'pocket_spend' || e.sourceType === 'car_expense' || e.sourceType === 'instalment_pay' || e.sourceType === 'bankfeed_spend' || e.sourceType === 'profit_share') && e.account && !bank);   // v150y: profit share lands straight in a pocket
   if(isPocketRow){
-    bankHtml = '<span style="color:#c890ff;background:#1a0a26;border:1px solid #6a3aa0;border-radius:3px;padding:1px 6px;letter-spacing:0.5px;">'
+    bankHtml = '<span style="color:#c890ff;background:#1a0a26;border:1px solid #6a3aa0;border-radius:6px;padding:1px 6px;letter-spacing:0.5px;">'
              + String(e.account).replace(/</g,'&lt;').replace(/>/g,'&gt;')
              + '</span>';
   } else if(bank){
@@ -491,8 +491,8 @@ function cfRow(e, type, isRecur){
     // Untagged legacy entry — show grey badge + retro-tag pencil so the user
     // can clean it up over time. These entries do NOT affect bank balances
     // until tagged.
-    bankHtml = '<span style="color:var(--muted);background:#1a1a1a;border:1px dashed #444;border-radius:3px;padding:1px 6px;letter-spacing:1px;">— Untagged</span>'
-             + ' <button onclick="openCfEntryModal(\''+type+'\',\''+e.id+'\')" title="Tag this with a bank" style="background:none;border:1px solid #2a2a2a;border-radius:3px;color:var(--muted);font-size:11px;cursor:pointer;padding:1px 5px;letter-spacing:1px;margin-left:2px;">✎ tag</button>';
+    bankHtml = '<span style="color:var(--muted);background:#1a1a1a;border:1px dashed #444;border-radius:6px;padding:1px 6px;letter-spacing:1px;">— Untagged</span>'
+             + ' <button onclick="openCfEntryModal(\''+type+'\',\''+e.id+'\')" title="Tag this with a bank" style="background:none;border:1px solid #2a2a2a;border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;padding:1px 5px;letter-spacing:1px;margin-left:2px;">✎ tag</button>';
   }
   const subLine = '<div style="font-size:11px;letter-spacing:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+bankHtml+dateBadge+'</div>';
   // Untagged rows render slightly dimmer so the user notices they need attention.
@@ -509,8 +509,8 @@ function cfRow(e, type, isRecur){
     +'</div>'
     +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;white-space:nowrap;'+amtStyle+'">'+sign+fmtR(e.amount)+'</span>'
     +'<div style="display:flex;gap:4px;">'
-      +'<button onclick="openCfEntryModal(\''+type+'\',\''+e.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;width:26px;height:26px;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.borderColor=\'#555\'" onmouseout="this.style.borderColor=\'#2a2a2a\'">✏️</button>'
-      +'<button onclick="deleteCfEntry(\''+e.id+'\',\''+type+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;width:26px;height:26px;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">✕</button>'
+      +'<button onclick="openCfEntryModal(\''+type+'\',\''+e.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:26px;height:26px;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.borderColor=\'#555\'" onmouseout="this.style.borderColor=\'#2a2a2a\'">✏️</button>'
+      +'<button onclick="deleteCfEntry(\''+e.id+'\',\''+type+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;width:26px;height:26px;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">✕</button>'
     +'</div>'
   +'</div>';
 }
@@ -527,7 +527,7 @@ function cfAutoRow(e){
       +'<div style="font-size:11px;color:#3a5a00;letter-spacing:1px;">'+(sourceLabel[e.source]||'Auto-imported')+'</div>'
     +'</div>'
     +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:'+color+';white-space:nowrap;">'+sign+fmtR(e.amount)+'</span>'
-    +'<span style="font-size:11px;color:#3a5a00;background:#0d1a00;border:1px solid #2a4a00;border-radius:4px;padding:2px 6px;white-space:nowrap;">AUTO</span>'
+    +'<span style="font-size:11px;color:#3a5a00;background:#0d1a00;border:1px solid #2a4a00;border-radius:6px;padding:2px 6px;white-space:nowrap;">AUTO</span>'
   +'</div>';
 }
 
@@ -538,8 +538,8 @@ function showBackupReminder(reason){
   if(old) old.remove();
   const toast = document.createElement('div');
   toast.id = 'backupToast';
-  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a2e00;border:1px solid #c8f230;border-radius:8px;padding:12px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;color:#c8f230;box-shadow:0 4px 20px rgba(0,0,0,.6);min-width:280px;';
-  toast.innerHTML = '<span>💾 '+reason+'</span><button onclick="backupData();document.getElementById(\'backupToast\').remove();" style="background:#c8f230;color:#000;border:none;border-radius:4px;padding:6px 12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;">Download Backup</button><button onclick="document.getElementById(\'backupToast\').remove();" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
+  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a2e00;border:1px solid var(--accent);border-radius:10px;padding:12px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;color:var(--accent);box-shadow:0 4px 20px rgba(0,0,0,.6);min-width:280px;';
+  toast.innerHTML = '<span>💾 '+reason+'</span><button onclick="backupData();document.getElementById(\'backupToast\').remove();" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:6px 12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;">Download Backup</button><button onclick="document.getElementById(\'backupToast\').remove();" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
   document.body.appendChild(toast);
   // Auto-dismiss after 12 seconds
   setTimeout(function(){ if(document.getElementById('backupToast')) document.getElementById('backupToast').remove(); }, 12000);

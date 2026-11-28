@@ -118,8 +118,8 @@ function renderPassengerRows(){
       + '<span style="width:10px;height:10px;border-radius:50%;background:' + p.color + ';flex-shrink:0;display:inline-block;"></span>'
       + '<span style="flex:1;font-family:\'DM Mono\',monospace;font-size:12px;color:#efefef;">' + p.name + '</span>'
       + '<span style="font-size:11px;color:var(--muted);letter-spacing:1px;">R' + (p.defaultAmt || 44) + '/trip</span>'
-      + '<button onclick="editPassenger(\'' + p.id + '\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:#888;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">Edit</button>'
-      + '<button onclick="deletePassenger(\'' + p.id + '\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">✕</button>'
+      + '<button onclick="editPassenger(\'' + p.id + '\')" style="background:none;border:1px solid #2a2a2a;border-radius:6px;padding:3px 8px;color:#888;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">Edit</button>'
+      + '<button onclick="deletePassenger(\'' + p.id + '\')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">✕</button>'
       + '</div>';
   }).join('');
 }

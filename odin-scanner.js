@@ -129,8 +129,8 @@ function _scanRenderReading(){
     +'<div style="text-align:center;padding:32px 0 20px;">'
     +'<div style="font-size:44px;margin-bottom:14px;">🧠</div>'
     +'<div style="font-size:11px;color:#8ab820;letter-spacing:1px;margin-bottom:14px;" id="scanReadingLabel">Analysing invoice...</div>'
-    +'<div style="height:5px;background:#1a1a1a;border-radius:3px;overflow:hidden;margin:0 20px;">'
-    +'<div style="height:100%;background:#c8f230;border-radius:3px;transition:width 0.8s ease;" id="scanProgFill" style="width:15%"></div>'
+    +'<div style="height:5px;background:#1a1a1a;border-radius:6px;overflow:hidden;margin:0 20px;">'
+    +'<div style="height:100%;background:var(--accent);border-radius:6px;transition:width 0.8s ease;" id="scanProgFill" style="width:15%"></div>'
     +'</div>'
     +'</div>'
     +'<div class="scan-info-box">Checking for credits · R0 lines · VAT · workshop notes · reconciling total...</div>';
@@ -375,14 +375,14 @@ function _scanRenderAdvisories(){
     var emoji = a.severity === 'red' ? '🔴' : a.severity === 'amber' ? '🟠' : '🔵';
     var included = a.include !== false;
 
-    return '<div style="background:'+bg+';border:1px solid '+bdr+';border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'
+    return '<div style="background:'+bg+';border:1px solid '+bdr+';border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'
       +'<div style="flex:1;">'
       +'<div style="font-size:11px;color:'+col+';margin-bottom:4px;">'+emoji+' '+_scanEsc(a.text)+'</div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">'
-      +'<button onclick="scanSetAdvSeverity('+i+',\'red\')" style="padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid '+(a.severity==='red'?'#f23060':'#333')+';background:'+(a.severity==='red'?'#2e0a0a':'#111')+';color:'+(a.severity==='red'?'#f23060':'#555')+';">🔴 Action</button>'
-      +'<button onclick="scanSetAdvSeverity('+i+',\'amber\')" style="padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid '+(a.severity==='amber'?'#f2a830':'#333')+';background:'+(a.severity==='amber'?'#2e1a00':'#111')+';color:'+(a.severity==='amber'?'#f2a830':'#555')+';">🟠 Watch</button>'
-      +'<button onclick="scanSetAdvSeverity('+i+',\'blue\')" style="padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid '+(a.severity==='blue'?'#7090f0':'#333')+';background:'+(a.severity==='blue'?'#050a1a':'#111')+';color:'+(a.severity==='blue'?'#7090f0':'#555')+';">🔵 FYI</button>'
-      +'<button onclick="scanRemoveAdvisory('+i+')" style="padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid #333;background:#111;color:var(--muted);">✕ Remove</button>'
+      +'<button onclick="scanSetAdvSeverity('+i+',\'red\')" style="padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid '+(a.severity==='red'?'#f23060':'#333')+';background:'+(a.severity==='red'?'#2e0a0a':'#111')+';color:'+(a.severity==='red'?'#f23060':'#555')+';">🔴 Action</button>'
+      +'<button onclick="scanSetAdvSeverity('+i+',\'amber\')" style="padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid '+(a.severity==='amber'?'#f2a830':'#333')+';background:'+(a.severity==='amber'?'#2e1a00':'#111')+';color:'+(a.severity==='amber'?'#f2a830':'#555')+';">🟠 Watch</button>'
+      +'<button onclick="scanSetAdvSeverity('+i+',\'blue\')" style="padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid '+(a.severity==='blue'?'#7090f0':'#333')+';background:'+(a.severity==='blue'?'#050a1a':'#111')+';color:'+(a.severity==='blue'?'#7090f0':'#555')+';">🔵 FYI</button>'
+      +'<button onclick="scanRemoveAdvisory('+i+')" style="padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid #333;background:#111;color:var(--muted);">✕ Remove</button>'
       +'</div>'
       +'</div>'
       +'</div>';

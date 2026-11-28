@@ -835,7 +835,7 @@ function renderRepayPocketPicker(resetToDefault){
     var bgColor = isSelected ? '#0a1a2e' : (isOrigin ? '#0d1a00' : '#0e0e0e');
     var nameColor = isSelected ? '#7090f0' : '#efefef';
     var tag = isOrigin
-      ? '<span style="font-size:11px;background:#3a5a00;color:#c8f230;border-radius:3px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
+      ? '<span style="font-size:11px;background:#3a5a00;color:var(--accent);border-radius:6px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
       : '';
     return '<button type="button" onclick="selectRepayPocket(\''+f.id+'\')" '
       + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';width:100%;font-family:inherit;color:inherit;text-align:left;">'
@@ -865,7 +865,7 @@ function updateRepayOwingSummary(){
   });
   const owing = totalBorrowed - totalRepaid;
   if(owing <= 0){
-    summary.innerHTML = '<span style="color:#c8f230;">✓ ' + passenger + ' has no outstanding balance.</span>';
+    summary.innerHTML = '<span style="color:var(--accent);">✓ ' + passenger + ' has no outstanding balance.</span>';
   } else {
     summary.innerHTML = passenger + ' currently owes <strong style="color:#f2a830;font-size:13px;">R' + owing.toLocaleString('en-ZA') + '</strong>';
   }
@@ -1023,7 +1023,7 @@ function confirmRepay(){
   // Toast
   try{
     const toast = document.createElement('div');
-    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d1a00;border:1px solid #c8f230;border-radius:8px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#c8f230;letter-spacing:1px;white-space:nowrap;';
+    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d1a00;border:1px solid var(--accent);border-radius:10px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:var(--accent);letter-spacing:1px;white-space:nowrap;';
     toast.textContent = '✓ R'+amount+' from '+passenger+' → '+pocket.name;
     document.body.appendChild(toast);
     setTimeout(function(){ toast.remove(); }, 4000);
@@ -1242,7 +1242,7 @@ function renderArchivedMoney(){
   carpoolArchived.forEach(function(name){
     hasAny = true;
     var d = document.createElement('div');
-    d.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#111;border:1px solid #2a2a2a;border-radius:8px;margin-bottom:8px;';
+    d.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#111;border:1px solid #2a2a2a;border-radius:10px;margin-bottom:8px;';
     d.innerHTML = '<div><div style="font-size:13px;color:var(--muted);">'+name+'</div><div style="font-size:11px;color:var(--muted2);letter-spacing:1px;">CARPOOL</div></div>'
       +'<button onclick="unarchivePerson(\''+name+'\',\'carpool\')" style="background:none;border:1px solid #2a3a1a;border-radius:6px;padding:5px 12px;color:#5a8800;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Restore</button>';
     container.appendChild(d);
@@ -1255,7 +1255,7 @@ function renderArchivedMoney(){
     if(!p.archived) return;
     hasAny = true;
     var d = document.createElement('div');
-    d.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#111;border:1px solid #2a2a2a;border-radius:8px;margin-bottom:8px;';
+    d.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#111;border:1px solid #2a2a2a;border-radius:10px;margin-bottom:8px;';
     d.innerHTML = '<div><div style="font-size:13px;color:var(--muted);">'+p.name+'</div><div style="font-size:11px;color:var(--muted2);letter-spacing:1px;">PERSONAL</div></div>'
       +'<button onclick="unarchivePerson(\''+key+'\',\'external\')" style="background:none;border:1px solid #2a3a1a;border-radius:6px;padding:5px 12px;color:#5a8800;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Restore</button>';
     container.appendChild(d);
@@ -1415,10 +1415,10 @@ function recalcPricing(){
   if(resExplain) resExplain.innerHTML =
     'Tank <strong style="color:var(--text);">R'+tankCost+'</strong>'
     +' − Private use <strong style="color:#f2a830;">R'+Math.round(privateUseAmt)+'</strong>'
-    +' = Carpool share <strong style="color:#c8f230;">R'+Math.round(carpoolCost)+'</strong><br>'
+    +' = Carpool share <strong style="color:var(--accent);">R'+Math.round(carpoolCost)+'</strong><br>'
     +'R'+Math.round(carpoolCost)+' ÷ '+tripsPerTank+' trips'
     +' = <strong style="color:var(--text);">R'+breakEven.toFixed(2)+' break-even</strong>'
-    +' + 10% → <strong style="color:#c8f230;">R'+recommended+' recommended</strong>';
+    +' + 10% → <strong style="color:var(--accent);">R'+recommended+' recommended</strong>';
 
   try{
     lsSet(PRICING_TANK_KEY,    tankCost);

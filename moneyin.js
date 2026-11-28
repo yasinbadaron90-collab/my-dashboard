@@ -508,12 +508,12 @@ function _miRenderHouseExtra(){
       var on = _miState.subsOn && _miState.herTotal > 0;
       lh += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:'+(on?'var(--text)':'var(--muted)')+';'+(on?'':'text-decoration:line-through;')+'">'
         + (s.isDebt
-            ? '<span>↩ ' + escHtml(s.label) + ' <span style="font-size:11px;color:#c8f230;">· pays off loan</span></span>'
+            ? '<span>↩ ' + escHtml(s.label) + ' <span style="font-size:11px;color:var(--accent);">· pays off loan</span></span>'
             : '<span>🔒 ' + escHtml(s.label) + (s.day ? ' · ' + s.day + 'th' : '') + '</span>')
         + '<span>' + (on ? '−' : '') + fmtR(s.amount) + '</span></div>';
     });
     if(_miState.herTotal > 0){   // v150x: the house part, worked out
-      lh += '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0 2px;margin-top:3px;border-top:1px dashed var(--border);color:#c8f230;">'
+      lh += '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0 2px;margin-top:3px;border-top:1px dashed var(--border);color:var(--accent);">'
         + '<span>⌂ House (what\'s left)</span><span>' + fmtR(o.house) + '</span></div>';
     }
     linesEl.innerHTML = lh;
@@ -714,7 +714,7 @@ function _miRenderPocketSplit(){
     hint.id = 'miPlanHint';
     hint.style.cssText = 'background:#111;border:1px solid #3a5a00;border-radius:6px;padding:10px 12px;margin-bottom:10px;';
     var hdr = document.createElement('div');
-    hdr.style.cssText = 'font-size:11px;color:#c8f230;letter-spacing:1px;margin-bottom:6px;';
+    hdr.style.cssText = 'font-size:11px;color:var(--accent);letter-spacing:1px;margin-bottom:6px;';
     hdr.textContent = 'PLAN — '+fmtR(_miLastPlanTotal)+' TO PLACE';
     hint.appendChild(hdr);
     var glyph = { fill:'✓', skip:'⏸', wait:'⏸', warn:'⚠' };
@@ -1404,7 +1404,7 @@ function renderMoneyInHistory(){
   c.innerHTML = '';
   all.forEach(function(rec){
     var row = document.createElement('div');
-    row.style.cssText = 'background:#0d0d0d;border:1px solid #2a2a2a;border-radius:8px;padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px;';
+    row.style.cssText = 'background:#0d0d0d;border:1px solid #2a2a2a;border-radius:10px;padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px;';
     var info = document.createElement('div');
     info.style.cssText = 'flex:1;min-width:0;';
     var lbl = rec.note || 'Money In';
@@ -1412,7 +1412,7 @@ function renderMoneyInHistory(){
     info.innerHTML = '<div style="font-size:12.5px;color:#efefef;margin-bottom:3px;">'+lbl+'</div>'
                    + '<div style="font-size:11px;color:var(--muted);letter-spacing:1px;">'+rec.date+' · '+rec.sourceBank+' · '+pocketsText+(_miHouseTotalOf(rec)>0 ? ' · house '+fmtR(_miHouseTotalOf(rec)) : '')+((rec.subs||[]).length ? ' + subs' : '')+'</div>';
     var amt = document.createElement('div');
-    amt.style.cssText = 'font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:#c8f230;flex-shrink:0;';
+    amt.style.cssText = 'font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:var(--accent);flex-shrink:0;';
     amt.textContent = fmtR(rec.amount);
     var actions = document.createElement('div');
     actions.style.cssText = 'display:flex;gap:4px;flex-shrink:0;';
@@ -1500,8 +1500,8 @@ function _mihbEnsureModal(){
       '<div id="mihbTitle" style="font-family:Syne,sans-serif;font-weight:800;font-size:17px;color:#efefef;margin-bottom:12px;line-height:1.3;"></div>'+
       '<div id="mihbBody" style="font-size:12.5px;color:#bbb;line-height:1.7;margin-bottom:18px;white-space:pre-wrap;"></div>'+
       '<div style="display:flex;flex-direction:column;gap:9px;">'+
-        '<button id="mihbDanger" type="button" style="padding:13px;border-radius:8px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;border:1px solid #5a1a1a;background:#1a0808;color:#f23060;cursor:pointer;text-align:center;"></button>'+
-        '<button id="mihbSafe" type="button" style="padding:13px;border-radius:8px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;border:1px solid #2a2a2a;background:#141414;color:#888;cursor:pointer;text-align:center;"></button>'+
+        '<button id="mihbDanger" type="button" style="padding:13px;border-radius:10px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;border:1px solid #5a1a1a;background:#1a0808;color:#f23060;cursor:pointer;text-align:center;"></button>'+
+        '<button id="mihbSafe" type="button" style="padding:13px;border-radius:10px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;border:1px solid #2a2a2a;background:#141414;color:#888;cursor:pointer;text-align:center;"></button>'+
       '</div>'+
     '</div>';
   document.body.appendChild(ov);

@@ -180,7 +180,7 @@ function renderSchool(){
   if(pillsEl){
     pillsEl.innerHTML =
       '<span style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:100px;padding:6px 12px;font-size:11px;color:#888;letter-spacing:1px;">⏳ '+upcomingCount+' upcoming</span>'
-     +'<span style="background:#1a2e00;border:1px solid #3a5a00;border-radius:100px;padding:6px 12px;font-size:11px;color:#c8f230;letter-spacing:1px;">✓ '+doneCount+' done</span>';
+     +'<span style="background:#1a2e00;border:1px solid #3a5a00;border-radius:100px;padding:6px 12px;font-size:11px;color:var(--accent);letter-spacing:1px;">✓ '+doneCount+' done</span>';
   }
 
   if(filtered.length === 0){
@@ -200,7 +200,7 @@ function renderSchool(){
           +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;margin-bottom:3px;'+(isDone?'text-decoration:line-through;':'')+'">'+icon+' '+(e.title||'(no title)')+'</div>'
           +'<div style="font-size:11px;color:var(--muted);letter-spacing:0.5px;">'+(e.subject||'')+(e.subject&&e.date?' · ':'')+(e.date||'')+(e.time?' · '+e.time:'')+'</div>'
         +'</div>'
-        +'<button onclick="deleteSchoolEvent(\''+e.id+'\')" style="background:transparent;border:1px solid #2a2a2a;border-radius:4px;width:26px;height:26px;color:var(--muted);cursor:pointer;font-size:11px;">✕</button>'
+        +'<button onclick="deleteSchoolEvent(\''+e.id+'\')" style="background:transparent;border:1px solid #2a2a2a;border-radius:6px;width:26px;height:26px;color:var(--muted);cursor:pointer;font-size:11px;">✕</button>'
       +'</div>';
   });
   el.innerHTML = html;
@@ -539,7 +539,7 @@ function openEditSubject(code){
     var val = (opt === '(auto)') ? null : opt;
     var sel = (sub.resultOverride === val) || (sub.resultOverride == null && opt === '(auto)');
     var label = (opt === '(auto)') ? '(auto)' : opt;
-    return '<button onclick="_selectResultOverride(this,'+JSON.stringify(val)+')" data-v="'+(val||'')+'" style="padding:5px 10px;background:'+(sel?'#1a2e00':'#1a1a1a')+';border:1px solid '+(sel?'#5a8800':'#2a2a2a')+';border-radius:4px;color:'+(sel?'#c8f230':'#888')+';font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">'+label+'</button>';
+    return '<button onclick="_selectResultOverride(this,'+JSON.stringify(val)+')" data-v="'+(val||'')+'" style="padding:5px 10px;background:'+(sel?'#1a2e00':'#1a1a1a')+';border:1px solid '+(sel?'#5a8800':'#2a2a2a')+';border-radius:6px;color:'+(sel?'#c8f230':'#888')+';font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">'+label+'</button>';
   }).join('');
 
   // Quiz/Assignment inputs differ by type
@@ -593,17 +593,17 @@ function openEditSubject(code){
     '<div style="background:#1a1500;border:1px dashed #5a4a00;border-radius:6px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">'
       +'<div><div style="font-size:11px;color:#f2c830;letter-spacing:0.5px;">🟡 Placeholder marks</div>'
       +'<div style="font-size:11px;color:#876500;margin-top:2px;">Tag as placeholder until transcript confirms</div></div>'
-      +'<button onclick="_togglePlaceholder(this)" data-on="'+(sub.isPlaceholder?'1':'0')+'" style="padding:6px 12px;background:'+(sub.isPlaceholder?'#f2c830':'#1a1a1a')+';border:1px solid '+(sub.isPlaceholder?'#876500':'#2a2a2a')+';border-radius:4px;color:'+(sub.isPlaceholder?'#000':'#888')+';font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;font-weight:'+(sub.isPlaceholder?'700':'400')+';">'+(sub.isPlaceholder?'ON':'OFF')+'</button>'
+      +'<button onclick="_togglePlaceholder(this)" data-on="'+(sub.isPlaceholder?'1':'0')+'" style="padding:6px 12px;background:'+(sub.isPlaceholder?'#f2c830':'#1a1a1a')+';border:1px solid '+(sub.isPlaceholder?'#876500':'#2a2a2a')+';border-radius:6px;color:'+(sub.isPlaceholder?'#000':'#888')+';font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;font-weight:'+(sub.isPlaceholder?'700':'400')+';">'+(sub.isPlaceholder?'ON':'OFF')+'</button>'
     +'</div>';
 
   var overlay = document.createElement('div');
   overlay.className = 'school-edit-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:flex;align-items:flex-end;justify-content:center;';
   overlay.innerHTML =
-    '<div style="background:#0a0a0a;border-top:2px solid #c8f230;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;">'
+    '<div style="background:#0a0a0a;border-top:2px solid var(--accent);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;">'
       +'<div style="padding:18px 18px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">'
         +'<div style="flex:1;min-width:0;">'
-          +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:#c8f230;">✏️ Edit Marks</div>'
+          +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:var(--accent);">✏️ Edit Marks</div>'
           +'<div style="font-size:11px;color:var(--muted);margin-top:3px;">'+sub.name+'</div>'
           +'<div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:3px;">'+sub.code+' · '+(sub.type==='semester'?'📆 Semester':'📅 Annual')+' · '+sub.credits+'cr · NQF '+sub.nqfLevel+'</div>'
         +'</div>'
@@ -651,7 +651,7 @@ function openEditSubject(code){
       +'</div>'
       +'<div style="display:flex;gap:8px;padding:14px 18px 18px;border-top:1px solid var(--border);">'
         +'<button onclick="this.closest(\'.school-edit-overlay\').remove()" style="flex:1;background:transparent;border:1px solid #2a2a2a;border-radius:6px;padding:11px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Cancel</button>'
-        +'<button onclick="saveEditedSubject()" style="flex:2;background:#c8f230;border:none;border-radius:6px;padding:11px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save</button>'
+        +'<button onclick="saveEditedSubject()" style="flex:2;background:var(--accent);border:none;border-radius:6px;padding:11px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save</button>'
       +'</div>'
     +'</div>';
 
@@ -682,7 +682,7 @@ function _updateLiveCalc(){
     '<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span style="color:var(--muted);">Year Mark %</span><span style="color:var(--text);font-weight:500;">'+(ymp !== null ? ymp : '—')+'</span></div>'
    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span style="color:var(--muted);">Year contribution (40%)</span><span style="color:var(--text);">'+(ymp !== null ? (ymp * 0.40).toFixed(1) : '—')+'</span></div>'
    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span style="color:var(--muted);">Exam contribution (60%)</span><span style="color:var(--text);">'+(snap.examRaw !== null && snap.examRaw !== undefined ? (snap.examRaw * 0.60).toFixed(1) : '<span style="color:var(--muted);">— pending</span>')+'</span></div>'
-   +'<div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed #2a4a00;padding-top:6px;margin-top:4px;"><span style="color:#5a8800;font-weight:700;font-size:12px;">Final %</span><span style="color:#c8f230;font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;">'+(fp !== null ? fp : 'TBD')+'</span></div>'
+   +'<div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed #2a4a00;padding-top:6px;margin-top:4px;"><span style="color:#5a8800;font-weight:700;font-size:12px;">Final %</span><span style="color:var(--accent);font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;">'+(fp !== null ? fp : 'TBD')+'</span></div>'
    +'<div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:4px;"><span style="color:#5a8800;font-weight:700;font-size:11px;">Result</span><span style="color:'+getResultColor(rslt)+';font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;">'+(rslt || '—')+'</span></div>';
 
   // Highlight matching override pill if not manual
@@ -787,9 +787,9 @@ function openAddSubject(){
   overlay.className = 'school-add-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:flex;align-items:flex-end;justify-content:center;';
   overlay.innerHTML =
-    '<div style="background:#0a0a0a;border-top:2px solid #c8f230;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;">'
+    '<div style="background:#0a0a0a;border-top:2px solid var(--accent);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;">'
       +'<div style="padding:18px 18px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
-        +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:#c8f230;">➕ Add Subject</div>'
+        +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:var(--accent);">➕ Add Subject</div>'
         +'<div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;">Fill in what you know — all marks editable later</div></div>'
         +'<button onclick="this.closest(\'.school-add-overlay\').remove()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:28px;height:28px;color:var(--muted);cursor:pointer;font-size:16px;">×</button>'
       +'</div>'
@@ -803,25 +803,25 @@ function openAddSubject(){
         +'<div style="margin-bottom:10px;"><label style="display:block;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Year</label>'
         +'<div id="addYear" data-v="3" style="display:flex;gap:5px;flex-wrap:wrap;">'
         +[1,2,3,4].map(function(y){
-          return '<button onclick="_pickAdd(this,\'addYear\','+y+')" style="padding:6px 12px;background:'+(y===3?'#1a2e00':'#1a1a1a')+';border:1px solid '+(y===3?'#5a8800':'#2a2a2a')+';border-radius:4px;color:'+(y===3?'#c8f230':'#888')+';font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">Year '+y+'</button>';
+          return '<button onclick="_pickAdd(this,\'addYear\','+y+')" style="padding:6px 12px;background:'+(y===3?'#1a2e00':'#1a1a1a')+';border:1px solid '+(y===3?'#5a8800':'#2a2a2a')+';border-radius:6px;color:'+(y===3?'#c8f230':'#888')+';font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">Year '+y+'</button>';
         }).join('')+'</div></div>'
 
         +'<div style="margin-bottom:10px;"><label style="display:block;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Course Type</label>'
         +'<div id="addType" data-v="semester" style="display:flex;gap:5px;flex-wrap:wrap;">'
-        +'<button onclick="_pickAdd(this,\'addType\',\'semester\')" style="padding:6px 12px;background:#1a2e00;border:1px solid #5a8800;border-radius:4px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">📆 Semester (1Q+1A)</button>'
-        +'<button onclick="_pickAdd(this,\'addType\',\'annual\')" style="padding:6px 12px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;color:#888;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">📅 Annual (2Q+2A)</button>'
+        +'<button onclick="_pickAdd(this,\'addType\',\'semester\')" style="padding:6px 12px;background:#1a2e00;border:1px solid #5a8800;border-radius:6px;color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">📆 Semester (1Q+1A)</button>'
+        +'<button onclick="_pickAdd(this,\'addType\',\'annual\')" style="padding:6px 12px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;color:#888;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">📅 Annual (2Q+2A)</button>'
         +'</div></div>'
 
         +'<div style="margin-bottom:10px;"><label style="display:block;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Credits</label>'
         +'<div id="addCredits" data-v="15" style="display:flex;gap:5px;flex-wrap:wrap;">'
-        +'<button onclick="_pickAdd(this,\'addCredits\',15)" style="padding:6px 12px;background:#1a2e00;border:1px solid #5a8800;border-radius:4px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">15</button>'
-        +'<button onclick="_pickAdd(this,\'addCredits\',30)" style="padding:6px 12px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;color:#888;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">30</button>'
+        +'<button onclick="_pickAdd(this,\'addCredits\',15)" style="padding:6px 12px;background:#1a2e00;border:1px solid #5a8800;border-radius:6px;color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">15</button>'
+        +'<button onclick="_pickAdd(this,\'addCredits\',30)" style="padding:6px 12px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;color:#888;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">30</button>'
         +'</div></div>'
 
         +'<div style="margin-bottom:10px;"><label style="display:block;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">NQF Level</label>'
         +'<div id="addNqf" data-v="7" style="display:flex;gap:5px;flex-wrap:wrap;">'
         +[5,6,7].map(function(n){
-          return '<button onclick="_pickAdd(this,\'addNqf\','+n+')" style="padding:6px 12px;background:'+(n===7?'#1a2e00':'#1a1a1a')+';border:1px solid '+(n===7?'#5a8800':'#2a2a2a')+';border-radius:4px;color:'+(n===7?'#c8f230':'#888')+';font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">'+n+'</button>';
+          return '<button onclick="_pickAdd(this,\'addNqf\','+n+')" style="padding:6px 12px;background:'+(n===7?'#1a2e00':'#1a1a1a')+';border:1px solid '+(n===7?'#5a8800':'#2a2a2a')+';border-radius:6px;color:'+(n===7?'#c8f230':'#888')+';font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">'+n+'</button>';
         }).join('')+'</div></div>'
 
         +'<div style="margin-bottom:10px;"><label style="display:block;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Period</label>'
@@ -832,7 +832,7 @@ function openAddSubject(){
       +'</div>'
       +'<div style="display:flex;gap:8px;padding:14px 18px 18px;border-top:1px solid var(--border);">'
         +'<button onclick="this.closest(\'.school-add-overlay\').remove()" style="flex:1;background:transparent;border:1px solid #2a2a2a;border-radius:6px;padding:11px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Cancel</button>'
-        +'<button onclick="saveNewSubject()" style="flex:2;background:#c8f230;border:none;border-radius:6px;padding:11px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Subject</button>'
+        +'<button onclick="saveNewSubject()" style="flex:2;background:var(--accent);border:none;border-radius:6px;padding:11px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Subject</button>'
       +'</div>'
     +'</div>';
   overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.remove(); });
@@ -922,9 +922,9 @@ function openGradeKey(){
   overlay.className = 'gk-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:flex-end;justify-content:center;';
   overlay.innerHTML =
-    '<div style="background:#0a0a0a;border-top:2px solid #c8f230;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;">'
+    '<div style="background:#0a0a0a;border-top:2px solid var(--accent);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;">'
       +'<div style="padding:18px 18px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
-        +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:#c8f230;">📋 Grade Key</div>'
+        +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:var(--accent);">📋 Grade Key</div>'
         +'<div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;">All result codes &amp; meanings</div></div>'
         +'<button onclick="this.closest(\'.gk-overlay\').remove()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:28px;height:28px;color:var(--muted);cursor:pointer;font-size:16px;">×</button>'
       +'</div>'
@@ -932,7 +932,7 @@ function openGradeKey(){
         +'<table style="width:100%;border-collapse:collapse;">'+rows+'</table>'
       +'</div>'
       +'<div style="padding:12px 16px;border-top:1px solid var(--border);">'
-        +'<button onclick="this.closest(\'.gk-overlay\').remove()" style="width:100%;background:#1a2e00;border:1px solid #3a5a00;border-radius:8px;padding:12px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Close</button>'
+        +'<button onclick="this.closest(\'.gk-overlay\').remove()" style="width:100%;background:#1a2e00;border:1px solid #3a5a00;border-radius:10px;padding:12px;color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Close</button>'
       +'</div>'
     +'</div>';
   overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.remove(); });
@@ -987,22 +987,22 @@ function renderSchoolResults(){
   var html =
     // Action buttons row
     '<div style="display:flex;gap:8px;margin-bottom:16px;">'
-      +'<button onclick="openAddSubject()" style="flex:1;background:#c8f230;border:none;border-radius:8px;padding:10px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">+ Add Subject</button>'
-      +'<button onclick="openGradeKey()" style="background:transparent;border:1px solid #2a4a00;border-radius:8px;padding:10px 14px;color:#5a8800;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">📋 Key</button>'
-      +'<button onclick="exportResults()" style="background:transparent;border:1px solid #2a4a00;border-radius:8px;padding:10px 14px;color:#5a8800;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">📄 Export</button>'
+      +'<button onclick="openAddSubject()" style="flex:1;background:var(--accent);border:none;border-radius:10px;padding:10px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">+ Add Subject</button>'
+      +'<button onclick="openGradeKey()" style="background:transparent;border:1px solid #2a4a00;border-radius:10px;padding:10px 14px;color:#5a8800;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">📋 Key</button>'
+      +'<button onclick="exportResults()" style="background:transparent;border:1px solid #2a4a00;border-radius:10px;padding:10px 14px;color:#5a8800;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">📄 Export</button>'
     +'</div>'
 
     // Degree progress
     +'<div style="background:#0d1a00;border:1px solid #2a4a00;border-radius:10px;padding:14px;margin-bottom:14px;">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
         +'<span style="font-size:11px;letter-spacing:2px;color:#5a8800;text-transform:uppercase;">📊 Degree Progress</span>'
-        +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;color:#c8f230;font-size:14px;">'+progressPct+'%</span>'
+        +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;color:var(--accent);font-size:14px;">'+progressPct+'%</span>'
       +'</div>'
-      +'<div style="height:8px;background:#1a1a1a;border-radius:4px;overflow:hidden;margin-bottom:8px;">'
-        +'<div style="height:100%;background:#c8f230;border-radius:4px;width:'+progressPct+'%;transition:width .5s;"></div>'
+      +'<div style="height:8px;background:#1a1a1a;border-radius:6px;overflow:hidden;margin-bottom:8px;">'
+        +'<div style="height:100%;background:var(--accent);border-radius:6px;width:'+progressPct+'%;transition:width .5s;"></div>'
       +'</div>'
       +'<div style="display:flex;justify-content:space-between;font-size:11px;">'
-        +'<span style="color:var(--text);"><strong style="font-family:\'Syne\',sans-serif;font-size:14px;color:#c8f230;">'+creditsEarned+'</strong> of '+totalCredits+' credits</span>'
+        +'<span style="color:var(--text);"><strong style="font-family:\'Syne\',sans-serif;font-size:14px;color:var(--accent);">'+creditsEarned+'</strong> of '+totalCredits+' credits</span>'
         +'<span style="color:var(--muted);">'+(totalCredits - creditsEarned)+' to go</span>'
       +'</div>'
     +'</div>'
@@ -1117,7 +1117,7 @@ function _renderSubjectCard(sub){
         +'<div style="flex:1;min-width:0;">'
           +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;line-height:1.2;margin-bottom:3px;">'+sub.name+'</div>'
           +'<div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:5px;">'+sub.code+' · '+sub.credits+'cr · NQF '+sub.nqfLevel+'</div>'
-          +'<span style="display:inline-block;font-size:11px;letter-spacing:1px;color:#888;background:#0f0f0f;padding:3px 8px;border-radius:4px;border:1px solid #2a2a2a;">'+typeIcon+' '+(sub.type==='semester'?'Semester':'Annual')+'</span>'
+          +'<span style="display:inline-block;font-size:11px;letter-spacing:1px;color:#888;background:#0f0f0f;padding:3px 8px;border-radius:6px;border:1px solid #2a2a2a;">'+typeIcon+' '+(sub.type==='semester'?'Semester':'Annual')+'</span>'
         +'</div>'
         +badge
       +'</div>'

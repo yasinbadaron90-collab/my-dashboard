@@ -22,12 +22,12 @@ function inboxHomeHtml(){
     return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #2a2a2a;">'
       + '<div style="flex:1;min-width:0;"><div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:#efefef;">'+fmtR(e.amount)+'</div>'
       + '<div style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(names[e.type]||'')+(e.note ? ' · '+escHtml(e.note) : '')+' · '+escHtml(e.date||'')+'</div></div>'
-      + '<button onclick="inboxOpen(\''+id+'\')" style="background:#c8f230;border:none;border-radius:8px;padding:9px 14px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;">LOG IT</button>'
-      + '<button onclick="inboxRemove(\''+id+'\')" aria-label="Discard note" style="background:none;border:1px solid #333;border-radius:8px;padding:8px 10px;color:#888;cursor:pointer;">✕</button>'
+      + '<button onclick="inboxOpen(\''+id+'\')" style="background:var(--accent);border:none;border-radius:10px;padding:9px 14px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;">LOG IT</button>'
+      + '<button onclick="inboxRemove(\''+id+'\')" aria-label="Discard note" style="background:none;border:1px solid #333;border-radius:10px;padding:8px 10px;color:#888;cursor:pointer;">✕</button>'
       + '</div>';
   }).join('');
   return '<div style="background:#1a1a1a;border:1px solid #6a3aa0;border-radius:16px;padding:16px;margin-bottom:16px;">'
-    + '<div style="font-size:11px;letter-spacing:3px;color:#c890ff;text-transform:uppercase;margin-bottom:6px;">Quick add · '+a.length+' waiting</div>'
+    + '<div style="font-size:11px;letter-spacing:1.5px;color:#c890ff;text-transform:uppercase;margin-bottom:6px;">Quick add · '+a.length+' waiting</div>'
     + rows + '</div>';
 }
 

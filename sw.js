@@ -17,7 +17,7 @@
 // To force every client to upgrade: bump CACHE_VERSION below.
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'v152w';
+const CACHE_VERSION = 'v152x';
 const SHELL_CACHE   = 'my-dashboard-shell-' + CACHE_VERSION;
 // CDN cache has its OWN version, independent of app bumps, so Chart.js and
 // the Firebase SDK aren't re-downloaded on every release. Bump CDN_VERSION
@@ -64,7 +64,16 @@ const SHELL_ASSETS = [
   '/my-dashboard/odin-scanner.js',
   '/my-dashboard/firebase-sync.js',
   '/my-dashboard/manifest.json',
-  '/my-dashboard/logo.webp'
+  '/my-dashboard/logo.webp',
+  '/my-dashboard/fonts/syne-latin-400-normal.woff2',
+  '/my-dashboard/fonts/syne-latin-700-normal.woff2',
+  '/my-dashboard/fonts/syne-latin-800-normal.woff2',
+  '/my-dashboard/fonts/dm-mono-latin-300-normal.woff2',
+  '/my-dashboard/fonts/dm-mono-latin-400-normal.woff2',
+  '/my-dashboard/fonts/dm-mono-latin-500-normal.woff2',
+  '/my-dashboard/fonts/dm-sans-latin-400-normal.woff2',
+  '/my-dashboard/fonts/dm-sans-latin-500-normal.woff2',
+  '/my-dashboard/fonts/dm-sans-latin-700-normal.woff2'
 ];
 
 // Optional assets — files we'd LIKE to cache but won't fail install

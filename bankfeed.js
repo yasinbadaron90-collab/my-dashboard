@@ -403,7 +403,7 @@ function _bfRenderReview(){
     +'<div class="bf-sub">'+matched+' matched · '+unmatched+' need a pocket · '+skipped+' skipped</div>'
     +'</div>'
     +'<div class="bf-stat-row">'
-    +'<div class="bf-stat-box"><div class="bf-stat-label">Auto-matched</div><div class="bf-stat-val" style="color:#c8f230">'+matched+'</div></div>'
+    +'<div class="bf-stat-box"><div class="bf-stat-label">Auto-matched</div><div class="bf-stat-val" style="color:var(--accent)">'+matched+'</div></div>'
     +'<div class="bf-stat-box"><div class="bf-stat-label">Needs you</div><div class="bf-stat-val" style="color:#f2a830">'+unmatched+'</div></div>'
     +'<div class="bf-stat-box"><div class="bf-stat-label">Skipped</div><div class="bf-stat-val" style="color:var(--muted)">'+skipped+'</div></div>'
     +'</div>'
@@ -482,7 +482,7 @@ function _bfRenderConfirm(){
     return '<div class="bf-confirm-row">'
       +'<div class="bf-confirm-left">'
       +'<div class="bf-confirm-merchant">'+_bfEsc(t.merchant)+'</div>'
-      +'<div class="bf-confirm-pocket" style="color:#c8f230">→ '+_bfEsc(pktName)+'</div>'
+      +'<div class="bf-confirm-pocket" style="color:var(--accent)">→ '+_bfEsc(pktName)+'</div>'
       +'</div>'
       +'<div class="bf-confirm-amt" style="color:#f23060">-R'+Number(t.amount).toLocaleString('en-ZA')+'</div>'
       +'</div>';

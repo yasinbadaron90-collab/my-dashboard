@@ -44,6 +44,10 @@ For new features: money must enter, leave or move through a pocket (Money In / S
 | prayer.js | Prayer tracker, times, heatmap |
 | info.js | ⓘ explainer popups |
 | sw.js | Service worker, `CACHE_VERSION`, `SHELL_ASSETS` |
+| fonts/ | Self-hosted woff2 (Syne, DM Mono, DM Sans, latin). Declared by `@font-face` in `app.css`, precached in `SHELL_ASSETS`. No Google Fonts link. |
+
+## Design tokens (app.css `:root`)
+`--accent` (lime; darker green in light mode) for brand colour, `--r-sm/--r-md/--r-pill` for corner radii, `--font-text` (DM Sans) for long text; mono is for labels and numbers. Min text size 11px.
 
 ## Do not
 - Write a second "how much does X owe" calculation. Owing = `calcPersonTotals`; carpool statement/PDF = the card's numbers.

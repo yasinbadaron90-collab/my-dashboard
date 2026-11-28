@@ -497,7 +497,7 @@ function renderCarpool(){
       const holidayName=holiday?getSAHolidayName(ds):'';
       if(holiday) tr.style.cssText='background:#0d1a00;opacity:0.85;';
       const dayCell=holiday
-        ?`<td class="dc" title="${holidayName}"><span style="color:#c8f230;font-weight:700;">${dl}</span><br><span style="font-size:11px;color:#8ab820;letter-spacing:0.5px;">🇿🇦 ${holidayName}</span></td>`
+        ?`<td class="dc" title="${holidayName}"><span style="color:var(--accent);font-weight:700;">${dl}</span><br><span style="font-size:11px;color:#8ab820;letter-spacing:0.5px;">🇿🇦 ${holidayName}</span></td>`
         :`<td class="dc">${dl}</td>`;
       tr.innerHTML=`${dayCell}${PASSENGERS.map(p=>{
         const mk2=ds.slice(0,7);
@@ -514,7 +514,7 @@ function renderCarpool(){
           if(amt > 0)              val = String(amt) + (paid ? '_paid' : '_unpaid');
           else if(amt===0)         val = '0_present';
         }
-        const selStyle='background:#111;border:1px solid #333;color:#efefef;font-family:"DM Mono",monospace;font-size:11px;border-radius:4px;padding:5px 4px;width:90px;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;text-align:center;';
+        const selStyle='background:#111;border:1px solid #333;color:#efefef;font-family:"DM Mono",monospace;font-size:11px;border-radius:6px;padding:5px 4px;width:90px;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;text-align:center;';
         // Per-passenger dropdown values. Each passenger has their own
         // defaultAmt (full-day rate). Half-day = round(defaultAmt / 2).
         // The global Carpool Tariff is only a fallback when a passenger
@@ -555,9 +555,9 @@ function renderCarpool(){
           <option value="absent"   ${val==='absent'   ?'selected':''} style="background:#111;color:var(--muted)">— Absent</option>
           ${extraHistOption}
           <option value="${fullUnpaidV}" ${val===fullUnpaidV?'selected':''} style="background:#1e1400;color:#f2a830">R${fullVal} ⏳</option>
-          <option value="${fullPaidV}"   ${val===fullPaidV  ?'selected':''} style="background:#1a2e00;color:#c8f230">R${fullVal} ✓</option>
+          <option value="${fullPaidV}"   ${val===fullPaidV  ?'selected':''} style="background:#1a2e00;color:var(--accent)">R${fullVal} ✓</option>
           <option value="${halfUnpaidV}" ${val===halfUnpaidV?'selected':''} style="background:#1e1400;color:#f2a830">R${halfVal} ⏳</option>
-          <option value="${halfPaidV}"   ${val===halfPaidV  ?'selected':''} style="background:#1a2e00;color:#c8f230">R${halfVal} ✓</option>
+          <option value="${halfPaidV}"   ${val===halfPaidV  ?'selected':''} style="background:#1a2e00;color:var(--accent)">R${halfVal} ✓</option>
           <option value="0_present"${val==='0_present'?'selected':''} style="background:#222;color:var(--muted)">R0</option>
         </select></td>`;
       }).join('')}<td class="tc">${tot>0?fmtR(tot):'<span style="color:var(--muted2)">—</span>'}</td><td class="nc"><input class="notes-inp" placeholder="notes..." value="${(dd.notes||'').replace(/"/g,'&quot;')}" data-date="${ds}" onchange="setNote(this)"/></td>`;
@@ -566,7 +566,7 @@ function renderCarpool(){
     // v151o: per-passenger week totals under Friday (quick glance; same passengerAmt as the header total)
     const _wkP=PASSENGERS.map(p=>{let t=0;wd.forEach(d=>{const ds=localDateStr(d);const dd=cpData[mk]&&cpData[mk][ds];if(dd&&typeof dd==='object')t+=passengerAmt(dd,p);});return t;});
     const tf=document.createElement('tfoot');
-    tf.innerHTML=`<tr style="border-top:2px solid var(--border);"><td class="dc" style="font-weight:700;color:#c8f230;">Total</td>${_wkP.map(t=>`<td><input readonly tabindex="-1" value="${t>0?fmtR(t):'—'}" style="background:transparent;border:1px solid transparent;color:${t>0?'#efefef':'#555'};font-family:'DM Mono',monospace;font-size:11px;font-weight:700;border-radius:4px;padding:5px 4px;width:90px;text-align:center;outline:none;pointer-events:none;"></td>`).join('')}<td class="tc" style="font-weight:700;color:#c8f230;">${fmtR(wkTotal)}</td><td class="nc"></td></tr>`;
+    tf.innerHTML=`<tr style="border-top:2px solid var(--border);"><td class="dc" style="font-weight:700;color:var(--accent);">Total</td>${_wkP.map(t=>`<td><input readonly tabindex="-1" value="${t>0?fmtR(t):'—'}" style="background:transparent;border:1px solid transparent;color:${t>0?'#efefef':'#555'};font-family:'DM Mono',monospace;font-size:11px;font-weight:700;border-radius:6px;padding:5px 4px;width:90px;text-align:center;outline:none;pointer-events:none;"></td>`).join('')}<td class="tc" style="font-weight:700;color:var(--accent);">${fmtR(wkTotal)}</td><td class="nc"></td></tr>`;
     tbody.parentNode.appendChild(tf);
   });
   // Style all selects after render
@@ -943,11 +943,11 @@ function _generateStatementsWork(){
 
     // Breakdown footer — always shows trips section; borrow section only if borrows exist
     const breakdownHtml='<div style="padding:8px 12px;border-top:1px solid #1e3a00;background:#0a1500;font-size:11px;display:flex;flex-direction:column;gap:3px;">'
-      +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Total Trips</span><span style="color:#c8f230;">'+fmtR(tripTotal)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Total Trips</span><span style="color:var(--accent);">'+fmtR(tripTotal)+'</span></div>'
       +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Trips Paid</span><span style="color:var(--text);">'+fmtR(tripPaid)+'</span></div>'
       +(tripOwing>0
         ?'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:2px;"><span style="color:#f2a830;letter-spacing:1px;text-transform:uppercase;">Trips Outstanding</span><span style="color:#f2a830;font-weight:700;">'+fmtR(tripOwing)+'</span></div>'
-        :'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:2px;"><span style="color:#c8f230;letter-spacing:1px;text-transform:uppercase;">Trips</span><span style="color:#c8f230;font-weight:700;">All settled ✓</span></div>'
+        :'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:2px;"><span style="color:var(--accent);letter-spacing:1px;text-transform:uppercase;">Trips</span><span style="color:var(--accent);font-weight:700;">All settled ✓</span></div>'
       )
       +(borrowTotal>0
         ?'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:4px;"><span style="color:#6b4fa8;">Borrowed</span><span style="color:#a78bfa;">'+fmtR(borrowTotal)+'</span></div>'
@@ -1002,9 +1002,9 @@ function _generateStatementsWork(){
         ?'<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#0d1a00;border-top:1px solid #2a4a00;">'
           +'<div><div style="font-size:11px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">Total Outstanding</div>'
           +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:20px;color:#f2a830;">'+fmtR(totalOwing)+'</div>'+(creditApplied>0?'<div style="font-size:11px;color:#7090f0;margin-top:2px;">'+fmtR(grossOwing)+' − '+fmtR(creditApplied)+' credit</div>':'')+'</div>'
-          +'<button onclick="openPayDestModal(this)" style="padding:10px 16px;background:#c8f230;border:none;border-radius:8px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💳 Mark Paid →</button>'
+          +'<button onclick="openPayDestModal(this)" style="padding:10px 16px;background:var(--accent);border:none;border-radius:10px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💳 Mark Paid →</button>'
         +'</div>'
-        :'<div style="padding:10px 12px;background:#0a1500;border-top:1px solid #1e3a00;font-size:11px;color:#c8f230;text-align:center;">✅ All settled</div>'
+        :'<div style="padding:10px 12px;background:#0a1500;border-top:1px solid #1e3a00;font-size:11px;color:var(--accent);text-align:center;">✅ All settled</div>'
       )
       +'<div class="stmt-btns">'
       +'<button class="stmt-btn btn-copy" id="pdf_'+cardId+'" onclick="genPDF(this)">📄 Export</button>'
@@ -1022,7 +1022,7 @@ function _generateStatementsWork(){
   const gtCard=document.createElement('div');
   gtCard.style.cssText='background:#111;border:1px solid #2a4a00;border-radius:6px;padding:14px 16px;margin-top:4px;';
   const gtRows=passengerTotals.map(function(p){return '<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px"><span style="color:var(--muted)">'+p.name+'</span><span style="color:var(--text)">'+fmtR(p.total)+'</span></div>';}).join('');
-  gtCard.innerHTML='<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Total — '+from+' to '+to+'</div>'+gtRows+'<div style="border-top:1px solid #2a2a2a;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;"><span style="color:var(--text);font-size:12px;font-weight:500">Grand Total</span><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#c8f230">'+fmtR(grandTotal)+'</span></div>';
+  gtCard.innerHTML='<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Total — '+from+' to '+to+'</div>'+gtRows+'<div style="border-top:1px solid #2a2a2a;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;"><span style="color:var(--text);font-size:12px;font-weight:500">Grand Total</span><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:var(--accent)">'+fmtR(grandTotal)+'</span></div>';
   container.appendChild(gtCard);
 
   document.getElementById('stmtArea').style.display='block';
@@ -1253,7 +1253,7 @@ function openPayDestModal(btn){
       if(chosenCard && fundOptionEls[chosenCard.pocketId]){
         var hint = document.createElement('div');
         hint.id = 'payDestPlanHint';
-        hint.style.cssText = 'background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#c8f230;letter-spacing:0.5px;';
+        hint.style.cssText = 'background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--accent);letter-spacing:0.5px;';
         hint.textContent = 'PLAN — '+fmtR(chosenLeft)+' left on '+chosenCard.label+' this '+(_cyc?'cycle':'month')+'. Change only if you need to.';
         optionsEl.parentNode.insertBefore(hint, optionsEl);
         selectDestOption(fundOptionEls[chosenCard.pocketId]);
@@ -1288,7 +1288,7 @@ function buildDestOption(value, label, sub, color){
   const div = document.createElement('div');
   div.dataset.value = value;
   div.onclick = function(){ selectDestOption(div); };
-  div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;';
+  div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;';
   div.innerHTML =
     '<div style="width:14px;height:14px;border-radius:50%;border:2px solid '+color+';flex-shrink:0;" class="dest-radio"></div>'
     +'<div style="flex:1;">'
@@ -1466,7 +1466,7 @@ function confirmPayDest(){
     // For split, just close and let user manually deposit — show a toast guide
     closeModal('payDestModal');
     const toast = document.createElement('div');
-    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d1228;border:1px solid #7090f0;border-radius:8px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#7090f0;letter-spacing:1px;text-align:center;max-width:300px;';
+    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d1228;border:1px solid #7090f0;border-radius:10px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#7090f0;letter-spacing:1px;text-align:center;max-width:300px;';
     toast.textContent = 'Trips & borrows marked paid. Manually deposit '+fmtR(totalOwing)+' across your chosen funds.';
     document.body.appendChild(toast);
     setTimeout(function(){ toast.remove(); }, 5000);
@@ -1552,7 +1552,7 @@ function confirmPayDest(){
   } catch(e){ console.warn('[Plan] post-confirm feedback skipped:', e.message); }
 
   const toast = document.createElement('div');
-  toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d1a00;border:1px solid #c8f230;border-radius:8px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:#c8f230;letter-spacing:1px;white-space:nowrap;';
+  toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d1a00;border:1px solid var(--accent);border-radius:10px;padding:12px 20px;z-index:9999;font-family:DM Mono,monospace;font-size:11px;color:var(--accent);letter-spacing:1px;white-space:nowrap;';
   toast.textContent = choice === 'credit'
     ? '✓ '+passenger+' '+destName+' ('+fmtR(creditApplied)+')'
     : '✓ '+fmtR(totalOwing)+' from '+passenger+' → '+destName+planFeedback+(creditApplied>0?' · '+fmtR(creditApplied)+' credit applied':'');
@@ -1911,7 +1911,7 @@ function renderReports(){
       const deposited = fundDepositedInPeriod(f, months);
       return '<div class="rpt-row" style="grid-template-columns:1.5fr 1fr 1fr 1fr">'
         + '<span style="color:var(--muted)">' + f.emoji + ' ' + f.name + '</span>'
-        + '<span style="color:#c8f230" title="Balance at end of '+period.label+'">' + fmtR(a) + '</span>'
+        + '<span style="color:var(--accent)" title="Balance at end of '+period.label+'">' + fmtR(a) + '</span>'
         + '<span style="color:var(--muted)" title="Balance at end of '+prevPeriod.label+'">' + fmtR(b) + '</span>'
         + '<span style="color:' + d.color + ';font-weight:500">' + d.text + (pctStr ? ' <span style="font-size:11px;opacity:.7">('+pctStr+')</span>' : '') + '</span>'
         + '</div>';
@@ -2011,7 +2011,7 @@ function renderReports(){
       const pct  = fmtDeltaPct(cur, prev);
       return '<div class="rpt-row" style="grid-template-columns:1.2fr 1fr 1fr 1fr">'
         + '<span style="color:var(--muted)">' + p + '</span>'
-        + '<span style="color:#c8f230">' + fmtR(cur) + '</span>'
+        + '<span style="color:var(--accent)">' + fmtR(cur) + '</span>'
         + '<span style="color:var(--muted)">' + fmtR(prev) + '</span>'
         + '<span style="color:' + d.color + ';font-weight:500">' + d.text + (pct ? ' <span style="font-size:11px;opacity:.7">(' + pct + ')</span>' : '') + '</span>'
         + '</div>';
@@ -2058,7 +2058,7 @@ function renderReports(){
     document.getElementById('rptCarpoolOwing').textContent=fmtR(cpOwing);
     const carpoolRows=passengers.map(function(p){
       const d=paxData[p];
-      return '<div class="rpt-row" style="grid-template-columns:1.5fr 1fr 1fr 1fr"><span style="color:var(--muted)">'+p+'</span><span style="color:var(--text)">'+fmtR(d.total)+'</span><span style="color:#c8f230">'+fmtR(d.paid)+'</span><span style="color:#f2a830">'+fmtR(d.owing)+'</span></div>';
+      return '<div class="rpt-row" style="grid-template-columns:1.5fr 1fr 1fr 1fr"><span style="color:var(--muted)">'+p+'</span><span style="color:var(--text)">'+fmtR(d.total)+'</span><span style="color:var(--accent)">'+fmtR(d.paid)+'</span><span style="color:#f2a830">'+fmtR(d.owing)+'</span></div>';
     }).join('');
     document.getElementById('rptCarpoolRows').innerHTML=carpoolRows;
   }
@@ -2194,7 +2194,7 @@ function _renderNwLine(d) {
         + '<span style="font-size:11px;letter-spacing:1px;color:var(--muted);white-space:nowrap;">Monthly repayment</span>'
         + '<span style="font-size:13px;color:var(--muted);">R</span>'
         + '<input id="nwRepayInput" type="number" min="100" step="100" value="' + _defaultRepay + '"'
-        + ' style="flex:1;background:#111;border:1px solid #333;color:var(--text);font-family:DM Mono,monospace;font-size:15px;font-weight:700;padding:6px 10px;border-radius:4px;outline:none;"'
+        + ' style="flex:1;background:#111;border:1px solid #333;color:var(--text);font-family:DM Mono,monospace;font-size:15px;font-weight:700;padding:6px 10px;border-radius:6px;outline:none;"'
         + ' onchange="_nwRepayChanged(this.value)" onblur="_nwRepayChanged(this.value)" /></div>'
         + '<div id="nwPayoffLabel" style="padding:7px 14px;background:var(--surface2);border-radius:0 0 6px 6px;border:1px solid var(--border);border-top:none;font-size:11px;color:#5a8800;letter-spacing:1px;min-height:28px;"></div>';
       _lineWrap.insertBefore(_sw, _lineWrap.firstChild);
@@ -2338,7 +2338,7 @@ function renderNetWorth() {
   var nwAssetRowsEl = document.getElementById('nwAssetRows');
   if (nwAssetRowsEl) {
     nwAssetRowsEl.innerHTML = assetRows.length
-      ? assetRows.map(function(r) { return '<div class="rpt-row" style="grid-template-columns:2fr 1fr"><span style="color:var(--muted)">' + r.label + '</span><span style="color:#c8f230;font-weight:500">' + fmtR(r.amount) + '</span></div>'; }).join('')
+      ? assetRows.map(function(r) { return '<div class="rpt-row" style="grid-template-columns:2fr 1fr"><span style="color:var(--muted)">' + r.label + '</span><span style="color:var(--accent);font-weight:500">' + fmtR(r.amount) + '</span></div>'; }).join('')
       : '<div style="padding:14px;color:var(--muted);font-size:12px">No pockets found</div>';
   }
 
@@ -2479,7 +2479,7 @@ function renderCarpoolChart() {
   const legend = document.getElementById('cpChartLegend');
   if(legend){
     legend.innerHTML = PASSENGER_DATA.map(function(p){
-      return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+(p.color||'#c8f230')+'"></span>'+p.name+'</div>';
+      return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><span style="display:inline-block;width:10px;height:10px;border-radius:6px;background:'+(p.color||'#c8f230')+'"></span>'+p.name+'</div>';
     }).join('');
   }
 
@@ -2907,7 +2907,7 @@ function renderCarpoolMoneySummary(){
     var dot = out > 0.004 ? (days > 7 ? '#f23060' : '#f2a830') : '#c8f230';
     // v152h: show the date of the oldest unpaid trip, not a day count
     var sub = out > 0.004 ? ('since ' + new Date(P.oldest+'T00:00:00').toLocaleDateString('en-ZA',{weekday:'short',day:'numeric'}))
-            : (cr > 0.004 ? '<span style="color:#c8f230">' + _cpmMoney(cr) + ' credit</span>' : 'paid up');
+            : (cr > 0.004 ? '<span style="color:var(--accent)">' + _cpmMoney(cr) + ' credit</span>' : 'paid up');
     if(ahead > 0.004) sub += ' · +' + _cpmMoney(ahead) + ' ahead';
     var open = _cpOweOpen === p;
     var pj = _cpmEsc(p).replace(/'/g, "\\'");
@@ -2923,17 +2923,17 @@ function renderCarpoolMoneySummary(){
       + '</div>';
   }).join('');
   host.innerHTML =
-    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:14px;overflow:hidden">'
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden">'
     +'<div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 12px 8px"><span style="font-family:Syne,sans-serif;font-weight:800;font-size:15px">Who owes me</span><span style="font-size:13px;font-weight:700;color:' + (dueTotal > 0.004 ? '#f2a830' : '#c8f230') + '">' + _cpmMoney(dueTotal) + ' due</span></div>'
     + oweRows
     +'<details style="border-top:1px solid var(--border);padding:10px 12px"' + (_cpDetailsOpen ? ' open' : '') + ' ontoggle="_cpDetailsOpen=this.open">'
     +'<summary style="font-size:11px;color:var(--muted);cursor:pointer;letter-spacing:1px">Month details · ' + label + '</summary>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 10px">'
       +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Earned</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:2px">'+_cpmMoney(r.earned)+'</div><div style="font-size:11px;color:var(--muted);margin-top:2px">trips this month</div></div>'
-      +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Paid</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:#c8f230;margin-top:2px">'+_cpmMoney(r.paid)+'</div><div style="font-size:11px;color:var(--muted);margin-top:2px">of those trips</div></div>'
+      +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Paid</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:var(--accent);margin-top:2px">'+_cpmMoney(r.paid)+'</div><div style="font-size:11px;color:var(--muted);margin-top:2px">of those trips</div></div>'
     +'</div>'
     +'<div style="font-size:11px;color:#a87a30;margin-bottom:10px">Outstanding: this month '+_cpmMoney(r.outMonth)+' + other months '+_cpmMoney(r.outOther)+'</div>'
-    +'<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:2px">By person</div>'
+    +'<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:2px">By person</div>'
     + rows
     + _cpmCashHtml(computeCarpoolCashSplit(mk))
     +'</details>'
@@ -3257,13 +3257,13 @@ function renderMonthlyReportControls(){
   var months = Object.keys(seen).sort().reverse();
   var prev = document.getElementById('mrMonthSel') ? document.getElementById('mrMonthSel').value : '';
   host.innerHTML =
-    '<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Monthly money report</div>'
+    '<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Monthly money report</div>'
     +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Every rand in and out of your pockets for the month, with opening, closing and an Unaccounted check.</div>'
     +'<div style="display:flex;gap:8px">'
-    +'<select id="mrMonthSel" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:\'DM Mono\',monospace;font-size:12px;padding:10px;border-radius:4px">'
+    +'<select id="mrMonthSel" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:\'DM Mono\',monospace;font-size:12px;padding:10px;border-radius:6px">'
     + months.map(function(m){ return '<option value="'+m+'"'+(m===prev?' selected':'')+'>'+_mrMonthLabel(m)+'</option>'; }).join('')
     +'</select>'
-    +'<button onclick="exportMonthlyPdf()" class="rpt-export-btn" style="background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;padding:10px 16px;white-space:nowrap">📄 Export PDF</button>'
+    +'<button onclick="exportMonthlyPdf()" class="rpt-export-btn" style="background:#1a2e00;color:var(--accent);border:1px solid #3a5a00;padding:10px 16px;white-space:nowrap">📄 Export PDF</button>'
     +'</div>';
 }
 
@@ -3390,11 +3390,11 @@ function renderCpToday(){
     var c = _cpTodayPick.p[p]; if(c.on) tot += c.amt;
     return '<span class="cp-today-chip' + (c.on ? ' on' : '') + '" onclick="cpTodayChip(\'' + _cpmEsc(p).replace(/'/g, "\\'") + '\')">' + _cpmEsc(p) + ' ' + fmtR(c.amt) + '</span>';
   }).join('');
-  host.innerHTML = '<div style="background:var(--surface);border:1px solid #4a3000;border-radius:8px;padding:12px;margin-bottom:14px">'
+  host.innerHTML = '<div style="background:var(--surface);border:1px solid #4a3000;border-radius:10px;padding:12px;margin-bottom:14px">'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><span style="font-family:Syne,sans-serif;font-weight:800;font-size:15px">Today · ' + lbl + '</span><span style="font-size:11px;color:var(--muted)">same as usual?</span></div>'
     + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">' + chips + '</div>'
     + '<div style="display:flex;gap:8px;align-items:center">'
-    + '<button onclick="cpTodayConfirm()" style="background:#c8f230;border:none;border-radius:6px;padding:9px 14px;font-family:\'DM Mono\',monospace;font-size:11px;font-weight:700;cursor:pointer;color:#000">Log it · ' + fmtR(tot) + ' unpaid</button>'
+    + '<button onclick="cpTodayConfirm()" style="background:var(--accent);border:none;border-radius:6px;padding:9px 14px;font-family:\'DM Mono\',monospace;font-size:11px;font-weight:700;cursor:pointer;color:#000">Log it · ' + fmtR(tot) + ' unpaid</button>'
     + '<button onclick="cpTodaySkip()" style="background:transparent;border:1px solid var(--border);border-radius:6px;padding:9px 14px;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;color:var(--muted)">No carpool today</button>'
     + '</div><div style="font-size:11px;color:var(--muted);margin-top:8px">Tap a name to add or remove them. Half days: change it in the week below after.</div></div>';
 }

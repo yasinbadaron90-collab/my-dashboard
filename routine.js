@@ -81,14 +81,14 @@ function _routineSpendConfirm(task, pocket){
     '<div style="background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:22px 22px 18px;max-width:380px;width:100%;">'
       +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:17px;color:var(--text);margin-bottom:4px;">'+task.emoji+' '+task.name+'</div>'
       +'<div style="font-size:12px;color:#888;margin-bottom:18px;line-height:1.5;">Mark this done — log a Spend?</div>'
-      +'<div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;padding:14px 16px;">'
+      +'<div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:14px 16px;">'
         +'<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Amount</div>'
-        +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:24px;color:#c8f230;">'+amtStr+'</div>'
+        +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:24px;color:var(--accent);">'+amtStr+'</div>'
         +'<div style="font-size:11px;color:#888;margin-top:2px;">from '+pocketLabel+'</div>'
       +'</div>'
       +'<div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">'
-        +'<button id="rsYes" style="background:#1a2e00;border:1px solid #c8f230;border-radius:8px;padding:13px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">✓ Yes — log '+amtStr+' spend</button>'
-        +'<button id="rsNo" style="background:#0a0a0a;border:1px solid #444;border-radius:8px;padding:13px;color:#888;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Just mark done — no spend this time</button>'
+        +'<button id="rsYes" style="background:#1a2e00;border:1px solid var(--accent);border-radius:10px;padding:13px;color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">✓ Yes — log '+amtStr+' spend</button>'
+        +'<button id="rsNo" style="background:#0a0a0a;border:1px solid #444;border-radius:10px;padding:13px;color:#888;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Just mark done — no spend this time</button>'
         +'<button id="rsCancel" style="background:none;border:none;padding:6px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;letter-spacing:1px;">Cancel</button>'
       +'</div>'
     +'</div>';
@@ -191,9 +191,9 @@ function openAddRoutineTask(editId){
         +'</div>'
       +'</div>'
       +'<div style="display:flex;gap:8px;padding:12px 20px 20px;">'
-        +'<button id="rtSaveBtn" style="flex:1;background:#1a2e00;border:1px solid #3a5a00;border-radius:8px;padding:12px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Save</button>'
-        +(existing?'<button id="rtDeleteBtn" style="background:none;border:1px solid #2a1a1a;border-radius:8px;padding:12px 14px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Delete</button>':'')
-        +'<button id="rtCancelBtn" style="background:none;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">Cancel</button>'
+        +'<button id="rtSaveBtn" style="flex:1;background:#1a2e00;border:1px solid #3a5a00;border-radius:10px;padding:12px;color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Save</button>'
+        +(existing?'<button id="rtDeleteBtn" style="background:none;border:1px solid #2a1a1a;border-radius:10px;padding:12px 14px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">Delete</button>':'')
+        +'<button id="rtCancelBtn" style="background:none;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;">Cancel</button>'
       +'</div>'
     +'</div>';
 
@@ -329,14 +329,14 @@ function renderRoutine(){
             +(lastDoneStr?'<div style="font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;">'+lastDoneStr+'</div>':'')
           +'</div>'
           +'<div style="display:flex;gap:6px;flex-shrink:0;">'
-            +'<button onclick="markRoutineDone(\''+task.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;width:34px;height:34px;cursor:pointer;font-size:16px;color:#c8f230;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'" title="Mark as done">✓</button>'
+            +'<button onclick="markRoutineDone(\''+task.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;width:34px;height:34px;cursor:pointer;font-size:16px;color:var(--accent);display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'" title="Mark as done">✓</button>'
             +'<button onclick="openAddRoutineTask(\''+task.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:34px;height:34px;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.borderColor=\'#444\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'" title="Edit">✎</button>'
           +'</div>'
         +'</div>'
         // Progress bar
         +'<div style="padding:0 16px 14px;">'
-          +'<div style="height:4px;background:#1a1a1a;border-radius:2px;overflow:hidden;">'
-            +'<div style="height:100%;width:'+Math.min(progressPct,100)+'%;background:'+progColor+';border-radius:2px;transition:width .5s cubic-bezier(.16,1,.3,1);"></div>'
+          +'<div style="height:4px;background:#1a1a1a;border-radius:6px;overflow:hidden;">'
+            +'<div style="height:100%;width:'+Math.min(progressPct,100)+'%;background:'+progColor+';border-radius:6px;transition:width .5s cubic-bezier(.16,1,.3,1);"></div>'
           +'</div>'
         +'</div>'
       +'</div>';
@@ -481,7 +481,7 @@ function renderPriorityList(){
     div.setAttribute('ondragstart','prDragStart(event)');
     div.setAttribute('ondragover','prDragOver(event)');
     div.setAttribute('ondrop','prDrop(event)');
-    div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 14px;background:#111;border:1px solid '+(rule.enabled?rule.color+'55':'#2a2a2a')+';border-radius:8px '+(TARGETABLE_RULES.indexOf(rule.id)>-1?'8px 0 0':'8px')+';cursor:grab;transition:border-color .2s;';
+    div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 14px;background:#111;border:1px solid '+(rule.enabled?rule.color+'55':'#2a2a2a')+';border-radius:10px '+(TARGETABLE_RULES.indexOf(rule.id)>-1?'8px 0 0':'8px')+';cursor:grab;transition:border-color .2s;';
 
     var grip = document.createElement('span');
     grip.style.cssText = 'color:var(--muted);font-size:16px;cursor:grab;user-select:none;';
@@ -505,7 +505,7 @@ function renderPriorityList(){
     info.appendChild(desc);
 
     var badge = document.createElement('span');
-    badge.style.cssText = 'background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:3px 10px;font-family:DM Mono,monospace;font-size:11px;color:'+rule.color+';flex-shrink:0;';
+    badge.style.cssText = 'background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:3px 10px;font-family:DM Mono,monospace;font-size:11px;color:'+rule.color+';flex-shrink:0;';
     badge.textContent = '#'+rule.priority;
 
     div.appendChild(grip);
@@ -524,7 +524,7 @@ function renderPriorityList(){
       targetLabel.textContent = 'Target:';
 
       var sel = document.createElement('select');
-      sel.style.cssText = 'flex:1;background:#111;border:1px solid #2a2a2a;border-radius:4px;color:#efefef;padding:4px 8px;font-family:DM Mono,monospace;font-size:11px;';
+      sel.style.cssText = 'flex:1;background:#111;border:1px solid #2a2a2a;border-radius:6px;color:#efefef;padding:4px 8px;font-family:DM Mono,monospace;font-size:11px;';
 
       var opts = getPriorityTargetOptions(rule.id);
       opts.forEach(function(opt){

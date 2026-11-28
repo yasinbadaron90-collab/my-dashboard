@@ -149,12 +149,12 @@ function showStorageError(reason){
 
   var toast = document.createElement('div');
   toast.id = 'storageErrorToast';
-  toast.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:99999;background:#1a0a0a;border:1px solid #5a1010;border-radius:8px;padding:14px 16px;max-width:340px;width:calc(100% - 40px);box-shadow:0 4px 20px rgba(0,0,0,0.6);font-family:DM Mono,monospace;color:#efefef;';
+  toast.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:99999;background:#1a0a0a;border:1px solid #5a1010;border-radius:10px;padding:14px 16px;max-width:340px;width:calc(100% - 40px);box-shadow:0 4px 20px rgba(0,0,0,0.6);font-family:DM Mono,monospace;color:#efefef;';
   toast.innerHTML =
     '<div style="font-size:13px;font-weight:700;color:#f23060;margin-bottom:6px;">'+msg+'</div>'
     + '<div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:12px;letter-spacing:0.5px;">'+hint+'</div>'
     + '<div style="display:flex;gap:6px;">'
-    +   '<button id="storageErrorBackupBtn" style="flex:1;padding:9px 10px;background:#c8f230;border:none;border-radius:5px;color:#000;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">Download Backup</button>'
+    +   '<button id="storageErrorBackupBtn" style="flex:1;padding:9px 10px;background:var(--accent);border:none;border-radius:5px;color:#000;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">Download Backup</button>'
     +   '<button id="storageErrorDismissBtn" style="padding:9px 12px;background:none;border:1px solid #2a2a2a;border-radius:5px;color:var(--muted);font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Dismiss</button>'
     + '</div>';
   document.body.appendChild(toast);
@@ -248,7 +248,7 @@ function softDeleteToast(opts){
     +   '<div style="font-size:12px;color:var(--text);letter-spacing:0.3px;">Deleted '+escHtml(label)+'</div>'
     +   '<div style="font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;" id="softDeleteCountdown">'+(ms/1000)+'s to undo</div>'
     + '</div>'
-    + '<button id="softDeleteUndoBtn" style="flex-shrink:0;background:#c8f230;border:none;color:#000;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:8px 14px;border-radius:5px;cursor:pointer;font-weight:700;">Undo</button>';
+    + '<button id="softDeleteUndoBtn" style="flex-shrink:0;background:var(--accent);border:none;color:#000;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:8px 14px;border-radius:5px;cursor:pointer;font-weight:700;">Undo</button>';
 
   // Once-only animation styles
   if(!document.getElementById('softDeleteAnimStyle')){
@@ -323,7 +323,7 @@ function _ensureSpinnerEl(){
   el.id = 'ybSpinnerOverlay';
   el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(2px);';
   el.innerHTML = '<div style="background:#0d0d0d;border:1px solid #2a2a2a;border-radius:12px;padding:24px 32px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:200px;max-width:80vw;">'
-    + '<div style="width:32px;height:32px;border:3px solid #1a2e00;border-top-color:#c8f230;border-radius:50%;animation:ybSpin 0.8s linear infinite;"></div>'
+    + '<div style="width:32px;height:32px;border:3px solid #1a2e00;border-top-color:var(--accent);border-radius:50%;animation:ybSpin 0.8s linear infinite;"></div>'
     + '<div id="ybSpinnerMsg" style="font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;color:var(--muted);text-align:center;line-height:1.5;">Working…</div>'
     + '</div>';
   document.body.appendChild(el);
@@ -403,7 +403,7 @@ function buildEmptyState(opts){
     html += '<div style="font-size:11px;color:var(--muted);letter-spacing:0.5px;margin-top:6px;line-height:1.5;">'+_eEsc(subtitle)+'</div>';
   }
   if(ctaLabel && ctaClick){
-    html += '<button onclick="'+ctaClick+'" style="margin-top:'+(compact?'10':'16')+'px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 18px;color:#c8f230;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">'+_eEsc(ctaLabel)+'</button>';
+    html += '<button onclick="'+ctaClick+'" style="margin-top:'+(compact?'10':'16')+'px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 18px;color:var(--accent);font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">'+_eEsc(ctaLabel)+'</button>';
   }
   html += '</div>';
   return html;
@@ -691,7 +691,7 @@ function buildResultsPDF(){
   var toast = document.createElement('div');
   toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #3a5a00;border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 24px rgba(0,0,0,.5);min-width:240px;';
   toast.innerHTML =
-    '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:#c8f230;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
+    '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
     +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:var(--text);">Generating PDF...</div>'
     +'<div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;">'+yearData.year+' · Yasin Badaron</div></div>';
   if(!document.getElementById('spinStyle')){
@@ -823,8 +823,8 @@ function buildResultsPDF(){
   // Update toast
   setTimeout(function(){
     toast.innerHTML =
-      '<div style="width:18px;height:18px;background:#1a2e00;border:2px solid #3a5a00;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color:#c8f230;">✓</div>'
-      +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:#c8f230;">PDF Downloaded!</div>'
+      '<div style="width:18px;height:18px;background:#1a2e00;border:2px solid #3a5a00;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color:var(--accent);">✓</div>'
+      +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:var(--accent);">PDF Downloaded!</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;">Saved to your Downloads folder</div></div>';
     toast.style.borderColor = '#3a5a00';
     setTimeout(function(){
@@ -1167,12 +1167,12 @@ function loadFuelReport() {
           '<div style="display:grid;grid-template-columns:1.2fr 0.8fr 1fr 1fr 1fr;font-size:11px;align-items:center;margin-bottom:5px;">'
           +'<span style="color:var(--muted)">'+d.ds+'</span>'
           +'<span style="color:var(--muted);text-align:center;">'+paxStr+'</span>'
-          +'<span style="color:#c8f230;text-align:right;">'+fmtR(Math.round(d.income))+'</span>'
+          +'<span style="color:var(--accent);text-align:right;">'+fmtR(Math.round(d.income))+'</span>'
           +'<span style="color:#f2a830;text-align:right;">'+fmtR(Math.round(dailyFuelCost))+'</span>'
           +'<span style="color:'+dColor+';font-weight:700;text-align:right;">'+pctLabel+'</span>'
           +'</div>'
-          +'<div style="height:3px;background:#1a1a1a;border-radius:2px;overflow:hidden;">'
-          +'<div style="height:100%;width:'+pct+'%;background:'+dColor+';border-radius:2px;transition:width .5s;box-shadow:0 0 6px '+dColor+'44;"></div>'
+          +'<div style="height:3px;background:#1a1a1a;border-radius:6px;overflow:hidden;">'
+          +'<div style="height:100%;width:'+pct+'%;background:'+dColor+';border-radius:6px;transition:width .5s;box-shadow:0 0 6px '+dColor+'44;"></div>'
           +'</div>';
         plRowsEl.appendChild(row);
       });
@@ -1187,11 +1187,11 @@ function loadFuelReport() {
       var total_trips = s.trips + s.absent;
       var attendance  = total_trips > 0 ? Math.round((s.trips/total_trips)*100) : 0;
       var card = document.createElement('div');
-      card.style.cssText = 'background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:8px;';
+      card.style.cssText = 'background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:10px;';
       card.innerHTML =
         '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--text);margin-bottom:8px;">'+p+'</div>'
         +'<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Saved you</div>'
-        +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;color:#c8f230;margin-bottom:8px;">'+fmtR(s.income)+'</div>'
+        +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;color:var(--accent);margin-bottom:8px;">'+fmtR(s.income)+'</div>'
         +'<div style="font-size:11px;color:var(--muted);">'+s.trips+' trips &nbsp;·&nbsp; '+attendance+'% attendance</div>';
       plPassCardsEl.appendChild(card);
     });

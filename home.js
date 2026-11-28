@@ -412,11 +412,11 @@ function _planWifeCardHtml(plan, cyc, cardBox, secHdr){
     Object.keys(d.pockets).forEach(function(nm){ body += row('From '+escHtml(nm), fmtR(d.pockets[nm])); });
   } else {
     var pct = (d.house + d.subsTotal) > 0 ? (d.subsTotal / (d.house + d.subsTotal)) * 100 : 0;
-    body += '<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:#2a2a2a;margin-bottom:12px;">'
+    body += '<div style="display:flex;height:8px;border-radius:6px;overflow:hidden;background:#2a2a2a;margin-bottom:12px;">'
       + '<div style="width:'+(100-pct)+'%;background:'+L+';"></div><div style="width:'+pct+'%;background:'+A+';"></div></div>';
-    body += '<div style="background:#111a00;border:1px solid #3a5a00;border-radius:8px;padding:8px 12px;margin-bottom:8px;">'
+    body += '<div style="background:#111a00;border:1px solid #3a5a00;border-radius:10px;padding:8px 12px;margin-bottom:8px;">'
       + row('⌂ House', fmtR(d.house), L) + '</div>';
-    body += '<div style="background:#1a1200;border:1px solid #5a3a00;border-radius:8px;padding:8px 12px;">';
+    body += '<div style="background:#1a1200;border:1px solid #5a3a00;border-radius:10px;padding:8px 12px;">';
     if(d.subs.length){
       body += row('🔒 Subscriptions', fmtR(d.subsTotal), A);
       d.subs.forEach(function(s){
@@ -475,7 +475,7 @@ function renderPlan(){
   rowsTodo.sort(function(a,b){ return b.left - a.left; });
   var rowDetail = function(r){
     if(!_planOpenRows[r.key]) return '';
-    return '<div style="font-size:11px;color:#aaa;margin-top:8px;padding:8px 10px;background:#222;border-radius:8px;line-height:1.7;">'
+    return '<div style="font-size:11px;color:#aaa;margin-top:8px;padding:8px 10px;background:#222;border-radius:10px;line-height:1.7;">'
       + 'Balance <b style="color:#efefef;">'+fmtR(r.bal)+'</b>'
       + (r.target>0 ? '<br>Goal '+fmtR(r.target)+' · '+r.pct.toFixed(1)+'% · '+(r.toGo>0 ? fmtR(r.toGo)+' to go' : 'Target reached') : '<br>No target set')
       + '</div>';
@@ -484,7 +484,7 @@ function renderPlan(){
     var mp = Math.max(0, Math.min(100, (r.rt/r.monthly)*100));
     return '<div style="display:block;width:100%;box-sizing:border-box;padding:12px 0;border-bottom:1px solid #2a2a2a;cursor:pointer;" onclick="planToggleRow(\''+r.key+'\')">'
       + '<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-size:14px;color:#efefef;">'+r.label+'</span><span style="font-size:13px;color:'+R+';">'+fmtR(r.left)+' to add</span></div>'
-      + '<div style="height:6px;background:#2a2a2a;border-radius:3px;overflow:hidden;margin-top:6px;"><div style="width:'+mp+'%;height:100%;background:'+L+';"></div></div>'
+      + '<div style="height:6px;background:#2a2a2a;border-radius:6px;overflow:hidden;margin-top:6px;"><div style="width:'+mp+'%;height:100%;background:'+L+';"></div></div>'
       + '<div style="font-size:11px;color:'+M+';margin-top:4px;">'+fmtR(r.rt)+' of '+fmtR(r.monthly)+' saved</div>'
       + rowDetail(r) + '</div>';
   };
@@ -542,12 +542,12 @@ function renderPlan(){
       else { right = fmtR(rt)+' of '+fmtR(c.monthly)+' this cycle'+srcTag; }
     }
     var dim = (!c.monthly || c.monthly <= 0) ? 'opacity:.55;' : '';
-    stepsHtml += '<div style="display:flex;align-items:center;gap:12px;background:#222;border-radius:8px;padding:11px 12px;margin-bottom:6px;'+dim+'">'
+    stepsHtml += '<div style="display:flex;align-items:center;gap:12px;background:#222;border-radius:10px;padding:11px 12px;margin-bottom:6px;'+dim+'">'
       + '<span style="width:22px;height:22px;border-radius:50%;background:#2e2e2e;color:#efefef;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(i+1)+'</span>'
       + '<span style="flex:1;font-size:14px;color:#efefef;">'+label+'</span>'
       + '<span style="font-size:11px;color:'+rcol+';text-align:right;">'+right+'</span></div>';
   });
-  stepsHtml += '<div style="display:flex;align-items:center;gap:12px;background:'+L+';border-radius:8px;padding:11px 12px;">'
+  stepsHtml += '<div style="display:flex;align-items:center;gap:12px;background:'+L+';border-radius:10px;padding:11px 12px;">'
     + '<span style="width:22px;height:22px;border-radius:50%;background:#000;color:'+L+';font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(plan.savingsCards.length+1)+'</span>'
     + '<span style="flex:1;font-size:14px;font-weight:700;color:#000;">Everything left</span>'
     + '<span style="font-size:11px;color:#000;">your priority rules</span></div>';
@@ -577,7 +577,7 @@ function renderPlan(){
   container.innerHTML = ''
     + '<div class="home-zone">'
     +   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
-    +     '<div><div style="font-size:11px;letter-spacing:3px;color:var(--accent);">'+monthLbl+'</div>'
+    +     '<div><div style="font-size:11px;letter-spacing:1.5px;color:var(--accent);">'+monthLbl+'</div>'
     +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:30px;color:var(--text);line-height:1.1;margin-top:2px;">The plan</div>'
     +     '<div style="font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:0.5px;">'+escHtml(cycLine)+'</div></div>'
     +     '<button class="pane-toggle" onclick="togglePlanEdit()" title="Edit Plan">✎</button>'
@@ -598,7 +598,7 @@ function _planRenderEditForm(plan){
     var carpool = c.source === 'carpool';
     return ''
       + '<div class="home-plan-card" data-plan-card-box="'+i+'" style="border-left:3px solid '+(carpool?'#7090f0':'#30c8f2')+';">'
-      +   '<div style="display:flex;justify-content:flex-end;margin-bottom:4px;"><button type="button" onclick="planToggleRemoveCard('+i+')" data-remove-btn="'+i+'" style="background:none;border:1px solid #3a1a1a;border-radius:4px;color:#f23060;font-size:11px;letter-spacing:1px;padding:3px 8px;cursor:pointer;">✕ REMOVE CARD</button></div>'
+      +   '<div style="display:flex;justify-content:flex-end;margin-bottom:4px;"><button type="button" onclick="planToggleRemoveCard('+i+')" data-remove-btn="'+i+'" style="background:none;border:1px solid #3a1a1a;border-radius:6px;color:#f23060;font-size:11px;letter-spacing:1px;padding:3px 8px;cursor:pointer;">✕ REMOVE CARD</button></div>'
       +   '<div class="field"><label>Label</label><input type="text" data-plan-card="'+i+'" data-field="label" value="'+escHtml(c.label)+'"/></div>'
       +   '<div class="field"><label>Pocket</label><select data-plan-card="'+i+'" data-field="pocketId">'+_planPocketOptions(c.pocketId)+'</select></div>'
       +   '<div class="field"><label>Target (R)</label><input type="number" data-plan-card="'+i+'" data-field="target" value="'+c.target+'"/></div>'
@@ -655,7 +655,7 @@ function _planRenderEditForm(plan){
     +   '<div class="field"><label>December pay day</label><input type="number" min="1" max="31" id="planDecPayDay" value="'+(plan.decPayDay||18)+'"/>'
     +   '<div style="font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;">Christmas pay comes early. Only moves the countdown; logging the salary starts the new cycle.</div></div>'
     +   '<div class="field"><label>Notes (optional)</label><input type="text" id="planNotesInput" value="'+escHtml(plan.notes||'')+'" placeholder="e.g. reassess after provident fund payout"/></div>'
-    +   '<button onclick="savePlanFromForm()" style="width:100%;padding:12px;background:#c8f230;border:none;border-radius:6px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Plan</button>'
+    +   '<button onclick="savePlanFromForm()" style="width:100%;padding:12px;background:var(--accent);border:none;border-radius:6px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Plan</button>'
     + '</div>';
 }
 

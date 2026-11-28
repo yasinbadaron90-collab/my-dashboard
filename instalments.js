@@ -625,7 +625,7 @@ function openInstPayModal(planId, idx){
     ? '<span style="color:#f2a830;">'+fmtR(_planMonthlyTotal(plan))+'</span> &nbsp;<span style="color:var(--muted);font-size:11px;">(R'+plan.amt+' + R'+_fee+' fee)</span>'
     : '<span style="color:#f2a830;">'+fmtR(plan.amt)+'</span>';
   document.getElementById('instPayInfo').innerHTML =
-    '<strong style="color:#c8f230;">'+plan.desc+'</strong><br>'
+    '<strong style="color:var(--accent);">'+plan.desc+'</strong><br>'
     +'Payment '+(idx+1)+' of '+plan.num+' &nbsp;·&nbsp; '+_amtHtml+'<br>'
     +'Scheduled: '+formatDisplayDate(plan.dates[idx]);
 
@@ -900,7 +900,7 @@ function openInstSettleModal(planId){
     ? ' (R'+plan.amt+' principal + R'+plan.serviceFee+' fee × '+unpaidIdxs.length+' remaining)'
     : ' (R'+plan.amt+' × '+unpaidIdxs.length+' remaining)';
   document.getElementById('instSettleInfo').innerHTML =
-    '<strong style="color:#c8f230;">'+plan.desc+'</strong><br>'
+    '<strong style="color:var(--accent);">'+plan.desc+'</strong><br>'
     +'<span style="color:var(--muted);">Scheduled outstanding:</span> <span style="color:#f2a830;">'+fmtR(outstanding)+'</span>'+feeNote+'<br>'
     +'<span style="color:var(--muted);">Marking as settled:</span> '+unpaidIdxs.length+' payment'+(unpaidIdxs.length!==1?'s':'')+' (#'+(unpaidIdxs[0]+1)+'–'+(unpaidIdxs[unpaidIdxs.length-1]+1)+')';
 
@@ -1131,7 +1131,7 @@ function renderInst(){
     var first = sbOrder[0];
     var remPays = first.num - (first.paid||[]).length;
     document.getElementById('instSnowballMsg').innerHTML =
-      'Focus on clearing <strong style="color:#c8f230;">'+first.desc+'</strong> ('+(INST_PROV_ICON[first.provider]||'📄')+' '+first.provider+') first — only <strong style="color:#f2a830;">'+remPays+' payment'+(remPays!==1?'s':'')+' left</strong> ('+fmtR(remPays*first.amt)+'). Finish it, then roll that money into your next plan.';
+      'Focus on clearing <strong style="color:var(--accent);">'+first.desc+'</strong> ('+(INST_PROV_ICON[first.provider]||'📄')+' '+first.provider+') first — only <strong style="color:#f2a830;">'+remPays+' payment'+(remPays!==1?'s':'')+' left</strong> ('+fmtR(remPays*first.amt)+'). Finish it, then roll that money into your next plan.';
   } else {
     banner.style.display = 'none';
   }
@@ -1141,7 +1141,7 @@ function renderInst(){
   container.innerHTML = '';
 
   if(active.length === 0){
-    container.innerHTML = '<div style="padding:48px 16px;text-align:center;color:var(--muted);font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">No active instalment plans — tap <strong style="color:#c8f230;">+ Add Plan</strong> to get started</div>';
+    container.innerHTML = '<div style="padding:48px 16px;text-align:center;color:var(--muted);font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">No active instalment plans — tap <strong style="color:var(--accent);">+ Add Plan</strong> to get started</div>';
   } else {
     // Separate M2M (ongoing) plans from fixed-term plans
     var m2mPlans = active.filter(function(p){ return !!p.monthToMonth; });
@@ -1204,8 +1204,8 @@ function buildInstCard(plan, isTarget, isCleared){
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
           +'<span style="font-size:11px;padding:2px 9px;border-radius:100px;background:'+c.border+';color:'+c.text+';letter-spacing:1.5px;text-transform:uppercase;">'+(INST_PROV_ICON[plan.provider]||'📄')+' '+plan.provider+'</span>'
           +(isM2M ? '<span style="font-size:11px;padding:2px 9px;border-radius:100px;background:#1a1000;color:#f2c830;border:1px solid #6a4a00;letter-spacing:1.5px;">∞ ONGOING</span>' : '')
-          +(isTarget && !isM2M ? '<span style="font-size:11px;padding:2px 9px;border-radius:100px;background:#0d1a00;color:#c8f230;border:1px solid #3a5a00;letter-spacing:1.5px;">❄️ ATTACK FIRST</span>' : '')
-          +(isCleared ? '<span style="font-size:11px;padding:2px 9px;border-radius:100px;background:#0d1a00;color:#c8f230;border:1px solid #3a5a00;letter-spacing:1.5px;">✓ CLEARED</span>' : '')
+          +(isTarget && !isM2M ? '<span style="font-size:11px;padding:2px 9px;border-radius:100px;background:#0d1a00;color:var(--accent);border:1px solid #3a5a00;letter-spacing:1.5px;">❄️ ATTACK FIRST</span>' : '')
+          +(isCleared ? '<span style="font-size:11px;padding:2px 9px;border-radius:100px;background:#0d1a00;color:var(--accent);border:1px solid #3a5a00;letter-spacing:1.5px;">✓ CLEARED</span>' : '')
         +'</div>'
         +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:17px;color:var(--text);">'+plan.desc+'</div>'
         +'<div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;">'+subLabel+'</div>'
@@ -1234,8 +1234,8 @@ function buildInstCard(plan, isTarget, isCleared){
           +'<span>'+pct+'%</span>'
           +'<span>'+_payDisplay+'</span>'
         +'</div>'
-        +'<div style="height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;">'
-        +'<div style="height:100%;width:'+pct+'%;background:'+(isCleared?'#c8f230':c.badge)+';border-radius:3px;transition:width .5s cubic-bezier(.16,1,.3,1);box-shadow:0 0 8px '+(isCleared?'#c8f23044':c.badge+'44')+';"></div>'
+        +'<div style="height:6px;background:#1a1a1a;border-radius:6px;overflow:hidden;">'
+        +'<div style="height:100%;width:'+pct+'%;background:'+(isCleared?'#c8f230':c.badge)+';border-radius:6px;transition:width .5s cubic-bezier(.16,1,.3,1);box-shadow:0 0 8px '+(isCleared?'#c8f23044':c.badge+'44')+';"></div>'
       +'</div>'
     +'</div>';
 
@@ -1255,7 +1255,7 @@ function buildInstCard(plan, isTarget, isCleared){
       +'<span style="width:10px;height:10px;border-radius:50%;background:'+(isToday2?'#f2a830':'#333')+';display:inline-block;flex-shrink:0;"></span>'
       +'<div style="flex:1;"><span style="color:var(--muted);font-size:11px;">'+(isToday2?'Today!':nextDue.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}))+'</span></div>'
       +'<span style="color:#f2c830;font-weight:700;">'+fmtR(_planMonthlyTotal(plan))+'</span>'
-      +'<button onclick="openInstM2MPay(\''+plan.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 10px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">Mark Paid</button>'
+      +'<button onclick="openInstM2MPay(\''+plan.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:3px 10px;color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">Mark Paid</button>'
     +'</div>';
     if(plan.paid && plan.paid.length > 0){
       rowsHtml += '<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:10px 0 6px;">Payment history</div>';
@@ -1264,10 +1264,10 @@ function buildInstCard(plan, isTarget, isCleared){
         var _histAmt = p.amount || plan.amt;
         var _origIdx = plan.paid.indexOf(p);
         rowsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">'
-          +'<span style="width:10px;height:10px;border-radius:50%;background:#c8f230;display:inline-block;flex-shrink:0;"></span>'
+          +'<span style="width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0;"></span>'
           +'<div style="flex:1;"><span style="color:var(--muted);font-size:11px;">'+p.date+'</span>'+(p.note?'<span style="color:var(--muted);font-size:11px;"> · '+p.note+'</span>':'')+'</div>'
-          +'<span style="color:#c8f230;font-weight:700;">'+fmtR(_histAmt)+'</span>'
-          +'<button onclick="deleteInstPayment(\'' + plan.id + '\',' + _origIdx + ')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;margin-left:6px;" title="Delete this payment">🗑</button>'
+          +'<span style="color:var(--accent);font-weight:700;">'+fmtR(_histAmt)+'</span>'
+          +'<button onclick="deleteInstPayment(\'' + plan.id + '\',' + _origIdx + ')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;margin-left:6px;" title="Delete this payment">🗑</button>'
         +'</div>';
       });
     }
@@ -1283,7 +1283,7 @@ function buildInstCard(plan, isTarget, isCleared){
       var statusDot = isPaid
         ? (isSettled
             ? '<span style="width:10px;height:10px;border-radius:50%;background:#c890ff;display:inline-block;flex-shrink:0;" title="Settled in full"></span>'
-            : '<span style="width:10px;height:10px;border-radius:50%;background:#c8f230;display:inline-block;flex-shrink:0;"></span>')
+            : '<span style="width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0;"></span>')
         : (isOverdue
             ? '<span style="width:10px;height:10px;border-radius:50%;background:#f23060;display:inline-block;flex-shrink:0;"></span>'
             : (isToday
@@ -1293,13 +1293,13 @@ function buildInstCard(plan, isTarget, isCleared){
       var label = isPaid
         ? (isSettled
             ? '<span style="color:#c890ff;">🎯 Settled in full</span>'+(paidEntry.date?' <span style="color:var(--muted);font-size:11px;">'+paidEntry.date+'</span>':'')+(paidEntry.note?' · <span style="color:var(--muted);font-size:11px;">'+paidEntry.note+'</span>':'')
-            : '<span style="color:#c8f230;">✓ Paid</span>'+(paidEntry&&paidEntry.date?' <span style="color:var(--muted);font-size:11px;">'+paidEntry.date+'</span>':'')+(paidEntry&&paidEntry.note?' · <span style="color:var(--muted);font-size:11px;">'+paidEntry.note+'</span>':''))
+            : '<span style="color:var(--accent);">✓ Paid</span>'+(paidEntry&&paidEntry.date?' <span style="color:var(--muted);font-size:11px;">'+paidEntry.date+'</span>':'')+(paidEntry&&paidEntry.note?' · <span style="color:var(--muted);font-size:11px;">'+paidEntry.note+'</span>':''))
         : (isOverdue ? '<span style="color:#f23060;">Overdue</span>' : (isToday ? '<span style="color:#f2a830;">Due today!</span>' : '<span style="color:var(--muted);">'+formatDisplayDate(ds)+'</span>'));
 
       var actionBtn = isPaid
-        ? '<button onclick="unmarkInstPay(\''+plan.id+'\','+i+')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor=\'#555\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#444\'" title="'+(isSettled?'Reverse the whole settlement':'Unmark this payment')+'">Undo</button>'
-        + '<button onclick="deleteInstPayment(\''+plan.id+'\','+paidIdxs.indexOf(i)+')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s;margin-left:4px;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#444\'" title="Delete this payment">🗑</button>'
-        : '<button onclick="openInstPayModal(\''+plan.id+'\','+i+')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 10px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">Mark Paid</button>';
+        ? '<button onclick="unmarkInstPay(\''+plan.id+'\','+i+')" style="background:none;border:1px solid #2a2a2a;border-radius:6px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor=\'#555\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#444\'" title="'+(isSettled?'Reverse the whole settlement':'Unmark this payment')+'">Undo</button>'
+        + '<button onclick="deleteInstPayment(\''+plan.id+'\','+paidIdxs.indexOf(i)+')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;padding:3px 8px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s;margin-left:4px;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#444\'" title="Delete this payment">🗑</button>'
+        : '<button onclick="openInstPayModal(\''+plan.id+'\','+i+')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:3px 10px;color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">Mark Paid</button>';
 
       // Display amount: anchor shows the real paid amount; non-anchor settle rows show a dash
       var _rowAmt;

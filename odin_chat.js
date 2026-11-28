@@ -134,7 +134,7 @@ function appendOdinMsg(role, html, showFeedback, turnId){
   bubble.style.cssText = 'max-width:82%;padding:10px 14px;border-radius:'
     +(role==='user'?'12px 2px 12px 12px;background:#1a2e00;border:1px solid #2a4a00;color:#c8f230;'
                   :'12px 12px 12px 2px;background:#111;border:1px solid #2a2a2a;color:#efefef;')
-    +'font-size:12px;line-height:1.6;word-break:break-word;white-space:normal;overflow-wrap:break-word;font-family:"DM Mono",monospace;';
+    +'font-size:13px;line-height:1.6;word-break:break-word;white-space:normal;overflow-wrap:break-word;font-family:"DM Sans",system-ui,sans-serif;';
   bubble.innerHTML = html;
 
   // Column wrapper so we can stack bubble + feedback row vertically
@@ -152,17 +152,17 @@ function appendOdinMsg(role, html, showFeedback, turnId){
     var btnUp = document.createElement('button');
     btnUp.textContent = '👍';
     btnUp.title = 'Good answer';
-    btnUp.style.cssText = 'background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 8px;font-size:12px;cursor:pointer;color:var(--muted);transition:all .15s;';
+    btnUp.style.cssText = 'background:none;border:1px solid #2a2a2a;border-radius:6px;padding:2px 8px;font-size:12px;cursor:pointer;color:var(--muted);transition:all .15s;';
 
     var btnDown = document.createElement('button');
     btnDown.textContent = '👎';
     btnDown.title = 'Wrong or misleading';
-    btnDown.style.cssText = 'background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 8px;font-size:12px;cursor:pointer;color:var(--muted);transition:all .15s;';
+    btnDown.style.cssText = 'background:none;border:1px solid #2a2a2a;border-radius:6px;padding:2px 8px;font-size:12px;cursor:pointer;color:var(--muted);transition:all .15s;';
 
     btnUp.onclick = function(){
       if(btnUp.dataset.rated) return;
       btnUp.dataset.rated = '1';
-      btnUp.style.cssText  = 'background:#0d1a00;border:1px solid #5a8800;border-radius:4px;padding:2px 8px;font-size:12px;cursor:default;color:#c8f230;';
+      btnUp.style.cssText  = 'background:#0d1a00;border:1px solid #5a8800;border-radius:6px;padding:2px 8px;font-size:12px;cursor:default;color:var(--accent);';
       btnDown.style.display = 'none';
       _odinSaveFeedback(turnId, _odinGetLastUserMsg(turnId), _odinGetReplyByTurnId(turnId), 'good', null);
     };
@@ -170,7 +170,7 @@ function appendOdinMsg(role, html, showFeedback, turnId){
     btnDown.onclick = function(){
       if(btnDown.dataset.rated) return;
       btnDown.dataset.rated = '1';
-      btnDown.style.cssText = 'background:#1a0000;border:1px solid #f23060;border-radius:4px;padding:2px 8px;font-size:12px;cursor:default;color:#f23060;';
+      btnDown.style.cssText = 'background:#1a0000;border:1px solid #f23060;border-radius:6px;padding:2px 8px;font-size:12px;cursor:default;color:#f23060;';
       btnUp.style.display = 'none';
       // Show inline correction input
       var corrRow = document.createElement('div');
@@ -178,11 +178,11 @@ function appendOdinMsg(role, html, showFeedback, turnId){
       var inp = document.createElement('input');
       inp.type = 'text';
       inp.placeholder = 'What was wrong? (optional)';
-      inp.style.cssText = 'flex:1;background:#1a0000;border:1px solid #5a1010;border-radius:4px;padding:5px 8px;'
+      inp.style.cssText = 'flex:1;background:#1a0000;border:1px solid #5a1010;border-radius:6px;padding:5px 8px;'
         +'font-family:"DM Mono",monospace;font-size:11px;color:#efefef;outline:none;min-width:0;';
       var sendBtn = document.createElement('button');
       sendBtn.textContent = 'Send';
-      sendBtn.style.cssText = 'background:#2e0000;border:1px solid #f23060;border-radius:4px;'
+      sendBtn.style.cssText = 'background:#2e0000;border:1px solid #f23060;border-radius:6px;'
         +'padding:5px 10px;font-family:"DM Mono",monospace;font-size:11px;color:#f23060;cursor:pointer;white-space:nowrap;';
       sendBtn.onclick = function(){
         var corr = inp.value.trim() || null;

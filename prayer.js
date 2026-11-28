@@ -318,7 +318,7 @@ function renderTodayGrid(data, today){
     return `<button onclick="togglePrayer('${p.key}')" style="
       border:2px solid ${done ? p.color : isJumuah ? '#6b4800' : 'var(--border)'};
       background:${bgColor};
-      border-radius:8px;padding:12px 6px;cursor:pointer;transition:all .2s;
+      border-radius:10px;padding:12px 6px;cursor:pointer;transition:all .2s;
       display:flex;flex-direction:column;align-items:center;gap:4px;">
       <span style="font-size:18px;">${icon}</span>
       <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${done ? p.color : isJumuah ? '#f2a830' : 'var(--muted)'};">${p.label}</span>
@@ -343,7 +343,7 @@ function renderTodayGrid(data, today){
     // inject badge next to header
     const badge = document.createElement('span');
     badge.id = 'pFridayBadge';
-    badge.style.cssText = 'margin-left:8px;background:#6b4800;color:#f2a830;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:2px 8px;border-radius:3px;';
+    badge.style.cssText = 'margin-left:8px;background:#6b4800;color:#f2a830;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:2px 8px;border-radius:6px;';
     badge.textContent = 'Jumu\'ah';
     if(grid.previousElementSibling) grid.previousElementSibling.appendChild(badge);
   }
@@ -474,7 +474,7 @@ function renderHeatmap(data){
     const fardC = entry ? FARD_KEYS.filter(k=>entry[k]===1).length : 0;
     const tooltip = `${ds}: ${fardC}/5 fard${isTahajjud?' + Tahajjud':''}`;
     cells += `<div title="${tooltip}" style="
-      width:100%;aspect-ratio:1;border-radius:3px;
+      width:100%;aspect-ratio:1;border-radius:6px;
       background:${bg};
       ${isTahajjud ? 'outline:2px solid #9b59b6;outline-offset:-1px;' : ''}
       ${isToday ? 'outline:2px solid var(--accent);outline-offset:-1px;' : ''}
@@ -519,8 +519,8 @@ function renderBreakdown(data){
         <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">${labels[k]}</span>
         <span style="font-size:11px;color:var(--text);">${counts[k].toLocaleString()} <span style="color:var(--muted);">(${pct}%)</span></span>
       </div>
-      <div style="height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;">
-        <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:3px;transition:width .4s;"></div>
+      <div style="height:6px;background:#1a1a1a;border-radius:6px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:6px;transition:width .4s;"></div>
       </div>
     </div>`;
   }).join('');
@@ -531,8 +531,8 @@ function renderBreakdown(data){
       <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#f2a830;">🕌 Jumuah</span>
       <span style="font-size:11px;color:var(--text);">${counts.j} / ${jumuahFridays} Fridays <span style="color:var(--muted);">(${jPct}%)</span></span>
     </div>
-    <div style="height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;">
-      <div style="height:100%;width:${jPct}%;background:#f2a830;border-radius:3px;transition:width .4s;"></div>
+    <div style="height:6px;background:#1a1a1a;border-radius:6px;overflow:hidden;">
+      <div style="height:100%;width:${jPct}%;background:#f2a830;border-radius:6px;transition:width .4s;"></div>
     </div>
   </div>`;
   el.innerHTML = html;

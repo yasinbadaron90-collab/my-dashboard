@@ -100,7 +100,7 @@ function buildCFPDF(months, titleLabel){
   var toast = document.createElement('div');
   toast.id = 'cfPdfToast';
   toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #3a5a00;border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 24px rgba(0,0,0,.5);min-width:240px;';
-  toast.innerHTML = '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:#c8f230;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
+  toast.innerHTML = '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
     +'<div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:13px;color:var(--text);">Generating PDF...</div>'
     +'<div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;">Cash Flow Report</div></div>';
   if(!document.getElementById('spinStyle')){
