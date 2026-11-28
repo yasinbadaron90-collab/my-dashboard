@@ -50,7 +50,7 @@ function _showUpdateToast(worker){
   t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0d1a00;border:1px solid #c8f230;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;z-index:99998;box-shadow:0 4px 24px rgba(0,0,0,.5);font-family:DM Mono,monospace;font-size:11px;color:#c8f230;';
   t.innerHTML = '<span>✨ Update ready</span>'
     + '<button onclick="document.getElementById(\'swUpdateToast\').remove();this.disabled=true;navigator.serviceWorker.controller&&navigator.serviceWorker.addEventListener(\'controllerchange\',function(){location.reload();});if(window._pendingSW)window._pendingSW.postMessage({type:\'SKIP_WAITING\'});" '
-    + 'style="background:#c8f230;border:none;border-radius:6px;padding:6px 12px;color:#000;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;cursor:pointer;font-weight:700;">Reload</button>'
+    + 'style="background:#c8f230;border:none;border-radius:6px;padding:6px 12px;color:#000;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;cursor:pointer;font-weight:700;">Reload</button>'
     + '<button onclick="this.parentNode.remove()" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>';
   document.body.appendChild(t);
   window._pendingSW = worker;
@@ -148,7 +148,7 @@ function _showUpdateToast(worker){
 <!-- LOGIN SCREEN -->
 <div id="loginScreen" style="position:fixed;inset:0;background:#0a0a0a;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;transition:opacity 0.4s;">
   <img src="logo.webp" width="280" height="121" style="width:280px;max-width:80vw;height:auto;margin-bottom:32px;" alt="YB Dashboard"/>
-  <div style="font-size:11px;color:#444;letter-spacing:3px;text-transform:uppercase;margin-bottom:48px;">Sign in to continue</div>
+  <div style="font-size:11px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:48px;">Sign in to continue</div>
 
   <div style="width:100%;max-width:300px;">
     <button onclick="try{fbSignInWithGoogle()}catch(e){document.getElementById('googleLoginError').textContent='JS ERROR: '+e.message;}" id="googleSignInBtn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 20px;background:#fff;border:none;border-radius:10px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;letter-spacing:1px;color:#333;font-weight:500;transition:opacity .15s;box-shadow:0 2px 8px rgba(0,0,0,.3);" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
@@ -157,7 +157,7 @@ function _showUpdateToast(worker){
     </button>
     <div id="googleLoginError" style="font-size:11px;color:#f23060;text-align:center;margin-top:12px;min-height:16px;"></div>
     <div id="googleLoginStatus" style="font-size:11px;color:#888;text-align:center;margin-top:8px;min-height:16px;"></div>
-    <div id="jsLoadCheck" style="font-size:10px;color:#444;text-align:center;margin-top:20px;">Loading...</div>
+    <div id="jsLoadCheck" style="font-size:11px;color:var(--muted);text-align:center;margin-top:20px;">Loading...</div>
     <script>
       window.addEventListener('error', function(e){
         var el = document.getElementById('googleLoginError');
@@ -179,7 +179,7 @@ function _showUpdateToast(worker){
     </script>
   </div>
 
-  <div style="margin-top:40px;font-size:10px;color:#2a2a2a;letter-spacing:1px;">YB Dashboard</div>
+  <div style="margin-top:40px;font-size:11px;color:#2a2a2a;letter-spacing:1px;">YB Dashboard</div>
 </div>
 
 <nav class="nav">
@@ -244,7 +244,7 @@ function _showUpdateToast(worker){
       </button>
       <button class="hbg-item" onclick="closeDrawer();openAIAssistant();" style="position:relative;">
         <span class="hbg-icon">🧠</span> Odin Chat
-        <span style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:8px;letter-spacing:1.5px;background:#c8f230;color:#000;padding:2px 6px;border-radius:20px;font-weight:700;">NEW</span>
+        <span style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:11px;letter-spacing:1.5px;background:#c8f230;color:#000;padding:2px 6px;border-radius:20px;font-weight:700;">NEW</span>
       </button>
     </div>
 
@@ -318,7 +318,7 @@ function _showUpdateToast(worker){
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;min-width:200px;max-width:240px;">
       <!-- Header row with collapse toggle -->
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="toggleBankPanel()" id="bankPanelHdr">
-        <span style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);">Balances</span>
+        <span style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);">Balances</span>
         <div style="display:flex;align-items:center;gap:8px;">
           <strong id="bankTotal" title="Total across all pockets" style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#c8f230;letter-spacing:0;white-space:nowrap;"></strong>
         <button id="bankCollapseBtn" style="background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:0;line-height:1;display:flex;align-items:center;" title="Collapse">
@@ -362,7 +362,7 @@ function _showUpdateToast(worker){
         </div>
         <button class="gen-btn" onclick="generateStatements()">Generate Statements</button>
         <div id="stmtArea" style="display:none;margin-top:14px">
-          <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Statements</div>
+          <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Statements</div>
           <div id="stmtCards"></div>
         </div>
       </div>
@@ -450,8 +450,8 @@ function _showUpdateToast(worker){
         <button onclick="cfChangeMonth(-1)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:14px;">◀</button>
         <span id="cfMonthLabel" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;min-width:120px;text-align:center;color:var(--text);"></span>
         <button onclick="cfChangeMonth(1)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:14px;">▶</button>
-        <button onclick="exportCFMonthReport()" style="padding:6px 12px;background:#1a1a00;border:1px solid #5a5a00;border-radius:6px;color:#f2c830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;white-space:nowrap;" title="Export this month as PDF">📄 PDF</button>
-        <button onclick="openBankFeed('snap')" style="padding:6px 12px;background:#0d1a00;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;white-space:nowrap;" title="Import bank statement">🏦 Bank Feed</button>
+        <button onclick="exportCFMonthReport()" style="padding:6px 12px;background:#1a1a00;border:1px solid #5a5a00;border-radius:6px;color:#f2c830;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;white-space:nowrap;" title="Export this month as PDF">📄 PDF</button>
+        <button onclick="openBankFeed('snap')" style="padding:6px 12px;background:#0d1a00;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;white-space:nowrap;" title="Import bank statement">🏦 Bank Feed</button>
       </div>
     </div>
 
@@ -464,21 +464,21 @@ function _showUpdateToast(worker){
          stays honest until the user retro-tags them. -->
     <div id="cfBankBalanceCard" style="border-radius:10px;padding:18px 20px;margin-bottom:20px;background:linear-gradient(135deg,#0a1a1a 0%,#0d2020 100%);border:1px solid #1a4040;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#5ab8b8;">💵 Available Cash</div>
-        <div style="font-size:9px;color:#3a6060;letter-spacing:1px;">live · adjusts as you log</div>
+        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5ab8b8;">💵 Available Cash</div>
+        <div style="font-size:11px;color:#3a6060;letter-spacing:1px;">live · adjusts as you log</div>
       </div>
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:34px;line-height:1;color:#9be0e0;margin-bottom:12px;" id="cfBankBalanceAmt">R0</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
         <div style="text-align:center;background:#0a0f1a;border:1px solid #1a2a4a;border-radius:6px;padding:7px 4px;">
-          <div style="font-size:8px;color:#4a7aaa;letter-spacing:1px;margin-bottom:2px;">🏛 FNB</div>
+          <div style="font-size:11px;color:#4a7aaa;letter-spacing:1px;margin-bottom:2px;">🏛 FNB</div>
           <div style="color:#4a9aff;font-weight:700;font-family:Syne,sans-serif;font-size:13px;" id="cfBalFNB">R0</div>
         </div>
         <div style="text-align:center;background:#1a0f00;border:1px solid #4a3a00;border-radius:6px;padding:7px 4px;">
-          <div style="font-size:8px;color:#aa8a00;letter-spacing:1px;margin-bottom:2px;">🏦 TYME</div>
+          <div style="font-size:11px;color:#aa8a00;letter-spacing:1px;margin-bottom:2px;">🏦 TYME</div>
           <div style="color:#f2a830;font-weight:700;font-family:Syne,sans-serif;font-size:13px;" id="cfBalTyme">R0</div>
         </div>
         <div style="text-align:center;background:#0d1a00;border:1px solid #1a3a00;border-radius:6px;padding:7px 4px;">
-          <div style="font-size:8px;color:#5a8800;letter-spacing:1px;margin-bottom:2px;">💵 CASH</div>
+          <div style="font-size:11px;color:#5a8800;letter-spacing:1px;margin-bottom:2px;">💵 CASH</div>
           <div style="color:#c8f230;font-weight:700;font-family:Syne,sans-serif;font-size:13px;" id="cfBalCash">R0</div>
         </div>
       </div>
@@ -489,7 +489,7 @@ function _showUpdateToast(worker){
     <!-- INCOME SECTION -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#c8f230;">↑ Income</div>
-      <button onclick="openCfEntryModal('income')" style="padding:6px 14px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">+ Add</button>
+      <button onclick="openCfEntryModal('income')" style="padding:6px 14px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;">+ Add</button>
     </div>
     <div style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:6px;">
       <div id="cfIncomeRows"></div>
@@ -502,7 +502,7 @@ function _showUpdateToast(worker){
     <!-- EXPENSES SECTION -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#f23060;">↓ Expenses</div>
-      <button onclick="openCfEntryModal('expense')" style="padding:6px 14px;background:#2e0a0a;border:1px solid #5a1a1a;border-radius:6px;color:#f23060;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">+ Add</button>
+      <button onclick="openCfEntryModal('expense')" style="padding:6px 14px;background:#2e0a0a;border:1px solid #5a1a1a;border-radius:6px;color:#f23060;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;">+ Add</button>
     </div>
     <div style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:6px;">
       <div id="cfExpenseRows"></div>
@@ -515,9 +515,9 @@ function _showUpdateToast(worker){
     <div onclick="cfFold('sav')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
       <div>
         <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#c8f230;"><span id="cfChev-sav" style="display:inline-block;width:14px;color:var(--muted);">▸</span>💰 Savings Allocations</span>
-        <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px;">Internal transfers — money moved from a bank to a savings pot</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:2px;">Internal transfers — money moved from a bank to a savings pot</div>
       </div>
-      <button onclick="event.stopPropagation();openMove()" style="padding:6px 14px;background:#1a1030;border:1px solid #6a4ac0;border-radius:6px;color:#a78bfa;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;">🔄 Move</button>
+      <button onclick="event.stopPropagation();openMove()" style="padding:6px 14px;background:#1a1030;border:1px solid #6a4ac0;border-radius:6px;color:#a78bfa;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;">🔄 Move</button>
     </div>
     <div id="cfFold-sav" style="display:none;">
     <div style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:6px;">
@@ -525,7 +525,7 @@ function _showUpdateToast(worker){
     </div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#0d1a00;border-radius:8px;margin-bottom:24px;border:1px solid #1a3a00;">
-      <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#3a6a20;">Total Saved This Month</span>
+      <span style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#3a6a20;">Total Saved This Month</span>
       <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#c8f230;" id="cfSavingsTotalRow">R0</span>
     </div>
 
@@ -541,16 +541,16 @@ function _showUpdateToast(worker){
       <div onclick="cfFold('recon')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div>
           <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--text);"><span id="cfChev-recon" style="display:inline-block;width:14px;color:var(--muted);">▸</span>🏦 Account Balances</div>
-          <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px;">Type your real balances now — future entries adjust from here</div>
+          <div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:2px;">Type your real balances now — future entries adjust from here</div>
         </div>
-        <button onclick="event.stopPropagation();saveReconBalances()" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:6px;padding:6px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">Save</button>
+        <button onclick="event.stopPropagation();saveReconBalances()" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:6px;padding:6px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">Save</button>
       </div>
 
       <div id="cfFold-recon" style="display:none;">
       <!-- Three account inputs: FNB, TymeBank, Cash -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
         <div style="background:#0a0f1a;border:1px solid #1a2a4a;border-radius:10px;padding:12px 10px;">
-          <div style="font-size:9px;color:#4a7aaa;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">🏛 FNB</div>
+          <div style="font-size:11px;color:#4a7aaa;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">🏛 FNB</div>
           <div style="display:flex;align-items:center;gap:4px;">
             <span style="font-size:11px;color:var(--muted);">R</span>
             <input type="number" id="reconFNB" placeholder="0" oninput="updateReconTotal()"
@@ -558,7 +558,7 @@ function _showUpdateToast(worker){
           </div>
         </div>
         <div style="background:#1a0f00;border:1px solid #4a3a00;border-radius:10px;padding:12px 10px;">
-          <div style="font-size:9px;color:#aa8a00;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">🏦 Tyme</div>
+          <div style="font-size:11px;color:#aa8a00;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">🏦 Tyme</div>
           <div style="display:flex;align-items:center;gap:4px;">
             <span style="font-size:11px;color:var(--muted);">R</span>
             <input type="number" id="reconTyme" placeholder="0" oninput="updateReconTotal()"
@@ -566,7 +566,7 @@ function _showUpdateToast(worker){
           </div>
         </div>
         <div style="background:#0d1a00;border:1px solid #1a3a00;border-radius:10px;padding:12px 10px;">
-          <div style="font-size:9px;color:#5a8800;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">💵 Cash</div>
+          <div style="font-size:11px;color:#5a8800;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">💵 Cash</div>
           <div style="display:flex;align-items:center;gap:4px;">
             <span style="font-size:11px;color:var(--muted);">R</span>
             <input type="number" id="reconCash" placeholder="0" oninput="updateReconTotal()"
@@ -577,22 +577,22 @@ function _showUpdateToast(worker){
 
       <!-- Total available cash -->
       <div style="background:#111;border:1px solid #2a2a2a;border-radius:10px;padding:16px;text-align:center;margin-bottom:10px;">
-        <div style="font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;">Total Available Cash</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;">Total Available Cash</div>
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:32px;color:#c8f230;" id="reconTotal">R0</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px;" id="reconLastUpdated"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;" id="reconLastUpdated"></div>
       </div>
 
       <!-- Rebuild button — wipes the bank buckets and lets the user type
            fresh real-world balances from their actual bank apps. Useful when
            the running totals have drifted (untracked payments, fees, etc). -->
-      <button onclick="openRebuildBalances()" style="width:100%;background:#1a0e2e;border:1px solid #5a3a8a;border-radius:8px;padding:10px;color:#a78bfa;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-bottom:16px;">🔄 Rebuild Bank Balances</button>
+      <button onclick="openRebuildBalances()" style="width:100%;background:#1a0e2e;border:1px solid #5a3a8a;border-radius:8px;padding:10px;color:#a78bfa;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-bottom:16px;">🔄 Rebuild Bank Balances</button>
 
       <!-- Savings Balances -->
       <div style="background:#0d1a00;border:1px solid #1a3a00;border-radius:10px;padding:16px;">
-        <div style="font-size:9px;color:#5a8800;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">💰 Savings Balances</div>
+        <div style="font-size:11px;color:#5a8800;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">💰 Savings Balances</div>
         <div id="reconSavingsRows"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid #1a3a00;margin-top:8px;">
-          <span style="font-size:10px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;">Total Saved</span>
+          <span style="font-size:11px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;">Total Saved</span>
           <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#c8f230;" id="reconSavingsTotal">R0</span>
         </div>
       </div>
@@ -617,18 +617,18 @@ function _showUpdateToast(worker){
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;" id="cfIconGrid"></div>
     </div>
     <div class="field">
-      <label>Where does it land? <span style="color:#f2a830;font-size:10px;">★ Required</span></label>
+      <label>Where does it land? <span style="color:#f2a830;font-size:11px;">★ Required</span></label>
       <div style="display:flex;gap:8px;margin-top:4px;">
-        <button type="button" id="cfBankFNB" onclick="setCfBank('FNB',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid #4a7aaa;background:#0a0f1a;color:#4a9aff;">🏛 FNB</button>
-        <button type="button" id="cfBankTyme" onclick="setCfBank('TymeBank',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">🏦 Tyme</button>
-        <button type="button" id="cfBankCash" onclick="setCfBank('Cash',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">💵 Cash</button>
+        <button type="button" id="cfBankFNB" onclick="setCfBank('FNB',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:1px solid #4a7aaa;background:#0a0f1a;color:#4a9aff;">🏛 FNB</button>
+        <button type="button" id="cfBankTyme" onclick="setCfBank('TymeBank',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">🏦 Tyme</button>
+        <button type="button" id="cfBankCash" onclick="setCfBank('Cash',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">💵 Cash</button>
       </div>
     </div>
     <div class="field">
       <label>Recurring?</label>
       <div style="display:flex;gap:8px;margin-top:4px;">
-        <button type="button" id="cfRecurYes" onclick="setCfRecur(true,this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid #c8f230;background:#1a2e00;color:#c8f230;">Monthly</button>
-        <button type="button" id="cfRecurNo" onclick="setCfRecur(false,this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">This month only</button>
+        <button type="button" id="cfRecurYes" onclick="setCfRecur(true,this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:1px solid #c8f230;background:#1a2e00;color:#c8f230;">Monthly</button>
+        <button type="button" id="cfRecurNo" onclick="setCfRecur(false,this)" style="flex:1;padding:8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">This month only</button>
       </div>
     </div>
     <input type="hidden" id="cfEntryBank" value="FNB"/>
@@ -657,13 +657,13 @@ function _showUpdateToast(worker){
     </div>
     <!-- CASH FLOW SUMMARY (v149e, per build guide; v149h: 6-month trend) -->
     <div id="cfSummaryCard" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:20px;">
-      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">💵 Cash Flow Summary</div>
-      <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:2px;">NET · <span id="cfSummaryPeriodLabel">—</span></div>
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">💵 Cash Flow Summary</div>
+      <div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:2px;">NET · <span id="cfSummaryPeriodLabel">—</span></div>
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:32px;margin-bottom:8px;" id="cfSummaryNet">R0</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">In <span style="color:#c8f230;font-weight:500;" id="cfSummaryIn">R0</span> · Out <span style="color:#f23060;font-weight:500;" id="cfSummaryOut">R0</span></div>
       <div id="cfSummaryOwn" style="display:none;font-size:11px;margin:-8px 0 16px;letter-spacing:.3px;"></div>
       <canvas id="cfSummaryChart" style="display:block;margin-bottom:10px;"></canvas>
-      <div style="font-size:10px;color:var(--muted2);border-top:1px solid var(--border);padding-top:8px;" id="cfSummaryFooter">Full Cash Flow tab to edit · figures live</div>
+      <div style="font-size:11px;color:var(--muted2);border-top:1px solid var(--border);padding-top:8px;" id="cfSummaryFooter">Full Cash Flow tab to edit · figures live</div>
     </div>
 
     <div id="rptTiles" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;"></div>
@@ -674,15 +674,15 @@ function _showUpdateToast(worker){
         <div id="rpt-sec-savings" style="margin-bottom:28px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">💰 Savings</div>
-        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;" id="rptSavingsPeriod">—</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:1px;" id="rptSavingsPeriod">—</div>
       </div>
       <div id="savNormalCards" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
         <div style="background:var(--surface);border-radius:8px;padding:12px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Saved</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Saved</div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#c8f230;" id="rptTotalSaved">R0</div>
         </div>
         <div style="background:var(--surface);border-radius:8px;padding:12px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Active Funds</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Active Funds</div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:var(--text);" id="rptFundCount">0</div>
         </div>
       </div>
@@ -690,39 +690,39 @@ function _showUpdateToast(worker){
       <!-- SAVINGS BAR CHART -->
       <div id="savChartsSection" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px 10px;margin-bottom:12px;">
         <div style="margin-bottom:10px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">VISUAL BREAKDOWN</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">VISUAL BREAKDOWN</div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;">Monthly Growth</div>
         </div>
         <canvas id="savBarChart"></canvas>
         <div id="savChartEmpty" style="display:none;text-align:center;padding:40px 0;color:var(--muted);font-size:12px;">No data yet</div>
-        <div style="font-size:9px;color:var(--muted);text-align:center;margin-top:6px;letter-spacing:1px;">Total across all pockets per month</div>
+        <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:6px;letter-spacing:1px;">Total across all pockets per month</div>
       </div>
 
       <div id="savCompareCards" style="display:none;margin-bottom:12px;">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
           <div style="background:var(--surface);border-radius:8px;padding:10px;">
-            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:4px;" id="savCmpCardLabelA">Period A</div>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:4px;" id="savCmpCardLabelA">Period A</div>
             <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:#c8f230;" id="savCmpTotalA">R0</div>
           </div>
           <div style="background:var(--surface);border-radius:8px;padding:10px;">
-            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;" id="savCmpCardLabelB">Period B</div>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;" id="savCmpCardLabelB">Period B</div>
             <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--muted);" id="savCmpTotalB">R0</div>
           </div>
           <div style="background:var(--surface);border-radius:8px;padding:10px;border:1px solid #2a2a2a;">
-            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Change</div>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Change</div>
             <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;" id="savCmpDelta">—</div>
-            <div style="font-size:9px;margin-top:2px;" id="savCmpDeltaPct">—</div>
+            <div style="font-size:11px;margin-top:2px;" id="savCmpDeltaPct">—</div>
           </div>
         </div>
       </div>
       <div id="savNormalTable" style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:0;">
-        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
           <span>Fund</span><span>Saved</span><span>Progress</span>
         </div>
         <div id="rptSavingsRows"></div>
       </div>
       <div id="savCompareTable" style="display:none;background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:0;">
-        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
           <span>Fund</span><span id="savCmpColA">Period A</span><span id="savCmpColB">Period B</span><span>Change</span>
         </div>
         <div id="rptSavingsCompareRows"></div>
@@ -736,19 +736,19 @@ function _showUpdateToast(worker){
         <div id="rpt-sec-carpool" style="margin-bottom:28px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">🚗 Carpool Income</div>
-        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;" id="rptCarpoolPeriod">—</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:1px;" id="rptCarpoolPeriod">—</div>
       </div>
 
       <!-- Chart first -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px 10px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
           <div>
-            <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Visual Breakdown</div>
+            <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Visual Breakdown</div>
             <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;letter-spacing:-.3px;">Monthly Carpool Income</div>
           </div>
           <div style="display:flex;gap:6px;" id="chartTypeToggle">
-            <button onclick="setCpChartMode('bar',this)" id="chartBtn-bar" style="padding:4px 10px;border-radius:100px;border:1px solid var(--accent);background:#1a2e00;color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;cursor:pointer;">BAR</button>
-            <button onclick="setCpChartMode('line',this)" id="chartBtn-line" style="padding:4px 10px;border-radius:100px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;cursor:pointer;">LINE</button>
+            <button onclick="setCpChartMode('bar',this)" id="chartBtn-bar" style="padding:4px 10px;border-radius:100px;border:1px solid var(--accent);background:#1a2e00;color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;">BAR</button>
+            <button onclick="setCpChartMode('line',this)" id="chartBtn-line" style="padding:4px 10px;border-radius:100px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;">LINE</button>
           </div>
         </div>
         <div style="display:flex;gap:14px;margin-bottom:8px;flex-wrap:wrap;" id="cpChartLegend"></div>
@@ -756,23 +756,23 @@ function _showUpdateToast(worker){
           <canvas id="cpIncomeChart"></canvas>
         </div>
         <div id="cpChartEmpty" style="display:none;text-align:center;padding:32px 0;color:var(--muted);font-size:12px;letter-spacing:1px;">No carpool data yet.</div>
-        <div style="text-align:center;font-size:9px;color:var(--muted2);letter-spacing:1px;margin-top:6px;" id="chartDrillHint">Tap a bar to drill down</div>
+        <div style="text-align:center;font-size:11px;color:var(--muted2);letter-spacing:1px;margin-top:6px;" id="chartDrillHint">Tap a bar to drill down</div>
       </div>
 
       <!-- Drill-down panel -->
       <div id="chartDrillPanel" style="display:none;background:#0d1a00;border:1px solid #3a5a00;border-radius:8px;padding:0;margin-bottom:12px;overflow:hidden;">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #2a4a00;">
           <div>
-            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:2px;">Drill-down</div>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:2px;">Drill-down</div>
             <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#c8f230;" id="drillLabel">—</div>
           </div>
-          <button onclick="closeDrillDown()" style="background:none;border:1px solid #2a4a00;border-radius:4px;padding:3px 8px;color:#5a8800;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;">✕</button>
+          <button onclick="closeDrillDown()" style="background:none;border:1px solid #2a4a00;border-radius:4px;padding:3px 8px;color:#5a8800;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">✕</button>
         </div>
-        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:6px 14px;border-bottom:1px solid #1a3000;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#3a6000;" id="drillHeader">
+        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:6px 14px;border-bottom:1px solid #1a3000;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#3a6000;" id="drillHeader">
           <span>Date</span><span id="drillCol1">—</span><span id="drillCol2">—</span><span>Total</span>
         </div>
         <div id="drillRows" style="max-height:240px;overflow-y:auto;"></div>
-        <div style="padding:8px 14px;border-top:1px solid #1a3000;display:flex;justify-content:space-between;font-size:10px;color:#5a8800;letter-spacing:1px;">
+        <div style="padding:8px 14px;border-top:1px solid #1a3000;display:flex;justify-content:space-between;font-size:11px;color:#5a8800;letter-spacing:1px;">
           <span id="drillSummary">—</span>
           <span id="drillTotal" style="color:#c8f230;font-weight:700;">—</span>
         </div>
@@ -781,39 +781,39 @@ function _showUpdateToast(worker){
       <!-- Summary stats -->
       <div id="cpNormalCards" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
         <div style="background:var(--surface);border-radius:8px;padding:12px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Earned</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Earned</div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#c8f230;" id="rptCarpoolTotal">R0</div>
         </div>
         <div style="background:var(--surface);border-radius:8px;padding:12px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Outstanding</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Outstanding</div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#f2a830;" id="rptCarpoolOwing">R0</div>
         </div>
       </div>
       <div id="cpCompareCards" style="display:none;margin-bottom:10px;">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
           <div style="background:var(--surface);border-radius:8px;padding:10px;">
-            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:4px;" id="cmpCardLabelA">Period A</div>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:4px;" id="cmpCardLabelA">Period A</div>
             <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:#c8f230;" id="cmpTotalA">R0</div>
           </div>
           <div style="background:var(--surface);border-radius:8px;padding:10px;">
-            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;" id="cmpCardLabelB">Period B</div>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;" id="cmpCardLabelB">Period B</div>
             <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--muted);" id="cmpTotalB">R0</div>
           </div>
           <div style="background:var(--surface);border-radius:8px;padding:10px;border:1px solid #2a2a2a;">
-            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Change</div>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Change</div>
             <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;" id="cmpDelta">—</div>
-            <div style="font-size:9px;margin-top:2px;" id="cmpDeltaPct">—</div>
+            <div style="font-size:11px;margin-top:2px;" id="cmpDeltaPct">—</div>
           </div>
         </div>
       </div>
       <div id="cpNormalTable" style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:0;">
-        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
           <span>Passenger</span><span>Total</span><span>Paid</span><span>Owing</span>
         </div>
         <div id="rptCarpoolRows"></div>
       </div>
       <div id="cpCompareTable" style="display:none;background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:0;">
-        <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+        <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
           <span>Passenger</span><span id="cmpColA">Period A</span><span id="cmpColB">Period B</span><span>Change</span>
         </div>
         <div id="rptCarpoolCompareRows"></div>
@@ -831,38 +831,38 @@ function _showUpdateToast(worker){
 
       <!-- Fuel savings hero -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">My daily fuel cost</div>
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">My daily fuel cost</div>
         <div style="display:flex;align-items:center;background:#111;border:1px solid #333;border-radius:6px;overflow:hidden;">
           <span style="padding:5px 8px;font-size:12px;color:var(--muted);">R</span>
           <input type="number" id="dailyFuelCost" value="100" oninput="saveDailyFuel();loadFuelReport();"
             style="width:65px;padding:5px 6px 5px 0;background:none;border:none;color:#c8f230;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;outline:none;"/>
-          <span style="padding:5px 8px;font-size:9px;color:var(--muted);letter-spacing:1px;">/day</span>
+          <span style="padding:5px 8px;font-size:11px;color:var(--muted);letter-spacing:1px;">/day</span>
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Monthly fuel budget</div>
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Monthly fuel budget</div>
         <div style="display:flex;align-items:center;background:#111;border:1px solid #333;border-radius:6px;overflow:hidden;">
           <span style="padding:5px 8px;font-size:12px;color:var(--muted);">R</span>
           <input type="number" id="fuelBudget" value="2950" oninput="saveFuelBudget();loadFuelReport();"
             style="width:65px;padding:5px 6px 5px 0;background:none;border:none;color:#c8f230;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;outline:none;"/>
-          <span style="padding:5px 8px;font-size:9px;color:var(--muted);letter-spacing:1px;">/mo</span>
+          <span style="padding:5px 8px;font-size:11px;color:var(--muted);letter-spacing:1px;">/mo</span>
         </div>
       </div>
-      <div id="plCycleLabel" style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:10px;">Pay cycle: calculating...</div>
+      <div id="plCycleLabel" style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:10px;">Pay cycle: calculating...</div>
       <div id="plBigCard" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:10px;padding:16px;margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
           <div>
-            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:4px;">Passengers saved you</div>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:4px;">Passengers saved you</div>
             <div id="plNet" style="font-family:'Syne',sans-serif;font-weight:800;font-size:36px;color:#c8f230;line-height:1;">R0</div>
-            <div id="plVerdict" style="font-size:10px;letter-spacing:1px;margin-top:4px;color:#5a8800;">in fuel this cycle 🎉</div>
+            <div id="plVerdict" style="font-size:11px;letter-spacing:1px;margin-top:4px;color:#5a8800;">in fuel this cycle 🎉</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:8px;text-align:right;">
             <div>
-              <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Collected</div>
+              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Collected</div>
               <div id="plIncome" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#c8f230;">R0</div>
             </div>
             <div>
-              <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Fuel Spent</div>
+              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Fuel Spent</div>
               <div id="plFuel" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#f23060;">R0</div>
             </div>
           </div>
@@ -874,15 +874,15 @@ function _showUpdateToast(worker){
 
       <!-- Smart Pricing calculator -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;">
-        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">💡 Smart Trip Pricing</div>
+        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">💡 Smart Trip Pricing</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
           <div>
-            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">⛽ Tank Cost (R)</div>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">⛽ Tank Cost (R)</div>
             <input type="number" id="tankCost" placeholder="e.g. 1400" oninput="recalcPricing()"
               style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid #3a2000;background:#1a0e00;color:#f2a830;font-family:'DM Mono',monospace;font-size:14px;outline:none;box-sizing:border-box;"/>
           </div>
           <div>
-            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">🏠 Private Use (R)</div>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">🏠 Private Use (R)</div>
             <input type="number" id="privateUseAmt" placeholder="e.g. 480" oninput="recalcPricing()"
               style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid #3a2000;background:#1a0e00;color:#f2a830;font-family:'DM Mono',monospace;font-size:14px;outline:none;box-sizing:border-box;"/>
           </div>
@@ -893,13 +893,13 @@ function _showUpdateToast(worker){
           <div style="font-size:11px;color:var(--muted);">🚗 Carpool <strong id="splitCarpool" style="color:#c8f230;">R0</strong></div>
           <div style="font-size:11px;color:var(--muted2);">=</div>
           <div style="font-size:11px;color:var(--muted);">Tank <strong id="splitTank" style="color:var(--text);">R0</strong></div>
-          <div id="splitWarning" style="font-size:10px;color:#f23060;display:none;">⚠ Private use exceeds tank cost</div>
+          <div id="splitWarning" style="font-size:11px;color:#f23060;display:none;">⚠ Private use exceeds tank cost</div>
         </div>
         <div style="margin-bottom:12px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">📅 Carpool Trips per Tank</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">📅 Carpool Trips per Tank</div>
           <div style="display:flex;gap:8px;align-items:center;">
             <div style="flex:1;background:#111;border:1px solid #222;border-radius:6px;padding:8px 10px;">
-              <div style="font-size:9px;color:var(--muted);margin-bottom:2px;">Auto (from carpool data)</div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Auto (from carpool data)</div>
               <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text);" id="autoTripsPerTank">—</div>
             </div>
             <div style="color:var(--muted);font-size:12px;">or</div>
@@ -908,40 +908,40 @@ function _showUpdateToast(worker){
           </div>
         </div>
         <div id="pricingResult" style="border-radius:8px;padding:14px;background:#0d1a00;border:1px solid #2a4a00;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:10px;">💡 Result</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:10px;">💡 Result</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
             <div style="text-align:center;">
-              <div style="font-size:9px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Your Share</div>
+              <div style="font-size:11px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Your Share</div>
               <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#f2a830;" id="resYourCost">—</div>
-              <div style="font-size:9px;color:var(--muted);margin-top:2px;">of tank</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">of tank</div>
             </div>
             <div style="text-align:center;">
-              <div style="font-size:9px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Break-even</div>
+              <div style="font-size:11px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Break-even</div>
               <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--text);" id="resBreakEven">—</div>
-              <div style="font-size:9px;color:var(--muted);margin-top:2px;">per trip</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">per trip</div>
             </div>
             <div style="text-align:center;">
-              <div style="font-size:9px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Recommended</div>
+              <div style="font-size:11px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Recommended</div>
               <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:#c8f230;" id="resRecommended">—</div>
-              <div style="font-size:9px;color:var(--muted);margin-top:2px;">per trip +10%</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">per trip +10%</div>
             </div>
           </div>
           <div id="resStatus" style="font-size:11px;color:#5a8800;padding:6px 10px;background:#0a1200;border-radius:6px;text-align:center;letter-spacing:0.5px;"></div>
-          <div id="resExplain" style="font-size:10px;color:var(--muted);margin-top:8px;letter-spacing:1px;line-height:1.7;"></div>
+          <div id="resExplain" style="font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:1px;line-height:1.7;"></div>
         </div>
       </div>
       <div id="rptSuggestedPricing" style="display:none;"></div>
 
       <!-- Fuel log (collapsible) -->
       <details style="background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;" ontoggle="if(this.open) try{ loadFuelReport(); }catch(e){}">
-        <summary style="padding:12px 14px;cursor:pointer;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);list-style:none;display:flex;justify-content:space-between;align-items:center;">
+        <summary style="padding:12px 14px;cursor:pointer;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);list-style:none;display:flex;justify-content:space-between;align-items:center;">
           <span>⛽ Fuel Log</span><span style="font-size:11px;">▸</span>
         </summary>
         <div style="padding:14px;border-top:1px solid var(--border);">
           <!-- Entry type toggle -->
           <div style="display:flex;gap:6px;margin-bottom:8px;">
-            <button onclick="fuelSetType('petrol',this)" id="fuelBtnPetrol" style="flex:1;padding:7px;border-radius:6px;border:1px solid #a78bfa;background:#1a0a26;color:#a78bfa;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">⛽ Petrol</button>
-            <button onclick="fuelSetType('uber',this)" id="fuelBtnUber" style="flex:1;padding:7px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">🚗 Uber</button>
+            <button onclick="fuelSetType('petrol',this)" id="fuelBtnPetrol" style="flex:1;padding:7px;border-radius:6px;border:1px solid #a78bfa;background:#1a0a26;color:#a78bfa;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">⛽ Petrol</button>
+            <button onclick="fuelSetType('uber',this)" id="fuelBtnUber" style="flex:1;padding:7px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">🚗 Uber</button>
             <input type="hidden" id="fuelEntryType" value="petrol">
           </div>
           <div id="fuelPetrolFields" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
@@ -954,18 +954,18 @@ function _showUpdateToast(worker){
             <input id="fuelAmountUber" type="number" placeholder="Uber fare (R)" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
             <input id="fuelNote" type="text" placeholder="Note (optional)" style="grid-column:span 2;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
           </div>
-          <button onclick="addFuelEntry()" style="padding:8px 14px;border:none;border-radius:6px;background:#a78bfa;color:#000;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;margin-bottom:12px;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">+ Add Entry</button>
+          <button onclick="addFuelEntry()" style="padding:8px 14px;border:none;border-radius:6px;background:#a78bfa;color:#000;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;margin-bottom:12px;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">+ Add Entry</button>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
             <div style="background:#111;border:1px solid var(--border);padding:10px;border-radius:6px;">
-              <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Spent</div>
+              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Spent</div>
               <div id="fuelTotal" style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:#a78bfa;">R0</div>
             </div>
             <div style="background:#111;border:1px solid var(--border);padding:10px;border-radius:6px;">
-              <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Entries</div>
+              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Entries</div>
               <div id="fuelCount" style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--text);">0</div>
             </div>
             <div style="background:#111;border:1px solid var(--border);padding:10px;border-radius:6px;">
-              <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Suggested ↑/pass</div>
+              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Suggested ↑/pass</div>
               <div id="fuelSuggest" style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:#f2a830;">R0</div>
             </div>
           </div>
@@ -973,11 +973,11 @@ function _showUpdateToast(worker){
                border + dimmer text on purpose: reads as "past, not live"
                at a glance so it never gets mistaken for the tiles above. -->
           <div id="fuelPrevCycleBlock" style="display:flex;justify-content:space-between;align-items:center;background:none;border:1px dashed var(--border);padding:8px 10px;border-radius:6px;margin-bottom:12px;">
-            <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);">Last cycle · <span id="fuelPrevCycleLabel">—</span></div>
+            <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);">Last cycle · <span id="fuelPrevCycleLabel">—</span></div>
             <div id="fuelPrevCycleAmt" style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--muted);">—</div>
           </div>
           <div style="background:var(--surface);border-radius:6px;overflow:hidden;">
-            <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 28px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+            <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 28px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
               <span>Date</span><span>R/Litre</span><span>Total</span><span></span>
             </div>
             <div id="fuelRows"></div>
@@ -985,18 +985,18 @@ function _showUpdateToast(worker){
 
           <!-- v149l — Fuel Statement export, arbitrary date range -->
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
-            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">📄 Export Statement</div>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">📄 Export Statement</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
               <div>
-                <div style="font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:3px;">From</div>
+                <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:3px;">From</div>
                 <input id="fuelStmtFrom" type="date" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;box-sizing:border-box;">
               </div>
               <div>
-                <div style="font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:3px;">To</div>
+                <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:3px;">To</div>
                 <input id="fuelStmtTo" type="date" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;box-sizing:border-box;">
               </div>
             </div>
-            <button onclick="exportFuelStatement()" id="fuelStmtBtn" style="width:100%;padding:9px 14px;border-radius:6px;border:1px solid #6a6ab0;background:#0e0e1a;color:#8888dd;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">📄 Export Statement (PDF)</button>
+            <button onclick="exportFuelStatement()" id="fuelStmtBtn" style="width:100%;padding:9px 14px;border-radius:6px;border:1px solid #6a6ab0;background:#0e0e1a;color:#8888dd;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">📄 Export Statement (PDF)</button>
           </div>
         </div>
       </details>
@@ -1009,24 +1009,24 @@ function _showUpdateToast(worker){
         <div id="rpt-sec-borrow" style="margin-bottom:28px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">💸 Borrowed Money</div>
-        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;">All activity</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:1px;">All activity</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
         <div style="background:var(--surface);border-radius:8px;padding:12px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Borrowed</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Borrowed</div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#a78bfa;" id="rptBorrowTotal">R0</div>
         </div>
         <div style="background:var(--surface);border-radius:8px;padding:12px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Repaid</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Repaid</div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#c8f230;" id="rptBorrowRepaid">R0</div>
         </div>
         <div style="background:var(--surface);border-radius:8px;padding:12px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Outstanding</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Outstanding</div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#f2a830;" id="rptBorrowOwing">R0</div>
         </div>
       </div>
       <div style="background:var(--surface);border-radius:8px;overflow:hidden;">
-        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
           <span>Passenger</span><span>Borrowed</span><span>Repaid</span><span>Owing</span>
         </div>
         <div id="rptBorrowRows"></div>
@@ -1040,32 +1040,32 @@ function _showUpdateToast(worker){
         <div id="rpt-sec-networth" style="margin-bottom:28px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">📊 Net Worth</div>
-        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;">Current snapshot</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:1px;">Current snapshot</div>
       </div>
 
       <!-- Big number -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:12px;text-align:center;">
-        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">NET WORTH</div>
+        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">NET WORTH</div>
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(28px,6vw,48px);letter-spacing:-1px;" id="nwTotal">R0</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px;" id="nwFormula">Assets − Liabilities</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;" id="nwFormula">Assets − Liabilities</div>
       </div>
 
       <!-- Assets vs Liabilities cards -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
         <div style="background:var(--surface);border:1px solid #2a5a00;border-radius:8px;padding:14px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:6px;">✅ Assets</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin-bottom:6px;">✅ Assets</div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#c8f230;" id="nwAssets">R0</div>
         </div>
         <div style="background:var(--surface);border:1px solid #5a1010;border-radius:8px;padding:14px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#8a2020;margin-bottom:6px;">⚠️ Liabilities</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8a2020;margin-bottom:6px;">⚠️ Liabilities</div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#f23060;" id="nwLiabilities">R0</div>
         </div>
       </div>
 
       <!-- Chart toggle buttons -->
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button id="nwBtnDonut" onclick="setNwChartMode('donut')" style="padding:7px 16px;border-radius:100px;border:1px solid #c8f230;background:#1a2e00;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">&#9685; Breakdown</button>
-        <button id="nwBtnLine"  onclick="setNwChartMode('line')"  style="padding:7px 16px;border-radius:100px;border:1px solid #333;background:none;color:#555;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">&#9099; Over time</button>
+        <button id="nwBtnDonut" onclick="setNwChartMode('donut')" style="padding:7px 16px;border-radius:100px;border:1px solid #c8f230;background:#1a2e00;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">&#9685; Breakdown</button>
+        <button id="nwBtnLine"  onclick="setNwChartMode('line')"  style="padding:7px 16px;border-radius:100px;border:1px solid #333;background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">&#9099; Over time</button>
       </div>
 
       <!-- Donut chart -->
@@ -1075,19 +1075,19 @@ function _showUpdateToast(worker){
 
       <!-- Line chart -->
       <div id="nwLineWrap" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;display:none;">
-        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Net Worth over time &nbsp;<span style="color:#3a5a00;">dotted = projected</span></div>
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Net Worth over time &nbsp;<span style="color:#3a5a00;">dotted = projected</span></div>
         <canvas id="nwLineCanvas" height="200"></canvas>
       </div>
 
       <!-- Asset breakdown -->
       <div style="background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:10px;">
-        <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;">Asset Breakdown</div>
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;">Asset Breakdown</div>
         <div id="nwAssetRows"></div>
       </div>
 
       <!-- Liability breakdown -->
       <div style="background:var(--surface);border-radius:8px;overflow:hidden;">
-        <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#8a2020;">Liability Breakdown</div>
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8a2020;">Liability Breakdown</div>
         <div id="nwLiabilityRows"></div>
       </div>
     </div>
@@ -1099,20 +1099,20 @@ function _showUpdateToast(worker){
         <div id="rpt-sec-car" style="margin-bottom:28px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">🚙 Car Expenses</div>
-        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;">Full history</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:1px;">Full history</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
         <div style="background:var(--surface);border-radius:8px;padding:12px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Spent</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Total Spent</div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#f23060;" id="rptCarSpent">R0</div>
         </div>
         <div style="background:var(--surface);border-radius:8px;padding:12px;">
-          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Available</div>
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Available</div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:#f2a830;" id="rptCarAvail">R0</div>
         </div>
       </div>
       <div style="background:var(--surface);border-radius:8px;overflow:hidden;">
-        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
           <span>Item</span><span>Date</span><span>Amount</span>
         </div>
         <div id="rptCarRows"></div>
@@ -1124,7 +1124,7 @@ function _showUpdateToast(worker){
     <div class="rpt-pane" style="display:none;" id="rptFolderExportWrap">
       <div id="rptFolderExportBody" style="padding:0 0 8px;">
         <div id="rpt-sec-export" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
-      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">📥 Export</div>
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">📥 Export</div>
       <!-- Streamlined (May 2026) — only the All-in-one Excel export is kept,
            which bundles savings + carpool + car expenses in a single file. The
            individual CSV buttons + Cash Flow PDF + BI star-schema export were
@@ -1152,11 +1152,11 @@ function _showUpdateToast(worker){
     <div style="font-size:11.5px;color:var(--text);text-align:center;line-height:1.55;margin-bottom:14px;">
       You're about to delete<br><b style="color:#f0a8ff;font-weight:500;" id="delFundName">—</b><br><br>
       This removes the pocket and all <b style="color:#f0a8ff;font-weight:500;" id="delFundHistCount">0</b> history entries.
-      <span style="color:var(--muted);font-size:10px;display:block;margin-top:8px;">Current balance: <span id="delFundBalance">R0</span> · Goal: <span id="delFundGoal">—</span><br>2-second undo will be available after.</span>
+      <span style="color:var(--muted);font-size:11px;display:block;margin-top:8px;">Current balance: <span id="delFundBalance">R0</span> · Goal: <span id="delFundGoal">—</span><br>2-second undo will be available after.</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <button onclick="closeModal('deleteFundConfirmModal')" style="background:#1a1a1a;color:var(--muted);border:1px solid var(--border);padding:10px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Keep it</button>
-      <button id="delFundConfirmBtn" style="background:#3a0a0a;color:#ff6868;border:1px solid #8a2020;padding:10px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Delete pocket</button>
+      <button onclick="closeModal('deleteFundConfirmModal')" style="background:#1a1a1a;color:var(--muted);border:1px solid var(--border);padding:10px;border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Keep it</button>
+      <button id="delFundConfirmBtn" style="background:#3a0a0a;color:#ff6868;border:1px solid #8a2020;padding:10px;border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Delete pocket</button>
     </div>
   </div>
 </div>
@@ -1172,17 +1172,17 @@ function _showUpdateToast(worker){
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;">
       <div>
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,34px);letter-spacing:-1px;line-height:1;">🕌 <span style="color:var(--muted)">SALAH</span> <button class="info-btn" onclick="openInfo('Salah', 'Track your daily 5 prayers. Tap a Salah to mark it done.\n\nStreak grows each consecutive day all 5 are marked. Best streak is the longest you have kept it up.\n\nNo penalty for missed days — the streak just resets and you start again. Insha\'Allah.')">ⓘ</button></div>
-        <div style="font-size:10px;letter-spacing:3px;color:var(--muted);margin-top:4px;text-transform:uppercase;">Lifetime Tracker</div>
+        <div style="font-size:11px;letter-spacing:3px;color:var(--muted);margin-top:4px;text-transform:uppercase;">Lifetime Tracker</div>
       </div>
-      <div id="prayerTodayDate" style="font-size:10px;letter-spacing:2px;color:var(--muted);text-align:right;"></div>
+      <div id="prayerTodayDate" style="font-size:11px;letter-spacing:2px;color:var(--muted);text-align:right;"></div>
     </div>
 
     <!-- Today log -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:20px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <div>
-          <div id="pDayLabel" style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);">Today's Salah</div>
-          <div id="pDaySubLabel" style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:2px;display:none;"></div>
+          <div id="pDayLabel" style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);">Today's Salah</div>
+          <div id="pDaySubLabel" style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:2px;display:none;"></div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
           <button onclick="pDayNav(-1)" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;" title="Previous day">◀</button>
@@ -1190,37 +1190,37 @@ function _showUpdateToast(worker){
         </div>
       </div>
       <div id="prayerTodayGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;"></div>
-      <div id="prayerTimesSource" style="font-size:9px;letter-spacing:1px;color:var(--muted);margin-top:10px;text-align:center;"></div>
+      <div id="prayerTimesSource" style="font-size:11px;letter-spacing:1px;color:var(--muted);margin-top:10px;text-align:center;"></div>
     </div>
 
     <!-- Streak + lifetime stats -->
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
-        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Current Streak</div>
+        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Current Streak</div>
         <div id="pStreak" style="font-family:'Syne',sans-serif;font-weight:800;font-size:32px;color:var(--accent);line-height:1;">0</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px;">days all 5 fard ✓</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">days all 5 fard ✓</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
-        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Best Streak</div>
+        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Best Streak</div>
         <div id="pBestStreak" style="font-family:'Syne',sans-serif;font-weight:800;font-size:32px;color:#f2a830;line-height:1;">0</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px;">days all 5 fard ✓</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">days all 5 fard ✓</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
-        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Total Prayed</div>
+        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Total Prayed</div>
         <div id="pTotal" style="font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:var(--text);line-height:1;">0</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px;">fard prayers since Jan 2025</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">fard prayers since Jan 2025</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;">
-        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Completion</div>
+        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Completion</div>
         <div id="pRate" style="font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:var(--text);line-height:1;">0%</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px;">of all fard prayers</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">of all fard prayers</div>
       </div>
     </div>
 
     <!-- Monthly heatmap -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:20px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);">Monthly Heatmap</div>
+        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);">Monthly Heatmap</div>
         <div style="display:flex;gap:8px;align-items:center;">
           <button onclick="prayerHeatmapPrev()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:12px;">◀</button>
           <span id="pHeatmapLabel" style="font-size:11px;letter-spacing:1px;color:var(--text);min-width:90px;text-align:center;"></span>
@@ -1229,45 +1229,45 @@ function _showUpdateToast(worker){
       </div>
       <!-- Day-of-week labels -->
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;">
-        <div style="text-align:center;font-size:8px;color:var(--muted);letter-spacing:1px;">S</div>
-        <div style="text-align:center;font-size:8px;color:var(--muted);letter-spacing:1px;">M</div>
-        <div style="text-align:center;font-size:8px;color:var(--muted);letter-spacing:1px;">T</div>
-        <div style="text-align:center;font-size:8px;color:var(--muted);letter-spacing:1px;">W</div>
-        <div style="text-align:center;font-size:8px;color:var(--muted);letter-spacing:1px;">T</div>
-        <div style="text-align:center;font-size:8px;color:var(--muted);letter-spacing:1px;">F</div>
-        <div style="text-align:center;font-size:8px;color:var(--muted);letter-spacing:1px;">S</div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);letter-spacing:1px;">S</div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);letter-spacing:1px;">M</div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);letter-spacing:1px;">T</div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);letter-spacing:1px;">W</div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);letter-spacing:1px;">T</div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);letter-spacing:1px;">F</div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);letter-spacing:1px;">S</div>
       </div>
       <div id="pHeatmapGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
       <!-- Legend -->
       <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;">
-        <span style="font-size:9px;color:var(--muted);letter-spacing:1px;">0</span>
+        <span style="font-size:11px;color:var(--muted);letter-spacing:1px;">0</span>
         <div style="width:14px;height:14px;border-radius:3px;background:#1a1a1a;border:1px solid #2a2a2a;"></div>
         <div style="width:14px;height:14px;border-radius:3px;background:#1a3300;"></div>
         <div style="width:14px;height:14px;border-radius:3px;background:#2d5c00;"></div>
         <div style="width:14px;height:14px;border-radius:3px;background:#5a9900;"></div>
         <div style="width:14px;height:14px;border-radius:3px;background:#c8f230;"></div>
-        <span style="font-size:9px;color:var(--muted);letter-spacing:1px;">5 fard</span>
-        <span style="font-size:9px;color:#9b59b6;margin-left:8px;">+ tahajjud</span>
+        <span style="font-size:11px;color:var(--muted);letter-spacing:1px;">5 fard</span>
+        <span style="font-size:11px;color:#9b59b6;margin-left:8px;">+ tahajjud</span>
       </div>
     </div>
 
     <!-- Per-prayer breakdown -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:20px;">
-      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">Prayer Breakdown</div>
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">Prayer Breakdown</div>
       <div id="pBreakdown" style="display:flex;flex-direction:column;gap:10px;"></div>
     </div>
 
     <!-- Tahajjud stats -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;">
-      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#9b59b6;margin-bottom:8px;">Tahajjud (Nafl)</div>
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#9b59b6;margin-bottom:8px;">Tahajjud (Nafl)</div>
       <div style="display:flex;gap:20px;align-items:flex-end;">
         <div>
           <div id="pTahajjudCount" style="font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:#9b59b6;line-height:1;">0</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:4px;">times prayed</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">times prayed</div>
         </div>
         <div>
           <div id="pTahajjudPct" style="font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:#9b59b6;line-height:1;">0%</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:4px;">of tracked days</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">of tracked days</div>
         </div>
       </div>
     </div>
@@ -1284,11 +1284,11 @@ function _showUpdateToast(worker){
     <div class="dep-fund-name" id="carTxnSubtitle"></div>
     <div class="field"><label>Amount (R)</label><input type="number" id="carTxnAmt" placeholder="e.g. 4200"/></div>
     <div class="field">
-      <label id="carTxnBankLabel">From which bank? <span style="color:#f2a830;font-size:10px;">★ Required</span></label>
+      <label id="carTxnBankLabel">From which bank? <span style="color:#f2a830;font-size:11px;">★ Required</span></label>
       <div style="display:flex;gap:8px;margin-top:4px;">
-        <button type="button" id="carTxnBankFNB" onclick="setCarTxnBank('FNB',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid #4a7aaa;background:#0a0f1a;color:#4a9aff;">🏛 FNB</button>
-        <button type="button" id="carTxnBankTyme" onclick="setCarTxnBank('TymeBank',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">🏦 Tyme</button>
-        <button type="button" id="carTxnBankCash" onclick="setCarTxnBank('Cash',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">💵 Cash</button>
+        <button type="button" id="carTxnBankFNB" onclick="setCarTxnBank('FNB',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:1px solid #4a7aaa;background:#0a0f1a;color:#4a9aff;">🏛 FNB</button>
+        <button type="button" id="carTxnBankTyme" onclick="setCarTxnBank('TymeBank',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">🏦 Tyme</button>
+        <button type="button" id="carTxnBankCash" onclick="setCarTxnBank('Cash',this)" style="flex:1;padding:10px 4px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">💵 Cash</button>
       </div>
       <input type="hidden" id="carTxnBank" value="FNB"/>
     </div>
@@ -1340,18 +1340,18 @@ function _showUpdateToast(worker){
         <span style="font-size:22px;line-height:1;">🔄</span>
         <div style="flex:1;">
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#5090f0;margin-bottom:3px;">Google Drive Sync</div>
-          <div style="font-size:10px;color:#2a4080;line-height:1.6;">Phone: <b style="color:#4070c0">Share → Drive</b> to export. <b style="color:#4070c0">Browse Drive</b> to import.<br>Laptop: Download then move file to Drive folder.</div>
+          <div style="font-size:11px;color:#2a4080;line-height:1.6;">Phone: <b style="color:#4070c0">Share → Drive</b> to export. <b style="color:#4070c0">Browse Drive</b> to import.<br>Laptop: Download then move file to Drive folder.</div>
         </div>
       </div>
-      <div style="display:flex;font-size:9px;color:#2a4080;letter-spacing:1px;margin-bottom:12px;flex-direction:column;gap:3px;">
+      <div style="display:flex;font-size:11px;color:#2a4080;letter-spacing:1px;margin-bottom:12px;flex-direction:column;gap:3px;">
         <span id="gdLastExported">↑ Never exported</span>
         <span id="gdLastImported">↓ Never imported</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button onclick="driveExport()" style="padding:10px;background:#0d1830;border:1px solid #1a3060;border-radius:6px;color:#5090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">📤 Export</button>
-        <button onclick="driveImport()" style="padding:10px;background:#0d1830;border:1px solid #1a3060;border-radius:6px;color:#5090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">📥 Import</button>
+        <button onclick="driveExport()" style="padding:10px;background:#0d1830;border:1px solid #1a3060;border-radius:6px;color:#5090f0;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">📤 Export</button>
+        <button onclick="driveImport()" style="padding:10px;background:#0d1830;border:1px solid #1a3060;border-radius:6px;color:#5090f0;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">📥 Import</button>
       </div>
-      <div style="font-size:9px;color:#1a2a50;margin-top:10px;letter-spacing:1px;line-height:1.5;">File: <code style="color:#2a4080;background:#0a1020;padding:1px 4px;border-radius:2px;">YBDashboard_Latest.json</code> — always overwrite same file in Drive.</div>
+      <div style="font-size:11px;color:#1a2a50;margin-top:10px;letter-spacing:1px;line-height:1.5;">File: <code style="color:#2a4080;background:#0a1020;padding:1px 4px;border-radius:2px;">YBDashboard_Latest.json</code> — always overwrite same file in Drive.</div>
     </div>
 
     <!-- Supabase removed — using Firebase -->
@@ -1362,13 +1362,13 @@ function _showUpdateToast(worker){
         <span style="font-size:22px;line-height:1;">💾</span>
         <div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;margin-bottom:3px;">Backup All Data</div>
-          <div style="font-size:10px;color:#5a8800;line-height:1.6;">Creates a dated <code style="background:#1a2e00;padding:1px 4px;border-radius:3px;color:#8ab820">.json</code> snapshot — useful for versioned backups.</div>
+          <div style="font-size:11px;color:#5a8800;line-height:1.6;">Creates a dated <code style="background:#1a2e00;padding:1px 4px;border-radius:3px;color:#8ab820">.json</code> snapshot — useful for versioned backups.</div>
         </div>
       </div>
-      <button onclick="backupData()" style="width:100%;padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">⬇ Download Backup</button>
-      <button onclick="fixSchoolCache()" style="width:100%;padding:10px;margin-top:8px;background:#1a0a00;border:1px solid #5a2a00;border-radius:6px;color:#f2a830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🔧 Fix School Cache</button>
-      <button onclick="hardResetServiceWorker()" style="width:100%;padding:10px;margin-top:8px;background:#0a0a1a;border:1px solid #2a2a5a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🔄 Hard Reset Cache</button>
-      <button onclick="clearAllSnoozes()" style="width:100%;padding:10px;margin-top:8px;background:#1a0a1a;border:1px solid #5a1a5a;border-radius:6px;color:#e090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">😴 Clear All Snoozes</button>
+      <button onclick="backupData()" style="width:100%;padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">⬇ Download Backup</button>
+      <button onclick="fixSchoolCache()" style="width:100%;padding:10px;margin-top:8px;background:#1a0a00;border:1px solid #5a2a00;border-radius:6px;color:#f2a830;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🔧 Fix School Cache</button>
+      <button onclick="hardResetServiceWorker()" style="width:100%;padding:10px;margin-top:8px;background:#0a0a1a;border:1px solid #2a2a5a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🔄 Hard Reset Cache</button>
+      <button onclick="clearAllSnoozes()" style="width:100%;padding:10px;margin-top:8px;background:#1a0a1a;border:1px solid #5a1a5a;border-radius:6px;color:#e090f0;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">😴 Clear All Snoozes</button>
     </div>
 
     <!-- PUSH NOTIFICATIONS -->
@@ -1377,13 +1377,13 @@ function _showUpdateToast(worker){
         <span style="font-size:22px;line-height:1;">🔔</span>
         <div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#7090f0;margin-bottom:3px;">Push Notifications</div>
-          <div style="font-size:10px;color:#3a4a8a;line-height:1.6;">Enables this device to receive alerts even when the app is closed. Step 1 of the full pipeline — nothing sends a push yet, this just registers the device.</div>
+          <div style="font-size:11px;color:#3a4a8a;line-height:1.6;">Enables this device to receive alerts even when the app is closed. Step 1 of the full pipeline — nothing sends a push yet, this just registers the device.</div>
         </div>
       </div>
-      <button onclick="enablePushNotifications()" style="width:100%;padding:10px;background:#12123a;border:1px solid #2a2a5a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🔔 Enable Notifications</button>
-      <div id="pushNotifStatus" style="font-size:10px;color:var(--muted);margin-top:8px;letter-spacing:1px;">Not enabled yet</div>
-      <button onclick="sendTestPush()" style="width:100%;padding:10px;margin-top:8px;background:#0a0a1a;border:1px solid #2a2a5a;border-radius:6px;color:#5090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🧪 Send Test Notification</button>
-      <div id="pushTestResult" style="font-size:10px;color:var(--muted);margin-top:8px;letter-spacing:1px;"></div>
+      <button onclick="enablePushNotifications()" style="width:100%;padding:10px;background:#12123a;border:1px solid #2a2a5a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🔔 Enable Notifications</button>
+      <div id="pushNotifStatus" style="font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:1px;">Not enabled yet</div>
+      <button onclick="sendTestPush()" style="width:100%;padding:10px;margin-top:8px;background:#0a0a1a;border:1px solid #2a2a5a;border-radius:6px;color:#5090f0;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">🧪 Send Test Notification</button>
+      <div id="pushTestResult" style="font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:1px;"></div>
     </div>
 
     <!-- RESTORE -->
@@ -1392,14 +1392,14 @@ function _showUpdateToast(worker){
         <span style="font-size:22px;line-height:1;">📤</span>
         <div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#f2a830;margin-bottom:3px;">Restore Data</div>
-          <div style="font-size:10px;color:#7a6800;line-height:1.6;">Load a previously saved backup file to restore all dashboard data. <span style="color:#f2a830;">This will overwrite current data.</span></div>
+          <div style="font-size:11px;color:#7a6800;line-height:1.6;">Load a previously saved backup file to restore all dashboard data. <span style="color:#f2a830;">This will overwrite current data.</span></div>
         </div>
       </div>
-      <label style="display:block;width:100%;padding:10px;background:#1a1800;border:1px solid #3a3000;border-radius:6px;color:#f2a830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;text-align:center;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+      <label style="display:block;width:100%;padding:10px;background:#1a1800;border:1px solid #3a3000;border-radius:6px;color:#f2a830;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;text-align:center;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
         📁 Select Backup File
         <input type="file" accept=".json" onchange="restoreData(this)" style="display:none;"/>
       </label>
-      <div id="restoreStatus" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:14px;letter-spacing:1px;"></div>
+      <div id="restoreStatus" style="font-size:11px;color:var(--muted);margin-top:8px;min-height:14px;letter-spacing:1px;"></div>
     </div>
 
     <!-- ANTHROPIC API KEY — used by Bank Feed Companion to read PDFs + photos -->
@@ -1408,15 +1408,15 @@ function _showUpdateToast(worker){
         <span style="font-size:22px;line-height:1;">🏦</span>
         <div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;margin-bottom:3px;">Bank Feed AI Key</div>
-          <div style="font-size:10px;color:#3a6a1a;line-height:1.6;"><b>Optional.</b> When you're signed in with Google, Odin, Bank Feed and the invoice scanner use the key stored securely on the server — leave this empty and tap Clear. Only paste a key here for a copy of the app that isn't signed in. It stays on this device and is never synced or backed up.</div>
+          <div style="font-size:11px;color:#3a6a1a;line-height:1.6;"><b>Optional.</b> When you're signed in with Google, Odin, Bank Feed and the invoice scanner use the key stored securely on the server — leave this empty and tap Clear. Only paste a key here for a copy of the app that isn't signed in. It stays on this device and is never synced or backed up.</div>
         </div>
       </div>
       <input type="password" id="bfApiKeyInput" placeholder="sk-ant-api03-..." style="width:100%;background:#0d1a0d;border:1px solid #2a4a1a;color:#efefef;font-family:'DM Mono',monospace;font-size:12px;padding:10px 12px;border-radius:4px;outline:none;margin-bottom:8px;"/>
       <div style="display:flex;gap:8px;">
-        <button onclick="bfSaveApiKey()" style="flex:1;padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Key</button>
-        <button onclick="bfClearApiKey()" style="padding:10px 14px;background:none;border:1px solid #2a2a2a;border-radius:6px;color:#555;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Clear</button>
+        <button onclick="bfSaveApiKey()" style="flex:1;padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Key</button>
+        <button onclick="bfClearApiKey()" style="padding:10px 14px;background:none;border:1px solid #2a2a2a;border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Clear</button>
       </div>
-      <div id="bfApiKeyStatus" style="font-size:10px;color:var(--muted);margin-top:8px;min-height:14px;letter-spacing:1px;"></div>
+      <div id="bfApiKeyStatus" style="font-size:11px;color:var(--muted);margin-top:8px;min-height:14px;letter-spacing:1px;"></div>
     </div>
 
     <!-- FIREBASE CLOUD SYNC -->
@@ -1425,19 +1425,19 @@ function _showUpdateToast(worker){
         <span style="font-size:22px;line-height:1;">🔥</span>
         <div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#7090f0;margin-bottom:3px;">Firebase Cloud Sync</div>
-          <div style="font-size:10px;color:#3a3a80;line-height:1.6;">Your data is automatically saved to Firebase in the background. Push sends local → cloud. Pull downloads cloud → local (overwrites local).</div>
+          <div style="font-size:11px;color:#3a3a80;line-height:1.6;">Your data is automatically saved to Firebase in the background. Push sends local → cloud. Pull downloads cloud → local (overwrites local).</div>
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <span style="font-size:10px;letter-spacing:1px;color:#555;">Status</span>
-        <span id="fbSyncStatus" style="font-size:11px;color:#555;">⚫ Offline</span>
+        <span style="font-size:11px;letter-spacing:1px;color:var(--muted);">Status</span>
+        <span id="fbSyncStatus" style="font-size:11px;color:var(--muted);">⚫ Offline</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-        <button onclick="fbPushAll()" style="padding:10px;background:#0a0a1a;border:1px solid #1a1a3a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">☁️ Push to Cloud</button>
-        <button onclick="fbPullAll()" style="padding:10px;background:#0a0a1a;border:1px solid #1a1a3a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">📥 Pull from Cloud</button>
+        <button onclick="fbPushAll()" style="padding:10px;background:#0a0a1a;border:1px solid #1a1a3a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">☁️ Push to Cloud</button>
+        <button onclick="fbPullAll()" style="padding:10px;background:#0a0a1a;border:1px solid #1a1a3a;border-radius:6px;color:#7090f0;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">📥 Pull from Cloud</button>
       </div>
       <div id="fbUserName" style="font-size:11px;color:#5090f0;text-align:center;margin-bottom:6px;min-height:14px;"></div>
-      <button onclick="if(window._fb&&window._fb.auth){if(confirm('Sign out of Google?')){window._fb.auth.signOut();logout();}}" style="width:100%;padding:10px;background:#2e0a0a;color:#f23060;border:1px solid #5a1a1a;border-radius:6px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">⏻ Sign Out of Google</button>
+      <button onclick="if(window._fb&&window._fb.auth){if(confirm('Sign out of Google?')){window._fb.auth.signOut();logout();}}" style="width:100%;padding:10px;background:#2e0a0a;color:#f23060;border:1px solid #5a1a1a;border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">⏻ Sign Out of Google</button>
     </div>
 
     <!-- CARPOOL TARIFF — configurable rates that drive the carpool grid dropdown.
@@ -1449,18 +1449,18 @@ function _showUpdateToast(worker){
         <span style="font-size:22px;line-height:1;">⛽</span>
         <div style="flex:1;">
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#f2a830;margin-bottom:3px;">Carpool Tariff</div>
-          <div style="font-size:10px;color:#7a5020;line-height:1.6;">Rates per trip. Update when fuel changes — historical entries keep their original rate.</div>
+          <div style="font-size:11px;color:#7a5020;line-height:1.6;">Rates per trip. Update when fuel changes — historical entries keep their original rate.</div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
-          <label style="display:block;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#7a5020;margin-bottom:4px;">Full day (R)</label>
+          <label style="display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#7a5020;margin-bottom:4px;">Full day (R)</label>
           <input type="number" id="carpoolTariffFull" min="1" step="1"
             style="width:100%;background:#0d0a00;border:1px solid #4a3000;border-radius:6px;padding:9px 12px;color:#f2a830;font-family:'DM Mono',monospace;font-size:13px;"
             placeholder="52"/>
         </div>
         <div>
-          <label style="display:block;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#7a5020;margin-bottom:4px;">Half day (R)</label>
+          <label style="display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#7a5020;margin-bottom:4px;">Half day (R)</label>
           <input type="number" id="carpoolTariffHalf" min="1" step="1"
             style="width:100%;background:#0d0a00;border:1px solid #4a3000;border-radius:6px;padding:9px 12px;color:#f2a830;font-family:'DM Mono',monospace;font-size:13px;"
             placeholder="26"/>
@@ -1479,10 +1479,10 @@ function _showUpdateToast(worker){
           <span style="font-size:22px;line-height:1;">🚗</span>
           <div>
             <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#c8f230;margin-bottom:3px;">Carpool Passengers</div>
-            <div style="font-size:10px;color:#3a6040;line-height:1.6;">People who ride — tracked in carpool, maintenance & reports.</div>
+            <div style="font-size:11px;color:#3a6040;line-height:1.6;">People who ride — tracked in carpool, maintenance & reports.</div>
           </div>
         </div>
-        <button onclick="addPassenger()" style="flex-shrink:0;padding:6px 12px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;white-space:nowrap;">+ Add</button>
+        <button onclick="addPassenger()" style="flex-shrink:0;padding:6px 12px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;white-space:nowrap;">+ Add</button>
       </div>
       <div id="passengerRows" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
@@ -1493,10 +1493,10 @@ function _showUpdateToast(worker){
         <span style="font-size:22px;line-height:1;">🗑</span>
         <div>
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#f23060;margin-bottom:3px;">Clear All Data</div>
-          <div style="font-size:10px;color:#6a2020;line-height:1.6;"><span style="color:#f23060;">Irreversible.</span> Resets all savings, carpool, and borrow data to factory state. Download a backup first.</div>
+          <div style="font-size:11px;color:#6a2020;line-height:1.6;"><span style="color:#f23060;">Irreversible.</span> Resets all savings, carpool, and borrow data to factory state. Download a backup first.</div>
         </div>
       </div>
-      <button onclick="clearAllData()" style="width:100%;padding:10px;background:#1a0a0a;border:1px solid #5a1010;border-radius:6px;color:#f23060;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">⚠ Clear Everything</button>
+      <button onclick="clearAllData()" style="width:100%;padding:10px;background:#1a0a0a;border:1px solid #5a1010;border-radius:6px;color:#f23060;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">⚠ Clear Everything</button>
     </div>
 
   </div>
@@ -1526,9 +1526,9 @@ function _showUpdateToast(worker){
   <div class="modal">
     <h2 style="color:#a78bfa;">🤝 Log Money Lent <button class="info-btn" onclick="openInfo('Lend to a carpool person', 'Carpool person needs cash. Pick them, amount, the pocket it comes from. Adds to their carpool tab — they\'ll see it owed next time you settle with them.')">ⓘ</button></h2>
     <div id="lendingGuardrail" style="display:none;border-radius:8px;padding:12px 14px;margin-bottom:14px;border:1px solid #2a2a2a;background:#111;">
-      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Smart Lending Check</div>
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Smart Lending Check</div>
       <div id="guardrailVerdict" style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:5px;"></div>
-      <div id="guardrailDetail" style="font-size:10px;color:var(--muted);line-height:1.6;"></div>
+      <div id="guardrailDetail" style="font-size:11px;color:var(--muted);line-height:1.6;"></div>
       <div id="guardrailMax" style="margin-top:6px;font-size:11px;font-weight:700;"></div>
     </div>
     <div class="field"><label>Passenger</label>
@@ -1547,7 +1547,7 @@ function _showUpdateToast(worker){
         <option value="TymeBank">🏦 TymeBank Account</option>
         <option value="Cash">💵 Cash</option>
       </select>
-      <div id="borrowFeeHint" style="display:none;font-size:10px;color:#a78bfa;margin-top:6px;letter-spacing:.5px;"></div>
+      <div id="borrowFeeHint" style="display:none;font-size:11px;color:#a78bfa;margin-top:6px;letter-spacing:.5px;"></div>
     </div>
     <div class="field"><label>Note (optional)</label><input type="text" id="borrowNote" placeholder="e.g. Lunch money"/></div>
     <div class="field" style="display:flex;align-items:flex-start;gap:8px;background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;">
@@ -1582,23 +1582,23 @@ function _showUpdateToast(worker){
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
       <div>
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🤝 <span style="color:var(--muted)">MONEY OWED</span> <button class="info-btn" onclick="openInfo('Money Owed', 'People who owe you money — carpool tabs, personal lends, anything.\n\nTap ↩ Repayment when someone pays you back. Money goes back into a pocket (auto-suggests the one you lent from, but you can pick any).\n\nLent and repaid totals show at the top. Card turns green when settled.')">ⓘ</button></div>
-        <div style="font-size:10px;letter-spacing:3px;color:var(--muted);margin-top:4px;text-transform:uppercase;">Everyone who owes you</div>
+        <div style="font-size:11px;letter-spacing:3px;color:var(--muted);margin-top:4px;text-transform:uppercase;">Everyone who owes you</div>
       </div>
-      <button onclick="openExternalBorrowModal()" style="background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#a78bfa;font-weight:700;">+ Add Person</button>
+      <button onclick="openExternalBorrowModal()" style="background:#1a0e2e;border:1px solid #a78bfa;border-radius:6px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:#a78bfa;font-weight:700;">+ Add Person</button>
     </div>
 
     <!-- Summary pills -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
-        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Total Lent</div>
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Total Lent</div>
         <div id="moTotalLent" style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:#a78bfa;">R0</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
-        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Repaid</div>
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Repaid</div>
         <div id="moTotalRepaid" style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:#c8f230;">R0</div>
       </div>
       <div style="background:#1a1000;border:1px solid #5a3a00;border-radius:8px;padding:14px;">
-        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#f2a830;margin-bottom:6px;">Still Owed</div>
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#f2a830;margin-bottom:6px;">Still Owed</div>
         <div id="moTotalOwing" style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:#f2a830;">R0</div>
       </div>
     </div>
@@ -1610,10 +1610,10 @@ function _showUpdateToast(worker){
 
     <!-- Show Archived toggle -->
     <div style="padding:8px 0 16px;text-align:center;">
-      <button id="moToggleArchived" onclick="toggleArchivedMoney()" style="background:none;border:1px solid #2a2a2a;border-radius:8px;padding:8px 20px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.color='#888';this.style.borderColor='#444'" onmouseout="this.style.color='#444';this.style.borderColor='#2a2a2a'">📦 Show Archived</button>
+      <button id="moToggleArchived" onclick="toggleArchivedMoney()" style="background:none;border:1px solid #2a2a2a;border-radius:8px;padding:8px 20px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.color='#888';this.style.borderColor='#444'" onmouseout="this.style.color='#444';this.style.borderColor='#2a2a2a'">📦 Show Archived</button>
     </div>
     <div id="moArchivedSection" style="display:none;padding:0 0 16px;">
-      <div style="font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Archived People</div>
+      <div style="font-size:11px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Archived People</div>
       <div id="moArchivedList"></div>
     </div>
 
@@ -1632,9 +1632,9 @@ function _showUpdateToast(worker){
       </div>
     </div>
     <div id="extLendingGuardrail" style="border-radius:8px;padding:12px 14px;margin-bottom:14px;border:1px solid #2a2a2a;background:#111;">
-      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Smart Lending Check</div>
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Smart Lending Check</div>
       <div id="extGuardrailVerdict" style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:5px;"></div>
-      <div id="extGuardrailDetail" style="font-size:10px;color:var(--muted);line-height:1.6;"></div>
+      <div id="extGuardrailDetail" style="font-size:11px;color:var(--muted);line-height:1.6;"></div>
       <div id="extGuardrailMax" style="margin-top:6px;font-size:11px;font-weight:700;"></div>
     </div>
     <div class="field"><label>Person's Name</label>
@@ -1665,9 +1665,9 @@ function _showUpdateToast(worker){
   <div class="modal">
     <h2 style="color:#a78bfa;">💸 Add More Borrowed <button class="info-btn" onclick="openInfo('Add another loan', 'Same person, another loan on top of what they already owe. Adds a fresh entry to their existing tab. Same pocket-first flow.')">ⓘ</button></h2>
     <div style="margin-bottom:14px;padding:10px 14px;background:#1a0e2e;border:1px solid #3a2060;border-radius:6px;">
-      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Adding to</div>
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Adding to</div>
       <div id="addMoreBorrowPersonName" style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:#a78bfa;"></div>
-      <div style="font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:1px;">Current total: <span id="addMoreBorrowCurrentTotal" style="color:#f2a830;"></span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;">Current total: <span id="addMoreBorrowCurrentTotal" style="color:#f2a830;"></span></div>
     </div>
     <input type="hidden" id="addMoreBorrowKey"/>
     <input type="hidden" id="addMoreBorrowTag"/>
@@ -1685,7 +1685,7 @@ function _showUpdateToast(worker){
       </select>
     </div>
     <div class="field"><label>Note (optional)</label><input type="text" id="addMoreBorrowNote" placeholder="e.g. Extra for transport"/></div>
-    <div style="padding:10px 14px;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;margin-bottom:14px;font-size:10px;color:#555;letter-spacing:0.5px;">
+    <div style="padding:10px 14px;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;margin-bottom:14px;font-size:11px;color:var(--muted);letter-spacing:0.5px;">
       ⓘ This amount will be <strong style="color:var(--text);">added to their existing total</strong> with today's date as a new entry. Previous entries remain unchanged.
     </div>
     <div class="modal-btns">
@@ -1704,11 +1704,11 @@ function _showUpdateToast(worker){
       <div class="ai-title-icon">🧠</div>
       <div>
         <div style="color:#c8f230;line-height:1;font-family:'Syne',sans-serif;font-weight:800;">Odin</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a8800;letter-spacing:2px;font-weight:400;margin-top:2px;">YOUR FINANCIAL BRAIN</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5a8800;letter-spacing:2px;font-weight:400;margin-top:2px;">YOUR FINANCIAL BRAIN</div>
       </div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
-      <button onclick="clearAIChat()" style="background:none;border:1px solid #1a1a1a;color:var(--muted2);border-radius:6px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#333';this.style.color='#666';" onmouseout="this.style.borderColor='#1a1a1a';this.style.color='#333';">CLEAR</button>
+      <button onclick="clearAIChat()" style="background:none;border:1px solid #1a1a1a;color:var(--muted2);border-radius:6px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#333';this.style.color='#666';" onmouseout="this.style.borderColor='#1a1a1a';this.style.color='#333';">CLEAR</button>
       <button class="ai-close-btn" onclick="closeAIAssistant()">✕</button>
     </div>
   </div>
@@ -1756,7 +1756,7 @@ function _showUpdateToast(worker){
       <label>From pocket (money leaves here)</label>
       <div id="payDebtPocketPicker" style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:8px;max-height:220px;overflow-y:auto;"></div>
     </div>
-    <div id="payDebtGuardrail" style="display:none;background:#1a0808;border:1px solid #5a1010;border-radius:6px;padding:10px 12px;margin-top:6px;font-size:10px;color:#f23060;"></div>
+    <div id="payDebtGuardrail" style="display:none;background:#1a0808;border:1px solid #5a1010;border-radius:6px;padding:10px 12px;margin-top:6px;font-size:11px;color:#f23060;"></div>
     <div class="field"><label>Note (optional)</label><input type="text" id="payDebtNote" placeholder="e.g. June payment"/></div>
     <input type="hidden" id="payDebtPersonKey"/>
     <div class="modal-btns">
@@ -1786,7 +1786,7 @@ function _showUpdateToast(worker){
     <div class="field">
       <label>↩ Goes back to pocket</label>
       <div id="extRepayPocketPicker" style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:8px;max-height:240px;overflow-y:auto;"></div>
-      <div style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:1px;">Origin pocket auto-suggested if loan has one. Tap any pocket to override.</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:1px;">Origin pocket auto-suggested if loan has one. Tap any pocket to override.</div>
     </div>
     <div class="field"><label>Note (optional)</label><input type="text" id="extRepayNote" placeholder="e.g. Paid via EFT"/></div>
     <input type="hidden" id="extRepayPersonKey"/>
@@ -1837,7 +1837,7 @@ function _showUpdateToast(worker){
     <div class="field">
       <label>↩ Goes back to pocket</label>
       <div id="repayPocketPicker" style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:8px;max-height:240px;overflow-y:auto;"></div>
-      <div style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:1px;">Origin pocket auto-suggested if loan has one. Tap any pocket to override.</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:1px;">Origin pocket auto-suggested if loan has one. Tap any pocket to override.</div>
     </div>
     <div class="field"><label>Note (optional)</label><input type="text" id="repayNote" placeholder="e.g. Paid via EFT"/></div>
     <div class="modal-btns">
@@ -1874,9 +1874,9 @@ function _showUpdateToast(worker){
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
       <div>
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(22px,5vw,38px);letter-spacing:-1px;line-height:1;">🔧 <span style="color:var(--muted)">CAR SERVICE</span> <button class="info-btn" onclick="openInfo('Cars', 'Track every car you own or maintain. Log expenses, services, fuel, anything.\n\nFunded cars deduct from a linked pocket (Toyota → EE90). Record-only cars (someone else pays, like the Getz) log to history only — no money moves.\n\nOdin watches for service-due reminders based on km and last-service date.')">ⓘ</button></div>
-        <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">Maintenance logs &amp; expense history</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">Maintenance logs &amp; expense history</div>
       </div>
-      <button onclick="openAddCarModal()" style="background:#f2a830;border:none;border-radius:6px;padding:10px 18px;color:#000;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Add Car</button>
+      <button onclick="openAddCarModal()" style="background:#f2a830;border:none;border-radius:6px;padding:10px 18px;color:#000;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Add Car</button>
     </div>
 
     <!-- Cars list -->
@@ -1924,9 +1924,9 @@ function _showUpdateToast(worker){
         <button class="info-btn" onclick="openInfo('Basics', 'The essentials for any car you track. Name + plate identify it; pocket tells the app where money should come from when you log expenses.\n\nLeave pocket on \&quot;None\&quot; if someone else pays (like the Getz — wife pays). Then expenses log to history only, no money moves.')">ⓘ</button>
       </div>
       <div class="field"><label>Car Name</label><input type="text" id="carName" placeholder="e.g. Hyundai Getz · Mom-in-law"/></div>
-      <div class="field"><label>License Plate <span style="font-size:9px;color:var(--muted);text-transform:none;letter-spacing:0;">(optional)</span></label><input type="text" id="carPlate" placeholder="e.g. JLB 464 W" style="text-transform:uppercase;"/></div>
+      <div class="field"><label>License Plate <span style="font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;">(optional)</span></label><input type="text" id="carPlate" placeholder="e.g. JLB 464 W" style="text-transform:uppercase;"/></div>
       <div class="field">
-        <label>Money pocket for this car <span style="font-size:9px;color:var(--muted);text-transform:none;letter-spacing:0;">(where expenses come from — None = record-only)</span></label>
+        <label>Money pocket for this car <span style="font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;">(where expenses come from — None = record-only)</span></label>
         <select id="carMaintenanceFundId" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:4px;color:#efefef;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;outline:none;"><option value="">— None (record-only) —</option></select>
       </div>
     </div>
@@ -1944,9 +1944,9 @@ function _showUpdateToast(worker){
         <div class="field"><label>Last Service Date</label><input type="date" id="carLastServiceDate"/></div>
         <div class="field"><label>Last Service KM</label><input type="number" id="carLastServiceKm" placeholder="e.g. 191000"/></div>
         <div class="field"><label>Last Service Type</label><select id="carLastServiceType" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:4px;color:#efefef;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;outline:none;"><option value="Minor">Minor Service</option><option value="Major">Major Service</option></select></div>
-        <div class="field"><label>Next Service KM <span style="font-size:9px;color:var(--muted);text-transform:none;letter-spacing:0;">(if known — otherwise auto-calculated)</span></label><input type="number" id="carNextServiceKm" placeholder="e.g. 206000"/></div>
-        <div class="field"><label>Service Cost Target R <span style="font-size:9px;color:var(--muted);text-transform:none;letter-spacing:0;">(how much to save for next service)</span></label><input type="number" id="carServiceTargetCost" placeholder="e.g. 5000"/></div>
-        <div class="field" style="margin-bottom:0;"><label style="display:flex;align-items:center;gap:10px;cursor:pointer;letter-spacing:0;text-transform:none;font-size:12px;color:var(--text);"><input type="checkbox" id="carCarpoolUsage" style="accent-color:#c8f230;width:16px;height:16px;"> <span>Carpool / Severe Usage <span style="font-size:9px;color:var(--muted);">(5,000km intervals instead of 10,000km)</span></span></label></div>
+        <div class="field"><label>Next Service KM <span style="font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;">(if known — otherwise auto-calculated)</span></label><input type="number" id="carNextServiceKm" placeholder="e.g. 206000"/></div>
+        <div class="field"><label>Service Cost Target R <span style="font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;">(how much to save for next service)</span></label><input type="number" id="carServiceTargetCost" placeholder="e.g. 5000"/></div>
+        <div class="field" style="margin-bottom:0;"><label style="display:flex;align-items:center;gap:10px;cursor:pointer;letter-spacing:0;text-transform:none;font-size:12px;color:var(--text);"><input type="checkbox" id="carCarpoolUsage" style="accent-color:#c8f230;width:16px;height:16px;"> <span>Carpool / Severe Usage <span style="font-size:11px;color:var(--muted);">(5,000km intervals instead of 10,000km)</span></span></label></div>
       </div>
     </details>
 
@@ -2004,7 +2004,7 @@ function _showUpdateToast(worker){
     <div class="field"><label>Next Service Due Date</label><input type="date" id="logServiceNext"/></div>
     <div class="field"><label>Kilometres at Service (optional)</label><input type="number" id="logServiceKm" placeholder="e.g. 84500"/></div>
     <div style="background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px;margin-bottom:16px;">
-      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Also log a service expense? (optional)</div>
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Also log a service expense? (optional)</div>
       <div class="field" style="margin-bottom:8px;"><label>Description</label><input type="text" id="logServiceDesc" placeholder="e.g. Full service at Tiger Wheel"/></div>
       <div class="field" style="margin-bottom:0;"><label>Amount (R)</label><input type="number" id="logServiceAmt" placeholder="Leave blank to skip"/></div>
     </div>
@@ -2022,7 +2022,7 @@ function _showUpdateToast(worker){
     <input type="hidden" id="addExpenseCarId"/>
     <input type="hidden" id="addExpenseEditId"/>
     <div class="field">
-      <label>Category <span style="font-size:10px;color:var(--muted);letter-spacing:1px;">(select all that apply)</span></label>
+      <label>Category <span style="font-size:11px;color:var(--muted);letter-spacing:1px;">(select all that apply)</span></label>
       <div id="expenseCategoryBox" style="background:#1a1a1a;border:1px solid #333;border-radius:4px;padding:6px 0;">
         <label class="cat-check-row"><input type="checkbox" value="🔧 Service"><span>🔧 Service</span></label>
         <label class="cat-check-row"><input type="checkbox" value="🛞 Tyres"><span>🛞 Tyres</span></label>
@@ -2038,20 +2038,20 @@ function _showUpdateToast(worker){
     <div class="field"><label>Description</label><input type="text" id="expenseDesc" placeholder="e.g. Full service at Tiger Wheel"/></div>
     <div class="field"><label>Amount (R)</label><input type="number" id="expenseAmt" placeholder="e.g. 1800"/></div>
     <div class="field">
-      <label>Pay from pocket <span style="font-size:10px;color:var(--muted);letter-spacing:1px;">(deducts + logs to Cash Flow)</span></label>
+      <label>Pay from pocket <span style="font-size:11px;color:var(--muted);letter-spacing:1px;">(deducts + logs to Cash Flow)</span></label>
       <select id="expensePocketId" style="width:100%;background:#1a1a1a;border:1px solid #5fd0e0;color:#efefef;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;"></select>
-      <div id="expensePocketHint" style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;"></div>
+      <div id="expensePocketHint" style="font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;"></div>
     </div>
     <div class="field">
       <label>Date</label>
       <div style="display:flex;gap:6px;align-items:stretch;">
         <input type="date" id="expenseDate" style="flex:1;"/>
         <button type="button" onclick="toggleExpenseDateMode()" id="expenseDateModeBtn" title="Switch to manual typing"
-          style="flex-shrink:0;background:#1a1a1a;border:1px solid var(--border);border-radius:6px;padding:0 12px;color:#888;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">
+          style="flex-shrink:0;background:#1a1a1a;border:1px solid var(--border);border-radius:6px;padding:0 12px;color:#888;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">
           ✎ Type
         </button>
       </div>
-      <div id="expenseDateHint" style="display:none;font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;">Format: YYYY-MM-DD (e.g. 2026-04-10)</div>
+      <div id="expenseDateHint" style="display:none;font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;">Format: YYYY-MM-DD (e.g. 2026-04-10)</div>
     </div>
     <div class="field"><label>Kilometres at Service (optional)</label><input type="number" id="expenseKm" placeholder="e.g. 84500"/></div>
     <div class="modal-btns">
@@ -2098,21 +2098,21 @@ function _showUpdateToast(worker){
     <div class="field"><label>Last Service Date</label><input type="date" id="lastServiceDate" oninput="autoCalcNextService()"/></div>
     <div class="field"><label>Kilometres at Last Service</label><input type="number" id="serviceKm" placeholder="e.g. 84500" oninput="autoCalcNextService()"/></div>
     <div style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:12px 14px;margin-bottom:12px;">
-      <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#5a8800;margin-bottom:8px;">Next Service Due (auto-calculated)</div>
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5a8800;margin-bottom:8px;">Next Service Due (auto-calculated)</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
         <div style="flex:1;min-width:120px;">
-          <div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">Date (+ 1 year)</div>
+          <div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">Date (+ 1 year)</div>
           <div id="nextSvcDateDisplay" style="font-family:'DM Mono',monospace;font-size:14px;color:#c8f230;">—</div>
           <input type="hidden" id="nextServiceDate"/>
         </div>
         <div style="color:var(--muted);font-size:16px;">or</div>
         <div style="flex:1;min-width:120px;">
-          <div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">Kilometres (+ 15 000 km)</div>
+          <div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">Kilometres (+ 15 000 km)</div>
           <div id="nextSvcKmDisplay" style="font-family:'DM Mono',monospace;font-size:14px;color:#c8f230;">—</div>
           <input type="hidden" id="nextServiceKm"/>
         </div>
       </div>
-      <div style="font-size:10px;color:#5a8800;margin-top:8px;">⚡ Whichever comes first</div>
+      <div style="font-size:11px;color:#5a8800;margin-top:8px;">⚡ Whichever comes first</div>
     </div>
     <div style="height:1px;background:var(--border);margin:10px 0 14px;"></div>
     <div class="field"><label>Licence Disc Expiry</label><input type="date" id="serviceLicenceExpiry"/></div>
@@ -2135,26 +2135,26 @@ function _showUpdateToast(worker){
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;flex-wrap:wrap;gap:12px;">
       <div>
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(22px,5vw,38px);letter-spacing:-1px;line-height:1;">💳 <span style="color:var(--muted)">INSTALMENTS</span> <button class="info-btn" onclick="openInfo('Instalments', 'Repayment plans you owe — MTN, TFG, anything paid off in months.\n\nMark each month paid as the debit clears. Money comes from a pocket (set per plan, picker on Mark Paid).\n\nAuto-debit plans = bank pulls money on debit day. Revolving accounts = you control when you pay.')">ⓘ</button></div>
-        <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">TFG · PayFlex · PayJustNow</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">TFG · PayFlex · PayJustNow</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button onclick="exportInstalmentsPDF()" style="background:none;border:1px solid #3a5a00;border-radius:6px;padding:10px 16px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">📄 Export PDF</button>
-        <button onclick="openInstModal()" style="background:#c8f230;border:none;border-radius:6px;padding:10px 18px;color:#000;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Add Plan</button>
+        <button onclick="exportInstalmentsPDF()" style="background:none;border:1px solid #3a5a00;border-radius:6px;padding:10px 16px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">📄 Export PDF</button>
+        <button onclick="openInstModal()" style="background:#c8f230;border:none;border-radius:6px;padding:10px 18px;color:#000;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Add Plan</button>
       </div>
     </div>
 
     <!-- Summary strip -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;" id="instSummaryStrip">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
-        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Active Plans</div>
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Active Plans</div>
         <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:var(--text);" id="instActiveCnt">0</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
-        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Due This Month</div>
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Due This Month</div>
         <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:#f2a830;" id="instDueMonth">R0</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
-        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Total Remaining</div>
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Total Remaining</div>
         <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:#c8f230;" id="instTotalRem">R0</div>
       </div>
     </div>
@@ -2173,7 +2173,7 @@ function _showUpdateToast(worker){
 
     <!-- Cleared plans toggle -->
     <div id="instClearedWrap" style="margin-top:24px;display:none;">
-      <button onclick="toggleInstCleared()" style="width:100%;background:none;border:1px dashed #2a2a2a;border-radius:6px;padding:10px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;" id="instClearedBtn">Show Cleared Plans</button>
+      <button onclick="toggleInstCleared()" style="width:100%;background:none;border:1px dashed #2a2a2a;border-radius:6px;padding:10px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;" id="instClearedBtn">Show Cleared Plans</button>
       <div id="instClearedList" style="display:none;margin-top:12px;"></div>
     </div>
 
@@ -2186,11 +2186,11 @@ function _showUpdateToast(worker){
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:10px;">
       <div>
         <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🎓 School<span style="color:var(--muted);">.</span> <button class="info-btn" onclick="openInfo('School', 'All your subjects, marks, exam dates.\n\nFinal % is calculated automatically — Year Mark × 40% + Exam × 60%. Auto-derives PD / P / F (or you can override with Exe, S, AEG, etc).\n\nMarks are editable any time. Tap a subject to edit Year Mark inputs, Exam %, or notes.')">ⓘ</button></h1>
-        <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">2026 Semester</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">2026 Semester</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <div id="schoolSummaryPills" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-        <button onclick="openAddSchoolEvent()" style="background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:6px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;white-space:nowrap;">+ Add Event</button>
+        <button onclick="openAddSchoolEvent()" style="background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:6px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;white-space:nowrap;">+ Add Event</button>
       </div>
     </div>
 
@@ -2239,7 +2239,7 @@ function _showUpdateToast(worker){
     </div>
 
     <div class="field">
-      <label>Instalment Amount (R) <span style="color:var(--muted);font-size:9px;">— auto-calculated</span></label>
+      <label>Instalment Amount (R) <span style="color:var(--muted);font-size:11px;">— auto-calculated</span></label>
       <input type="number" id="instAmt" placeholder="e.g. 200" style="color:#c8f230;font-weight:700;"/>
     </div>
 
@@ -2253,24 +2253,24 @@ function _showUpdateToast(worker){
 
     <div class="field"><label>First Payment Date</label><input type="date" id="instStartDate"/></div>
     <div class="field" id="debitDayField" style="display:none;">
-      <label>Monthly Debit Day <span style="color:var(--muted);font-size:9px;">— day of month account is debited</span></label>
+      <label>Monthly Debit Day <span style="color:var(--muted);font-size:11px;">— day of month account is debited</span></label>
       <input type="number" id="instDebitDay" placeholder="e.g. 20" min="1" max="31" style="color:#f2c830;font-weight:700;"/>
     </div>
 
     <!-- v115: optional monthly service / admin fee -->
     <div class="field">
-      <label>Monthly Service Fee (R) <span style="color:var(--muted);font-size:9px;">— optional, added to each payment (e.g. TFG admin fee)</span></label>
+      <label>Monthly Service Fee (R) <span style="color:var(--muted);font-size:11px;">— optional, added to each payment (e.g. TFG admin fee)</span></label>
       <input type="number" id="instServiceFee" placeholder="0" min="0" step="0.01" style="color:#f2a830;font-weight:700;"/>
-      <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5;">Leave blank or 0 if there's no extra fee. When set, every Mark Paid logs <em>amount + fee</em> together.</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;">Leave blank or 0 if there's no extra fee. When set, every Mark Paid logs <em>amount + fee</em> together.</div>
     </div>
 
     <!-- Step 8 v93: default funding pocket for this plan -->
     <div class="field">
-      <label>Default Funding Pocket <span style="color:var(--muted);font-size:9px;">— which pocket pays this plan</span></label>
+      <label>Default Funding Pocket <span style="color:var(--muted);font-size:11px;">— which pocket pays this plan</span></label>
       <select id="instFundingPocketId" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#c890ff;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;font-weight:700;">
         <option value="">— No default (pick each time) —</option>
       </select>
-      <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5;">Pre-selects this pocket on every Mark Paid for this plan. You can still change it for a single payment.</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;">Pre-selects this pocket on every Mark Paid for this plan. You can still change it for a single payment.</div>
     </div>
     <input type="hidden" id="instEditId"/>
 
@@ -2293,7 +2293,7 @@ function _showUpdateToast(worker){
       <select id="instPayPocketId" style="width:100%;background:#1a1024;border:1px solid #3a2a5a;color:#c890ff;font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:4px;outline:none;font-weight:700;">
         <option value="">— Pick a pocket —</option>
       </select>
-      <div id="instPayPocketHint" style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5;">Pick the pocket this payment comes from.</div>
+      <div id="instPayPocketHint" style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;">Pick the pocket this payment comes from.</div>
     </div>
 
     <div class="field"><label>Payment Date</label><input type="date" id="instPayDate"/></div>
@@ -2316,7 +2316,7 @@ function _showUpdateToast(worker){
     <div class="field">
       <label style="color:#c8f230;">Closing balance paid (R)</label>
       <input type="number" id="instSettleAmt" min="0" step="0.01" placeholder="e.g. 80.87" style="color:#c8f230;font-weight:700;font-size:16px;"/>
-      <div id="instSettleHint" style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5;"></div>
+      <div id="instSettleHint" style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;"></div>
     </div>
 
     <div class="field">
@@ -2344,12 +2344,12 @@ function _showUpdateToast(worker){
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:10px;">
       <div>
         <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;line-height:1;">🔁 Routine<span style="color:var(--muted);">.</span> <button class="info-btn" onclick="openInfo('Routine', 'Recurring tasks you want to keep on top of — haircut every 6 weeks, car wash weekly, etc.\n\nTap ✓ to mark done. App tracks last-done date and works out when each task is due next.\n\nCost + pocket support coming soon — for tasks that spend money each time.')">ⓘ</button></h1>
-        <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">Recurring Tasks</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">Recurring Tasks</div>
       </div>
       <div id="routineSummaryPills" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
     </div>
     <div id="routineList"></div>
-    <button onclick="openAddRoutineTask()" style="display:block;width:100%;max-width:720px;background:none;border:1px dashed var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:14px;border-radius:8px;cursor:pointer;transition:all .2s;margin-top:4px;" onmouseover="this.style.borderColor='#444';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">+ Add Task</button>
+    <button onclick="openAddRoutineTask()" style="display:block;width:100%;max-width:720px;background:none;border:1px dashed var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:14px;border-radius:8px;cursor:pointer;transition:all .2s;margin-top:4px;" onmouseover="this.style.borderColor='#444';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">+ Add Task</button>
   </div>
 </div>
 
@@ -2364,12 +2364,12 @@ function _showUpdateToast(worker){
       <h2 style="color:#c8f230;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin:0;">⚡ Priority Rules</h2>
       <button onclick="closeModal('priorityEditorModal')" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;">✕</button>
     </div>
-    <p style="font-size:10px;color:var(--muted);letter-spacing:0.5px;margin:0 0 16px;">
+    <p style="font-size:11px;color:var(--muted);letter-spacing:0.5px;margin:0 0 16px;">
       Drag to reorder. Odin &amp; Money In both follow this order. Toggle off to skip a category.
     </p>
     <div id="priorityRulesList" style="max-height:55vh;overflow-y:auto;"></div>
     <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
-      <button class="btn ghost" onclick="prResetDefaults()" style="font-size:10px;">Reset Defaults</button>
+      <button class="btn ghost" onclick="prResetDefaults()" style="font-size:11px;">Reset Defaults</button>
       <button class="btn primary" onclick="closeModal('priorityEditorModal')">Done</button>
     </div>
   </div>
@@ -2425,7 +2425,7 @@ function _showUpdateToast(worker){
       <span style="font-size:28px;">🧠</span>
       <div>
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#c8f230;display:inline-flex;align-items:center;">Odin <button class="info-btn" onclick="openInfo('Odin', 'Odin is your watcher — looks across everything in the app and surfaces what needs your attention.\n\nUpcoming debits, services due, money owed to you, deficits — anything Odin spots gets a red, amber, or green alert.\n\nAsk Odin anything by tapping the chat icon — it can answer questions about your own data.')">ⓘ</button></div>
-        <div style="font-size:9px;color:#5a8800;letter-spacing:3px;text-transform:uppercase;">Command Centre</div>
+        <div style="font-size:11px;color:#5a8800;letter-spacing:3px;text-transform:uppercase;">Command Centre</div>
       </div>
     </div>
     <div id="odinTabGreeting" style="font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:0.5px;"></div>
@@ -2433,32 +2433,32 @@ function _showUpdateToast(worker){
 
   <!-- Quick Actions -->
   <div style="padding:16px 16px 0;">
-    <div style="font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Quick Actions</div>
+    <div style="font-size:11px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Quick Actions</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button onclick="goToTab('cashflow')" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:8px;padding:8px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">💵 Cash Flow</button>
-      <button onclick="goToTab('cars')" style="background:#1a1000;border:1px solid #3a2a00;border-radius:8px;padding:8px 14px;color:#f2a830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">🔧 Cars</button>
-      <button onclick="goToTab('savings')" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:8px;padding:8px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">💰 Savings</button>
+      <button onclick="goToTab('cashflow')" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:8px;padding:8px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">💵 Cash Flow</button>
+      <button onclick="goToTab('cars')" style="background:#1a1000;border:1px solid #3a2a00;border-radius:8px;padding:8px 14px;color:#f2a830;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">🔧 Cars</button>
+      <button onclick="goToTab('savings')" style="background:#0d1a00;border:1px solid #1a3a00;border-radius:8px;padding:8px 14px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">💰 Savings</button>
     </div>
   </div>
 
   <!-- Alerts Panel -->
   <div style="padding:16px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <div style="font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;">Alerts & Insights</div>
-      <button onclick="renderOdinTab()" style="background:none;border:none;color:#5a8800;font-size:10px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:1px;">↻ Refresh</button>
+      <div style="font-size:11px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;">Alerts & Insights</div>
+      <button onclick="renderOdinTab()" style="background:none;border:none;color:#5a8800;font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:1px;">↻ Refresh</button>
     </div>
     <div id="odinTabAlerts"></div>
   </div>
 
   <!-- Financial Snapshot -->
   <div style="padding:0 16px 16px;">
-    <div style="font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Financial Snapshot</div>
+    <div style="font-size:11px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Financial Snapshot</div>
     <div id="odinTabSnapshot" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
   </div>
 
   <!-- Recent Activity -->
   <div style="padding:0 16px;">
-    <div style="font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Recent Activity</div>
+    <div style="font-size:11px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Recent Activity</div>
     <div id="odinTabActivity"></div>
   </div>
 
@@ -2656,7 +2656,7 @@ function _showUpdateToast(worker){
       <h2 id="miModalTitle" style="color:#c8f230;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;margin:0;">↓ Money In <button class="info-btn" onclick="openInfo('Money In', 'Money lands here first. House cut comes off the top — type fresh each time, no remembered default. What\'s left splits across your pockets — Save won\'t unlock until every rand has a home.\n\nNothing rests in the bank by design — banks are just doorways.')">ⓘ</button></h2>
       <button onclick="closeMoneyIn()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:32px;height:32px;color:var(--muted);font-size:16px;cursor:pointer;">✕</button>
     </div>
-    <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:16px;">Money lives in pockets. The bank is just a doorway.</div>
+    <div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:16px;">Money lives in pockets. The bank is just a doorway.</div>
 
     <!-- Amount -->
     <div class="field">
@@ -2696,11 +2696,11 @@ function _showUpdateToast(worker){
       <input type="number" id="miHouse" step="0.01" placeholder="Ask wife the total…" oninput="_miOnHeaderEdit()"
              style="font-style:italic;color:#f2a830;"
              onfocus="this.style.fontStyle='normal'" onblur="if(!this.value)this.style.fontStyle='italic'"/>
-      <div style="font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:1px;">What she asks for in total · subs + loan come off, the rest is house</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:1px;">What she asks for in total · subs + loan come off, the rest is house</div>
     </div>
 
     <!-- Pocket split -->
-    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin:18px 0 8px;border-top:1px solid var(--border);padding-top:14px;">
+    <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#5a8800;margin:18px 0 8px;border-top:1px solid var(--border);padding-top:14px;">
       ⚡ Split into pockets · <span id="miLeftoverHint" style="color:var(--muted);">R0 to place</span>
     </div>
     <div id="miPocketList" style="background:#0a0a0a;border:1px solid #1a1a1a;border-radius:8px;padding:6px 12px 8px;margin-bottom:10px;"></div>
@@ -2712,11 +2712,11 @@ function _showUpdateToast(worker){
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
-          <div style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Placed</div>
+          <div style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Placed</div>
           <div id="miPlacedTotal" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text);">R0</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Left to place</div>
+          <div style="font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Left to place</div>
           <div id="miLeftToPlace" style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;color:#f2a830;">R0</div>
         </div>
       </div>
@@ -2740,7 +2740,7 @@ function _showUpdateToast(worker){
       <h2 id="spModalTitle" style="color:#f2a830;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;margin:0;">↑ Spend <button class="info-btn" onclick="openInfo('Spend', 'Money you spent. Pick the pocket it came from + which bank (or Direct if it doesn\'t matter). Pocket drops, bank stays R0.\n\nCan\'t go negative — if the pocket is empty, pick another or Move money in first.')">ⓘ</button></h2>
       <button onclick="closeSpend()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:32px;height:32px;color:var(--muted);font-size:16px;cursor:pointer;">✕</button>
     </div>
-    <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:16px;">Money leaves a pocket. The bank is just a doorway.</div>
+    <div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:16px;">Money leaves a pocket. The bank is just a doorway.</div>
 
     <!-- What for -->
     <div class="field">
@@ -2772,20 +2772,20 @@ function _showUpdateToast(worker){
       <label>Via bank doorway</label>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;">
         <button type="button" id="spDoor_FNB" onclick="_spSetDoorway('FNB')"
-                style="padding:9px 4px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.5px;background:#0d0d0d;border:1px solid #2a2a2a;color:#888;cursor:pointer;">🏦 FNB</button>
+                style="padding:9px 4px;border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.5px;background:#0d0d0d;border:1px solid #2a2a2a;color:#888;cursor:pointer;">🏦 FNB</button>
         <button type="button" id="spDoor_TymeBank" onclick="_spSetDoorway('TymeBank')"
-                style="padding:9px 4px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.5px;background:#0d0d0d;border:1px solid #2a2a2a;color:#888;cursor:pointer;">🏦 Tyme</button>
+                style="padding:9px 4px;border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.5px;background:#0d0d0d;border:1px solid #2a2a2a;color:#888;cursor:pointer;">🏦 Tyme</button>
         <button type="button" id="spDoor_Cash" onclick="_spSetDoorway('Cash')"
-                style="padding:9px 4px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.5px;background:#0d0d0d;border:1px solid #2a2a2a;color:#888;cursor:pointer;">💵 Cash</button>
+                style="padding:9px 4px;border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.5px;background:#0d0d0d;border:1px solid #2a2a2a;color:#888;cursor:pointer;">💵 Cash</button>
         <button type="button" id="spDoor_DIRECT" onclick="_spSetDoorway('DIRECT')"
-                style="padding:9px 4px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.5px;background:#1a2e00;border:1px solid #c8f230;color:#c8f230;cursor:pointer;">— Direct</button>
+                style="padding:9px 4px;border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.5px;background:#1a2e00;border:1px solid #c8f230;color:#c8f230;cursor:pointer;">— Direct</button>
       </div>
-      <div style="font-size:10px;color:var(--muted);margin-top:6px;letter-spacing:.5px;">Direct = straight from pocket, bank not touched.</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:.5px;">Direct = straight from pocket, bank not touched.</div>
     </div>
 
     <!-- Category picker -->
     <div class="field">
-      <label>Category <span style="color:#555;font-size:10px;">(optional)</span></label>
+      <label>Category <span style="color:var(--muted);font-size:11px;">(optional)</span></label>
       <div id="spCategoryGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;"></div>
     </div>
 
@@ -2807,7 +2807,7 @@ function _showUpdateToast(worker){
       <h2 id="mvModalTitle" style="color:#a78bfa;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;margin:0;">🔄 Move <button class="info-btn" onclick="openInfo('Move between pockets', 'Shift money from one pocket to another. The bank is never touched — pure pocket-to-pocket.\n\nLogged on both sides with your note so you can trace it later.')">ⓘ</button></h2>
       <button onclick="closeMove()" style="background:none;border:1px solid #2a2a2a;border-radius:6px;width:32px;height:32px;color:var(--muted);font-size:16px;cursor:pointer;">✕</button>
     </div>
-    <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:16px;">Rebalancing pockets. No money enters or leaves you — the bank isn't touched.</div>
+    <div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:16px;">Rebalancing pockets. No money enters or leaves you — the bank isn't touched.</div>
 
     <!-- From pocket -->
     <div class="field">
@@ -2898,7 +2898,7 @@ function _showUpdateToast(worker){
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
       <div>
         <h2 id="advisoryListTitle" style="color:#f23060;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin:0;">⚠️ Advisories</h2>
-        <div id="advisoryListSub" style="font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:1px;">—</div>
+        <div id="advisoryListSub" style="font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:1px;">—</div>
       </div>
       <button class="info-btn" onclick="openInfo('Workshop advisories', 'A running list of things a workshop has flagged on this car — partner parts to replace, things to watch, future jobs. Stays open until you mark it resolved or a later invoice proves it fixed.\n\n🔴 Action = needs doing soon (fires Odin alert)\n🟠 Watch = monitor, address by next service\n🔵 FYI = informational note\n\nDetail view + Book/Note/Snooze/Resolve actions land in the next build (v118b).')">ⓘ</button>
     </div>
@@ -2939,15 +2939,15 @@ function _showUpdateToast(worker){
 <div class="overlay" id="advisoryDetailModal" style="z-index:870;">
   <div class="modal" style="max-width:440px;max-height:92vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <button class="btn ghost" style="flex:none;padding:6px 10px;font-size:10px;" onclick="closeModal('advisoryDetailModal')">‹ Back</button>
+      <button class="btn ghost" style="flex:none;padding:6px 10px;font-size:11px;" onclick="closeModal('advisoryDetailModal')">‹ Back</button>
       <button class="info-btn" onclick="openInfo('Advisory detail', 'Track this issue over time.\n\n📅 Booked for — note when it\'s booked with a workshop. Stays OPEN, just quieter.\n📝 Add note — log anything new (top-up, observation, etc).\n😴 Snooze — go quiet for a while, then resurface.\n✓ Mark resolved — close it out. If a real invoice fixed it, link that expense so the fix is provable. DIY or false-alarm options also available.\n\nA flagged problem can\'t quietly disappear — it stays OPEN until you explicitly resolve it.')">ⓘ</button>
     </div>
     <div id="advDetailSevRow" style="margin-bottom:10px;"></div>
     <div id="advDetailText" style="font-family:'Syne',sans-serif;font-size:15px;line-height:1.4;color:#efefef;margin-bottom:6px;"></div>
-    <div id="advDetailSource" style="font-size:11px;color:#666;font-style:italic;margin-bottom:10px;"></div>
+    <div id="advDetailSource" style="font-size:11px;color:var(--muted);font-style:italic;margin-bottom:10px;"></div>
     <div id="advDetailStatus" style="margin-bottom:16px;"></div>
 
-    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#666;margin-bottom:8px;">Timeline</div>
+    <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Timeline</div>
     <div id="advDetailTimeline" style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:12px;margin-bottom:16px;"></div>
 
     <div id="advDetailActions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
@@ -3004,7 +3004,7 @@ function _showUpdateToast(worker){
 </div>
 
 <style>
-.adv-act-btn{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:12px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#ccc;cursor:pointer;line-height:1.8;}
+.adv-act-btn{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:12px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#ccc;cursor:pointer;line-height:1.8;}
 .adv-act-btn.resolve{grid-column:span 2;background:#0d1a00;border-color:#3a5a00;color:#c8f230;font-weight:700;}
 .adv-popup{display:none;background:#161616;border:1px solid #2a2a2a;border-radius:8px;padding:14px;margin-bottom:14px;}
 .adv-popup.show{display:block;}
@@ -3049,18 +3049,18 @@ function _showUpdateToast(worker){
         <button type="button" id="btnMonthly" onclick="setTargetType('monthly')" style="flex:1;padding:9px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);transition:all .15s">Monthly</button>
       </div>
       <input type="number" id="fWeekly" placeholder="e.g. 200" oninput="updateTargetHint()"/>
-      <div id="fTargetHint" style="font-size:10px;color:var(--muted);margin-top:6px;letter-spacing:1px;min-height:16px"></div>
+      <div id="fTargetHint" style="font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:1px;min-height:16px"></div>
     </div>
     <div class="field"><label>Start Date</label><input type="date" id="fStart"/></div>
     <div class="field">
       <label>Goal Deadline (optional)</label>
       <input type="date" id="fDeadline"/>
-      <div id="fDeadlineHint" style="font-size:10px;color:var(--muted);margin-top:4px;min-height:14px"></div>
+      <div id="fDeadlineHint" style="font-size:11px;color:var(--muted);margin-top:4px;min-height:14px"></div>
     </div>
     <div class="field">
       <label>Held for someone else (optional)</label>
       <input type="text" id="fHeldFor" placeholder="e.g. Tariq. Leave empty if it's your own money"/>
-      <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5">A held pocket is left out of your Home and Balances totals and shown on its own line. Nothing else about the pocket changes.</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">A held pocket is left out of your Home and Balances totals and shown on its own line. Nothing else about the pocket changes.</div>
     </div>
     <div class="modal-btns">
       <button class="btn ghost" onclick="closeModal('fundModal')">Cancel</button>
@@ -3093,7 +3093,7 @@ function _showUpdateToast(worker){
 <!-- History Modal -->
 <div class="overlay" id="histModal">
   <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><h2 id="histTitle" style="margin:0;font-size:18px">History</h2><button id="histStmtBtn" onclick="openPocketStatement(window._currentHistFundId);closeModal('histModal')" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700">📄 STATEMENT</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><h2 id="histTitle" style="margin:0;font-size:18px">History</h2><button id="histStmtBtn" onclick="openPocketStatement(window._currentHistFundId);closeModal('histModal')" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700">📄 STATEMENT</button></div>
     <div id="histContent" style="margin-top:4px;max-height:60vh;overflow-y:auto"></div>
     <div class="modal-btns" style="margin-top:20px">
       <button class="btn ghost" onclick="closeModal('histModal')">Close</button>
@@ -3108,7 +3108,7 @@ function _showUpdateToast(worker){
     <div id="editDepLinkedBanner" style="display:none;background:#1a2000;border:1px solid #4a6000;border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#c8f230;">
       🔗 Linked entry — <span id="editDepLinkLabel"></span>
     </div>
-    <div id="editDepAmountLockNote" style="display:none;font-size:10px;color:var(--muted);margin-bottom:10px;letter-spacing:0.5px;">Amount is locked because this deposit is linked to a money flow. To change the amount, reverse the original transaction.</div>
+    <div id="editDepAmountLockNote" style="display:none;font-size:11px;color:var(--muted);margin-bottom:10px;letter-spacing:0.5px;">Amount is locked because this deposit is linked to a money flow. To change the amount, reverse the original transaction.</div>
     <div class="field"><label>Amount (R)</label><input type="number" id="editDepAmount"/></div>
     <div class="field"><label>Date</label><input type="date" id="editDepDate"/></div>
     <div class="field"><label>Note</label><input type="text" id="editDepNote" placeholder="e.g. weekly drop"/></div>
@@ -3125,8 +3125,8 @@ function _showUpdateToast(worker){
     <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--text);margin-bottom:6px">New Pocket</div>
     <div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:20px">What kind of pocket?</div>
     <div style="display:flex;flex-direction:column;gap:10px">
-      <button onclick="openNewFundDirect()" style="padding:16px;background:#1a2e00;border:1px solid #3a5a00;border-radius:8px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-align:left">💰 Savings Goal<br><span style="font-size:10px;color:#5a8800;letter-spacing:0">Track money you're saving toward a goal</span></button>
-      <button onclick="openNewExpenseTracker()" style="padding:16px;background:#1a0a00;border:1px solid #5a3000;border-radius:8px;color:#f2a830;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-align:left">📊 Expense Tracker<br><span style="font-size:10px;color:#8a5000;letter-spacing:0">Track spending from a funded bucket</span></button>
+      <button onclick="openNewFundDirect()" style="padding:16px;background:#1a2e00;border:1px solid #3a5a00;border-radius:8px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-align:left">💰 Savings Goal<br><span style="font-size:11px;color:#5a8800;letter-spacing:0">Track money you're saving toward a goal</span></button>
+      <button onclick="openNewExpenseTracker()" style="padding:16px;background:#1a0a00;border:1px solid #5a3000;border-radius:8px;color:#f2a830;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-align:left">📊 Expense Tracker<br><span style="font-size:11px;color:#8a5000;letter-spacing:0">Track spending from a funded bucket</span></button>
     </div>
     <button onclick="closeModal('cardTypePicker')" style="margin-top:16px;width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer">Cancel</button>
   </div>
@@ -3142,23 +3142,23 @@ function _showUpdateToast(worker){
     </div>
     <div style="display:flex;gap:8px;margin-bottom:12px">
       <div style="flex:1">
-        <label style="display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">From</label>
+        <label style="display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">From</label>
         <input type="date" id="pocketStmtFrom" onchange="onStmtDateChange()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:4px;outline:none"/>
       </div>
       <div style="flex:1">
-        <label style="display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">To</label>
+        <label style="display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">To</label>
         <input type="date" id="pocketStmtTo" onchange="onStmtDateChange()" style="width:100%;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:4px;outline:none"/>
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
-      <button class="stmt-preset" data-preset="all" onclick="applyPocketStmtPreset('all')" style="padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:100px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">All time</button>
-      <button class="stmt-preset" data-preset="month" onclick="applyPocketStmtPreset('month')" style="padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:100px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">This month</button>
-      <button class="stmt-preset" data-preset="30days" onclick="applyPocketStmtPreset('30days')" style="padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:100px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">Last 30 days</button>
+      <button class="stmt-preset" data-preset="all" onclick="applyPocketStmtPreset('all')" style="padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:100px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer">All time</button>
+      <button class="stmt-preset" data-preset="month" onclick="applyPocketStmtPreset('month')" style="padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:100px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer">This month</button>
+      <button class="stmt-preset" data-preset="30days" onclick="applyPocketStmtPreset('30days')" style="padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:100px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer">Last 30 days</button>
     </div>
     <div id="stmtPreview" style="max-height:50vh;overflow-y:auto;margin-bottom:14px"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button onclick="pocketStmtExportPDF()" style="padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:4px;color:#c8f230;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">📄 Export PDF</button>
-      <button onclick="pocketStmtExportCSV()" style="padding:10px;background:#1a1a00;border:1px solid #3a3a00;border-radius:4px;color:#f2a830;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer">📊 Export CSV</button>
+      <button onclick="pocketStmtExportPDF()" style="padding:10px;background:#1a2e00;border:1px solid #3a5a00;border-radius:4px;color:#c8f230;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer">📄 Export PDF</button>
+      <button onclick="pocketStmtExportCSV()" style="padding:10px;background:#1a1a00;border:1px solid #3a3a00;border-radius:4px;color:#f2a830;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer">📊 Export CSV</button>
     </div>
   </div>
 </div>
@@ -3169,11 +3169,11 @@ function _showUpdateToast(worker){
     <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--surface2);">
       <div style="display:flex;gap:8px;">
         <button onclick="openBankFeed('snap')" id="bfTabSnap"
-          style="padding:6px 12px;border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;border:1px solid var(--accent);background:#0d1a00;color:var(--accent);">
+          style="padding:6px 12px;border-radius:100px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;border:1px solid var(--accent);background:#0d1a00;color:var(--accent);">
           📸 Snap Now
         </button>
         <button onclick="openBankFeed('monthly')" id="bfTabMonthly"
-          style="padding:6px 12px;border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">
+          style="padding:6px 12px;border-radius:100px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);">
           📄 Monthly PDF
         </button>
       </div>
@@ -3213,7 +3213,7 @@ function _showUpdateToast(worker){
       </select>
     </div>
     <!-- Destination options -->
-    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Route money to</div>
+    <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Route money to</div>
     <div id="payDestOptions" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;margin-bottom:14px;"></div>
     <!-- Confirm -->
     <button class="btn primary" style="width:100%;padding:13px;" onclick="confirmPayDest()">Confirm Payment ✓</button>

@@ -243,9 +243,9 @@ function _spRenderCategoryGrid(suggestedCat){
     var isSuggested = suggestedCat === c.id;
     var style = isSelected
       ? 'border-color:#c8f230;background:#1a2e00;color:#c8f230;'
-      : 'border-color:#222;background:#111;color:#555;';
-    var badge = isSuggested ? '<span style="position:absolute;top:-6px;right:-6px;font-size:10px;">🧠</span>' : '';
-    return '<button type="button" onclick="_spSetCategory(\''+c.id+'\')" style="position:relative;padding:9px 4px;border-radius:6px;border:1px solid;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:.5px;cursor:pointer;transition:all .15s;'+style+'">'+badge+'<span style="font-size:16px;display:block;margin-bottom:3px;">'+c.icon+'</span>'+c.label+'</button>';
+      : 'border-color:#222;background:#111;color:var(--muted);';
+    var badge = isSuggested ? '<span style="position:absolute;top:-6px;right:-6px;font-size:11px;">🧠</span>' : '';
+    return '<button type="button" onclick="_spSetCategory(\''+c.id+'\')" style="position:relative;padding:9px 4px;border-radius:6px;border:1px solid;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:.5px;cursor:pointer;transition:all .15s;'+style+'">'+badge+'<span style="font-size:16px;display:block;margin-bottom:3px;">'+c.icon+'</span>'+c.label+'</button>';
   }).join('');
 }
 function _spOnAmountEdit(){

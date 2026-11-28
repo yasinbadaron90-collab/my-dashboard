@@ -308,8 +308,8 @@ function renderTodayGrid(data, today){
 
   grid.innerHTML = prayers.map(p => {
     const done = todayEntry[p.key] === 1;
-    const iqStr = (times.iq && times.iq[p.key]) ? '<span style="font-size:9px;color:var(--muted);opacity:.75;letter-spacing:.5px;">iqamah '+times.iq[p.key]+'</span>' : '';
-    const timeStr = times[p.key] ? '<span style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:1px;">'+times[p.key]+'</span>' + iqStr : '';
+    const iqStr = (times.iq && times.iq[p.key]) ? '<span style="font-size:11px;color:var(--muted);opacity:.75;letter-spacing:.5px;">iqamah '+times.iq[p.key]+'</span>' : '';
+    const timeStr = times[p.key] ? '<span style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:1px;">'+times[p.key]+'</span>' + iqStr : '';
     const isJumuah = p.key === 'j';
     const bgColor = done
       ? (p.key==='t' ? 'rgba(155,89,182,.15)' : isJumuah ? 'rgba(242,168,48,.1)' : 'rgba(200,242,48,.1)')
@@ -321,7 +321,7 @@ function renderTodayGrid(data, today){
       border-radius:8px;padding:12px 6px;cursor:pointer;transition:all .2s;
       display:flex;flex-direction:column;align-items:center;gap:4px;">
       <span style="font-size:18px;">${icon}</span>
-      <span style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:${done ? p.color : isJumuah ? '#f2a830' : 'var(--muted)'};">${p.label}</span>
+      <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${done ? p.color : isJumuah ? '#f2a830' : 'var(--muted)'};">${p.label}</span>
       ${timeStr}
     </button>`;
   }).join('');
@@ -343,7 +343,7 @@ function renderTodayGrid(data, today){
     // inject badge next to header
     const badge = document.createElement('span');
     badge.id = 'pFridayBadge';
-    badge.style.cssText = 'margin-left:8px;background:#6b4800;color:#f2a830;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:2px 8px;border-radius:3px;';
+    badge.style.cssText = 'margin-left:8px;background:#6b4800;color:#f2a830;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:2px 8px;border-radius:3px;';
     badge.textContent = 'Jumu\'ah';
     if(grid.previousElementSibling) grid.previousElementSibling.appendChild(badge);
   }
@@ -516,8 +516,8 @@ function renderBreakdown(data){
     const pct = total > 0 ? Math.round(counts[k]/total*100) : 0;
     return `<div>
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-        <span style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">${labels[k]}</span>
-        <span style="font-size:10px;color:var(--text);">${counts[k].toLocaleString()} <span style="color:var(--muted);">(${pct}%)</span></span>
+        <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">${labels[k]}</span>
+        <span style="font-size:11px;color:var(--text);">${counts[k].toLocaleString()} <span style="color:var(--muted);">(${pct}%)</span></span>
       </div>
       <div style="height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;">
         <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:3px;transition:width .4s;"></div>
@@ -528,8 +528,8 @@ function renderBreakdown(data){
   const jPct = jumuahFridays > 0 ? Math.round(counts.j/jumuahFridays*100) : 0;
   html += `<div style="margin-top:4px;padding-top:10px;border-top:1px solid var(--border);">
     <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-      <span style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#f2a830;">🕌 Jumuah</span>
-      <span style="font-size:10px;color:var(--text);">${counts.j} / ${jumuahFridays} Fridays <span style="color:var(--muted);">(${jPct}%)</span></span>
+      <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#f2a830;">🕌 Jumuah</span>
+      <span style="font-size:11px;color:var(--text);">${counts.j} / ${jumuahFridays} Fridays <span style="color:var(--muted);">(${jPct}%)</span></span>
     </div>
     <div style="height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;">
       <div style="height:100%;width:${jPct}%;background:#f2a830;border-radius:3px;transition:width .4s;"></div>

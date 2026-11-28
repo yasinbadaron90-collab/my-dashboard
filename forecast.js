@@ -121,7 +121,7 @@ function computeForecast(m, today, ownNow, vaultNow){
 
 // ── UI ───────────────────────────────────────────────────────────────
 var _FC_IN = 'background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:\'DM Mono\',monospace;font-size:12px;padding:8px;border-radius:4px;width:100%;box-sizing:border-box;';
-var _FC_LBL = 'display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;';
+var _FC_LBL = 'display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;';
 
 function _fcLineHtml(kind, l){
   var id = l.id;
@@ -141,25 +141,25 @@ function _fcLineHtml(kind, l){
 function _fcBodyHtml(m){
   var vaultOpts = '<option value="">None</option>' + (typeof funds !== 'undefined' ? funds : []).filter(function(f){ return !f._deleted; })
     .map(function(f){ return '<option value="'+_fcEsc(f.id)+'"'+(f.id===m.vaultId?' selected':'')+'>'+_fcEsc(((f.emoji||'')+' '+f.name).trim())+'</option>'; }).join('');
-  var btn = 'width:100%;background:none;border:1px dashed var(--border);color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:10px;border-radius:6px;cursor:pointer;margin-top:8px;';
+  var btn = 'width:100%;background:none;border:1px dashed var(--border);color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:10px;border-radius:6px;cursor:pointer;margin-top:8px;';
   return '<div style="padding:4px 14px 14px">'
     +'<div id="fcTiles" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"></div>'
     +'<div id="fcVerdict" style="font-size:11px;line-height:1.6;color:var(--muted);margin-bottom:10px"></div>'
-    +'<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:var(--muted);margin-bottom:6px"><span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#2a78d6;margin-right:4px"></span>Own money</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#1baf7a;margin-right:4px"></span>Vault (surplus goes in)</span></div>'
+    +'<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-bottom:6px"><span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#2a78d6;margin-right:4px"></span>Own money</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#1baf7a;margin-right:4px"></span>Vault (surplus goes in)</span></div>'
     +'<div style="position:relative;width:100%;height:230px"><canvas id="fcChart" role="img" aria-label="Projected own money and Vault balance over the next 24 months"></canvas></div>'
-    +'<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:16px 0 6px">Vault goal</div>'
+    +'<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:16px 0 6px">Vault goal</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
     +'<div style="grid-column:span 2"><label style="'+_FC_LBL+'">Vault pocket</label><select onchange="fcSetMeta(\'vaultId\',this.value)" style="'+_FC_IN+'">'+vaultOpts+'</select></div>'
     +'<div><label style="'+_FC_LBL+'">Goal (R)</label><input type="number" inputmode="decimal" value="'+(Number(m.goal)||0)+'" oninput="fcSetMeta(\'goal\',this.value)" style="'+_FC_IN+'"/></div>'
     +'<div><label style="'+_FC_LBL+'">By month</label><input type="month" value="'+_fcEsc(m.goalDate||'')+'" onchange="fcSetMeta(\'goalDate\',this.value)" style="'+_FC_IN+'"/></div>'
     +'</div>'
-    +'<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:18px 0 0">Income</div>'
+    +'<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:18px 0 0">Income</div>'
     +'<div id="fcIncLines">'+m.incomes.map(function(l){ return _fcLineHtml('inc', l); }).join('')+'</div>'
     +'<button onclick="fcAddLine(\'inc\')" style="'+btn+'">+ Add income</button>'
-    +'<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:18px 0 0">Spending</div>'
+    +'<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:18px 0 0">Spending</div>'
     +'<div id="fcExpLines">'+m.expenses.map(function(l){ return _fcLineHtml('exp', l); }).join('')+'</div>'
     +'<button onclick="fcAddLine(\'exp\')" style="'+btn+'">+ Add spending</button>'
-    +'<div style="font-size:10px;color:#555;line-height:1.6;margin-top:14px">Leave From / Until empty to count every month. To model a new salary: set Until on the old one, then add a new income line with From. This month only counts what is still to come. Starting amounts are assumptions, not your actual averages.</div>'
+    +'<div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:14px">Leave From / Until empty to count every month. To model a new salary: set Until on the old one, then add a new income line with From. This month only counts what is still to come. Starting amounts are assumptions, not your actual averages.</div>'
     +'<button onclick="fcReset()" style="'+btn+'border-style:solid">Reset to starting assumptions</button>'
     +'</div>';
 }
@@ -172,9 +172,9 @@ function _fcRenderOutputs(){
   var ownNow = _fcOwnMoney(), vaultNow = _fcVaultNow(m);
   var f = computeForecast(m, today, ownNow, vaultNow);
   function tile(label, val, sub, color){
-    return '<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">'+label+'</div>'
+    return '<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">'+label+'</div>'
       +'<div style="font-family:Syne,sans-serif;font-weight:700;font-size:17px;margin-top:2px;color:'+(color||'var(--text)')+'">'+val+'</div>'
-      +'<div style="font-size:9px;color:#555;margin-top:2px">'+sub+'</div></div>';
+      +'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+sub+'</div></div>';
   }
   var nextNet = f.nextNet;
   var lasts = f.runsOut ? _fcMonthLabel(f.runsOut) : 'Stays above R0';

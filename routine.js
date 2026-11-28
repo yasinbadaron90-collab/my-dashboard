@@ -82,14 +82,14 @@ function _routineSpendConfirm(task, pocket){
       +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:17px;color:var(--text);margin-bottom:4px;">'+task.emoji+' '+task.name+'</div>'
       +'<div style="font-size:12px;color:#888;margin-bottom:18px;line-height:1.5;">Mark this done — log a Spend?</div>'
       +'<div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;padding:14px 16px;">'
-        +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:2px;">Amount</div>'
+        +'<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Amount</div>'
         +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:24px;color:#c8f230;">'+amtStr+'</div>'
         +'<div style="font-size:11px;color:#888;margin-top:2px;">from '+pocketLabel+'</div>'
       +'</div>'
       +'<div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">'
         +'<button id="rsYes" style="background:#1a2e00;border:1px solid #c8f230;border-radius:8px;padding:13px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">✓ Yes — log '+amtStr+' spend</button>'
         +'<button id="rsNo" style="background:#0a0a0a;border:1px solid #444;border-radius:8px;padding:13px;color:#888;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Just mark done — no spend this time</button>'
-        +'<button id="rsCancel" style="background:none;border:none;padding:6px;color:#555;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;letter-spacing:1px;">Cancel</button>'
+        +'<button id="rsCancel" style="background:none;border:none;padding:6px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;letter-spacing:1px;">Cancel</button>'
       +'</div>'
     +'</div>';
 
@@ -140,12 +140,12 @@ function openAddRoutineTask(editId){
 
   var freqOpts = ['daily','weekly','fortnightly','monthly'].map(function(f){
     var sel = existing ? existing.freq===f : f==='monthly';
-    return '<button onclick="selectRoutineFreq(this,\''+f+'\')" data-freq="'+f+'" style="padding:7px 12px;border:1px solid '+(sel?'#c8f230':'#2a2a2a')+';border-radius:6px;background:'+(sel?'#1a2e00':'none')+';color:'+(sel?'#c8f230':'#555')+';font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .15s;">'+FREQ_LABELS[f]+'</button>';
+    return '<button onclick="selectRoutineFreq(this,\''+f+'\')" data-freq="'+f+'" style="padding:7px 12px;border:1px solid '+(sel?'#c8f230':'#2a2a2a')+';border-radius:6px;background:'+(sel?'#1a2e00':'none')+';color:'+(sel?'#c8f230':'#555')+';font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s;">'+FREQ_LABELS[f]+'</button>';
   }).join('');
 
   var catOpts = ['personal','car','home','health','other'].map(function(c){
     var sel = existing ? existing.category===c : c==='personal';
-    return '<button onclick="selectRoutineCat(this,\''+c+'\')" data-cat="'+c+'" style="padding:7px 12px;border:1px solid '+(sel?CAT_COLORS[c]:'#2a2a2a')+';border-radius:6px;background:'+(sel?CAT_COLORS[c]+'22':'none')+';color:'+(sel?CAT_COLORS[c]:'#555')+';font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .15s;">'+CAT_ICONS[c]+' '+c+'</button>';
+    return '<button onclick="selectRoutineCat(this,\''+c+'\')" data-cat="'+c+'" style="padding:7px 12px;border:1px solid '+(sel?CAT_COLORS[c]:'#2a2a2a')+';border-radius:6px;background:'+(sel?CAT_COLORS[c]+'22':'none')+';color:'+(sel?CAT_COLORS[c]:'#555')+';font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s;">'+CAT_ICONS[c]+' '+c+'</button>';
   }).join('');
 
   // Pocket dropdown options for the "Default pocket" picker (Step 11c)
@@ -168,25 +168,25 @@ function openAddRoutineTask(editId){
         +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:18px;color:var(--text);">'+(existing?'Edit Task':'+ New Task')+'</div>'
       +'</div>'
       +'<div style="padding:16px 20px;display:grid;gap:14px;">'
-        +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">Emoji</label>'
+        +'<div><label style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">Emoji</label>'
           +'<input id="rtEmoji" type="text" maxlength="2" value="'+(existing?existing.emoji:'✅')+'" style="width:60px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:10px 12px;color:#efefef;font-size:20px;text-align:center;"></div>'
-        +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">Task Name</label>'
+        +'<div><label style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">Task Name</label>'
           +'<input id="rtName" type="text" value="'+(existing?existing.name:'')+'" placeholder="e.g. Wash EE90" style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:10px 12px;color:#efefef;font-family:\'DM Mono\',monospace;font-size:13px;"></div>'
-        +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Category</label>'
+        +'<div><label style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Category</label>'
           +'<div id="rtCatPicker" style="display:flex;flex-wrap:wrap;gap:6px;">'+catOpts+'</div>'
           +'<input type="hidden" id="rtCat" value="'+(existing?existing.category:'personal')+'"></div>'
-        +'<div><label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Frequency</label>'
+        +'<div><label style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Frequency</label>'
           +'<div id="rtFreqPicker" style="display:flex;flex-wrap:wrap;gap:6px;">'+freqOpts+'</div>'
           +'<input type="hidden" id="rtFreq" value="'+(existing?existing.freq:'monthly')+'"></div>'
 
         // ── Step 11c: optional Cost + Default Pocket. Both blank = current behaviour (no spend on tick) ──
         +'<div style="border-top:1px solid #222;padding-top:14px;margin-top:4px;">'
-          +'<label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">💰 Cost per tick (R) <span style="text-transform:none;letter-spacing:0;color:#555;font-size:9px;">— optional</span></label>'
+          +'<label style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">💰 Cost per tick (R) <span style="text-transform:none;letter-spacing:0;color:var(--muted);font-size:11px;">— optional</span></label>'
           +'<input id="rtCost" type="number" min="0" step="0.01" inputmode="decimal" value="'+costVal+'" placeholder="e.g. 44 — leave blank for no spend" style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:10px 12px;color:#efefef;font-family:\'DM Mono\',monospace;font-size:13px;">'
-          +'<div style="font-size:10px;color:#555;margin-top:4px;letter-spacing:0.5px;">When set, ticking ✓ will offer to log a Spend</div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;">When set, ticking ✓ will offer to log a Spend</div>'
         +'</div>'
         +'<div>'
-          +'<label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">💰 Default pocket <span style="text-transform:none;letter-spacing:0;color:#555;font-size:9px;">— where the money comes from</span></label>'
+          +'<label style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">💰 Default pocket <span style="text-transform:none;letter-spacing:0;color:var(--muted);font-size:11px;">— where the money comes from</span></label>'
           +'<select id="rtPocket" style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:10px 12px;color:#efefef;font-family:\'DM Mono\',monospace;font-size:13px;">'+pocketOpts+'</select>'
         +'</div>'
       +'</div>'
@@ -279,24 +279,24 @@ function renderRoutine(){
 
     if(neverDone){
       statusClass = '';
-      badge = '<span style="color:var(--muted);font-size:10px;letter-spacing:1px;">Never done — tap ✓ to start</span>';
+      badge = '<span style="color:var(--muted);font-size:11px;letter-spacing:1px;">Never done — tap ✓ to start</span>';
     } else if(diff !== null && diff < 0){
       statusClass = 'overdue';
-      badge = '<span style="color:#f23060;font-size:10px;letter-spacing:1px;">⚠ Overdue '+Math.abs(diff)+'d</span>';
+      badge = '<span style="color:#f23060;font-size:11px;letter-spacing:1px;">⚠ Overdue '+Math.abs(diff)+'d</span>';
       overdueCount++;
       progressPct = 100;
     } else if(diff === 0){
       statusClass = 'due-today';
-      badge = '<span style="color:#f2a830;font-size:10px;letter-spacing:1px;">⚡ Due today!</span>';
+      badge = '<span style="color:#f2a830;font-size:11px;letter-spacing:1px;">⚡ Due today!</span>';
       dueCount++;
       progressPct = 100;
     } else if(diff <= 3){
       statusClass = 'due-soon';
-      badge = '<span style="color:#d4a800;font-size:10px;letter-spacing:1px;">⏰ In '+diff+'d</span>';
+      badge = '<span style="color:#d4a800;font-size:11px;letter-spacing:1px;">⏰ In '+diff+'d</span>';
       dueCount++;
       progressPct = Math.round(((freqDays-diff)/freqDays)*100);
     } else {
-      badge = '<span style="color:#3a5a00;font-size:10px;letter-spacing:1px;">In '+diff+'d</span>';
+      badge = '<span style="color:#3a5a00;font-size:11px;letter-spacing:1px;">In '+diff+'d</span>';
       progressPct = Math.round(((freqDays-diff)/freqDays)*100);
     }
 
@@ -313,8 +313,8 @@ function renderRoutine(){
           +'<div style="flex:1;min-width:0;">'
             +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--text);">'+task.name+'</div>'
             +'<div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">'
-              +'<span style="font-size:9px;background:'+color+'22;border:1px solid '+color+'44;border-radius:100px;padding:1px 7px;color:'+color+';letter-spacing:0.5px;">'+FREQ_LABELS[task.freq].toUpperCase()+'</span>'
-              +'<span style="font-size:9px;background:var(--muted2);border-radius:100px;padding:1px 7px;color:var(--muted);letter-spacing:0.5px;">'+CAT_ICONS[task.category]+' '+(task.category||'other')+'</span>'
+              +'<span style="font-size:11px;background:'+color+'22;border:1px solid '+color+'44;border-radius:100px;padding:1px 7px;color:'+color+';letter-spacing:0.5px;">'+FREQ_LABELS[task.freq].toUpperCase()+'</span>'
+              +'<span style="font-size:11px;background:var(--muted2);border-radius:100px;padding:1px 7px;color:var(--muted);letter-spacing:0.5px;">'+CAT_ICONS[task.category]+' '+(task.category||'other')+'</span>'
               +(function(){
                 // Step 11c — cost badge if task has cost + a still-existing pocket
                 if(task.cost == null || !(Number(task.cost) > 0)) return '';
@@ -322,11 +322,11 @@ function renderRoutine(){
                 try { p = (typeof funds !== 'undefined' ? funds : []).find(function(f){ return f && f.id === task.pocketId && !f._deleted; }); } catch(e){}
                 var amtStr = (typeof fmtR === 'function') ? fmtR(Number(task.cost)) : ('R'+task.cost);
                 var pocketBit = p ? ((p.emoji?p.emoji+' ':'') + p.name) : '⚠ pocket missing';
-                return '<span style="font-size:9px;background:#0a1a2e;border:1px solid #3a5a8a;border-radius:100px;padding:1px 7px;color:#5fa0f0;letter-spacing:0.5px;font-weight:700;">'+amtStr+' · '+pocketBit+'</span>';
+                return '<span style="font-size:11px;background:#0a1a2e;border:1px solid #3a5a8a;border-radius:100px;padding:1px 7px;color:#5fa0f0;letter-spacing:0.5px;font-weight:700;">'+amtStr+' · '+pocketBit+'</span>';
               })()
               +badge
             +'</div>'
-            +(lastDoneStr?'<div style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;">'+lastDoneStr+'</div>':'')
+            +(lastDoneStr?'<div style="font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;">'+lastDoneStr+'</div>':'')
           +'</div>'
           +'<div style="display:flex;gap:6px;flex-shrink:0;">'
             +'<button onclick="markRoutineDone(\''+task.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;width:34px;height:34px;cursor:pointer;font-size:16px;color:#c8f230;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'" title="Mark as done">✓</button>'
@@ -360,9 +360,9 @@ function renderRoutine(){
   var pills = document.getElementById('routineSummaryPills');
   if(pills){
     pills.innerHTML =
-      (overdueCount>0?'<span style="background:#2a0000;border:1px solid #f23060;border-radius:100px;padding:5px 12px;font-size:10px;color:#f23060;letter-spacing:1px;">⚠ '+overdueCount+' overdue</span>':'')
-      +(dueCount>0?'<span style="background:#2a1a00;border:1px solid #f2a830;border-radius:100px;padding:5px 12px;font-size:10px;color:#f2a830;letter-spacing:1px;">⏰ '+dueCount+' due soon</span>':'')
-      +'<span style="background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:5px 12px;font-size:10px;color:var(--muted);letter-spacing:1px;">'+tasks.length+' tasks</span>';
+      (overdueCount>0?'<span style="background:#2a0000;border:1px solid #f23060;border-radius:100px;padding:5px 12px;font-size:11px;color:#f23060;letter-spacing:1px;">⚠ '+overdueCount+' overdue</span>':'')
+      +(dueCount>0?'<span style="background:#2a1a00;border:1px solid #f2a830;border-radius:100px;padding:5px 12px;font-size:11px;color:#f2a830;letter-spacing:1px;">⏰ '+dueCount+' due soon</span>':'')
+      +'<span style="background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:5px 12px;font-size:11px;color:var(--muted);letter-spacing:1px;">'+tasks.length+' tasks</span>';
   }
 }
 
@@ -499,13 +499,13 @@ function renderPriorityList(){
     title.style.cssText = 'font-family:Syne,sans-serif;font-weight:700;font-size:13px;color:'+(rule.enabled?'#efefef':'#555')+';';
     title.textContent = rule.name;
     var desc = document.createElement('div');
-    desc.style.cssText = 'font-size:10px;color:var(--muted);margin-top:2px;';
+    desc.style.cssText = 'font-size:11px;color:var(--muted);margin-top:2px;';
     desc.textContent = rule.desc;
     info.appendChild(title);
     info.appendChild(desc);
 
     var badge = document.createElement('span');
-    badge.style.cssText = 'background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:3px 10px;font-family:DM Mono,monospace;font-size:10px;color:'+rule.color+';flex-shrink:0;';
+    badge.style.cssText = 'background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:3px 10px;font-family:DM Mono,monospace;font-size:11px;color:'+rule.color+';flex-shrink:0;';
     badge.textContent = '#'+rule.priority;
 
     div.appendChild(grip);
@@ -520,11 +520,11 @@ function renderPriorityList(){
       targetRow.style.cssText = 'background:#0d0d0d;border:1px solid '+(rule.enabled?rule.color+'33':'#1a1a1a')+';border-top:none;border-radius:0 0 8px 8px;padding:8px 14px;display:flex;align-items:center;gap:8px;';
 
       var targetLabel = document.createElement('span');
-      targetLabel.style.cssText = 'font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;';
+      targetLabel.style.cssText = 'font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;';
       targetLabel.textContent = 'Target:';
 
       var sel = document.createElement('select');
-      sel.style.cssText = 'flex:1;background:#111;border:1px solid #2a2a2a;border-radius:4px;color:#efefef;padding:4px 8px;font-family:DM Mono,monospace;font-size:10px;';
+      sel.style.cssText = 'flex:1;background:#111;border:1px solid #2a2a2a;border-radius:4px;color:#efefef;padding:4px 8px;font-family:DM Mono,monospace;font-size:11px;';
 
       var opts = getPriorityTargetOptions(rule.id);
       opts.forEach(function(opt){

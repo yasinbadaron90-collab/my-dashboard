@@ -81,7 +81,7 @@ function _renderOdinTabAlerts(now, mk){
         var btn = document.createElement('button');
         btn.style.cssText = 'background:none;border:1px solid '+(isDelete?'#5a1a1a':'#2a3a1a')+';border-radius:6px;'
           +'padding:5px 12px;color:'+(isDelete?'#f23060':color)+';font-family:DM Mono,monospace;'
-          +'font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .15s;';
+          +'font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s;';
         btn.onmouseover = function(){
           this.style.background = isDelete?'#2a0808':'#0d2000';
         };
@@ -175,7 +175,7 @@ function _renderOdinTabSnapshot(mk){
     tile.onmouseover = function(){ this.style.opacity='0.8'; };
     tile.onmouseout  = function(){ this.style.opacity='1'; };
     tile.addEventListener('click', (function(tab){ return function(){ goToTab(tab); }; })(t.tab));
-    tile.innerHTML = '<div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">'+t.label+'</div>'
+    tile.innerHTML = '<div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">'+t.label+'</div>'
       +'<div style="font-family:Syne,sans-serif;font-weight:800;font-size:18px;color:'+t.color+';">'+t.value+'</div>';
     container.appendChild(tile);
   });
@@ -230,7 +230,7 @@ function _renderOdinTabActivity(mk){
     row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;';
     row.addEventListener('click', (function(tab){ return function(){ goToTab(tab); }; })(a.tab));
     row.innerHTML = '<div><div style="font-size:12px;color:var(--text);font-family:DM Mono,monospace;">'+escHtml(a.text)+'</div>'
-      +'<div style="font-size:10px;color:var(--muted2);margin-top:2px;">'+a.date+'</div></div>'
+      +'<div style="font-size:11px;color:var(--muted2);margin-top:2px;">'+a.date+'</div></div>'
       +'<span style="font-size:13px;font-weight:700;color:'+a.color+';">'+a.amount+'</span>';
     container.appendChild(row);
   });

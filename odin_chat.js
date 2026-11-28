@@ -152,12 +152,12 @@ function appendOdinMsg(role, html, showFeedback, turnId){
     var btnUp = document.createElement('button');
     btnUp.textContent = '👍';
     btnUp.title = 'Good answer';
-    btnUp.style.cssText = 'background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 8px;font-size:12px;cursor:pointer;color:#555;transition:all .15s;';
+    btnUp.style.cssText = 'background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 8px;font-size:12px;cursor:pointer;color:var(--muted);transition:all .15s;';
 
     var btnDown = document.createElement('button');
     btnDown.textContent = '👎';
     btnDown.title = 'Wrong or misleading';
-    btnDown.style.cssText = 'background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 8px;font-size:12px;cursor:pointer;color:#555;transition:all .15s;';
+    btnDown.style.cssText = 'background:none;border:1px solid #2a2a2a;border-radius:4px;padding:2px 8px;font-size:12px;cursor:pointer;color:var(--muted);transition:all .15s;';
 
     btnUp.onclick = function(){
       if(btnUp.dataset.rated) return;
@@ -183,11 +183,11 @@ function appendOdinMsg(role, html, showFeedback, turnId){
       var sendBtn = document.createElement('button');
       sendBtn.textContent = 'Send';
       sendBtn.style.cssText = 'background:#2e0000;border:1px solid #f23060;border-radius:4px;'
-        +'padding:5px 10px;font-family:"DM Mono",monospace;font-size:10px;color:#f23060;cursor:pointer;white-space:nowrap;';
+        +'padding:5px 10px;font-family:"DM Mono",monospace;font-size:11px;color:#f23060;cursor:pointer;white-space:nowrap;';
       sendBtn.onclick = function(){
         var corr = inp.value.trim() || null;
         _odinSaveFeedback(turnId, _odinGetLastUserMsg(turnId), _odinGetReplyByTurnId(turnId), 'bad', corr);
-        corrRow.innerHTML = '<span style="font-size:10px;color:#f23060;letter-spacing:1px;">✓ Flagged — thanks</span>';
+        corrRow.innerHTML = '<span style="font-size:11px;color:#f23060;letter-spacing:1px;">✓ Flagged — thanks</span>';
       };
       inp.onkeydown = function(e){ if(e.key==='Enter') sendBtn.click(); };
       corrRow.appendChild(inp);
@@ -691,7 +691,7 @@ function odinChat(userText){
 
   // Thinking indicator
   var thinkId = 'think-'+Date.now();
-  appendOdinMsg('assistant', '<span id="'+thinkId+'" style="color:#555;font-style:italic;font-size:11px;">🧠 thinking...</span>', false, null);
+  appendOdinMsg('assistant', '<span id="'+thinkId+'" style="color:var(--muted);font-style:italic;font-size:11px;">🧠 thinking...</span>', false, null);
 
   var systemPrompt = 'You are Odin — the financial co-pilot for Yasin Badaron\'s personal dashboard. '
     +'You are embedded inside his PWA. You read his real financial data and help him make decisions.\n\n'

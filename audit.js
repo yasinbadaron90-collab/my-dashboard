@@ -921,7 +921,7 @@ function _auditPaintBadge(){
   var isFail = m.counts.fail > 0;
   var n      = isFail ? m.counts.fail : m.counts.warn;
   var col    = isFail ? '#f23060' : '#f2a830';
-  el.innerHTML = '<span style="margin-left:8px;font-size:9px;letter-spacing:1px;padding:2px 7px;'
+  el.innerHTML = '<span style="margin-left:8px;font-size:11px;letter-spacing:1px;padding:2px 7px;'
     + 'border-radius:20px;background:' + col + '22;color:' + col + ';border:1px solid ' + col + '55;">'
     + n + (isFail ? ' ISSUE' + (n > 1 ? 'S' : '') : ' WARN') + '</span>';
 }
@@ -999,20 +999,20 @@ function renderAudit(){
   if(!root) return;
   root.innerHTML =
     '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:clamp(20px,4vw,36px);letter-spacing:-1px;">🛡️ <span style="color:var(--muted)">SELF-AUDIT</span></div>'
-    + '<div style="font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin:2px 0 16px;">The app checks its own math</div>'
+    + '<div style="font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin:2px 0 16px;">The app checks its own math</div>'
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">'
     +   '<button onclick="runSelfAudit()" style="background:var(--accent,#c8f230);color:#000;border:none;border-radius:8px;padding:10px 18px;font-family:inherit;font-weight:600;font-size:12px;letter-spacing:1px;cursor:pointer;">▶ RUN AUDIT</button>'
-    +   '<div id="auditLastRun" style="font-size:9px;color:var(--muted);letter-spacing:1px;"></div>'
+    +   '<div id="auditLastRun" style="font-size:11px;color:var(--muted);letter-spacing:1px;"></div>'
     + '</div>'
     + '<div id="auditVerdict"></div>'
     + '<div id="auditGroups"></div>'
-    + '<div style="font-size:9.5px;color:var(--muted);line-height:1.7;padding:4px 4px 0;">🔒 Read-only — running the audit never changes data. Fixes are previewed and applied only when you confirm.</div>'
+    + '<div style="font-size:11px;color:var(--muted);line-height:1.7;padding:4px 4px 0;">🔒 Read-only — running the audit never changes data. Fixes are previewed and applied only when you confirm.</div>'
     + '<div style="margin-top:28px;padding-top:18px;border-top:1px dashed var(--border,#1f1f1f);">'
     +   '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:16px;margin-bottom:3px;">🕰️ <span style="color:var(--muted)">TIME TRAVEL</span></div>'
-    +   '<div style="font-size:9.5px;color:var(--muted);line-height:1.6;margin-bottom:12px;">Scan a backup file instead of your live data. Read-only — never overwrites the audit above, never touches your real pockets.</div>'
+    +   '<div style="font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:12px;">Scan a backup file instead of your live data. Read-only — never overwrites the audit above, never touches your real pockets.</div>'
     +   '<input type="file" id="ttFileInput" accept="application/json,.json" style="display:none" onchange="_ttFileChosen(event)">'
     +   '<button onclick="document.getElementById(\'ttFileInput\').click()" style="background:transparent;border:1px solid var(--border,#333);color:var(--muted);border-radius:8px;padding:10px 16px;font-family:inherit;font-size:11px;letter-spacing:1px;cursor:pointer;">📁 CHOOSE BACKUP FILE…</button>'
-    +   '<div id="ttStatus" style="font-size:10px;color:var(--muted);margin-top:8px;"></div>'
+    +   '<div id="ttStatus" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>'
     +   '<div id="ttResults"></div>'
     + '</div>';
   if(_auditResults) _auditRenderResults();
@@ -1071,10 +1071,10 @@ function _ttRenderResults(results, fileName){
   var html = '<div style="background:#0a0a0a;border:1px solid #333;border-radius:12px;padding:14px;margin-top:10px;">'
     + '<div style="display:flex;gap:14px;align-items:center;margin-bottom:4px;">'
     +   '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:26px;color:' + vcol + ';">' + counts.pass + '<span style="font-size:13px;color:var(--muted);">/' + total + '</span></div>'
-    +   '<div style="font-size:10px;color:var(--muted);">' + (counts.warn ? counts.warn + ' warning' + (counts.warn>1?'s':'') + ' ' : '') + (counts.fail ? counts.fail + ' issue' + (counts.fail>1?'s':'') : '') + (!counts.warn && !counts.fail ? 'no issues' : '') + '</div>'
+    +   '<div style="font-size:11px;color:var(--muted);">' + (counts.warn ? counts.warn + ' warning' + (counts.warn>1?'s':'') + ' ' : '') + (counts.fail ? counts.fail + ' issue' + (counts.fail>1?'s':'') : '') + (!counts.warn && !counts.fail ? 'no issues' : '') + '</div>'
     + '</div>';
   html += results.map(function(g){
-    return '<div style="font-size:9.5px;color:var(--muted);letter-spacing:1.5px;margin:12px 0 2px;text-transform:uppercase;">' + g.icon + ' ' + g.title + '</div>'
+    return '<div style="font-size:11px;color:var(--muted);letter-spacing:1.5px;margin:12px 0 2px;text-transform:uppercase;">' + g.icon + ' ' + g.title + '</div>'
       + g.rows.map(_ttRowHTML).join('');
   }).join('');
   html += '</div>';
@@ -1089,9 +1089,9 @@ function _ttRowHTML(r){
     + '<div style="flex-shrink:0;width:16px;text-align:center;font-size:12px;padding-top:1px;">' + ic + '</div>'
     + '<div style="flex:1;">'
     +   '<div style="font-size:11px;color:#ddd;">' + r.name + '</div>'
-    +   '<div style="font-size:9.5px;color:var(--muted);line-height:1.5;margin-top:2px;">' + r.detail + '</div>';
+    +   '<div style="font-size:11px;color:var(--muted);line-height:1.5;margin-top:2px;">' + r.detail + '</div>';
   if(r.findings && r.findings.length){
-    html += '<div style="font-size:9px;color:var(--muted);margin-top:4px;">' + r.findings.length + ' finding' + (r.findings.length>1?'s':'') + ' in this file — open it in the live app to act on ' + (r.findings.length>1?'them':'it') + '.</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:4px;">' + r.findings.length + ' finding' + (r.findings.length>1?'s':'') + ' in this file — open it in the live app to act on ' + (r.findings.length>1?'them':'it') + '.</div>';
   }
   return html + '</div></div>';
 }
@@ -1118,9 +1118,9 @@ function _auditRenderResults(){
   if(!G) return;
   G.innerHTML = _auditResults.map(function(g, gi){
     var worst = g.rows.some(function(r){return r.status==='fail';}) ? 'fail' : (g.rows.some(function(r){return r.status==='warn';}) ? 'warn' : 'pass');
-    var chip = worst==='fail' ? '<span style="font-size:8px;letter-spacing:1.5px;padding:3px 8px;border-radius:20px;background:#f2306022;color:#f23060;border:1px solid #f2306055;">ISSUES</span>'
-             : worst==='warn' ? '<span style="font-size:8px;letter-spacing:1.5px;padding:3px 8px;border-radius:20px;background:#f2a83022;color:#f2a830;border:1px solid #f2a83055;">WARNINGS</span>'
-             : '<span style="font-size:8px;letter-spacing:1.5px;padding:3px 8px;border-radius:20px;background:#c8f23022;color:var(--accent,#c8f230);border:1px solid #c8f23055;">ALL PASS</span>';
+    var chip = worst==='fail' ? '<span style="font-size:11px;letter-spacing:1.5px;padding:3px 8px;border-radius:20px;background:#f2306022;color:#f23060;border:1px solid #f2306055;">ISSUES</span>'
+             : worst==='warn' ? '<span style="font-size:11px;letter-spacing:1.5px;padding:3px 8px;border-radius:20px;background:#f2a83022;color:#f2a830;border:1px solid #f2a83055;">WARNINGS</span>'
+             : '<span style="font-size:11px;letter-spacing:1.5px;padding:3px 8px;border-radius:20px;background:#c8f23022;color:var(--accent,#c8f230);border:1px solid #c8f23055;">ALL PASS</span>';
     return '<div style="background:var(--surface,#0d0d0d);border:1px solid var(--border,#1f1f1f);border-radius:12px;margin-bottom:12px;overflow:hidden;">'
       + '<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 16px;">'
       +   '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;">' + g.icon + ' ' + g.title + '</div>' + chip
@@ -1138,18 +1138,18 @@ function _auditRowHTML(r, gi, ri){
     + '<div style="flex-shrink:0;width:16px;text-align:center;font-size:12px;padding-top:1px;">' + ic + '</div>'
     + '<div style="flex:1;">'
     +   '<div style="font-size:11.5px;color:#ddd;">' + r.name + '</div>'
-    +   '<div style="font-size:10px;color:var(--muted);line-height:1.5;margin-top:2px;">' + r.detail + '</div>';
+    +   '<div style="font-size:11px;color:var(--muted);line-height:1.5;margin-top:2px;">' + r.detail + '</div>';
   if(r.findings && r.findings.length){
     html += r.findings.map(function(f, fi){
       var row = '<div style="margin-top:8px;padding:8px 10px;background:#f2306010;border:1px solid #f2306033;border-radius:7px;">'
-        + '<div style="font-size:10px;color:#ddd;">' + f.kind + '</div>'
-        + '<div style="font-size:10px;color:var(--muted);margin-top:2px;">' + f.label + ' → missing pocket <span style="color:#ddd;">' + f.dead + '</span></div>';
+        + '<div style="font-size:11px;color:#ddd;">' + f.kind + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:2px;">' + f.label + ' → missing pocket <span style="color:#ddd;">' + f.dead + '</span></div>';
       if(f.fixable){
         row += '<div id="auFix_' + gi + '_' + ri + '_' + fi + '" style="margin-top:8px;">'
-          + '<button onclick="_auditProposeFix(' + gi + ',' + ri + ',' + fi + ')" style="background:#f2306018;border:1px solid #f2306066;color:#f23060;font-family:inherit;font-size:10px;letter-spacing:1px;padding:6px 12px;border-radius:7px;cursor:pointer;">⚡ PROPOSE FIX → re-point plan to a live pocket</button>'
+          + '<button onclick="_auditProposeFix(' + gi + ',' + ri + ',' + fi + ')" style="background:#f2306018;border:1px solid #f2306066;color:#f23060;font-family:inherit;font-size:11px;letter-spacing:1px;padding:6px 12px;border-radius:7px;cursor:pointer;">⚡ PROPOSE FIX → re-point plan to a live pocket</button>'
           + '</div>';
       } else {
-        row += '<div style="font-size:9px;color:var(--muted);margin-top:6px;">Historical reference — display-only impact. Guided repair recommended rather than auto-fix.</div>';
+        row += '<div style="font-size:11px;color:var(--muted);margin-top:6px;">Historical reference — display-only impact. Guided repair recommended rather than auto-fix.</div>';
       }
       return row + '</div>';
     }).join('');
@@ -1168,10 +1168,10 @@ function _auditProposeFix(gi, ri, fi){
   }).join('');
   box.innerHTML =
     '<div style="border:1px solid #333;border-radius:7px;padding:10px;background:#0a0a0a;">'
-    + '<div style="font-size:10px;color:#ddd;margin-bottom:6px;">Re-point <span style="color:#f2a830;">' + f.label + '</span></div>'
-    + '<div style="font-size:9px;color:var(--muted);margin-bottom:8px;">FROM missing pocket <b>' + f.dead + '</b> → TO:</div>'
+    + '<div style="font-size:11px;color:#ddd;margin-bottom:6px;">Re-point <span style="color:#f2a830;">' + f.label + '</span></div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">FROM missing pocket <b>' + f.dead + '</b> → TO:</div>'
     + '<select id="auFixSel_' + gi + '_' + ri + '_' + fi + '" style="width:100%;background:#111;color:#ddd;border:1px solid #333;border-radius:6px;padding:8px;font-family:inherit;font-size:11px;margin-bottom:8px;">' + opts + '</select>'
-    + '<div style="font-size:9px;color:var(--muted);line-height:1.5;margin-bottom:8px;">Metadata-only: no balances move, no baseline change. Future debits will fund from the pocket you pick.</div>'
+    + '<div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px;">Metadata-only: no balances move, no baseline change. Future debits will fund from the pocket you pick.</div>'
     + '<button onclick="_auditApplyFix(' + gi + ',' + ri + ',' + fi + ')" style="background:var(--accent,#c8f230);color:#000;border:none;border-radius:6px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:11px;cursor:pointer;">✔ CONFIRM RE-POINT</button> '
     + '<button onclick="runSelfAudit()" style="background:transparent;border:1px solid #333;color:var(--muted);border-radius:6px;padding:8px 14px;font-family:inherit;font-size:11px;cursor:pointer;">CANCEL</button>'
     + '</div>';

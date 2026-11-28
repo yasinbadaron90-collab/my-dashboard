@@ -152,10 +152,10 @@ function showStorageError(reason){
   toast.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:99999;background:#1a0a0a;border:1px solid #5a1010;border-radius:8px;padding:14px 16px;max-width:340px;width:calc(100% - 40px);box-shadow:0 4px 20px rgba(0,0,0,0.6);font-family:DM Mono,monospace;color:#efefef;';
   toast.innerHTML =
     '<div style="font-size:13px;font-weight:700;color:#f23060;margin-bottom:6px;">'+msg+'</div>'
-    + '<div style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:12px;letter-spacing:0.5px;">'+hint+'</div>'
+    + '<div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:12px;letter-spacing:0.5px;">'+hint+'</div>'
     + '<div style="display:flex;gap:6px;">'
-    +   '<button id="storageErrorBackupBtn" style="flex:1;padding:9px 10px;background:#c8f230;border:none;border-radius:5px;color:#000;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">Download Backup</button>'
-    +   '<button id="storageErrorDismissBtn" style="padding:9px 12px;background:none;border:1px solid #2a2a2a;border-radius:5px;color:var(--muted);font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Dismiss</button>'
+    +   '<button id="storageErrorBackupBtn" style="flex:1;padding:9px 10px;background:#c8f230;border:none;border-radius:5px;color:#000;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">Download Backup</button>'
+    +   '<button id="storageErrorDismissBtn" style="padding:9px 12px;background:none;border:1px solid #2a2a2a;border-radius:5px;color:var(--muted);font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Dismiss</button>'
     + '</div>';
   document.body.appendChild(toast);
 
@@ -246,9 +246,9 @@ function softDeleteToast(opts){
     + '<span style="font-size:16px;flex-shrink:0;">🗑</span>'
     + '<div style="flex:1;min-width:0;">'
     +   '<div style="font-size:12px;color:var(--text);letter-spacing:0.3px;">Deleted '+escHtml(label)+'</div>'
-    +   '<div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;" id="softDeleteCountdown">'+(ms/1000)+'s to undo</div>'
+    +   '<div style="font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;" id="softDeleteCountdown">'+(ms/1000)+'s to undo</div>'
     + '</div>'
-    + '<button id="softDeleteUndoBtn" style="flex-shrink:0;background:#c8f230;border:none;color:#000;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:8px 14px;border-radius:5px;cursor:pointer;font-weight:700;">Undo</button>';
+    + '<button id="softDeleteUndoBtn" style="flex-shrink:0;background:#c8f230;border:none;color:#000;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:8px 14px;border-radius:5px;cursor:pointer;font-weight:700;">Undo</button>';
 
   // Once-only animation styles
   if(!document.getElementById('softDeleteAnimStyle')){
@@ -403,7 +403,7 @@ function buildEmptyState(opts){
     html += '<div style="font-size:11px;color:var(--muted);letter-spacing:0.5px;margin-top:6px;line-height:1.5;">'+_eEsc(subtitle)+'</div>';
   }
   if(ctaLabel && ctaClick){
-    html += '<button onclick="'+ctaClick+'" style="margin-top:'+(compact?'10':'16')+'px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 18px;color:#c8f230;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">'+_eEsc(ctaLabel)+'</button>';
+    html += '<button onclick="'+ctaClick+'" style="margin-top:'+(compact?'10':'16')+'px;background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 18px;color:#c8f230;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">'+_eEsc(ctaLabel)+'</button>';
   }
   html += '</div>';
   return html;
@@ -693,7 +693,7 @@ function buildResultsPDF(){
   toast.innerHTML =
     '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:#c8f230;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
     +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:var(--text);">Generating PDF...</div>'
-    +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">'+yearData.year+' · Yasin Badaron</div></div>';
+    +'<div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;">'+yearData.year+' · Yasin Badaron</div></div>';
   if(!document.getElementById('spinStyle')){
     var sp=document.createElement('style');sp.id='spinStyle';
     sp.textContent='@keyframes spin{to{transform:rotate(360deg);}}';
@@ -825,7 +825,7 @@ function buildResultsPDF(){
     toast.innerHTML =
       '<div style="width:18px;height:18px;background:#1a2e00;border:2px solid #3a5a00;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color:#c8f230;">✓</div>'
       +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:#c8f230;">PDF Downloaded!</div>'
-      +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">Saved to your Downloads folder</div></div>';
+      +'<div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;">Saved to your Downloads folder</div></div>';
     toast.style.borderColor = '#3a5a00';
     setTimeout(function(){
       toast.style.transition='opacity .4s'; toast.style.opacity='0';
@@ -1117,7 +1117,7 @@ function loadFuelReport() {
         var isUber = x.type === 'uber';
         var midCol = isUber
           ? '<span style="color:#f2a830;font-size:11px;">🚗 '+(x.note||'Nurjahan Uber')+'</span>'
-          : '<span style="color:var(--text)">R'+Number(x.price||0).toFixed(2)+' <span style="color:var(--muted);font-size:10px;">('+(x.price>0?(x.amount/x.price).toFixed(1)+'L':'-')+')</span></span>';
+          : '<span style="color:var(--text)">R'+Number(x.price||0).toFixed(2)+' <span style="color:var(--muted);font-size:11px;">('+(x.price>0?(x.amount/x.price).toFixed(1)+'L':'-')+')</span></span>';
         row.innerHTML = '<span style="color:var(--muted)">'+x.date+'</span>'
           +midCol
           +'<span style="color:#a78bfa;font-weight:500">'+fmtR(x.amount)+'</span>'
@@ -1190,9 +1190,9 @@ function loadFuelReport() {
       card.style.cssText = 'background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:8px;';
       card.innerHTML =
         '<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--text);margin-bottom:8px;">'+p+'</div>'
-        +'<div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Saved you</div>'
+        +'<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Saved you</div>'
         +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:20px;color:#c8f230;margin-bottom:8px;">'+fmtR(s.income)+'</div>'
-        +'<div style="font-size:10px;color:var(--muted);">'+s.trips+' trips &nbsp;·&nbsp; '+attendance+'% attendance</div>';
+        +'<div style="font-size:11px;color:var(--muted);">'+s.trips+' trips &nbsp;·&nbsp; '+attendance+'% attendance</div>';
       plPassCardsEl.appendChild(card);
     });
   }

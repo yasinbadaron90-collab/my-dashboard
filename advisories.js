@@ -78,7 +78,7 @@
     }
     return '<span onclick="openAdvisoryList(\''+car.id+'\');event.stopPropagation();" '
       + 'style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;'
-      + 'font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;'
+      + 'font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;'
       + 'background:'+bg+';color:'+color+';border:1px solid '+border+';margin-left:8px;'
       + (s.severity==='red'?'box-shadow:0 0 8px rgba(242,48,96,.3);':'')
       + '">'+emoji+' '+s.count+'</span>';
@@ -90,8 +90,8 @@
     var open = getOpenAdvisories(car);
     if(open.length === 0){
       return '<button onclick="openAdvisoryList(\''+car.id+'\')" '
-        + 'style="background:transparent;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;color:#666;'
-        + 'font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'
+        + 'style="background:transparent;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;color:var(--muted);'
+        + 'font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'
         + '⊕ Add Advisory</button>';
     }
     var s = getAdvisoryBadgeState(car);
@@ -105,7 +105,7 @@
     }
     return '<button onclick="openAdvisoryList(\''+car.id+'\')" '
       + 'style="background:'+bg+';border:1px solid '+border+';border-radius:6px;padding:8px 12px;color:'+color+';'
-      + 'font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'
+      + 'font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'
       + emoji+' Advisories ('+s.count+')</button>';
   }
 
@@ -146,19 +146,19 @@
     if(tabsEl){
       tabsEl.innerHTML =
           '<span onclick="_setAdvListFilter(\'open\')" '
-            + 'style="padding:4px 10px;border-radius:10px;font-size:10px;letter-spacing:1px;cursor:pointer;'
+            + 'style="padding:4px 10px;border-radius:10px;font-size:11px;letter-spacing:1px;cursor:pointer;'
             + (_advListFilter==='open'
                 ? 'background:#3a0a0a;color:#f23060;border:1px solid #5a0e0e;'
-                : 'background:#1a1a1a;color:#666;border:1px solid #2a2a2a;')
+                : 'background:#1a1a1a;color:var(--muted);border:1px solid #2a2a2a;')
             + '">OPEN ('+openCount+')</span>'
         + ' <span onclick="_setAdvListFilter(\'resolved\')" '
-            + 'style="padding:4px 10px;border-radius:10px;font-size:10px;letter-spacing:1px;cursor:pointer;margin-left:4px;'
+            + 'style="padding:4px 10px;border-radius:10px;font-size:11px;letter-spacing:1px;cursor:pointer;margin-left:4px;'
             + (_advListFilter==='resolved'
                 ? 'background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;'
-                : 'background:#1a1a1a;color:#666;border:1px solid #2a2a2a;')
+                : 'background:#1a1a1a;color:var(--muted);border:1px solid #2a2a2a;')
             + '">RESOLVED ('+resolvedCount+')</span>'
         + ' <span onclick="openAddAdvisory(\''+car.id+'\')" '
-            + 'style="padding:4px 10px;border-radius:10px;font-size:10px;letter-spacing:1px;cursor:pointer;'
+            + 'style="padding:4px 10px;border-radius:10px;font-size:11px;letter-spacing:1px;cursor:pointer;'
             + 'background:#1a1a1a;color:#c8f230;border:1px solid #3a5a00;margin-left:auto;float:right;">+ Add</span>';
     }
 
@@ -171,7 +171,7 @@
       });
 
     if(items.length === 0){
-      listEl.innerHTML = '<div style="padding:24px;text-align:center;color:#666;font-size:12px;">'
+      listEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:12px;">'
         + (_advListFilter === 'open' ? 'No open advisories.' : 'No resolved advisories yet.')
         + '</div>';
       return;
@@ -189,33 +189,33 @@
 
       var statusPill = '';
       if(a.status === 'resolved'){
-        statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;letter-spacing:1px;margin-top:6px;'
+        statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;letter-spacing:1px;margin-top:6px;'
           + 'background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;">✓ Resolved '+_fmtDate(a.resolvedAt)+'</span>';
       } else if(_isSnoozed(a)){
-        statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;letter-spacing:1px;margin-top:6px;'
+        statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;letter-spacing:1px;margin-top:6px;'
           + 'background:#1a1a3a;color:#a8a8ff;border:1px solid #3a3a5a;">😴 Snoozed until '+_fmtDate(a.snoozeUntil)+'</span>';
       } else if(a.bookedFor){
-        statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;letter-spacing:1px;margin-top:6px;'
+        statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;letter-spacing:1px;margin-top:6px;'
           + 'background:#1a2e3a;color:#30c8f2;border:1px solid #1e4a5a;">📅 Booked for '+_fmtDate(a.bookedFor)+'</span>';
       } else {
-        statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;letter-spacing:1px;margin-top:6px;'
+        statusPill = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;letter-spacing:1px;margin-top:6px;'
           + 'background:#3a0a0a;color:#f23060;border:1px solid #5a0e0e;">OPEN</span>';
       }
 
       // v118a: tap shows alert "Detail view coming in v118b". Delete button works.
       return '<div style="background:#222;border:1px solid #2a2a2a;border-radius:6px;padding:11px 12px;margin-bottom:8px;border-left:4px solid '+bgColor+';">'
         + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;">'
-        +   '<span style="font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:'+sevColor+';">'+sevLabel+'</span>'
-        +   '<span style="font-size:10px;color:#666;">'+_fmtDate(a.flaggedDate)+'</span>'
+        +   '<span style="font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:'+sevColor+';">'+sevLabel+'</span>'
+        +   '<span style="font-size:11px;color:var(--muted);">'+_fmtDate(a.flaggedDate)+'</span>'
         + '</div>'
         + '<div style="font-size:12px;color:#efefef;line-height:1.4;margin-bottom:4px;">'+escHtml(a.text)+'</div>'
-        + (a.source ? '<div style="font-size:10px;color:#666;font-style:italic;">'+escHtml(a.source)+'</div>' : '')
+        + (a.source ? '<div style="font-size:11px;color:var(--muted);font-style:italic;">'+escHtml(a.source)+'</div>' : '')
         + statusPill
         + '<div style="margin-top:8px;display:flex;gap:6px;">'
         +   '<button onclick="openAdvisoryDetail(\''+a.id+'\')" '
-        +     'style="background:transparent;border:1px solid #2a2a2a;color:#888;padding:5px 10px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Open</button>'
+        +     'style="background:transparent;border:1px solid #2a2a2a;color:#888;padding:5px 10px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Open</button>'
         +   '<button onclick="deleteAdvisory(\''+a.id+'\')" '
-        +     'style="background:transparent;border:1px solid #2a1a1a;color:#666;padding:5px 10px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-left:auto;">Delete</button>'
+        +     'style="background:transparent;border:1px solid #2a1a1a;color:var(--muted);padding:5px 10px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-left:auto;">Delete</button>'
         + '</div>'
         + '</div>';
     }).join('');
@@ -237,18 +237,18 @@
 
   function _advStatusPill(a){
     if(a.status === 'resolved'){
-      return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:10px;letter-spacing:2px;'
+      return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:11px;letter-spacing:2px;'
         + 'background:#1a2e00;color:#c8f230;border:1px solid #3a5a00;">✓ RESOLVED · '+_fmtDate(a.resolvedAt)+'</span>';
     }
     if(_isSnoozed(a)){
-      return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:10px;letter-spacing:2px;'
+      return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:11px;letter-spacing:2px;'
         + 'background:#1a1a3a;color:#a8a8ff;border:1px solid #3a3a5a;">😴 SNOOZED UNTIL '+_fmtDate(a.snoozeUntil)+'</span>';
     }
     if(a.bookedFor){
-      return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:10px;letter-spacing:2px;'
+      return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:11px;letter-spacing:2px;'
         + 'background:#1a2e3a;color:#30c8f2;border:1px solid #1e4a5a;">📅 BOOKED FOR '+_fmtDate(a.bookedFor)+'</span>';
     }
-    return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:10px;letter-spacing:2px;'
+    return '<span style="display:inline-block;padding:4px 12px;border-radius:100px;font-size:11px;letter-spacing:2px;'
       + 'background:#3a0a0a;color:#f23060;border:1px solid #5a0e0e;">OPEN</span>';
   }
 
@@ -275,7 +275,7 @@
     return items.map(function(it){
       return '<div style="display:flex;gap:10px;margin-bottom:10px;font-size:12px;">'
         + '<div style="flex-shrink:0;width:18px;text-align:center;">'+it.icon+'</div>'
-        + '<div style="flex:1;"><div style="font-size:10px;color:#666;margin-bottom:2px;">'+_fmtDate(it.date)+'</div>'
+        + '<div style="flex:1;"><div style="font-size:11px;color:var(--muted);margin-bottom:2px;">'+_fmtDate(it.date)+'</div>'
         + '<div style="color:#ccc;line-height:1.4;">'+escHtml(it.text)+'</div></div>'
         + '</div>';
     }).join('');
@@ -303,7 +303,7 @@
     if(sevRow){
       sevRow.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+sm.dot+';margin-right:8px;vertical-align:middle;"></span>'
         + '<span style="font-size:11px;letter-spacing:2px;color:'+sm.color+';font-weight:700;">'+sm.emoji+' '+sm.label.toUpperCase()+'</span>'
-        + '<span style="float:right;font-size:11px;color:#666;">'+_fmtDate(adv.flaggedDate)+'</span>';
+        + '<span style="float:right;font-size:11px;color:var(--muted);">'+_fmtDate(adv.flaggedDate)+'</span>';
     }
     var textEl = document.getElementById('advDetailText');
     if(textEl) textEl.textContent = adv.text;
@@ -494,7 +494,7 @@
         + 'style="display:inline-block;padding:6px 12px;border-radius:6px;font-size:11px;letter-spacing:1px;cursor:pointer;margin-right:6px;margin-bottom:6px;'
         + (sel
             ? 'background:'+s.bg+';color:'+s.color+';border:1px solid '+s.border+';font-weight:700;'
-            : 'background:transparent;color:#666;border:1px solid #2a2a2a;')
+            : 'background:transparent;color:var(--muted);border:1px solid #2a2a2a;')
         + '">'+s.label+'</span>';
     }).join('');
   }

@@ -371,7 +371,7 @@ function renderCashFlow(){
           ctaOnclick: "openCfEntryModal('income')",
           compact: true
         })
-      : '<div style="padding:14px;color:#444;font-size:12px;letter-spacing:1px;">No income entries — tap + Add to get started.</div>';
+      : '<div style="padding:14px;color:var(--muted);font-size:12px;letter-spacing:1px;">No income entries — tap + Add to get started.</div>';
   }
   incomeContainer.innerHTML = incomeHTML;
 
@@ -393,7 +393,7 @@ function renderCashFlow(){
           ctaOnclick: "openCfEntryModal('expense')",
           compact: true
         })
-      : '<div style="padding:14px;color:#444;font-size:12px;letter-spacing:1px;">No real expenses this month.</div>';
+      : '<div style="padding:14px;color:var(--muted);font-size:12px;letter-spacing:1px;">No real expenses this month.</div>';
   }
   expenseContainer.innerHTML = expenseHTML;
 
@@ -416,7 +416,7 @@ function renderCashFlow(){
             subtitle: 'Allocations appear here when you save via Money In or Use Funds in the Savings tab.',
             compact: true
           })
-        : '<div style="padding:14px;color:#444;font-size:12px;letter-spacing:1px;">No savings allocations this month.</div>';
+        : '<div style="padding:14px;color:var(--muted);font-size:12px;letter-spacing:1px;">No savings allocations this month.</div>';
     }
     savingsContainer.innerHTML = savingsHTML;
     document.getElementById('cfSavingsTotalRow').textContent = fmtR(totalSavingsAllocs);
@@ -465,7 +465,7 @@ function cfRow(e, type, isRecur){
   if(type === 'income' && e.date){
     try{
       const d = new Date(e.date+'T00:00:00');
-      dateBadge = ' <span style="color:#5a8800;font-size:9px;background:#0d1a00;border:1px solid #2a4a00;border-radius:3px;padding:1px 5px;letter-spacing:0.5px;">'+d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'})+'</span>';
+      dateBadge = ' <span style="color:#5a8800;font-size:11px;background:#0d1a00;border:1px solid #2a4a00;border-radius:3px;padding:1px 5px;letter-spacing:0.5px;">'+d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'})+'</span>';
     }catch(ex){}
   }
   // ── BANK BADGE ──
@@ -491,10 +491,10 @@ function cfRow(e, type, isRecur){
     // Untagged legacy entry — show grey badge + retro-tag pencil so the user
     // can clean it up over time. These entries do NOT affect bank balances
     // until tagged.
-    bankHtml = '<span style="color:#555;background:#1a1a1a;border:1px dashed #444;border-radius:3px;padding:1px 6px;letter-spacing:1px;">— Untagged</span>'
-             + ' <button onclick="openCfEntryModal(\''+type+'\',\''+e.id+'\')" title="Tag this with a bank" style="background:none;border:1px solid #2a2a2a;border-radius:3px;color:#666;font-size:9px;cursor:pointer;padding:1px 5px;letter-spacing:1px;margin-left:2px;">✎ tag</button>';
+    bankHtml = '<span style="color:var(--muted);background:#1a1a1a;border:1px dashed #444;border-radius:3px;padding:1px 6px;letter-spacing:1px;">— Untagged</span>'
+             + ' <button onclick="openCfEntryModal(\''+type+'\',\''+e.id+'\')" title="Tag this with a bank" style="background:none;border:1px solid #2a2a2a;border-radius:3px;color:var(--muted);font-size:11px;cursor:pointer;padding:1px 5px;letter-spacing:1px;margin-left:2px;">✎ tag</button>';
   }
-  const subLine = '<div style="font-size:9px;letter-spacing:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+bankHtml+dateBadge+'</div>';
+  const subLine = '<div style="font-size:11px;letter-spacing:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+bankHtml+dateBadge+'</div>';
   // Untagged rows render slightly dimmer so the user notices they need attention.
   // Pocket rows are treated as "tagged" — full brightness.
   var fullBright = (bank || isPocketRow);
@@ -509,8 +509,8 @@ function cfRow(e, type, isRecur){
     +'</div>'
     +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;white-space:nowrap;'+amtStyle+'">'+sign+fmtR(e.amount)+'</span>'
     +'<div style="display:flex;gap:4px;">'
-      +'<button onclick="openCfEntryModal(\''+type+'\',\''+e.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;width:26px;height:26px;color:#555;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.borderColor=\'#555\'" onmouseout="this.style.borderColor=\'#2a2a2a\'">✏️</button>'
-      +'<button onclick="deleteCfEntry(\''+e.id+'\',\''+type+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;width:26px;height:26px;color:#555;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">✕</button>'
+      +'<button onclick="openCfEntryModal(\''+type+'\',\''+e.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;width:26px;height:26px;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.borderColor=\'#555\'" onmouseout="this.style.borderColor=\'#2a2a2a\'">✏️</button>'
+      +'<button onclick="deleteCfEntry(\''+e.id+'\',\''+type+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;width:26px;height:26px;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">✕</button>'
     +'</div>'
   +'</div>';
 }
@@ -524,10 +524,10 @@ function cfAutoRow(e){
     +'<span style="font-size:18px;flex-shrink:0;">'+e.icon+'</span>'
     +'<div style="flex:1;min-width:0;">'
       +'<div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(e.label)+'</div>'
-      +'<div style="font-size:9px;color:#3a5a00;letter-spacing:1px;">'+(sourceLabel[e.source]||'Auto-imported')+'</div>'
+      +'<div style="font-size:11px;color:#3a5a00;letter-spacing:1px;">'+(sourceLabel[e.source]||'Auto-imported')+'</div>'
     +'</div>'
     +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:'+color+';white-space:nowrap;">'+sign+fmtR(e.amount)+'</span>'
-    +'<span style="font-size:9px;color:#3a5a00;background:#0d1a00;border:1px solid #2a4a00;border-radius:4px;padding:2px 6px;white-space:nowrap;">AUTO</span>'
+    +'<span style="font-size:11px;color:#3a5a00;background:#0d1a00;border:1px solid #2a4a00;border-radius:4px;padding:2px 6px;white-space:nowrap;">AUTO</span>'
   +'</div>';
 }
 
@@ -539,7 +539,7 @@ function showBackupReminder(reason){
   const toast = document.createElement('div');
   toast.id = 'backupToast';
   toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a2e00;border:1px solid #c8f230;border-radius:8px;padding:12px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;color:#c8f230;box-shadow:0 4px 20px rgba(0,0,0,.6);min-width:280px;';
-  toast.innerHTML = '<span>💾 '+reason+'</span><button onclick="backupData();document.getElementById(\'backupToast\').remove();" style="background:#c8f230;color:#000;border:none;border-radius:4px;padding:6px 12px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;">Download Backup</button><button onclick="document.getElementById(\'backupToast\').remove();" style="background:none;border:none;color:#555;cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
+  toast.innerHTML = '<span>💾 '+reason+'</span><button onclick="backupData();document.getElementById(\'backupToast\').remove();" style="background:#c8f230;color:#000;border:none;border-radius:4px;padding:6px 12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;white-space:nowrap;">Download Backup</button><button onclick="document.getElementById(\'backupToast\').remove();" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 2px;">✕</button>';
   document.body.appendChild(toast);
   // Auto-dismiss after 12 seconds
   setTimeout(function(){ if(document.getElementById('backupToast')) document.getElementById('backupToast').remove(); }, 12000);

@@ -27,7 +27,7 @@ function inboxHomeHtml(){
       + '</div>';
   }).join('');
   return '<div style="background:#1a1a1a;border:1px solid #6a3aa0;border-radius:16px;padding:16px;margin-bottom:16px;">'
-    + '<div style="font-size:10px;letter-spacing:3px;color:#c890ff;text-transform:uppercase;margin-bottom:6px;">Quick add · '+a.length+' waiting</div>'
+    + '<div style="font-size:11px;letter-spacing:3px;color:#c890ff;text-transform:uppercase;margin-bottom:6px;">Quick add · '+a.length+' waiting</div>'
     + rows + '</div>';
 }
 

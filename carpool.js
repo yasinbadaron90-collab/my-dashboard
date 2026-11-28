@@ -497,7 +497,7 @@ function renderCarpool(){
       const holidayName=holiday?getSAHolidayName(ds):'';
       if(holiday) tr.style.cssText='background:#0d1a00;opacity:0.85;';
       const dayCell=holiday
-        ?`<td class="dc" title="${holidayName}"><span style="color:#c8f230;font-weight:700;">${dl}</span><br><span style="font-size:9px;color:#8ab820;letter-spacing:0.5px;">🇿🇦 ${holidayName}</span></td>`
+        ?`<td class="dc" title="${holidayName}"><span style="color:#c8f230;font-weight:700;">${dl}</span><br><span style="font-size:11px;color:#8ab820;letter-spacing:0.5px;">🇿🇦 ${holidayName}</span></td>`
         :`<td class="dc">${dl}</td>`;
       tr.innerHTML=`${dayCell}${PASSENGERS.map(p=>{
         const mk2=ds.slice(0,7);
@@ -552,13 +552,13 @@ function renderCarpool(){
           }
         }
         return `<td><select data-date="${ds}" data-passenger="${p}" onchange="setTripSelect(this)" style="${selStyle}">
-          <option value="absent"   ${val==='absent'   ?'selected':''} style="background:#111;color:#444">— Absent</option>
+          <option value="absent"   ${val==='absent'   ?'selected':''} style="background:#111;color:var(--muted)">— Absent</option>
           ${extraHistOption}
           <option value="${fullUnpaidV}" ${val===fullUnpaidV?'selected':''} style="background:#1e1400;color:#f2a830">R${fullVal} ⏳</option>
           <option value="${fullPaidV}"   ${val===fullPaidV  ?'selected':''} style="background:#1a2e00;color:#c8f230">R${fullVal} ✓</option>
           <option value="${halfUnpaidV}" ${val===halfUnpaidV?'selected':''} style="background:#1e1400;color:#f2a830">R${halfVal} ⏳</option>
           <option value="${halfPaidV}"   ${val===halfPaidV  ?'selected':''} style="background:#1a2e00;color:#c8f230">R${halfVal} ✓</option>
-          <option value="0_present"${val==='0_present'?'selected':''} style="background:#222;color:#555">R0</option>
+          <option value="0_present"${val==='0_present'?'selected':''} style="background:#222;color:var(--muted)">R0</option>
         </select></td>`;
       }).join('')}<td class="tc">${tot>0?fmtR(tot):'<span style="color:var(--muted2)">—</span>'}</td><td class="nc"><input class="notes-inp" placeholder="notes..." value="${(dd.notes||'').replace(/"/g,'&quot;')}" data-date="${ds}" onchange="setNote(this)"/></td>`;
       tbody.appendChild(tr);
@@ -942,7 +942,7 @@ function _generateStatementsWork(){
     const statusHtml = '';
 
     // Breakdown footer — always shows trips section; borrow section only if borrows exist
-    const breakdownHtml='<div style="padding:8px 12px;border-top:1px solid #1e3a00;background:#0a1500;font-size:10px;display:flex;flex-direction:column;gap:3px;">'
+    const breakdownHtml='<div style="padding:8px 12px;border-top:1px solid #1e3a00;background:#0a1500;font-size:11px;display:flex;flex-direction:column;gap:3px;">'
       +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Total Trips</span><span style="color:#c8f230;">'+fmtR(tripTotal)+'</span></div>'
       +'<div style="display:flex;justify-content:space-between;"><span style="color:#5a8800;">Trips Paid</span><span style="color:var(--text);">'+fmtR(tripPaid)+'</span></div>'
       +(tripOwing>0
@@ -957,13 +957,13 @@ function _generateStatementsWork(){
       )
       +(creditRows.length
         ?'<div style="display:flex;justify-content:space-between;border-top:1px solid #1e3a00;padding-top:4px;margin-top:4px;"><span style="color:#7090f0;letter-spacing:1px;text-transform:uppercase;">Credit available</span><span style="color:#7090f0;font-weight:700;">'+fmtR(creditOpen)+'</span></div>'
-         +creditRows.map(function(c){return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);"><span>'+(c.note?c.note:'Credit')+' · '+c.date+(c.remaining<c.amount?' (R'+c.remaining+' left)':'')+'</span><span onclick="deleteCarpoolCredit(\''+c.id+'\')" style="cursor:pointer;font-size:13px;" title="Delete credit">🗑</span></div>';}).join('')
+         +creditRows.map(function(c){return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);"><span>'+(c.note?c.note:'Credit')+' · '+c.date+(c.remaining<c.amount?' (R'+c.remaining+' left)':'')+'</span><span onclick="deleteCarpoolCredit(\''+c.id+'\')" style="cursor:pointer;font-size:13px;" title="Delete credit">🗑</span></div>';}).join('')
          +(creditApplied>0?'<div style="display:flex;justify-content:space-between;"><span style="color:#7090f0;">Credit applied</span><span style="color:#7090f0;">−'+fmtR(creditApplied)+'</span></div>':'')
         :'')
-      +refundRows.map(function(r){return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);margin-top:4px;"><span>Credit '+fmtR(r.amount)+' refunded in cash · '+r.dateLabel+'</span><span onclick="undoCarpoolCreditRefund(\''+r.spId+'\')" style="cursor:pointer;color:#7090f0;" title="Undo refund">↩ undo</span></div>';}).join('')
+      +refundRows.map(function(r){return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);margin-top:4px;"><span>Credit '+fmtR(r.amount)+' refunded in cash · '+r.dateLabel+'</span><span onclick="undoCarpoolCreditRefund(\''+r.spId+'\')" style="cursor:pointer;color:#7090f0;" title="Undo refund">↩ undo</span></div>';}).join('')
       +'<div style="margin-top:4px;text-align:right;">'
-        +(creditOpen>0.005?'<span onclick="refundCarpoolCredit(\''+passenger.replace(/'/g,"\\'")+'\')" style="cursor:pointer;color:#7090f0;font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-right:14px;">💵 Refund in cash</span>':'')
-        +'<span onclick="addCarpoolCreditPrompt(\''+passenger.replace(/'/g,"\\'")+'\')" style="cursor:pointer;color:#7090f0;font-size:10px;letter-spacing:1px;text-transform:uppercase;">+ Add credit</span></div>'
+        +(creditOpen>0.005?'<span onclick="refundCarpoolCredit(\''+passenger.replace(/'/g,"\\'")+'\')" style="cursor:pointer;color:#7090f0;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-right:14px;">💵 Refund in cash</span>':'')
+        +'<span onclick="addCarpoolCreditPrompt(\''+passenger.replace(/'/g,"\\'")+'\')" style="cursor:pointer;color:#7090f0;font-size:11px;letter-spacing:1px;text-transform:uppercase;">+ Add credit</span></div>'
       +'</div>';
 
     // WA text — one line per day with proper newlines, borrow section appended
@@ -995,14 +995,14 @@ function _generateStatementsWork(){
     const cardId='stmt_'+Math.random().toString(36).slice(2,7);
     card.innerHTML='<div class="stmt-card-top"><span class="stmt-name">'+passenger+'</span>'+statusHtml+'</div>'
       +'<div class="stmt-rows">'+rows
-      +(borrows.length?'<div style="padding:5px 12px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#6b4fa8;background:#0d0a1a;">💸 Borrowed</div>'+borrowRows:'')
+      +(borrows.length?'<div style="padding:5px 12px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#6b4fa8;background:#0d0a1a;">💸 Borrowed</div>'+borrowRows:'')
       +'</div>'+breakdownHtml
       // Unified outstanding total + pay button
       +(grossOwing>0
         ?'<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#0d1a00;border-top:1px solid #2a4a00;">'
-          +'<div><div style="font-size:9px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">Total Outstanding</div>'
-          +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:20px;color:#f2a830;">'+fmtR(totalOwing)+'</div>'+(creditApplied>0?'<div style="font-size:10px;color:#7090f0;margin-top:2px;">'+fmtR(grossOwing)+' − '+fmtR(creditApplied)+' credit</div>':'')+'</div>'
-          +'<button onclick="openPayDestModal(this)" style="padding:10px 16px;background:#c8f230;border:none;border-radius:8px;color:#000;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💳 Mark Paid →</button>'
+          +'<div><div style="font-size:11px;color:#5a8800;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">Total Outstanding</div>'
+          +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:20px;color:#f2a830;">'+fmtR(totalOwing)+'</div>'+(creditApplied>0?'<div style="font-size:11px;color:#7090f0;margin-top:2px;">'+fmtR(grossOwing)+' − '+fmtR(creditApplied)+' credit</div>':'')+'</div>'
+          +'<button onclick="openPayDestModal(this)" style="padding:10px 16px;background:#c8f230;border:none;border-radius:8px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💳 Mark Paid →</button>'
         +'</div>'
         :'<div style="padding:10px 12px;background:#0a1500;border-top:1px solid #1e3a00;font-size:11px;color:#c8f230;text-align:center;">✅ All settled</div>'
       )
@@ -1022,7 +1022,7 @@ function _generateStatementsWork(){
   const gtCard=document.createElement('div');
   gtCard.style.cssText='background:#111;border:1px solid #2a4a00;border-radius:6px;padding:14px 16px;margin-top:4px;';
   const gtRows=passengerTotals.map(function(p){return '<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px"><span style="color:var(--muted)">'+p.name+'</span><span style="color:var(--text)">'+fmtR(p.total)+'</span></div>';}).join('');
-  gtCard.innerHTML='<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Total — '+from+' to '+to+'</div>'+gtRows+'<div style="border-top:1px solid #2a2a2a;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;"><span style="color:var(--text);font-size:12px;font-weight:500">Grand Total</span><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#c8f230">'+fmtR(grandTotal)+'</span></div>';
+  gtCard.innerHTML='<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Total — '+from+' to '+to+'</div>'+gtRows+'<div style="border-top:1px solid #2a2a2a;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;"><span style="color:var(--text);font-size:12px;font-weight:500">Grand Total</span><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#c8f230">'+fmtR(grandTotal)+'</span></div>';
   container.appendChild(gtCard);
 
   document.getElementById('stmtArea').style.display='block';
@@ -1253,14 +1253,14 @@ function openPayDestModal(btn){
       if(chosenCard && fundOptionEls[chosenCard.pocketId]){
         var hint = document.createElement('div');
         hint.id = 'payDestPlanHint';
-        hint.style.cssText = 'background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:10px;color:#c8f230;letter-spacing:0.5px;';
+        hint.style.cssText = 'background:#1a2e00;border:1px solid #3a5a00;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#c8f230;letter-spacing:0.5px;';
         hint.textContent = 'PLAN — '+fmtR(chosenLeft)+' left on '+chosenCard.label+' this '+(_cyc?'cycle':'month')+'. Change only if you need to.';
         optionsEl.parentNode.insertBefore(hint, optionsEl);
         selectDestOption(fundOptionEls[chosenCard.pocketId]);
       } else {
         var hint2 = document.createElement('div');
         hint2.id = 'payDestPlanHint';
-        hint2.style.cssText = 'background:#111;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:10px;color:#888;letter-spacing:0.5px;';
+        hint2.style.cssText = 'background:#111;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#888;letter-spacing:0.5px;';
         hint2.textContent = 'PLAN — this '+(_cyc?'cycle':'month')+'\'s commitments are covered. Pick where this goes.';
         optionsEl.parentNode.insertBefore(hint2, optionsEl);
       }
@@ -1293,7 +1293,7 @@ function buildDestOption(value, label, sub, color){
     '<div style="width:14px;height:14px;border-radius:50%;border:2px solid '+color+';flex-shrink:0;" class="dest-radio"></div>'
     +'<div style="flex:1;">'
       +'<div style="font-size:12px;color:var(--text);">'+label+'</div>'
-      +'<div style="font-size:10px;color:var(--muted);letter-spacing:0.5px;margin-top:2px;">'+sub+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);letter-spacing:0.5px;margin-top:2px;">'+sub+'</div>'
     +'</div>';
   return div;
 }
@@ -1770,7 +1770,7 @@ function rptBuildTiles() {
     if (t.id === 'rptFolderExport') txt = 'PDF · CSV';
     if (!txt) txt = '—';
     return '<div onclick="rptShowTile(\'' + t.id + '\')" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 14px 12px;cursor:pointer;min-height:82px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left;gap:8px;">'
-      + '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:left;">' + t.icon + ' ' + t.label + '</div>'
+      + '<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:left;">' + t.icon + ' ' + t.label + '</div>'
       + '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:15px;line-height:1.2;word-break:break-word;text-align:left;color:' + col + ';">' + txt + '</div>'
       + '</div>';
   }).join('');
@@ -1913,7 +1913,7 @@ function renderReports(){
         + '<span style="color:var(--muted)">' + f.emoji + ' ' + f.name + '</span>'
         + '<span style="color:#c8f230" title="Balance at end of '+period.label+'">' + fmtR(a) + '</span>'
         + '<span style="color:var(--muted)" title="Balance at end of '+prevPeriod.label+'">' + fmtR(b) + '</span>'
-        + '<span style="color:' + d.color + ';font-weight:500">' + d.text + (pctStr ? ' <span style="font-size:9px;opacity:.7">('+pctStr+')</span>' : '') + '</span>'
+        + '<span style="color:' + d.color + ';font-weight:500">' + d.text + (pctStr ? ' <span style="font-size:11px;opacity:.7">('+pctStr+')</span>' : '') + '</span>'
         + '</div>';
     }).join('');
 
@@ -2013,7 +2013,7 @@ function renderReports(){
         + '<span style="color:var(--muted)">' + p + '</span>'
         + '<span style="color:#c8f230">' + fmtR(cur) + '</span>'
         + '<span style="color:var(--muted)">' + fmtR(prev) + '</span>'
-        + '<span style="color:' + d.color + ';font-weight:500">' + d.text + (pct ? ' <span style="font-size:9px;opacity:.7">(' + pct + ')</span>' : '') + '</span>'
+        + '<span style="color:' + d.color + ';font-weight:500">' + d.text + (pct ? ' <span style="font-size:11px;opacity:.7">(' + pct + ')</span>' : '') + '</span>'
         + '</div>';
     }).join('');
     document.getElementById('rptCarpoolCompareRows').innerHTML = compareRows;
@@ -2191,7 +2191,7 @@ function _renderNwLine(d) {
       _sw.id = 'nwSliderWrap';
       _sw.style.cssText = 'margin-bottom:12px;';
       _sw.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border-radius:6px 6px 0 0;border:1px solid var(--border);border-bottom:none;">'
-        + '<span style="font-size:10px;letter-spacing:1px;color:var(--muted);white-space:nowrap;">Monthly repayment</span>'
+        + '<span style="font-size:11px;letter-spacing:1px;color:var(--muted);white-space:nowrap;">Monthly repayment</span>'
         + '<span style="font-size:13px;color:var(--muted);">R</span>'
         + '<input id="nwRepayInput" type="number" min="100" step="100" value="' + _defaultRepay + '"'
         + ' style="flex:1;background:#111;border:1px solid #333;color:var(--text);font-family:DM Mono,monospace;font-size:15px;font-weight:700;padding:6px 10px;border-radius:4px;outline:none;"'
@@ -2479,7 +2479,7 @@ function renderCarpoolChart() {
   const legend = document.getElementById('cpChartLegend');
   if(legend){
     legend.innerHTML = PASSENGER_DATA.map(function(p){
-      return '<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+(p.color||'#c8f230')+'"></span>'+p.name+'</div>';
+      return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+(p.color||'#c8f230')+'"></span>'+p.name+'</div>';
     }).join('');
   }
 
@@ -2761,10 +2761,10 @@ function _cpmCashHtml(sp){
   var mn = _cpmMonthName(sp.mk);
   function row(label, amt, sub, color){
     return '<div style="padding:7px 0;border-top:1px solid var(--border)"><div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:'+(color||'var(--text)')+'">'+label+'</span><span style="font-weight:500;color:'+(color||'var(--text)')+'">'+_cpmMoney(amt)+'</span></div>'
-      +(sub?'<div style="font-size:10px;color:var(--muted);margin-top:2px">'+sub+'</div>':'')+'</div>';
+      +(sub?'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+sub+'</div>':'')+'</div>';
   }
   function head(title, total){
-    return '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px"><span style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">'+title+'</span>'
+    return '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px"><span style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">'+title+'</span>'
       +'<span style="font-family:Syne,sans-serif;font-weight:700;font-size:16px">'+_cpmMoney(total)+'</span></div>';
   }
   var a = head('Cash received in '+mn, sp.cashTotal);
@@ -2892,8 +2892,8 @@ function renderCarpoolMoneySummary(){
     return '<div style="padding:10px 0;border-top:1px solid var(--border)">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:Syne,sans-serif;font-weight:700;font-size:14px">'+_cpmEsc(p)+'</span>'
       +'<span style="font-size:12px;font-weight:500;color:'+(out>0?'#f2a830':'#c8f230')+'">'+(out>0?_cpmMoney(out)+' out':'settled')+'</span></div>'
-      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.5px"><span>Earned '+_cpmMoney(P.earned)+' · Paid '+_cpmMoney(P.paid)+'</span><span>'+P.paidDays+' of '+P.days+' days paid</span></div>'
-      +(P.outOther>0?'<div style="font-size:10px;color:#f2a830;margin-top:3px">incl. '+_cpmMoney(P.outOther)+' from other months</div>':'')
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.5px"><span>Earned '+_cpmMoney(P.earned)+' · Paid '+_cpmMoney(P.paid)+'</span><span>'+P.paidDays+' of '+P.days+' days paid</span></div>'
+      +(P.outOther>0?'<div style="font-size:11px;color:#f2a830;margin-top:3px">incl. '+_cpmMoney(P.outOther)+' from other months</div>':'')
       +'</div>';
   }).join('');
   // v152g: compact "Who owes me" list on top; the full month breakdown folds
@@ -2929,11 +2929,11 @@ function renderCarpoolMoneySummary(){
     +'<details style="border-top:1px solid var(--border);padding:10px 12px"' + (_cpDetailsOpen ? ' open' : '') + ' ontoggle="_cpDetailsOpen=this.open">'
     +'<summary style="font-size:11px;color:var(--muted);cursor:pointer;letter-spacing:1px">Month details · ' + label + '</summary>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 10px">'
-      +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Earned</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:2px">'+_cpmMoney(r.earned)+'</div><div style="font-size:9px;color:#555;margin-top:2px">trips this month</div></div>'
-      +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Paid</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:#c8f230;margin-top:2px">'+_cpmMoney(r.paid)+'</div><div style="font-size:9px;color:#555;margin-top:2px">of those trips</div></div>'
+      +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Earned</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:2px">'+_cpmMoney(r.earned)+'</div><div style="font-size:11px;color:var(--muted);margin-top:2px">trips this month</div></div>'
+      +'<div style="background:#111;border-radius:6px;padding:10px 12px"><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Paid</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:#c8f230;margin-top:2px">'+_cpmMoney(r.paid)+'</div><div style="font-size:11px;color:var(--muted);margin-top:2px">of those trips</div></div>'
     +'</div>'
-    +'<div style="font-size:10px;color:#a87a30;margin-bottom:10px">Outstanding: this month '+_cpmMoney(r.outMonth)+' + other months '+_cpmMoney(r.outOther)+'</div>'
-    +'<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:2px">By person</div>'
+    +'<div style="font-size:11px;color:#a87a30;margin-bottom:10px">Outstanding: this month '+_cpmMoney(r.outMonth)+' + other months '+_cpmMoney(r.outOther)+'</div>'
+    +'<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:2px">By person</div>'
     + rows
     + _cpmCashHtml(computeCarpoolCashSplit(mk))
     +'</details>'
@@ -3257,7 +3257,7 @@ function renderMonthlyReportControls(){
   var months = Object.keys(seen).sort().reverse();
   var prev = document.getElementById('mrMonthSel') ? document.getElementById('mrMonthSel').value : '';
   host.innerHTML =
-    '<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Monthly money report</div>'
+    '<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Monthly money report</div>'
     +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Every rand in and out of your pockets for the month, with opening, closing and an Unaccounted check.</div>'
     +'<div style="display:flex;gap:8px">'
     +'<select id="mrMonthSel" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#efefef;font-family:\'DM Mono\',monospace;font-size:12px;padding:10px;border-radius:4px">'
@@ -3396,7 +3396,7 @@ function renderCpToday(){
     + '<div style="display:flex;gap:8px;align-items:center">'
     + '<button onclick="cpTodayConfirm()" style="background:#c8f230;border:none;border-radius:6px;padding:9px 14px;font-family:\'DM Mono\',monospace;font-size:11px;font-weight:700;cursor:pointer;color:#000">Log it · ' + fmtR(tot) + ' unpaid</button>'
     + '<button onclick="cpTodaySkip()" style="background:transparent;border:1px solid var(--border);border-radius:6px;padding:9px 14px;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;color:var(--muted)">No carpool today</button>'
-    + '</div><div style="font-size:10px;color:#555;margin-top:8px">Tap a name to add or remove them. Half days: change it in the week below after.</div></div>';
+    + '</div><div style="font-size:11px;color:var(--muted);margin-top:8px">Tap a name to add or remove them. Half days: change it in the week below after.</div></div>';
 }
 function cpTodayChip(p){ if(_cpTodayPick && _cpTodayPick.p[p]){ _cpTodayPick.p[p].on = !_cpTodayPick.p[p].on; renderCpToday(); } }
 function cpTodaySkip(){ try { sessionStorage.setItem('cpTodaySkip', localDateStr(new Date())); } catch(e){} renderCpToday(); }

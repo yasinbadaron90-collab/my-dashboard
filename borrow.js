@@ -835,12 +835,12 @@ function renderRepayPocketPicker(resetToDefault){
     var bgColor = isSelected ? '#0a1a2e' : (isOrigin ? '#0d1a00' : '#0e0e0e');
     var nameColor = isSelected ? '#7090f0' : '#efefef';
     var tag = isOrigin
-      ? '<span style="font-size:8px;background:#3a5a00;color:#c8f230;border-radius:3px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
+      ? '<span style="font-size:11px;background:#3a5a00;color:#c8f230;border-radius:3px;padding:1px 5px;margin-left:6px;letter-spacing:1px;">ORIGIN</span>'
       : '';
     return '<button type="button" onclick="selectRepayPocket(\''+f.id+'\')" '
       + 'style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:5px;margin-bottom:4px;cursor:pointer;border:1px solid '+borderColor+';background:'+bgColor+';width:100%;font-family:inherit;color:inherit;text-align:left;">'
       + '<span style="font-size:12px;color:'+nameColor+';"><span style="margin-right:8px;">'+(f.emoji||'💰')+'</span>'+f.name+tag+'</span>'
-      + '<span style="font-size:10px;color:var(--muted);">R'+bal.toLocaleString('en-ZA')+'</span>'
+      + '<span style="font-size:11px;color:var(--muted);">R'+bal.toLocaleString('en-ZA')+'</span>'
       + '</button>';
   }).join('') || '<div style="font-size:11px;color:var(--muted);padding:8px;text-align:center;">No pockets exist yet.</div>';
 }
@@ -1243,8 +1243,8 @@ function renderArchivedMoney(){
     hasAny = true;
     var d = document.createElement('div');
     d.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#111;border:1px solid #2a2a2a;border-radius:8px;margin-bottom:8px;';
-    d.innerHTML = '<div><div style="font-size:13px;color:var(--muted);">'+name+'</div><div style="font-size:9px;color:var(--muted2);letter-spacing:1px;">CARPOOL</div></div>'
-      +'<button onclick="unarchivePerson(\''+name+'\',\'carpool\')" style="background:none;border:1px solid #2a3a1a;border-radius:6px;padding:5px 12px;color:#5a8800;font-family:DM Mono,monospace;font-size:10px;cursor:pointer;">Restore</button>';
+    d.innerHTML = '<div><div style="font-size:13px;color:var(--muted);">'+name+'</div><div style="font-size:11px;color:var(--muted2);letter-spacing:1px;">CARPOOL</div></div>'
+      +'<button onclick="unarchivePerson(\''+name+'\',\'carpool\')" style="background:none;border:1px solid #2a3a1a;border-radius:6px;padding:5px 12px;color:#5a8800;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Restore</button>';
     container.appendChild(d);
   });
 
@@ -1256,8 +1256,8 @@ function renderArchivedMoney(){
     hasAny = true;
     var d = document.createElement('div');
     d.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#111;border:1px solid #2a2a2a;border-radius:8px;margin-bottom:8px;';
-    d.innerHTML = '<div><div style="font-size:13px;color:var(--muted);">'+p.name+'</div><div style="font-size:9px;color:var(--muted2);letter-spacing:1px;">PERSONAL</div></div>'
-      +'<button onclick="unarchivePerson(\''+key+'\',\'external\')" style="background:none;border:1px solid #2a3a1a;border-radius:6px;padding:5px 12px;color:#5a8800;font-family:DM Mono,monospace;font-size:10px;cursor:pointer;">Restore</button>';
+    d.innerHTML = '<div><div style="font-size:13px;color:var(--muted);">'+p.name+'</div><div style="font-size:11px;color:var(--muted2);letter-spacing:1px;">PERSONAL</div></div>'
+      +'<button onclick="unarchivePerson(\''+key+'\',\'external\')" style="background:none;border:1px solid #2a3a1a;border-radius:6px;padding:5px 12px;color:#5a8800;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Restore</button>';
     container.appendChild(d);
   });
 

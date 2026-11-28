@@ -385,7 +385,7 @@ function _planWifeCardHtml(plan, cyc, cardBox, secHdr){
   var conf = (plan.wifeSubs||[]).filter(function(s){ return s && Number(s.amount) > 0; });
   var tabBtn = function(id, lbl){
     var on = _planWifeTab === id;
-    return '<button onclick="setPlanWifeTab(\''+id+'\')" style="flex:1;padding:8px;border-radius:6px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;'
+    return '<button onclick="setPlanWifeTab(\''+id+'\')" style="flex:1;padding:8px;border-radius:6px;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;'
       + (on ? 'background:#1a2e00;border:1px solid '+L+';color:'+L+';' : 'background:transparent;border:1px solid #2a2a2a;color:'+M+';') + '">'+lbl+'</button>';
   };
   var row = function(l, v, col){
@@ -401,8 +401,8 @@ function _planWifeCardHtml(plan, cyc, cardBox, secHdr){
   var total = _planWifeTab === 'subs' ? Math.round((d.house + d.subsTotal)*100)/100 : d.house;
   var head = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">'
     + '<div><div style="font-size:12px;color:#aaa;">'+escHtml(sub)+'</div>'
-    +   '<div style="font-size:10px;color:#555;margin-top:2px;letter-spacing:1px;">from Money In · '+d.dates.length+' entr'+(d.dates.length===1?'y':'ies')+'</div></div>'
-    + '<div style="text-align:right;"><div style="font-size:10px;color:'+M+';letter-spacing:1px;">'+(_planWifeTab==='subs'?'TOTAL TO HER':'HOUSE')+'</div>'
+    +   '<div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;">from Money In · '+d.dates.length+' entr'+(d.dates.length===1?'y':'ies')+'</div></div>'
+    + '<div style="text-align:right;"><div style="font-size:11px;color:'+M+';letter-spacing:1px;">'+(_planWifeTab==='subs'?'TOTAL TO HER':'HOUSE')+'</div>'
     +   '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:24px;color:#efefef;">'+fmtR(total)+'</div></div>'
     + '</div>';
   var tabs = '<div style="display:flex;gap:8px;margin-bottom:12px;">'+tabBtn('house','House')+tabBtn('subs','Subs added')+'</div>';
@@ -429,7 +429,7 @@ function _planWifeCardHtml(plan, cyc, cardBox, secHdr){
     body += '</div>';
   }
   // v151d: PDF report for her (share sheet on the phone, download elsewhere)
-  body += '<button type="button" onclick="planWifeReportPdf()" style="width:100%;margin-top:12px;padding:10px;border-radius:6px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">📄 Report for her (PDF)</button>';
+  body += '<button type="button" onclick="planWifeReportPdf()" style="width:100%;margin-top:12px;padding:10px;border-radius:6px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">📄 Report for her (PDF)</button>';
   return '<div style="'+cardBox+'">'+secHdr(title)+head+tabs+body+'</div>';
 }
 
@@ -453,7 +453,7 @@ function renderPlan(){
   var allFunds = (typeof funds !== 'undefined' ? funds : []);
   var cardBox = 'background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:14px;margin-bottom:12px;';
   var secHdr = function(t, right){
-    return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:2px;color:'+M+';margin-bottom:12px;"><span>'+t+'</span>'+(right||'')+'</div>';
+    return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:2px;color:'+M+';margin-bottom:12px;"><span>'+t+'</span>'+(right||'')+'</div>';
   };
 
   // THIS CYCLE (v152i): only what still needs money before payday. Long-term totals open on tap.
@@ -577,7 +577,7 @@ function renderPlan(){
   container.innerHTML = ''
     + '<div class="home-zone">'
     +   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
-    +     '<div><div style="font-size:10px;letter-spacing:3px;color:var(--accent);">'+monthLbl+'</div>'
+    +     '<div><div style="font-size:11px;letter-spacing:3px;color:var(--accent);">'+monthLbl+'</div>'
     +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:30px;color:var(--text);line-height:1.1;margin-top:2px;">The plan</div>'
     +     '<div style="font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:0.5px;">'+escHtml(cycLine)+'</div></div>'
     +     '<button class="pane-toggle" onclick="togglePlanEdit()" title="Edit Plan">✎</button>'
@@ -589,7 +589,7 @@ function renderPlan(){
           : '<div style=\"'+cardBox+'display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:12px;color:#aaa;\" onclick=\"planToggleSteps()\"><span>WHERE NEW MONEY GOES · order</span><span>▼</span></div>')
     +   monthHtml
     +   (plan.notes ? '<div style="'+cardBox+'font-size:12px;color:#aaa;">'+escHtml(plan.notes)+'</div>' : '')
-    +   '<div style="font-size:10px;color:#555;text-align:center;letter-spacing:1px;margin-top:4px;">'+auditBadge+' · figures live</div>'
+    +   '<div style="font-size:11px;color:var(--muted);text-align:center;letter-spacing:1px;margin-top:4px;">'+auditBadge+' · figures live</div>'
     + '</div>';
 }
 
@@ -598,7 +598,7 @@ function _planRenderEditForm(plan){
     var carpool = c.source === 'carpool';
     return ''
       + '<div class="home-plan-card" data-plan-card-box="'+i+'" style="border-left:3px solid '+(carpool?'#7090f0':'#30c8f2')+';">'
-      +   '<div style="display:flex;justify-content:flex-end;margin-bottom:4px;"><button type="button" onclick="planToggleRemoveCard('+i+')" data-remove-btn="'+i+'" style="background:none;border:1px solid #3a1a1a;border-radius:4px;color:#f23060;font-size:10px;letter-spacing:1px;padding:3px 8px;cursor:pointer;">✕ REMOVE CARD</button></div>'
+      +   '<div style="display:flex;justify-content:flex-end;margin-bottom:4px;"><button type="button" onclick="planToggleRemoveCard('+i+')" data-remove-btn="'+i+'" style="background:none;border:1px solid #3a1a1a;border-radius:4px;color:#f23060;font-size:11px;letter-spacing:1px;padding:3px 8px;cursor:pointer;">✕ REMOVE CARD</button></div>'
       +   '<div class="field"><label>Label</label><input type="text" data-plan-card="'+i+'" data-field="label" value="'+escHtml(c.label)+'"/></div>'
       +   '<div class="field"><label>Pocket</label><select data-plan-card="'+i+'" data-field="pocketId">'+_planPocketOptions(c.pocketId)+'</select></div>'
       +   '<div class="field"><label>Target (R)</label><input type="number" data-plan-card="'+i+'" data-field="target" value="'+c.target+'"/></div>'
@@ -609,7 +609,7 @@ function _planRenderEditForm(plan){
       +   '</select></div>'
       + '</div>';
   }).join('')
-    + '<button type="button" onclick="planAddCard()" style="width:100%;padding:10px;margin-bottom:12px;background:none;border:1px dashed #30c8f2;border-radius:6px;color:#30c8f2;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">＋ Add savings card</button>';
+    + '<button type="button" onclick="planAddCard()" style="width:100%;padding:10px;margin-bottom:12px;background:none;border:1px dashed #30c8f2;border-radius:6px;color:#30c8f2;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">＋ Add savings card</button>';
 
   var debtRow = ''
     + '<div class="home-plan-card" style="border-left:3px solid #f23060;">'
@@ -635,12 +635,12 @@ function _planRenderEditForm(plan){
     return '<option value="'+f.id+'"'+(f.id===plan.wifePocketId?' selected':'')+'>'+escHtml((f.emoji||'')+' '+f.name)+'</option>';
   }).join('');
   var wifeSetupBtn = plan.wifePocketId ? '' :
-    '<button type="button" onclick="planSetupWifePocket()" style="width:100%;padding:10px;margin-top:8px;background:#1a1200;border:1px solid #5a3a00;border-radius:6px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">＋ Create "Wife monthly" pocket + card</button>'
-    + '<div style="font-size:10px;color:var(--muted);margin-top:6px;letter-spacing:0.5px;line-height:1.5;">Makes a new pocket and a carpool-only Plan card with target house + subscriptions.</div>';
+    '<button type="button" onclick="planSetupWifePocket()" style="width:100%;padding:10px;margin-top:8px;background:#1a1200;border:1px solid #5a3a00;border-radius:6px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">＋ Create "Wife monthly" pocket + card</button>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:0.5px;line-height:1.5;">Makes a new pocket and a carpool-only Plan card with target house + subscriptions.</div>';
   var subsBox = ''
     + '<div class="home-plan-card" style="border-left:3px solid #f2a830;">'
     +   '<div class="field"><label>Wife monthly · subscriptions she pays</label>'
-    +   '<div style="font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:1px;">Added on top of the house money in Money In. Clear a name to remove it.</div>'
+    +   '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:1px;">Added on top of the house money in Money In. Clear a name to remove it.</div>'
     +   subRows + '</div>'
     +   '<div class="field"><label>Pocket you save her money in</label><select id="planWifePocket">'+wifePocketOpts+'</select>'
     +   wifeSetupBtn + '</div>'
@@ -653,7 +653,7 @@ function _planRenderEditForm(plan){
     +   '<div class="home-plan-cards">'+rows+debtRow+subsBox+'</div>'
     +   '<div class="field"><label>Stipend end date</label><input type="date" id="planStipendEnd" value="'+plan.stipendEnd+'"/></div>'
     +   '<div class="field"><label>December pay day</label><input type="number" min="1" max="31" id="planDecPayDay" value="'+(plan.decPayDay||18)+'"/>'
-    +   '<div style="font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;">Christmas pay comes early. Only moves the countdown; logging the salary starts the new cycle.</div></div>'
+    +   '<div style="font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:0.5px;">Christmas pay comes early. Only moves the countdown; logging the salary starts the new cycle.</div></div>'
     +   '<div class="field"><label>Notes (optional)</label><input type="text" id="planNotesInput" value="'+escHtml(plan.notes||'')+'" placeholder="e.g. reassess after provident fund payout"/></div>'
     +   '<button onclick="savePlanFromForm()" style="width:100%;padding:12px;background:#c8f230;border:none;border-radius:6px;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-weight:700;">💾 Save Plan</button>'
     + '</div>';

@@ -141,7 +141,7 @@ function renderFunds(){
       const isOut = d.txnType==='out';
       const amtColor = isOut ? '#f23060' : '#c8f230';
       const prefix = isOut ? '-' : '+';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)"><div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;"><span style="font-size:11px;color:var(--text)">'+escHtml(d.note||'—')+'</span><span style="font-size:10px;color:var(--muted)">'+escHtml(d.date)+'</span></div><span style="font-size:12px;font-weight:500;color:'+amtColor+';flex-shrink:0;white-space:nowrap;margin-left:8px;">'+prefix+fmtR(d.amount)+'</span></div>';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)"><div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;"><span style="font-size:11px;color:var(--text)">'+escHtml(d.note||'—')+'</span><span style="font-size:11px;color:var(--muted)">'+escHtml(d.date)+'</span></div><span style="font-size:12px;font-weight:500;color:'+amtColor+';flex-shrink:0;white-space:nowrap;margin-left:8px;">'+prefix+fmtR(d.amount)+'</span></div>';
     }).join('');
 
     const balColor2 = balance<0?'#f23060':balance<1000?'#f2a830':'#c8f230';
@@ -156,11 +156,11 @@ function renderFunds(){
 
     const bodyHtml = '<div class="fund-body">'
       +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border);margin:-16px -18px 0;padding:0">'
-      +'<div style="padding:12px 14px;border-right:1px solid var(--border)"><div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat1Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+balColor+'">'+stat1Val+'</div></div>'
-      +'<div style="padding:12px 10px;border-right:1px solid var(--border)"><div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat2Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+stat2Color+'">'+stat2Val+'</div></div>'
-      +'<div style="padding:12px 10px"><div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat3Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+stat3Color+'">'+stat3Val+'</div></div>'
+      +'<div style="padding:12px 14px;border-right:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat1Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+balColor+'">'+stat1Val+'</div></div>'
+      +'<div style="padding:12px 10px;border-right:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat2Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+stat2Color+'">'+stat2Val+'</div></div>'
+      +'<div style="padding:12px 10px"><div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">'+stat3Label+'</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:'+stat3Color+'">'+stat3Val+'</div></div>'
       +'</div>'
-      +'<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="height:5px;background:var(--muted2);border-radius:3px;overflow:hidden"><div style="width:'+progPct+'%;height:100%;background:'+progColor+';border-radius:3px;transition:width .5s ease;box-shadow:0 0 8px '+progColor+'55"></div></div><div style="font-size:10px;color:'+barLabelColor+';margin-top:5px;letter-spacing:1px">'+barLabel+'</div></div>'
+      +'<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="height:5px;background:var(--muted2);border-radius:3px;overflow:hidden"><div style="width:'+progPct+'%;height:100%;background:'+progColor+';border-radius:3px;transition:width .5s ease;box-shadow:0 0 8px '+progColor+'55"></div></div><div style="font-size:11px;color:'+barLabelColor+';margin-top:5px;letter-spacing:1px">'+barLabel+'</div></div>'
       // ── Pocket-card action buttons REMOVED 2026-05-23 ──
       // The old +Deposit / +Add Funds / 💸 Use Funds / 💸 Use buttons used the
       // legacy openDeposit / openCarTxn / openUseFunds flow which doesn't carry
@@ -185,21 +185,21 @@ function renderFunds(){
     var deadlineRow = '';
     if(!isExpense){
       if(_dl.state === 'none'){
-        deadlineRow = '<div style="font-size:10px;margin-top:4px;letter-spacing:1px;"><button onclick="openEditFund(\''+f.id+'\')" style="background:#1a1000;border:1px dashed #5a4a00;border-radius:4px;padding:3px 8px;color:'+_dl.color+';font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">'+_dl.label+'</button></div>';
+        deadlineRow = '<div style="font-size:11px;margin-top:4px;letter-spacing:1px;"><button onclick="openEditFund(\''+f.id+'\')" style="background:#1a1000;border:1px dashed #5a4a00;border-radius:4px;padding:3px 8px;color:'+_dl.color+';font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">'+_dl.label+'</button></div>';
       } else if(_dl.label){
-        deadlineRow = '<div style="font-size:10px;margin-top:4px;color:'+_dl.color+';letter-spacing:1px;">'+_dl.label+'</div>';
+        deadlineRow = '<div style="font-size:11px;margin-top:4px;color:'+_dl.color+';letter-spacing:1px;">'+_dl.label+'</div>';
         // Goal just reached and not archived yet — offer to put it away.
         // Inline, not a popup: sits right where the celebration already is,
         // no separate "already asked" tracking needed since it only shows
         // while the card is both done AND still unarchived.
         if(_dl.state === 'done' && !f.archived){
-          deadlineRow += '<div style="margin-top:4px;"><button onclick="archiveFund(\''+f.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 8px;color:#c8f230;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">📦 Archive this?</button></div>';
+          deadlineRow += '<div style="margin-top:4px;"><button onclick="archiveFund(\''+f.id+'\')" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:4px;padding:3px 8px;color:#c8f230;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">📦 Archive this?</button></div>';
         }
       }
     }
     card.innerHTML = '<div class="fund-top"><div><span class="fund-emoji">'+f.emoji+'</span><div class="fund-name">'+f.name+'</div><div class="fund-weekly">'+subtitleLabel+' · started '+startedLabel+'</div>'+deadlineRow+'</div><div style="display:flex;align-items:center;gap:6px"><button class="'+chevClass+'" onclick="toggleFundCard(\''+f.id+'\',this)" title="Collapse"><span class="chev">&#8964;</span></button><div class="fund-actions" style="display:flex;gap:6px"><button class="icon-btn" onclick="openHistory(\''+f.id+'\')">☰</button><button class="icon-btn" onclick="archiveFund(\''+f.id+'\')" title="Archive">📦</button><button class="icon-btn" onclick="openEditFund(\''+f.id+'\')">✎</button><button class="icon-btn danger" onclick="deleteFund(\''+f.id+'\')">✕</button></div></div></div>'
       + '<div class="fund-sum" id="fs-'+f.id+'" onclick="toggleFundCard(\''+f.id+'\',this.parentNode.querySelector(\'.collapse-btn\'))" style="display:'+(isCollapsed?'block':'none')+';padding:12px 18px 14px;cursor:pointer;">'
-      + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;"><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:'+balColor+'">'+stat1Val+'</div><div style="font-size:10px;letter-spacing:1px;color:'+barLabelColor+';text-align:right;">'+barLabel+'</div></div>'
+      + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;"><div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;color:'+balColor+'">'+stat1Val+'</div><div style="font-size:11px;letter-spacing:1px;color:'+barLabelColor+';text-align:right;">'+barLabel+'</div></div>'
       + '<div style="height:4px;background:var(--muted2);border-radius:3px;overflow:hidden;margin-top:8px"><div style="width:'+progPct+'%;height:100%;background:'+progColor+';border-radius:3px"></div></div></div>'
       + '<div class="fund-body-wrap '+(isCollapsed?'collapsed':'expanded')+'" id="'+cardId+'" style="'+wrapStyle+'">' + bodyHtml + '</div>';
     grid.appendChild(card);
@@ -248,8 +248,8 @@ function renderArchivedSection(){
   var rows = archived.map(function(f){
     var bal = fundTotal(f);
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">'
-      + '<div style="display:flex;align-items:center;gap:8px;min-width:0;"><span style="font-size:16px;">'+f.emoji+'</span><div style="min-width:0;"><div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</div><div style="font-size:10px;color:var(--muted);">'+fmtR(bal)+(f.goal?' of '+fmtR(f.goal):'')+'</div></div></div>'
-      + '<button onclick="unarchiveFund(\''+f.id+'\')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;cursor:pointer;flex-shrink:0;">📤 Unarchive</button>'
+      + '<div style="display:flex;align-items:center;gap:8px;min-width:0;"><span style="font-size:16px;">'+f.emoji+'</span><div style="min-width:0;"><div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</div><div style="font-size:11px;color:var(--muted);">'+fmtR(bal)+(f.goal?' of '+fmtR(f.goal):'')+'</div></div></div>'
+      + '<button onclick="unarchiveFund(\''+f.id+'\')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:DM Mono,monospace;font-size:11px;letter-spacing:1px;cursor:pointer;flex-shrink:0;">📤 Unarchive</button>'
       + '</div>';
   }).join('');
   host.innerHTML = '<div style="margin-top:16px;">'
@@ -290,13 +290,13 @@ function openBalanceEdit(fundId){
   modal.innerHTML =
     '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:20px;width:100%;max-width:340px;">'
     + '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:16px;color:var(--text);margin-bottom:4px;">' + f.emoji + ' ' + f.name + '</div>'
-    + '<div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:16px;">Set the actual balance in your bank account</div>'
+    + '<div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:16px;">Set the actual balance in your bank account</div>'
     + '<div style="margin-bottom:6px;">'
-    + '<label style="display:block;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Actual Bank Balance (R)</label>'
+    + '<label style="display:block;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Actual Bank Balance (R)</label>'
     + '<input id="balEditInput" type="number" inputmode="decimal" value="' + current.toFixed(2) + '" '
     + 'style="width:100%;background:#111;border:1px solid #333;color:#efefef;font-family:\'DM Mono\',monospace;font-size:18px;padding:12px;border-radius:4px;outline:none;box-sizing:border-box;"/>'
     + '</div>'
-    + '<div style="font-size:10px;color:var(--muted);margin-bottom:18px;letter-spacing:0.5px;">Tracked by deposits: <span style="color:var(--muted);">' + fmtR(tracked) + '</span></div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-bottom:18px;letter-spacing:0.5px;">Tracked by deposits: <span style="color:var(--muted);">' + fmtR(tracked) + '</span></div>'
     + '<div style="display:flex;gap:10px;">'
     + '<button onclick="document.getElementById(\'balEditModal\').remove();" style="flex:1;padding:11px;background:none;border:1px solid #2a2a2a;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;border-radius:4px;cursor:pointer;">Cancel</button>'
     + '<button onclick="saveBalanceEdit(\''+fundId+'\')" style="flex:1;padding:11px;background:#c8f230;border:none;color:#000;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;border-radius:4px;cursor:pointer;font-weight:700;">Save</button>'
@@ -375,13 +375,13 @@ function renderBankStrip(){
     row.onmouseleave = function(){ this.style.background=''; };
     row.onclick = function(){ openBalanceEdit(f.id); };
     row.innerHTML =
-      '<span style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);'
+      '<span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);'
       + 'max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+f.name+'">'
       + f.emoji + ' ' + f.name
-      + (_heldName ? ' <span style="color:#f2a830;font-size:9px;letter-spacing:1px;">· HELD ' + _esc(_heldName) + '</span>' : '')
+      + (_heldName ? ' <span style="color:#f2a830;font-size:11px;letter-spacing:1px;">· HELD ' + _esc(_heldName) + '</span>' : '')
       + '</span>'
       + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
-      + (hasManual ? '<span style="font-size:9px;color:var(--muted);" title="Manually set">✎</span>' : '')
+      + (hasManual ? '<span style="font-size:11px;color:var(--muted);" title="Manually set">✎</span>' : '')
       + '<strong style="font-size:13px;color:' + color + ';">' + fmtR(bal) + '</strong>'
       + '</div>';
     strip.appendChild(row);
@@ -389,7 +389,7 @@ function renderBankStrip(){
   Object.keys(_heldMap).forEach(function(name){            // v149w: one summary line per person
     var hr = document.createElement('div');
     hr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-top:1px solid var(--border);background:rgba(242,168,48,.08);';
-    hr.innerHTML = '<span style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#f2a830;">Held for ' + _esc(name) + '</span>'
+    hr.innerHTML = '<span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#f2a830;">Held for ' + _esc(name) + '</span>'
       + '<strong style="font-size:13px;color:#f2a830;">' + fmtR(Math.round(_heldMap[name] * 100) / 100) + '</strong>';
     strip.appendChild(hr);
   });
@@ -671,7 +671,7 @@ function confirmDeposit(){
   // Refresh the Available Cash card so the drained bucket updates live.
   try { if(typeof renderBankBalanceCard === 'function') renderBankBalanceCard(); } catch(e){}
 }
-function openHistory(id){window._currentHistFundId=id;const f=funds.find(x=>x.id===id);document.getElementById('histTitle').textContent=f.emoji+' '+f.name;const deps=[...f.deposits].reverse();let html='';if(!deps.length){html='<p style="color:var(--muted);font-size:12px">No deposits yet.</p>';}else{html='<table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">DATE</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">AMOUNT</th><th style="text-align:left;font-size:9px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">NOTE</th><th style="padding:4px 6px;border-bottom:1px solid var(--border)"></th></tr>';deps.forEach(d=>{const isOut=d.txnType==='out';const amtColor=isOut?'#f23060':'#c8f230';const prefix=isOut?'-':'+';html+=`<tr><td style="padding:9px 6px;border-bottom:1px solid var(--border);color:var(--muted)">${d.date}</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);color:${amtColor};font-weight:500">${prefix}${fmtR(d.amount)}</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);color:var(--muted)">${escHtml(d.note||'—')}</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);white-space:nowrap"><button onclick="openEditDeposit(\'${f.id}\',\'${d.id}\')" title="Edit" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 4px" onmouseover="this.style.color=\'#7aa050\'" onmouseout="this.style.color=\'#444\'">✏️</button><button onclick="deleteDeposit('${f.id}','${d.id}')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#333'">✕</button></td></tr>`;});html+='</table>';}document.getElementById('histContent').innerHTML=html;document.getElementById('histModal').classList.add('active');}
+function openHistory(id){window._currentHistFundId=id;const f=funds.find(x=>x.id===id);document.getElementById('histTitle').textContent=f.emoji+' '+f.name;const deps=[...f.deposits].reverse();let html='';if(!deps.length){html='<p style="color:var(--muted);font-size:12px">No deposits yet.</p>';}else{html='<table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th style="text-align:left;font-size:11px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">DATE</th><th style="text-align:left;font-size:11px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">AMOUNT</th><th style="text-align:left;font-size:11px;letter-spacing:2px;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-weight:400">NOTE</th><th style="padding:4px 6px;border-bottom:1px solid var(--border)"></th></tr>';deps.forEach(d=>{const isOut=d.txnType==='out';const amtColor=isOut?'#f23060':'#c8f230';const prefix=isOut?'-':'+';html+=`<tr><td style="padding:9px 6px;border-bottom:1px solid var(--border);color:var(--muted)">${d.date}</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);color:${amtColor};font-weight:500">${prefix}${fmtR(d.amount)}</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);color:var(--muted)">${escHtml(d.note||'—')}</td><td style="padding:9px 6px;border-bottom:1px solid var(--border);white-space:nowrap"><button onclick="openEditDeposit(\'${f.id}\',\'${d.id}\')" title="Edit" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 4px" onmouseover="this.style.color=\'#7aa050\'" onmouseout="this.style.color=\'#444\'">✏️</button><button onclick="deleteDeposit('${f.id}','${d.id}')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#333'">✕</button></td></tr>`;});html+='</table>';}document.getElementById('histContent').innerHTML=html;document.getElementById('histModal').classList.add('active');}
 function deleteDeposit(fid,did){
   const f=funds.find(x=>x.id===fid);
   const dep=f.deposits.find(function(d){return d.id===did;});
@@ -1245,7 +1245,7 @@ function maybePromptDeadlineBackfill(){
       + '<span style="font-size:20px;flex-shrink:0;">'+(f.emoji||'💰')+'</span>'
       + '<div style="flex:1;min-width:0;">'
       +   '<div style="font-size:12px;color:var(--text);font-family:Syne,sans-serif;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.name+'</div>'
-      +   '<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px;">Goal '+fmtR(f.goal)+'</div>'
+      +   '<div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:2px;">Goal '+fmtR(f.goal)+'</div>'
       + '</div>'
       + '<input type="date" data-fund-id="'+f.id+'" class="dl-backfill-input" style="background:#fff;border:1px solid #ccc;border-radius:4px;padding:5px 6px;font-family:DM Mono,monospace;font-size:11px;color:#000;width:130px;flex-shrink:0;"/>'
       + '</div>';
@@ -1396,7 +1396,7 @@ function renderPocketStmt(){
   if(!previewBox) return;
 
   let html = '';
-  html += '<div style="padding:9px 12px;border-bottom:1px solid #1e3a00;display:flex;justify-content:space-between;font-size:10px;">';
+  html += '<div style="padding:9px 12px;border-bottom:1px solid #1e3a00;display:flex;justify-content:space-between;font-size:11px;">';
   html +=   '<span style="color:#5a8800;letter-spacing:2px;text-transform:uppercase;">Movements</span>';
   html +=   '<span style="color:#c8f230;font-weight:500;">' + data.movements.length + '</span>';
   html += '</div>';
@@ -1411,7 +1411,7 @@ function renderPocketStmt(){
       const prefix = isOut ? '−' : '+';
       const day = new Date(m.date).toLocaleDateString('en-ZA',{day:'2-digit',month:'short'});
       const safeNote = (m.note || '—').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      html += '<div style="display:flex;justify-content:space-between;padding:5px 12px;font-size:10.5px;gap:8px;align-items:center;">';
+      html += '<div style="display:flex;justify-content:space-between;padding:5px 12px;font-size:11px;gap:8px;align-items:center;">';
       html +=   '<span style="color:var(--muted);min-width:62px;flex-shrink:0;">' + day + '</span>';
       html +=   '<span style="color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + safeNote + '</span>';
       html +=   '<span style="color:' + amtColor + ';font-weight:500;flex-shrink:0;">' + prefix + fmtR(m.amount) + '</span>';
@@ -1420,14 +1420,14 @@ function renderPocketStmt(){
   }
   html += '</div>';
 
-  html += '<div style="padding:8px 12px;background:#0a1500;border-top:1px solid #1e3a00;display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:10px;">';
-  html +=   '<div style="color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">Opening</div>';
+  html += '<div style="padding:8px 12px;background:#0a1500;border-top:1px solid #1e3a00;display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:11px;">';
+  html +=   '<div style="color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:11px;">Opening</div>';
   html +=   '<div style="text-align:right;color:var(--muted);">' + fmtR(data.opening) + '</div>';
-  html +=   '<div style="color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">In</div>';
+  html +=   '<div style="color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:11px;">In</div>';
   html +=   '<div style="text-align:right;color:#c8f230;">+' + fmtR(data.totalIn) + '</div>';
-  html +=   '<div style="color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">Out</div>';
+  html +=   '<div style="color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:11px;">Out</div>';
   html +=   '<div style="text-align:right;color:#f2a830;">−' + fmtR(data.totalOut) + '</div>';
-  html +=   '<div style="color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:8.5px;">Closing</div>';
+  html +=   '<div style="color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:11px;">Closing</div>';
   html +=   '<div style="text-align:right;color:#c8f230;font-weight:700;font-family:Syne,sans-serif;">' + fmtR(data.closing) + '</div>';
   html += '</div>';
 

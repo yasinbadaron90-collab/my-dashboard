@@ -12,11 +12,11 @@ function countdownBadge(dateStr, label){
   var today = new Date(); today.setHours(0,0,0,0);
   var d = new Date(dateStr+'T00:00:00');
   var diff = Math.round((d - today)/86400000);
-  if(diff < 0)   return '<span style="color:#f23060;font-size:10px;letter-spacing:1px;">⚠ '+label+' overdue '+Math.abs(diff)+'d</span>';
-  if(diff === 0) return '<span style="color:#f23060;font-size:10px;letter-spacing:1px;">⚠ '+label+' due TODAY!</span>';
-  if(diff <= 30) return '<span style="color:#f2a830;font-size:10px;letter-spacing:1px;">⏰ '+label+' in '+diff+'d</span>';
-  if(diff <= 60) return '<span style="color:#d4a800;font-size:10px;letter-spacing:1px;">'+label+' in '+diff+'d</span>';
-  return '<span style="color:#5a8800;font-size:10px;letter-spacing:1px;">'+label+' in '+diff+'d</span>';
+  if(diff < 0)   return '<span style="color:#f23060;font-size:11px;letter-spacing:1px;">⚠ '+label+' overdue '+Math.abs(diff)+'d</span>';
+  if(diff === 0) return '<span style="color:#f23060;font-size:11px;letter-spacing:1px;">⚠ '+label+' due TODAY!</span>';
+  if(diff <= 30) return '<span style="color:#f2a830;font-size:11px;letter-spacing:1px;">⏰ '+label+' in '+diff+'d</span>';
+  if(diff <= 60) return '<span style="color:#d4a800;font-size:11px;letter-spacing:1px;">'+label+' in '+diff+'d</span>';
+  return '<span style="color:#5a8800;font-size:11px;letter-spacing:1px;">'+label+' in '+diff+'d</span>';
 }
 
 
@@ -153,7 +153,7 @@ function renderCars(){
       var catMap = {};
       expenses.forEach(function(e){ var c=e.category||'💡 Other'; catMap[c]=(catMap[c]||0)+Number(e.amt||0); });
       var catPills = Object.keys(catMap).map(function(c){
-        return '<span style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:100px;padding:3px 10px;font-size:10px;color:#888;white-space:nowrap;">'+c+' <strong style="color:#f2a830;">R'+catMap[c].toLocaleString('en-ZA')+'</strong></span>';
+        return '<span style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:100px;padding:3px 10px;font-size:11px;color:#888;white-space:nowrap;">'+c+' <strong style="color:#f2a830;">R'+catMap[c].toLocaleString('en-ZA')+'</strong></span>';
       }).join('');
 
       // Expense rows — show 5 most recent on the card. Full history opens
@@ -171,7 +171,7 @@ function renderCars(){
           return '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;">'
             +'<div>'
               +'<div style="font-size:12px;"><strong style="color:var(--text);font-weight:700;">'+escHtml(e.category||'💡 Other')+'</strong><span style="color:var(--muted);font-size:11px;margin-left:6px;">'+escHtml(e.desc||'')+'</span></div>'
-              +'<div style="color:var(--muted);font-size:10px;margin-top:2px;">'+(e.date||'')+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
+              +'<div style="color:var(--muted);font-size:11px;margin-top:2px;">'+(e.date||'')+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
             +'</div>'
             +'<span style="color:#f2a830;font-weight:700;font-size:13px;white-space:nowrap;">R'+Number(e.amt).toLocaleString('en-ZA')+'</span>'
             +'<span role="button" tabindex="0" aria-label="Edit expense" onclick="openEditExpense(\''+car.id+'\',\''+e.id+'\')" style="cursor:pointer;color:var(--muted);font-size:16px;padding:6px 10px;border-radius:6px;">✏️</span>'
@@ -185,10 +185,10 @@ function renderCars(){
           var moreCount = sortedExp.length - SHOW_DEFAULT;
           rowsHtml += '<div style="padding:12px 16px;text-align:center;border-top:1px solid var(--border);background:var(--surface2);">'
             + '<button onclick="openAllRecords(\''+car.id+'\')" '
-            +   'style="background:#1a1a00;border:1px solid #f2a830;border-radius:6px;padding:8px 18px;color:#f2a830;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">'
+            +   'style="background:#1a1a00;border:1px solid #f2a830;border-radius:6px;padding:8px 18px;color:#f2a830;font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">'
             +   '📋 All Records ('+sortedExp.length+')'
             + '</button>'
-            + '<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:6px;">+'+moreCount+' more entries</div>'
+            + '<div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:6px;">+'+moreCount+' more entries</div>'
             + '</div>';
         } else if(expenses.length > 0){
           // Even if there's no overflow, give users access to the modal in
@@ -196,7 +196,7 @@ function renderCars(){
           // there's no overflow.
           rowsHtml += '<div style="padding:10px 16px;text-align:center;border-top:1px solid var(--border);">'
             + '<button onclick="openAllRecords(\''+car.id+'\')" '
-            +   'style="background:none;border:1px solid #333;border-radius:6px;padding:6px 14px;color:var(--muted);font-family:DM Mono,monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'
+            +   'style="background:none;border:1px solid #333;border-radius:6px;padding:6px 14px;color:var(--muted);font-family:DM Mono,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'
             +   '📋 All Records'
             + '</button>'
             + '</div>';
@@ -212,13 +212,13 @@ function renderCars(){
       var expCount = expenses.length;
 
       // Reusable button HTML snippets
-      var btnLogExpense  = '<button onclick="openAddExpense(\''+car.id+'\')" style="flex:1;background:#1a1a00;border:1px solid #f2a830;border-radius:6px;padding:9px 14px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">+ Log Expense</button>';
-      var btnAllRecords  = '<button onclick="openAllRecords(\''+car.id+'\')" style="flex:1;background:#1a0d2a;border:1px solid #6a3aa0;border-radius:6px;padding:9px 14px;color:#a78bfa;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">📋 All Records'+(expCount>0?' ('+expCount+')':'')+'</button>';
-      var btnLogSvcToday = '<button onclick="openLogServiceToday(\''+car.id+'\')" style="flex:1;background:#1a0000;border:2px solid #f23060;border-radius:6px;padding:9px 14px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;animation:pulse-red 1.5s infinite;">✅ Log Service Today</button>';
-      var btnSetSvcDate  = '<button onclick="openRescheduleService(\''+car.id+'\')" style="flex:1;background:#0a1a2e;border:1px solid #3a5a8a;border-radius:6px;padding:9px 14px;color:#5fa0f0;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">📅 Set Service Date</button>';
+      var btnLogExpense  = '<button onclick="openAddExpense(\''+car.id+'\')" style="flex:1;background:#1a1a00;border:1px solid #f2a830;border-radius:6px;padding:9px 14px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">+ Log Expense</button>';
+      var btnAllRecords  = '<button onclick="openAllRecords(\''+car.id+'\')" style="flex:1;background:#1a0d2a;border:1px solid #6a3aa0;border-radius:6px;padding:9px 14px;color:#a78bfa;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">📋 All Records'+(expCount>0?' ('+expCount+')':'')+'</button>';
+      var btnLogSvcToday = '<button onclick="openLogServiceToday(\''+car.id+'\')" style="flex:1;background:#1a0000;border:2px solid #f23060;border-radius:6px;padding:9px 14px;color:#f23060;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;animation:pulse-red 1.5s infinite;">✅ Log Service Today</button>';
+      var btnSetSvcDate  = '<button onclick="openRescheduleService(\''+car.id+'\')" style="flex:1;background:#0a1a2e;border:1px solid #3a5a8a;border-radius:6px;padding:9px 14px;color:#5fa0f0;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-weight:700;">📅 Set Service Date</button>';
       // More-section buttons (full-width, secondary styling)
       var moreBtn = function(onclick, color, border, text){
-        return '<button onclick="'+onclick+'" style="background:'+border+';border:1px solid '+color+';border-radius:6px;padding:8px 12px;color:'+color+';font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'+text+'</button>';
+        return '<button onclick="'+onclick+'" style="background:'+border+';border:1px solid '+color+';border-radius:6px;padding:8px 12px;color:'+color+';font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">'+text+'</button>';
       };
 
       // Primary action row (state-dependent)
@@ -250,7 +250,7 @@ function renderCars(){
         moreButtonsList.push(renderAdvisoryMoreButton(car));
       }
       moreButtonsList.push(moreBtn('openOdinScanner(\''+car.id+'\')', '#c8f230', '#0d1a00', '🧾 Scan Invoice'));
-      moreButtonsList.push('<button onclick="deleteCar(\''+car.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;padding:8px 12px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Remove</button>');
+      moreButtonsList.push('<button onclick="deleteCar(\''+car.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:6px;padding:8px 12px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Remove</button>');
 
       var moreSection = '<details class="car-card-more">'
         + '<summary>▼ More</summary>'
@@ -270,7 +270,7 @@ function renderCars(){
             +(typeof renderAdvisoryBadge==='function' ? renderAdvisoryBadge(car) : '')
           +'</div>'
           +'<div style="text-align:right;">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Total Spent</div>'
+            +'<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Total Spent</div>'
             +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:22px;color:#f2a830;">R'+total.toLocaleString('en-ZA')+'</div>'
           +'</div>'
         +'</div>'
@@ -278,23 +278,23 @@ function renderCars(){
         // 4-cell status grid: Last Service | Next Service | Licence Disc | Kilometres
         +'<div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border);">'
           +'<div style="padding:12px 16px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Last Service</div>'
+            +'<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Last Service</div>'
             +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--text);">'+(lastSvc?formatDisplayDate(lastSvc):'<span style="color:var(--muted2);">—</span>')+'</div>'
-            +(car.serviceKm?'<div style="font-size:10px;color:#4a7a00;margin-top:2px;">@ '+svcKmDisplay+'</div>':'')
+            +(car.serviceKm?'<div style="font-size:11px;color:#4a7a00;margin-top:2px;">@ '+svcKmDisplay+'</div>':'')
           +'</div>'
           +'<div style="padding:12px 16px;border-bottom:1px solid var(--border);">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Next Service Due</div>'
+            +'<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Next Service Due</div>'
             +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:#c8f230;">'+(nextSvc?formatDisplayDate(nextSvc):'<span style="color:var(--muted2);">—</span>')+'</div>'
-            +(car.nextServiceKm?'<div style="font-size:10px;color:#5a8800;margin-top:2px;">or '+Number(car.nextServiceKm).toLocaleString('en-ZA')+' km</div>':'')
+            +(car.nextServiceKm?'<div style="font-size:11px;color:#5a8800;margin-top:2px;">or '+Number(car.nextServiceKm).toLocaleString('en-ZA')+' km</div>':'')
             +(svcCd?'<div style="margin-top:2px;">'+svcCd+'</div>':'')
           +'</div>'
           +'<div style="padding:12px 16px;border-right:1px solid var(--border);">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Licence Disc</div>'
+            +'<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Licence Disc</div>'
             +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:'+(licExp?'#f2a830':'var(--muted2)')+'">'+(licExp?formatDisplayDate(licExp):'<span style="color:var(--muted2);">—</span>')+'</div>'
             +(licCd?'<div style="margin-top:2px;">'+licCd+'</div>':'')
           +'</div>'
           +'<div style="padding:12px 16px;">'
-            +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Kilometres</div>'
+            +'<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Kilometres</div>'
             +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:14px;color:var(--text);">'+kmDisplay+'</div>'
           +'</div>'
         +'</div>'
@@ -353,19 +353,19 @@ function openAllRecords(carId){
   var summaryHtml = ''
     + '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">'
     +   '<div>'
-    +     '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Total Spent</div>'
+    +     '<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Total Spent</div>'
     +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:22px;color:#f2a830;">R'+totalAmt.toLocaleString('en-ZA',{minimumFractionDigits:0,maximumFractionDigits:2})+'</div>'
-    +     (dateRange ? '<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:4px;">'+dateRange+'</div>' : '')
+    +     (dateRange ? '<div style="font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:4px;">'+dateRange+'</div>' : '')
     +   '</div>'
     +   '<div style="text-align:right;">'
-    +     '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Entries</div>'
+    +     '<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Entries</div>'
     +     '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:22px;color:var(--text);">'+expenses.length+'</div>'
     +   '</div>'
     + '</div>';
   if(topCats.length > 0){
     summaryHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">';
     topCats.forEach(function(c){
-      summaryHtml += '<span style="background:#1a1a00;border:1px solid #4a3000;border-radius:100px;padding:4px 10px;font-size:10px;color:#f2a830;letter-spacing:0.5px;">'
+      summaryHtml += '<span style="background:#1a1a00;border:1px solid #4a3000;border-radius:100px;padding:4px 10px;font-size:11px;color:#f2a830;letter-spacing:0.5px;">'
         + c.cat + ' · R' + c.amt.toLocaleString('en-ZA',{maximumFractionDigits:0})
         + '</span>';
     });
@@ -383,7 +383,7 @@ function openAllRecords(carId){
       rows += '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;">'
         +'<div>'
           +'<div style="font-size:12px;"><strong style="color:var(--text);font-weight:700;">'+escHtml(e.category||'💡 Other')+'</strong><span style="color:var(--muted);font-size:11px;margin-left:6px;">'+escHtml(e.desc||'')+'</span></div>'
-          +'<div style="color:var(--muted);font-size:10px;margin-top:2px;">'+(e.date||'')+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
+          +'<div style="color:var(--muted);font-size:11px;margin-top:2px;">'+(e.date||'')+(e.km?' · <span style="color:#4a7a00;">'+Number(e.km).toLocaleString('en-ZA')+' km</span>':'')+'</div>'
         +'</div>'
         +'<span style="color:#f2a830;font-weight:700;font-size:13px;white-space:nowrap;">R'+Number(e.amt).toLocaleString('en-ZA')+'</span>'
         +'<span role="button" tabindex="0" aria-label="Edit expense" onclick="openEditExpense(\''+car.id+'\',\''+e.id+'\');closeModal(\'allRecordsModal\');" style="cursor:pointer;color:var(--muted);font-size:16px;padding:6px 10px;border-radius:6px;">✏️</span>'
@@ -618,7 +618,7 @@ function buildCarPDF(carId){
   toast.innerHTML =
     '<div style="width:18px;height:18px;border:2px solid #3a5a00;border-top-color:#c8f230;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></div>'
     +'<div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;color:var(--text);">Generating PDF...</div>'
-    +'<div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">'+car.name+'</div></div>';
+    +'<div style="font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:1px;">'+car.name+'</div></div>';
   if(!document.getElementById('spinStyle')){
     var sp=document.createElement('style');sp.id='spinStyle';
     sp.textContent='@keyframes spin{to{transform:rotate(360deg);}}';
@@ -1290,15 +1290,15 @@ function renderDrivers(){
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;">'
       +'<div>'
         +'<div style="font-size:13px;color:var(--text);font-weight:700;">'+d.name+'</div>'
-        +(d.idNum?'<div style="font-size:10px;color:var(--muted);letter-spacing:1px;">ID: '+d.idNum+'</div>':'')
+        +(d.idNum?'<div style="font-size:11px;color:var(--muted);letter-spacing:1px;">ID: '+d.idNum+'</div>':'')
       +'</div>'
       +'<div style="text-align:right;">'
         +'<div style="font-size:12px;color:#f2a830;">'+(d.expiry?formatDisplayDate(d.expiry):'<span style="color:var(--muted2);">No date set</span>')+'</div>'
         +(cd?'<div>'+cd+'</div>':'')
       +'</div>'
       +'<div style="display:flex;gap:6px;">'
-        +'<button onclick="openEditDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:4px 10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#444\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'">✏️ Edit</button>'
-        +'<button onclick="deleteDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:4px 10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">🗑</button>'
+        +'<button onclick="openEditDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a2a2a;border-radius:4px;padding:4px 10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#444\';this.style.color=\'#888\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'">✏️ Edit</button>'
+        +'<button onclick="deleteDriver(\''+d.id+'\')" style="background:none;border:1px solid #2a1a1a;border-radius:4px;padding:4px 10px;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;" onmouseover="this.style.borderColor=\'#c0392b\';this.style.color=\'#c0392b\'" onmouseout="this.style.borderColor=\'#2a1a1a\';this.style.color=\'#555\'">🗑</button>'
       +'</div>'
     +'</div>';
   }).join('');
@@ -1306,7 +1306,7 @@ function renderDrivers(){
   wrap.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);">'
       +'<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:15px;color:var(--text);">🪪 Driver\'s Licences</div>'
-      +'<button onclick="openAddDriver()" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:6px 12px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">+ Add Person</button>'
+      +'<button onclick="openAddDriver()" style="background:#0d1a00;border:1px solid #3a5a00;border-radius:6px;padding:6px 12px;color:#c8f230;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">+ Add Person</button>'
     +'</div>'
     +(drivers.length===0
       ? '<div style="padding:20px 16px;text-align:center;color:var(--muted);font-size:12px;">No driver licences added yet</div>'
@@ -1511,11 +1511,11 @@ function checkReminders(){
 
   banner.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#1a0000;border-bottom:1px solid #3a0000;flex-wrap:wrap;gap:6px;">'
-      +'<span style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#f23060;font-weight:700;">⚠ '+totalCount+' Reminder'+(totalCount>1?'s':'')+'</span>'
+      +'<span style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#f23060;font-weight:700;">⚠ '+totalCount+' Reminder'+(totalCount>1?'s':'')+'</span>'
       +'<div style="display:flex;gap:6px;align-items:center;">'
-        +'<button onclick="_reminderSnooze(1)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:10px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">😴 1 day</button>'
-        +'<button onclick="_reminderSnooze(3)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:10px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">3 days</button>'
-        +'<button onclick="_reminderSnooze(7)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:10px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">1 week</button>'
+        +'<button onclick="_reminderSnooze(1)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:11px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">😴 1 day</button>'
+        +'<button onclick="_reminderSnooze(3)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:11px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">3 days</button>'
+        +'<button onclick="_reminderSnooze(7)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#888;font-size:11px;padding:3px 8px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">1 week</button>'
         +'<button onclick="_reminderSnooze(0)" style="background:none;border:1px solid #3a0000;border-radius:4px;color:#f23060;font-size:11px;padding:3px 10px;cursor:pointer;font-family:\'DM Mono\',monospace;letter-spacing:1px;">✕ today</button>'
       +'</div>'
     +'</div>'

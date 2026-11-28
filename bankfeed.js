@@ -122,7 +122,7 @@ function _bfRenderUpload(){
     +'<div class="bf-date-label">From</div>'
     +'<div class="bf-date-val" id="bfDateFrom">'+_bf.dateFrom+'</div>'
     +'</div>'
-    +'<div style="color:#444;font-size:16px;align-self:center;">→</div>'
+    +'<div style="color:var(--muted);font-size:16px;align-self:center;">→</div>'
     +'<div class="bf-date-box" onclick="bfEditDate(\'to\')">'
     +'<div class="bf-date-label">To</div>'
     +'<div class="bf-date-val" id="bfDateTo">'+_bf.dateTo+'</div>'
@@ -405,7 +405,7 @@ function _bfRenderReview(){
     +'<div class="bf-stat-row">'
     +'<div class="bf-stat-box"><div class="bf-stat-label">Auto-matched</div><div class="bf-stat-val" style="color:#c8f230">'+matched+'</div></div>'
     +'<div class="bf-stat-box"><div class="bf-stat-label">Needs you</div><div class="bf-stat-val" style="color:#f2a830">'+unmatched+'</div></div>'
-    +'<div class="bf-stat-box"><div class="bf-stat-label">Skipped</div><div class="bf-stat-val" style="color:#555">'+skipped+'</div></div>'
+    +'<div class="bf-stat-box"><div class="bf-stat-label">Skipped</div><div class="bf-stat-val" style="color:var(--muted)">'+skipped+'</div></div>'
     +'</div>'
     +rows
     +'<div style="margin-top:16px">'
@@ -421,7 +421,7 @@ function _bfRenderMiniPicker(idx, assigned, isCredit){
     var bal = typeof fundTotal === 'function' ? fundTotal(f) : 0;
     return '<div class="bf-pocket-chip'+(sel?' bf-pocket-sel':'')+'" onclick="bfAssign('+idx+',\''+f.id+'\')">'
       +_bfEsc(f.emoji+' '+f.name)
-      +'<span style="color:#555;margin-left:4px;font-size:9px;">R'+Number(bal).toLocaleString('en-ZA')+'</span>'
+      +'<span style="color:var(--muted);margin-left:4px;font-size:11px;">R'+Number(bal).toLocaleString('en-ZA')+'</span>'
       +'</div>';
   }).join('');
 

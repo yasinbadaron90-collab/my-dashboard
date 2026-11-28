@@ -368,7 +368,7 @@ function _miEnsureHouseExtra(){
   wrap.id = 'miHouseExtra';
   wrap.innerHTML = ''
     + '<div id="miHouseInfo" style="display:none;background:#1a1200;border:1px solid #5a3a00;border-radius:6px;padding:10px 12px;margin-top:8px;font-size:11.5px;color:#f2a830;line-height:1.6;"></div>'
-    + '<div style="font-size:10px;letter-spacing:1px;color:var(--muted);margin-top:12px;margin-bottom:4px;">PART PAID FROM A POCKET (OPTIONAL)</div>'
+    + '<div style="font-size:11px;letter-spacing:1px;color:var(--muted);margin-top:12px;margin-bottom:4px;">PART PAID FROM A POCKET (OPTIONAL)</div>'
     + '<div style="display:flex;gap:8px;">'
     +   '<input type="number" id="miHouseCash" step="0.01" min="0" placeholder="Cash part" oninput="_miOnHeaderEdit()" style="flex:0 0 34%;min-width:0;width:auto;"/>'
     +   '<select id="miCashPocket" onchange="_miOnHeaderEdit()" style="flex:1;min-width:0;width:auto;"></select>'
@@ -483,8 +483,8 @@ function _miRenderHouseExtra(){
       var usedAlready = _miState.cashFundId === wp.id && Math.abs(o0.cash - useAmt) < 0.005;
       if(av > 0 && !usedAlready){
         uh = (o0.toHer > 0)
-          ? '<button type="button" onclick="_miUseSaved()" style="width:100%;margin-top:8px;padding:9px;background:#1a1200;border:1px solid #f2a830;border-radius:6px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:10.5px;letter-spacing:1px;cursor:pointer;">Use '+fmtR(useAmt)+' saved in '+escHtml(wp.name)+'</button>'
-          : '<div style="font-size:10.5px;color:#f2a830;margin-top:6px;">'+fmtR(av)+' saved in '+escHtml(wp.name)+'. Type the total to her to use it.</div>';
+          ? '<button type="button" onclick="_miUseSaved()" style="width:100%;margin-top:8px;padding:9px;background:#1a1200;border:1px solid #f2a830;border-radius:6px;color:#f2a830;font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">Use '+fmtR(useAmt)+' saved in '+escHtml(wp.name)+'</button>'
+          : '<div style="font-size:11px;color:#f2a830;margin-top:6px;">'+fmtR(av)+' saved in '+escHtml(wp.name)+'. Type the total to her to use it.</div>';
       }
     }
     us.innerHTML = uh;
@@ -499,16 +499,16 @@ function _miRenderHouseExtra(){
   if(linesEl){
     var lh = '';
     if(already){
-      lh += '<div style="font-size:10.5px;color:#f2a830;margin:2px 0 4px;">Already added with the Money In on ' + escHtml(already.date) + '. Tick only if you\'re paying them twice this cycle.</div>';
+      lh += '<div style="font-size:11px;color:#f2a830;margin:2px 0 4px;">Already added with the Money In on ' + escHtml(already.date) + '. Tick only if you\'re paying them twice this cycle.</div>';
     }
     if(!conf.length){
-      lh += '<div style="font-size:10.5px;color:var(--muted);">No subscriptions set. Add them in Plan → ✎.</div>';
+      lh += '<div style="font-size:11px;color:var(--muted);">No subscriptions set. Add them in Plan → ✎.</div>';
     }
     conf.forEach(function(s){
       var on = _miState.subsOn && _miState.herTotal > 0;
       lh += '<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:'+(on?'var(--text)':'var(--muted)')+';'+(on?'':'text-decoration:line-through;')+'">'
         + (s.isDebt
-            ? '<span>↩ ' + escHtml(s.label) + ' <span style="font-size:10px;color:#c8f230;">· pays off loan</span></span>'
+            ? '<span>↩ ' + escHtml(s.label) + ' <span style="font-size:11px;color:#c8f230;">· pays off loan</span></span>'
             : '<span>🔒 ' + escHtml(s.label) + (s.day ? ' · ' + s.day + 'th' : '') + '</span>')
         + '<span>' + (on ? '−' : '') + fmtR(s.amount) + '</span></div>';
     });
@@ -714,7 +714,7 @@ function _miRenderPocketSplit(){
     hint.id = 'miPlanHint';
     hint.style.cssText = 'background:#111;border:1px solid #3a5a00;border-radius:6px;padding:10px 12px;margin-bottom:10px;';
     var hdr = document.createElement('div');
-    hdr.style.cssText = 'font-size:10px;color:#c8f230;letter-spacing:1px;margin-bottom:6px;';
+    hdr.style.cssText = 'font-size:11px;color:#c8f230;letter-spacing:1px;margin-bottom:6px;';
     hdr.textContent = 'PLAN — '+fmtR(_miLastPlanTotal)+' TO PLACE';
     hint.appendChild(hdr);
     var glyph = { fill:'✓', skip:'⏸', wait:'⏸', warn:'⚠' };
@@ -735,7 +735,7 @@ function _miRenderPocketSplit(){
       am.textContent = r.state==='fill' ? fmtR(r.amt) : 'Skipped';
       top.appendChild(nm); top.appendChild(am);
       var why = document.createElement('div');
-      why.style.cssText = 'font-size:10px;color:#888;margin-top:2px;letter-spacing:0.3px;';
+      why.style.cssText = 'font-size:11px;color:#888;margin-top:2px;letter-spacing:0.3px;';
       why.textContent = r.why;
       body.appendChild(top); body.appendChild(why);
       row.appendChild(g); row.appendChild(body);
@@ -743,7 +743,7 @@ function _miRenderPocketSplit(){
     });
     if(_miLastPlanLeft > 0){
       var ft = document.createElement('div');
-      ft.style.cssText = 'font-size:10px;color:#888;margin-top:6px;padding-top:6px;border-top:1px solid #1e1e1e;letter-spacing:0.3px;';
+      ft.style.cssText = 'font-size:11px;color:#888;margin-top:6px;padding-top:6px;border-top:1px solid #1e1e1e;letter-spacing:0.3px;';
       ft.textContent = fmtR(_miLastPlanLeft)+' left for your priority rules';
       hint.appendChild(ft);
     }
@@ -1398,7 +1398,7 @@ function renderMoneyInHistory(){
   var c = document.getElementById('moneyInHistory');
   if(!c) return;
   if(!all.length){
-    c.innerHTML = '<div style="text-align:center;color:#444;font-size:11px;padding:18px;">No Money In entries yet</div>';
+    c.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:11px;padding:18px;">No Money In entries yet</div>';
     return;
   }
   c.innerHTML = '';
@@ -1410,7 +1410,7 @@ function renderMoneyInHistory(){
     var lbl = rec.note || 'Money In';
     var pocketsText = (rec.splits||[]).length + ' pocket' + ((rec.splits||[]).length===1?'':'s');
     info.innerHTML = '<div style="font-size:12.5px;color:#efefef;margin-bottom:3px;">'+lbl+'</div>'
-                   + '<div style="font-size:10px;color:#555;letter-spacing:1px;">'+rec.date+' · '+rec.sourceBank+' · '+pocketsText+(_miHouseTotalOf(rec)>0 ? ' · house '+fmtR(_miHouseTotalOf(rec)) : '')+((rec.subs||[]).length ? ' + subs' : '')+'</div>';
+                   + '<div style="font-size:11px;color:var(--muted);letter-spacing:1px;">'+rec.date+' · '+rec.sourceBank+' · '+pocketsText+(_miHouseTotalOf(rec)>0 ? ' · house '+fmtR(_miHouseTotalOf(rec)) : '')+((rec.subs||[]).length ? ' + subs' : '')+'</div>';
     var amt = document.createElement('div');
     amt.style.cssText = 'font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:#c8f230;flex-shrink:0;';
     amt.textContent = fmtR(rec.amount);
@@ -1421,7 +1421,7 @@ function renderMoneyInHistory(){
     editBtn.textContent = '✎';
     editBtn.onclick = function(){ openMoneyIn(rec.id); };
     var delBtn = document.createElement('button');
-    delBtn.style.cssText = 'background:none;border:1px solid #2a2a2a;border-radius:5px;width:28px;height:28px;color:#555;font-size:12px;cursor:pointer;';
+    delBtn.style.cssText = 'background:none;border:1px solid #2a2a2a;border-radius:5px;width:28px;height:28px;color:var(--muted);font-size:12px;cursor:pointer;';
     delBtn.textContent = '✕';
     delBtn.onclick = function(){ deleteMoneyIn(rec.id); };
     actions.appendChild(editBtn);
